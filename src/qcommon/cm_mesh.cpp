@@ -1103,17 +1103,17 @@ void __cdecl CM_TraceThroughAabbTree_r(const traceWork_t *tw, const CollisionAab
   v82 = tw->midpoint.vec.v[2] - v51;
   Vec3Add(a, tw->size.vec.v, &sum);
   v78 = v80;
-  v77 = LODWORD(v80) & _mask__AbsFloat_;
+  v77 = fabs(v80);
   v76 = tw->halfDeltaAbs.vec.v[0];
   if ( fabs(v80) <= (float)(sum + v76) )
   {
     v75 = v81;
-    v74 = LODWORD(v81) & _mask__AbsFloat_;
+    v74 = fabs(v81);
     v73 = tw->halfDeltaAbs.vec.v[1];
     if ( fabs(v81) <= (float)(v84 + v73) )
     {
       v72 = v82;
-      v71 = LODWORD(v82) & _mask__AbsFloat_;
+      v71 = fabs(v82);
       v70 = tw->halfDeltaAbs.vec.v[2];
       if ( fabs(v82) <= (float)(v85 + v70) )
       {
@@ -1126,7 +1126,7 @@ void __cdecl CM_TraceThroughAabbTree_r(const traceWork_t *tw, const CollisionAab
           v69 = tw->halfDelta.vec.v[1];
           v68 = tw->halfDelta.vec.v[2];
           v67 = (float)(v69 * v82) - (float)(v68 * v81);
-          v66 = LODWORD(v67) & _mask__AbsFloat_;
+          v66 = fabs(v67);
           v65 = *(_QWORD *)&tw->halfDeltaAbs.vec.unitVec[1].packed;
           if ( fabs(v67) <= (float)((float)(v84 * *((float *)&v65 + 1))
                                                                       + (float)(v85 * *(float *)&v65)) )
@@ -1134,7 +1134,7 @@ void __cdecl CM_TraceThroughAabbTree_r(const traceWork_t *tw, const CollisionAab
             v64 = tw->halfDelta.vec.v[2];
             v63 = tw->halfDelta.vec.v[0];
             v62 = (float)(v64 * v80) - (float)(v63 * v82);
-            v61 = LODWORD(v62) & _mask__AbsFloat_;
+            v61 = fabs(v62);
             v60 = tw->halfDeltaAbs.vec.v[0];
             v59 = tw->halfDeltaAbs.vec.v[2];
             if ( fabs(v62) <= (float)((float)(v85 * v60) + (float)(sum * v59)) )
@@ -1142,7 +1142,7 @@ void __cdecl CM_TraceThroughAabbTree_r(const traceWork_t *tw, const CollisionAab
               v58 = tw->halfDelta.vec.v[0];
               v57 = tw->halfDelta.vec.v[1];
               v56 = (float)(v58 * v81) - (float)(v57 * v80);
-              v55 = LODWORD(v56) & _mask__AbsFloat_;
+              v55 = fabs(v56);
               v54 = *(_QWORD *)tw->halfDeltaAbs.vec.v;
               v48 = fabs(v56) > (float)((float)(sum * *((float *)&v54 + 1))
                                                                           + (float)(v84 * *(float *)&v54));
@@ -1205,17 +1205,17 @@ void __cdecl CM_TraceThroughAabbTree_r(const traceWork_t *tw, const CollisionAab
           v43 = v9 + tw->size.vec.v[1];
           v44 = v10 + tw->size.vec.v[2];
           v36 = v39;
-          v35 = LODWORD(v39) & _mask__AbsFloat_;
+          v35 = fabs(v39);
           v34 = tw->halfDeltaAbs.vec.v[0];
           if ( fabs(v39) <= (float)(v42 + v34) )
           {
             v33 = v40;
-            v32 = LODWORD(v40) & _mask__AbsFloat_;
+            v32 = fabs(v40);
             v31 = tw->halfDeltaAbs.vec.v[1];
             if ( fabs(v40) <= (float)(v43 + v31) )
             {
               v30 = v41;
-              v29 = LODWORD(v41) & _mask__AbsFloat_;
+              v29 = fabs(v41);
               v28 = tw->halfDeltaAbs.vec.v[2];
               if ( fabs(v41) <= (float)(v44 + v28) )
               {
@@ -1228,7 +1228,7 @@ void __cdecl CM_TraceThroughAabbTree_r(const traceWork_t *tw, const CollisionAab
                   v27 = tw->halfDelta.vec.v[1];
                   v26 = tw->halfDelta.vec.v[2];
                   v25 = (float)(v27 * v41) - (float)(v26 * v40);
-                  v24 = LODWORD(v25) & _mask__AbsFloat_;
+                  v24 = fabs(v25);
                   v23 = *(_QWORD *)&tw->halfDeltaAbs.vec.unitVec[1].packed;
                   if ( fabs(v25) <= (float)((float)(v43 * *((float *)&v23 + 1))
                                                                               + (float)(v44 * *(float *)&v23)) )
@@ -1236,7 +1236,7 @@ void __cdecl CM_TraceThroughAabbTree_r(const traceWork_t *tw, const CollisionAab
                     v22 = tw->halfDelta.vec.v[2];
                     v21 = tw->halfDelta.vec.v[0];
                     v20 = (float)(v22 * v39) - (float)(v21 * v41);
-                    v19 = LODWORD(v20) & _mask__AbsFloat_;
+                    v19 = fabs(v20);
                     v18 = tw->halfDeltaAbs.vec.v[0];
                     v17 = tw->halfDeltaAbs.vec.v[2];
                     if ( fabs(v20) <= (float)((float)(v44 * v18) + (float)(v42 * v17)) )
@@ -1244,7 +1244,7 @@ void __cdecl CM_TraceThroughAabbTree_r(const traceWork_t *tw, const CollisionAab
                       v16 = tw->halfDelta.vec.v[0];
                       v15 = tw->halfDelta.vec.v[1];
                       v14 = (float)(v16 * v40) - (float)(v15 * v39);
-                      v13 = LODWORD(v14) & _mask__AbsFloat_;
+                      v13 = fabs(v14);
                       v12 = *(_QWORD *)tw->halfDeltaAbs.vec.v;
                       v3 = fabs(v14) > (float)((float)(v42 * *((float *)&v12 + 1))
                                                                                  + (float)(v43 * *(float *)&v12));
@@ -1514,17 +1514,17 @@ void __cdecl CM_PositionTestInAabbTree_r(const traceWork_t *tw, CollisionAabbTre
   v43 = v9 + tw->size.vec.v[1];
   v44 = v10 + tw->size.vec.v[2];
   v36 = v39;
-  v35 = LODWORD(v39) & _mask__AbsFloat_;
+  v35 = fabs(v39);
   v34 = tw->halfDeltaAbs.vec.v[0];
   if ( fabs(v39) <= (float)(v42 + v34) )
   {
     v33 = v40;
-    v32 = LODWORD(v40) & _mask__AbsFloat_;
+    v32 = fabs(v40);
     v31 = tw->halfDeltaAbs.vec.v[1];
     if ( fabs(v40) <= (float)(v43 + v31) )
     {
       v30 = v41;
-      v29 = LODWORD(v41) & _mask__AbsFloat_;
+      v29 = fabs(v41);
       v28 = tw->halfDeltaAbs.vec.v[2];
       if ( fabs(v41) <= (float)(v44 + v28) )
       {
@@ -1537,7 +1537,7 @@ void __cdecl CM_PositionTestInAabbTree_r(const traceWork_t *tw, CollisionAabbTre
           v27 = tw->halfDelta.vec.v[1];
           v26 = tw->halfDelta.vec.v[2];
           v25 = (float)(v27 * v41) - (float)(v26 * v40);
-          v24 = LODWORD(v25) & _mask__AbsFloat_;
+          v24 = fabs(v25);
           v23 = *(_QWORD *)&tw->halfDeltaAbs.vec.unitVec[1].packed;
           if ( fabs(v25) <= (float)((float)(v43 * *((float *)&v23 + 1))
                                                                       + (float)(v44 * *(float *)&v23)) )
@@ -1545,7 +1545,7 @@ void __cdecl CM_PositionTestInAabbTree_r(const traceWork_t *tw, CollisionAabbTre
             v22 = tw->halfDelta.vec.v[2];
             v21 = tw->halfDelta.vec.v[0];
             v20 = (float)(v22 * v39) - (float)(v21 * v41);
-            v19 = LODWORD(v20) & _mask__AbsFloat_;
+            v19 = fabs(v20);
             v18 = tw->halfDeltaAbs.vec.v[0];
             v17 = tw->halfDeltaAbs.vec.v[2];
             if ( fabs(v20) <= (float)((float)(v44 * v18) + (float)(v42 * v17)) )
@@ -1553,7 +1553,7 @@ void __cdecl CM_PositionTestInAabbTree_r(const traceWork_t *tw, CollisionAabbTre
               v16 = tw->halfDelta.vec.v[0];
               v15 = tw->halfDelta.vec.v[1];
               v14 = (float)(v16 * v40) - (float)(v15 * v39);
-              v13 = LODWORD(v14) & _mask__AbsFloat_;
+              v13 = fabs(v14);
               v12 = *(_QWORD *)tw->halfDeltaAbs.vec.v;
               v3 = fabs(v14) > (float)((float)(v42 * *((float *)&v12 + 1))
                                                                          + (float)(v43 * *(float *)&v12));

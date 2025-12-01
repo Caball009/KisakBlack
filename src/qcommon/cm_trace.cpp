@@ -2099,17 +2099,17 @@ void __cdecl CM_TraceThroughPrimitives(
           v45 = v11 + tw->size.vec.v[1];
           v46 = v12 + tw->size.vec.v[2];
           v38 = v41;
-          v37 = LODWORD(v41) & _mask__AbsFloat_;
+          v37 = fabs(v41);
           v36 = tw->halfDeltaAbs.vec.v[0];
           if ( fabs(v41) <= (float)(v44 + v36) )
           {
             v35 = v42;
-            v34 = LODWORD(v42) & _mask__AbsFloat_;
+            v34 = fabs(v42);
             v33 = tw->halfDeltaAbs.vec.v[1];
             if ( fabs(v42) <= (float)(v45 + v33) )
             {
               v32 = v43;
-              v31 = LODWORD(v43) & _mask__AbsFloat_;
+              v31 = fabs(v43);
               v30 = tw->halfDeltaAbs.vec.v[2];
               if ( fabs(v43) <= (float)(v46 + v30) )
               {
@@ -2122,7 +2122,7 @@ void __cdecl CM_TraceThroughPrimitives(
                   v29 = tw->halfDelta.vec.v[1];
                   v28 = tw->halfDelta.vec.v[2];
                   v27 = (float)(v29 * v43) - (float)(v28 * v42);
-                  v26 = LODWORD(v27) & _mask__AbsFloat_;
+                  v26 = fabs(v27);
                   v25 = *(_QWORD *)&tw->halfDeltaAbs.vec.unitVec[1].packed;
                   if ( fabs(v27) <= (float)((float)(v45 * *((float *)&v25 + 1))
                                                                               + (float)(v46 * *(float *)&v25)) )
@@ -2130,7 +2130,7 @@ void __cdecl CM_TraceThroughPrimitives(
                     v24 = tw->halfDelta.vec.v[2];
                     v23 = tw->halfDelta.vec.v[0];
                     v22 = (float)(v24 * v41) - (float)(v23 * v43);
-                    v21 = LODWORD(v22) & _mask__AbsFloat_;
+                    v21 = fabs(v22);
                     v20 = tw->halfDeltaAbs.vec.v[0];
                     v19 = tw->halfDeltaAbs.vec.v[2];
                     if ( fabs(v22) <= (float)((float)(v46 * v20) + (float)(v44 * v19)) )
@@ -2138,7 +2138,7 @@ void __cdecl CM_TraceThroughPrimitives(
                       v18 = tw->halfDelta.vec.v[0];
                       v17 = tw->halfDelta.vec.v[1];
                       v16 = (float)(v18 * v42) - (float)(v17 * v41);
-                      v15 = LODWORD(v16) & _mask__AbsFloat_;
+                      v15 = fabs(v16);
                       v14 = *(_QWORD *)tw->halfDeltaAbs.vec.v;
                       v5 = fabs(v16) > (float)((float)(v44 * *((float *)&v14 + 1))
                                                                                  + (float)(v45 * *(float *)&v14));

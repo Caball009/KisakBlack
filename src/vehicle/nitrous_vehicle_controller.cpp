@@ -516,7 +516,7 @@ LABEL_46:
   rbveh->m_steer_factor = v12;
   v11 = 0;
   m_auto_hand_brake_min_speed = rbveh->m_parameter->m_auto_hand_brake_min_speed;
-  v9 = LODWORD(input_fwd[1]) & _mask__AbsFloat_;
+  v9 = fabs(input_fwd[1]);
   v6 = 0;
   if ( fabs(input_fwd[1]) > hand_brake_apply_delta )
   {
@@ -1232,7 +1232,7 @@ void __userpurge NitrousVehicleController::UpdateApplyBoatAccel(
     v116 = (float)(1.0 - rotSpeedFactor) * 0.5;
     if ( *(unsigned int *)(LODWORD(center.y) + 7324) )
     {
-      v115 = LODWORD(rotSpeedFactor) & _mask__AbsFloat_;
+      v115 = fabs(rotSpeedFactor);
       throttle = GraphFloat_GetValue(
                    (const GraphFloat *)*(unsigned int *)(LODWORD(center.y) + 7324),
                    fabs(rotSpeedFactor));

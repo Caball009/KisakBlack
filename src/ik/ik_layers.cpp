@@ -304,7 +304,7 @@ void  IK_Layer_TerrainMapping(float a1@<ebp>, IKState *ikState)
           if ( IK_IsCalcBone(ikState, 18) )
           {
             v277 = (float)(ikState->lastFrameMS[9] % 2000) - 1000.0;
-            v276 = LODWORD(v277) & _mask__AbsFloat_;
+            v276 = fabs(v277);
             ikState->footMats[0][3][2] = (float)((float)(6.0 * fabs(v277)) / 1000.0)
                                        + ikState->footMats[0][3][2];
           }
@@ -2828,7 +2828,7 @@ void  IK_Layer_PlayerPitch(float a1@<ebp>, IKState *ikState, bool preControllers
       }
       v163 = FLOAT_1_1;
       v162 = v200;
-      v161 = LODWORD(v200) & _mask__AbsFloat_;
+      v161 = fabs(v200);
       v7 = (float)(fabs(v200) / 90.0);
       __libm_sse2_pow(v14, v16);
       *(float *)&v7 = v7;

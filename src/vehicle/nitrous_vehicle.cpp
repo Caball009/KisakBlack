@@ -772,7 +772,7 @@ void __userpurge NitrousVehicle::update_parms(
         com_spring_factor = (float)(v52 - v103->m_parameter->m_susp_adj) + v103->m_parameter->m_wheel_radius;
         v50 = com_spring_factor;
         v46 = v54;
-        v45 = LODWORD(v54) & _mask__AbsFloat_;
+        v45 = fabs(v54);
         v44 = fabs(v54) / v64;
         if ( (float)(v44 - 1.0) < 0.0 )
           mass = v44;
@@ -3143,7 +3143,7 @@ void __userpurge NitrousVehicle::update_from_network(
     Phys_Vec3ToNitrousVec(networkAxis[1], (phys_vec3 *)&phys_axis[1].y);
     Phys_NitrousMat44ToVec33((const phys_mat44 *)LODWORD(localPos[2]), (float (*)[3])networkVel_12);
     Phys_Vec3ToNitrousVec(pos.trDelta, (phys_vec3 *)&v43);
-    v42 = LODWORD(timeDifference) & _mask__AbsFloat_;
+    v42 = fabs(timeDifference);
     if ( timeCap > fabs(timeDifference) )
     {
       v41 = timeDifference * v43;
