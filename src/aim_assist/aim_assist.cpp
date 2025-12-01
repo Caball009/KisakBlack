@@ -23,6 +23,7 @@
 #include <qcommon/common.h>
 #include <cgame_mp/cg_main_mp.h>
 #include <cmath>
+#include <xanim/xanim.h>
 
 AimAssistGlobals aaGlobArray[1];
 GraphFloat aaInputGraph[4];
@@ -956,50 +957,6 @@ bool __cdecl AimAssist_IsPrevTargetEntity(int localClientNum, int entIndex)
   return aaGlob->autoAimTargetEnt == entIndex;
 }
 
-double __cdecl AngleNormalize180(float angle)
-{
-  float v2; // [esp+8h] [ebp-8h]
-
-  v2 = floor((float)(angle * 0.0027777778) + 0.5);
-  return ((float)(angle * 0.0027777778) - v2) * 360.0;
-}
-
-double __cdecl Vec2Length(const float *v)
-{
-  return (float)sqrt((float)((float)(*v * *v) + (float)(v[1] * v[1])));
-}
-
-double __cdecl Vec3Normalize(float *v)
-{
-  float v2; // [esp+0h] [ebp-10h]
-  float length; // [esp+Ch] [ebp-4h]
-
-  length = sqrtf((float)((float)(*v * *v) + (float)(v[1] * v[1])) + (float)(v[2] * v[2]));
-  if ( COERCE_FLOAT(LODWORD(length) ^ _mask__NegFloat_) < 0.0 )
-    v2 = length;
-  else
-    v2 = 1.0f;
-  *v = *v * (float)(1.0 / v2);
-  v[1] = v[1] * (float)(1.0 / v2);
-  v[2] = v[2] * (float)(1.0 / v2);
-  return length;
-}
-
-double __cdecl Vec2Normalize(float *v)
-{
-  float v2; // [esp+0h] [ebp-10h]
-  float length; // [esp+Ch] [ebp-4h]
-
-  length = sqrtf((float)(*v * *v) + (float)(v[1] * v[1]));
-  if ( COERCE_FLOAT(LODWORD(length) ^ _mask__NegFloat_) < 0.0 )
-    v2 = length;
-  else
-    v2 = 1.0f;
-  *v = *v * (float)(1.0 / v2);
-  v[1] = v[1] * (float)(1.0 / v2);
-  return length;
-}
-
 void __cdecl AimAssist_UpdateGamePadInput(const AimInput *input, AimOutput *output)
 {
   int i; // [esp+4h] [ebp-8h]
@@ -1036,113 +993,114 @@ void __cdecl AimAssist_UpdateGamePadInput(const AimInput *input, AimOutput *outp
 
 void __cdecl AimAssist_UpdateTweakables(int localClientNum)
 {
-  float v1; // [esp+4h] [ebp-5Ch]
-  float v2; // [esp+4h] [ebp-5Ch]
-  float v3; // [esp+Ch] [ebp-54h]
-  float v4; // [esp+Ch] [ebp-54h]
-  float v5; // [esp+14h] [ebp-4Ch]
-  float v6; // [esp+14h] [ebp-4Ch]
-  float v7; // [esp+1Ch] [ebp-44h]
-  float v8; // [esp+1Ch] [ebp-44h]
-  float v9; // [esp+24h] [ebp-3Ch]
-  float v10; // [esp+24h] [ebp-3Ch]
-  float v11; // [esp+2Ch] [ebp-34h]
-  float v12; // [esp+2Ch] [ebp-34h]
-  float overrideAutoaimWidthValue; // [esp+34h] [ebp-2Ch]
-  float v14; // [esp+34h] [ebp-2Ch]
-  float v15; // [esp+3Ch] [ebp-24h]
-  float v16; // [esp+3Ch] [ebp-24h]
-  float v17; // [esp+44h] [ebp-1Ch]
-  float v18; // [esp+44h] [ebp-1Ch]
-  float v19; // [esp+4Ch] [ebp-14h]
-  float v20; // [esp+4Ch] [ebp-14h]
-  float value; // [esp+54h] [ebp-Ch]
-  float v22; // [esp+54h] [ebp-Ch]
-  AimAssistGlobals *aaGlob; // [esp+58h] [ebp-8h]
-  AimTweakables *tweaks; // [esp+5Ch] [ebp-4h]
+    float v1; // [esp+4h] [ebp-5Ch]
+    float v2; // [esp+4h] [ebp-5Ch]
+    float v3; // [esp+Ch] [ebp-54h]
+    float v4; // [esp+Ch] [ebp-54h]
+    float v5; // [esp+14h] [ebp-4Ch]
+    float v6; // [esp+14h] [ebp-4Ch]
+    float v7; // [esp+1Ch] [ebp-44h]
+    float v8; // [esp+1Ch] [ebp-44h]
+    float v9; // [esp+24h] [ebp-3Ch]
+    float v10; // [esp+24h] [ebp-3Ch]
+    float v11; // [esp+2Ch] [ebp-34h]
+    float v12; // [esp+2Ch] [ebp-34h]
+    float overrideAutoaimWidthValue; // [esp+34h] [ebp-2Ch]
+    float v14; // [esp+34h] [ebp-2Ch]
+    float v15; // [esp+3Ch] [ebp-24h]
+    float v16; // [esp+3Ch] [ebp-24h]
+    float v17; // [esp+44h] [ebp-1Ch]
+    float v18; // [esp+44h] [ebp-1Ch]
+    float v19; // [esp+4Ch] [ebp-14h]
+    float v20; // [esp+4Ch] [ebp-14h]
+    float value; // [esp+54h] [ebp-Ch]
+    float v22; // [esp+54h] [ebp-Ch]
+    AimAssistGlobals *aaGlob; // [esp+58h] [ebp-8h]
+    AimTweakables *tweaks; // [esp+5Ch] [ebp-4h]
 
-  if ( localClientNum
-    && !Assert_MyHandler(
-          "C:\\projects_pc\\cod\\codsrc\\src\\aim_assist\\aim_assist.cpp",
-          311,
-          0,
-          "localClientNum doesn't index MAX_LOCAL_CLIENTS\n\t%i not in [0, %i)",
-          localClientNum,
-          1) )
-  {
-    __debugbreak();
-  }
-  aaGlob = &aaGlobArray[localClientNum];
-  tweaks = &aaGlob->tweakables;
-  if ( aaGlob->aimSlowdownActive )
-  {
-    value = aim_slowdown_region_extended_width->current.value;
-    v22 = ScrPlace_HiResGetScale() * value;
-    tweaks->slowdownRegionWidth = (float)(v22 * scrPlaceView[localClientNum].scaleVirtualToReal[0])
-                                / aaGlobArray[localClientNum].screenWidth;
-    v19 = aim_slowdown_region_extended_height->current.value;
-    v20 = ScrPlace_HiResGetScale() * v19;
-    aaGlobArray[localClientNum].tweakables.slowdownRegionHeight = (float)(v20
-                                                                        * *(float *)&dword_2D9E684[30 * localClientNum])
-                                                                / aaGlobArray[localClientNum].screenHeight;
-  }
-  else
-  {
-    v17 = aim_slowdown_region_width->current.value;
-    v18 = ScrPlace_HiResGetScale() * v17;
-    tweaks->slowdownRegionWidth = (float)(v18 * scrPlaceView[localClientNum].scaleVirtualToReal[0])
-                                / aaGlobArray[localClientNum].screenWidth;
-    v15 = aim_slowdown_region_height->current.value;
-    v16 = ScrPlace_HiResGetScale() * v15;
-    aaGlobArray[localClientNum].tweakables.slowdownRegionHeight = (float)(v16
-                                                                        * *(float *)&dword_2D9E684[30 * localClientNum])
-                                                                / aaGlobArray[localClientNum].screenHeight;
-  }
-  if ( aaGlob->overrideSnapWidthAndLerp )
-  {
-    overrideAutoaimWidthValue = aaGlob->overrideAutoaimWidthValue;
-    v14 = ScrPlace_HiResGetScale() * overrideAutoaimWidthValue;
-    aaGlobArray[localClientNum].tweakables.autoAimRegionWidth = (float)((float)(v14
-                                                                              * scrPlaceView[localClientNum].scaleVirtualToReal[0])
-                                                                      / aaGlobArray[localClientNum].screenWidth)
-                                                              * aaGlob->fovScaleInv;
-  }
-  else
-  {
-    v11 = aim_autoaim_region_width->current.value;
-    v12 = ScrPlace_HiResGetScale() * v11;
-    aaGlobArray[localClientNum].tweakables.autoAimRegionWidth = (float)((float)(v12
-                                                                              * scrPlaceView[localClientNum].scaleVirtualToReal[0])
-                                                                      / aaGlobArray[localClientNum].screenWidth)
-                                                              * aaGlob->fovScaleInv;
-  }
-  v9 = aim_autoaim_region_height->current.value;
-  v10 = ScrPlace_HiResGetScale() * v9;
-  aaGlobArray[localClientNum].tweakables.autoAimRegionHeight = (float)((float)(v10
-                                                                             * *(float *)&dword_2D9E684[30 * localClientNum])
-                                                                     / aaGlobArray[localClientNum].screenHeight)
-                                                             * aaGlob->fovScaleInv;
-  v7 = aim_automelee_region_width->current.value;
-  v8 = ScrPlace_HiResGetScale() * v7;
-  aaGlobArray[localClientNum].tweakables.autoMeleeRegionWidth = (float)((float)(v8
-                                                                              * scrPlaceView[localClientNum].scaleVirtualToReal[0])
-                                                                      / aaGlobArray[localClientNum].screenWidth)
-                                                              * aaGlob->fovScaleInv;
-  v5 = aim_automelee_region_height->current.value;
-  v6 = ScrPlace_HiResGetScale() * v5;
-  aaGlobArray[localClientNum].tweakables.autoMeleeRegionHeight = (float)((float)(v6
-                                                                               * *(float *)&dword_2D9E684[30 * localClientNum])
-                                                                       / aaGlobArray[localClientNum].screenHeight)
-                                                               * aaGlob->fovScaleInv;
-  v3 = aim_lockon_region_width->current.value;
-  v4 = ScrPlace_HiResGetScale() * v3;
-  aaGlobArray[localClientNum].tweakables.lockOnRegionWidth = (float)(v4
-                                                                   * scrPlaceView[localClientNum].scaleVirtualToReal[0])
-                                                           / aaGlobArray[localClientNum].screenWidth;
-  v1 = aim_lockon_region_height->current.value;
-  v2 = ScrPlace_HiResGetScale() * v1;
-  aaGlobArray[localClientNum].tweakables.lockOnRegionHeight = (float)(v2 * *(float *)&dword_2D9E684[30 * localClientNum])
-                                                            / aaGlobArray[localClientNum].screenHeight;
+    if (localClientNum
+        && !Assert_MyHandler(
+            "C:\\projects_pc\\cod\\codsrc\\src\\aim_assist\\aim_assist.cpp",
+            311,
+            0,
+            "localClientNum doesn't index MAX_LOCAL_CLIENTS\n\t%i not in [0, %i)",
+            localClientNum,
+            1))
+    {
+        __debugbreak();
+    }
+    aaGlob = &aaGlobArray[localClientNum];
+    tweaks = &aaGlob->tweakables;
+    if (aaGlob->aimSlowdownActive)
+    {
+        value = aim_slowdown_region_extended_width->current.value;
+        v22 = ScrPlace_HiResGetScale() * value;
+        tweaks->slowdownRegionWidth = (float)(v22 * scrPlaceView[localClientNum].scaleVirtualToReal[0])
+            / aaGlobArray[localClientNum].screenWidth;
+        v19 = aim_slowdown_region_extended_height->current.value;
+        v20 = ScrPlace_HiResGetScale() * v19;
+        aaGlobArray[localClientNum].tweakables.slowdownRegionHeight = (float)(v20
+            * scrPlaceView[localClientNum].scaleVirtualToReal[1])
+            / aaGlobArray[localClientNum].screenHeight;
+    }
+    else
+    {
+        v17 = aim_slowdown_region_width->current.value;
+        v18 = ScrPlace_HiResGetScale() * v17;
+        tweaks->slowdownRegionWidth = (float)(v18 * scrPlaceView[localClientNum].scaleVirtualToReal[0])
+            / aaGlobArray[localClientNum].screenWidth;
+        v15 = aim_slowdown_region_height->current.value;
+        v16 = ScrPlace_HiResGetScale() * v15;
+        aaGlobArray[localClientNum].tweakables.slowdownRegionHeight = (float)(v16
+            * scrPlaceView[localClientNum].scaleVirtualToReal[1])
+            / aaGlobArray[localClientNum].screenHeight;
+    }
+    if (aaGlob->overrideSnapWidthAndLerp)
+    {
+        overrideAutoaimWidthValue = aaGlob->overrideAutoaimWidthValue;
+        v14 = ScrPlace_HiResGetScale() * overrideAutoaimWidthValue;
+        aaGlobArray[localClientNum].tweakables.autoAimRegionWidth = (float)((float)(v14
+            * scrPlaceView[localClientNum].scaleVirtualToReal[0])
+            / aaGlobArray[localClientNum].screenWidth)
+            * aaGlob->fovScaleInv;
+    }
+    else
+    {
+        v11 = aim_autoaim_region_width->current.value;
+        v12 = ScrPlace_HiResGetScale() * v11;
+        aaGlobArray[localClientNum].tweakables.autoAimRegionWidth = (float)((float)(v12
+            * scrPlaceView[localClientNum].scaleVirtualToReal[0])
+            / aaGlobArray[localClientNum].screenWidth)
+            * aaGlob->fovScaleInv;
+    }
+    v9 = aim_autoaim_region_height->current.value;
+    v10 = ScrPlace_HiResGetScale() * v9;
+    aaGlobArray[localClientNum].tweakables.autoAimRegionHeight = (float)((float)(v10
+        * scrPlaceView[localClientNum].scaleVirtualToReal[1])
+        / aaGlobArray[localClientNum].screenHeight)
+        * aaGlob->fovScaleInv;
+    v7 = aim_automelee_region_width->current.value;
+    v8 = ScrPlace_HiResGetScale() * v7;
+    aaGlobArray[localClientNum].tweakables.autoMeleeRegionWidth = (float)((float)(v8
+        * scrPlaceView[localClientNum].scaleVirtualToReal[0])
+        / aaGlobArray[localClientNum].screenWidth)
+        * aaGlob->fovScaleInv;
+    v5 = aim_automelee_region_height->current.value;
+    v6 = ScrPlace_HiResGetScale() * v5;
+    aaGlobArray[localClientNum].tweakables.autoMeleeRegionHeight = (float)((float)(v6
+        * scrPlaceView[localClientNum].scaleVirtualToReal[1])
+        / aaGlobArray[localClientNum].screenHeight)
+        * aaGlob->fovScaleInv;
+    v3 = aim_lockon_region_width->current.value;
+    v4 = ScrPlace_HiResGetScale() * v3;
+    aaGlobArray[localClientNum].tweakables.lockOnRegionWidth = (float)(v4
+        * scrPlaceView[localClientNum].scaleVirtualToReal[0])
+        / aaGlobArray[localClientNum].screenWidth;
+    v1 = aim_lockon_region_height->current.value;
+    v2 = ScrPlace_HiResGetScale() * v1;
+    aaGlobArray[localClientNum].tweakables.lockOnRegionHeight = (float)(v2
+        * scrPlaceView[localClientNum].scaleVirtualToReal[1])
+        / aaGlobArray[localClientNum].screenHeight;
 }
 
 void __cdecl AimAssist_UpdateAdsLerp(const AimInput *input)
@@ -1164,7 +1122,7 @@ void __cdecl AimAssist_UpdateAdsLerp(const AimInput *input)
     aaGlob->adsLerp = aaGlob->ps.fWeaponPosFrac;
     if ( (aaGlob->ps.eFlags & 0x300) != 0 )
     {
-      if ( bitarray<51>::testBit(&input->button_bits, 0xBu) )
+      if ( input->button_bits.testBit(11) )
         aaGlob->adsLerp = 1.0f;
     }
   }
@@ -1234,8 +1192,10 @@ void __cdecl AimAssist_ApplyTurnRates(const AimInput *input, AimOutput *output)
   else
     v4 = -1.0f;
   yawSign = v4;
-  pitchDelta = COERCE_FLOAT(LODWORD(adjustedPitchAxis) & _mask__AbsFloat_) * pitchTurnRate;
-  yawDelta = COERCE_FLOAT(LODWORD(adjustedYawAxis) & _mask__AbsFloat_) * yawTurnRate;
+  //pitchDelta = COERCE_FLOAT(LODWORD(adjustedPitchAxis) & _mask__AbsFloat_) * pitchTurnRate;
+  pitchDelta = fabs(adjustedPitchAxis) * pitchTurnRate;
+  //yawDelta = COERCE_FLOAT(LODWORD(adjustedYawAxis) & _mask__AbsFloat_) * yawTurnRate;
+  yawDelta = fabs(adjustedYawAxis) * yawTurnRate;
   if ( !aim_accel_turnrate_enabled->current.enabled || aim_assist_script_disable->current.enabled )
   {
     aaGlob->pitchDelta = pitchDelta;
@@ -1353,8 +1313,10 @@ void __cdecl AimAssist_CalcAdjustedAxis(const AimInput *input, float *pitchAxis,
   }
   if ( aim_scale_view_axis->current.enabled )
   {
-    LODWORD(absPitchAxis) = *(unsigned int *)pitchAxis & _mask__AbsFloat_;
-    LODWORD(absYawAxis) = *(unsigned int *)yawAxis & _mask__AbsFloat_;
+    //LODWORD(absPitchAxis) = *(unsigned int *)pitchAxis & _mask__AbsFloat_;
+    absPitchAxis = fabs(*pitchAxis);
+    //LODWORD(absYawAxis) = *(unsigned int *)yawAxis & _mask__AbsFloat_;
+    absYawAxis = fabs(*yawAxis);
     if ( absPitchAxis > 1.0
       && !Assert_MyHandler(
             "C:\\projects_pc\\cod\\codsrc\\src\\aim_assist\\aim_assist.cpp",
@@ -1514,30 +1476,17 @@ const AimScreenTarget *__cdecl AimAssist_GetBestTarget(
   return 0;
 }
 
-bool __cdecl AimAssist_DoBoundsIntersectCenterBox(
-        const float *clipMins,
-        const float *clipMaxs,
-        float clipHalfWidth,
-        float clipHalfHeight)
+static bool __cdecl AimAssist_DoBoundsIntersectCenterBox(
+    const float *clipMins,
+    const float *clipMaxs,
+    float clipHalfWidth,
+    float clipHalfHeight)
 {
-  bool v6; // [esp+4h] [ebp-14h]
-  bool v7; // [esp+8h] [ebp-10h]
+    iassert(clipMins);
+    iassert(clipMaxs);
 
-  if ( !clipMins
-    && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\aim_assist\\aim_assist.cpp", 797, 0, "%s", "clipMins") )
-  {
-    __debugbreak();
-  }
-  if ( !clipMaxs
-    && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\aim_assist\\aim_assist.cpp", 798, 0, "%s", "clipMaxs") )
-  {
-    __debugbreak();
-  }
-  v7 = (float)(clipHalfWidth + 0.0) >= *clipMins
-    && *clipMaxs >= (float)(COERCE_FLOAT(LODWORD(clipHalfWidth) ^ _mask__NegFloat_) + 0.0);
-  v6 = (float)(clipHalfHeight + 0.0) >= clipMins[1]
-    && clipMaxs[1] >= (float)(COERCE_FLOAT(LODWORD(clipHalfHeight) ^ _mask__NegFloat_) + 0.0);
-  return v7 && v6;
+    return (clipHalfWidth >= (double)*clipMins && *clipMaxs >= -clipHalfWidth)
+        && (clipHalfHeight >= (double)clipMins[1] && clipMaxs[1] >= -clipHalfHeight);
 }
 
 bool __cdecl AimAssist_IsPlayerUsingOffhand(const AimAssistPlayerState *ps)
@@ -1613,11 +1562,11 @@ void __cdecl AimAssist_ApplyAutoAim(const AimInput *input, AimOutput *output)
   BG_GetWeaponDef(aaGlob->ps.weapIndex);
   if ( aim_autoaim_enabled->current.enabled
     && !aim_assist_script_disable->current.enabled
-    && bitarray<51>::testBit(&input->button_bits, 0xBu)
+    && input->button_bits.testBit(11)
     && autoAimEnabled
     && aaGlob->ps.weapIndex )
   {
-    if ( !aaGlob->autoAimPressed && bitarray<51>::testBit(&input->button_bits, 0xBu) )
+    if ( !aaGlob->autoAimPressed && input->button_bits.testBit(11) )
     {
       if ( aaGlob->ps.weaponstate != 10
         && aaGlob->ps.weaponstate != 12
@@ -1675,8 +1624,11 @@ void __cdecl AimAssist_ApplyAutoAim(const AimInput *input, AimOutput *output)
       aaGlob->autoAimYaw = newYaw;
       output->pitch = output->pitch + pitchDelta;
       output->yaw = output->yaw + yawDelta;
-      if ( COERCE_FLOAT(LODWORD(pitchDelta) & _mask__AbsFloat_) < 0.001
-        && COERCE_FLOAT(LODWORD(yawDelta) & _mask__AbsFloat_) <= 0.001
+      //if ( COERCE_FLOAT(LODWORD(pitchDelta) & _mask__AbsFloat_) < 0.001
+      //  && COERCE_FLOAT(LODWORD(yawDelta) & _mask__AbsFloat_) <= 0.001
+      //  && aaGlob->ps.fWeaponPosFrac == 0.0 )
+      if ( fabs(pitchDelta) < 0.001f
+        && fabs(yawDelta) <= 0.001f
         && aaGlob->ps.fWeaponPosFrac == 0.0 )
       {
 LABEL_37:
@@ -1831,9 +1783,9 @@ void __cdecl AimAssist_ApplyLockOn(const AimInput *input, AimOutput *output)
     && aaGlob->autoMeleeState != AMS_TARGETING
     && BG_GetWeaponDef(aaGlob->ps.weapIndex)->guidedMissileType != MISSILE_GUIDANCE_TVGUIDED
     && !BG_GetWeaponDef(aaGlob->ps.weapIndex)->requireLockonToFire
-    && (aim_lockon_deflection->current.value <= COERCE_FLOAT(LODWORD(input->pitchAxis) & _mask__AbsFloat_)
-     || aim_lockon_deflection->current.value <= COERCE_FLOAT(LODWORD(input->yawAxis) & _mask__AbsFloat_)
-     || aim_lockon_deflection->current.value <= COERCE_FLOAT(LODWORD(input->rightAxis) & _mask__AbsFloat_))
+    && (aim_lockon_deflection->current.value <= fabs(input->pitchAxis)
+     || aim_lockon_deflection->current.value <= fabs(input->yawAxis)
+     || aim_lockon_deflection->current.value <= fabs(input->rightAxis))
     && !CG_GetLocalClientGlobals(input->localClientNum)->cameraMode )
   {
     if ( aaGlob->ps.weapIndex )

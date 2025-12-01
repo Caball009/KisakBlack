@@ -220,10 +220,6 @@ int __cdecl AimAssist_GetScreenTargetCount(int localClientNum);
 int __cdecl AimAssist_GetScreenTargetEntity(int localClientNum, unsigned int targetIndex);
 void __cdecl AimAssist_ClearEntityReference(int localClientNum, int entIndex);
 bool __cdecl AimAssist_IsPrevTargetEntity(int localClientNum, int entIndex);
-double __cdecl AngleNormalize180(float angle);
-double __cdecl Vec2Length(const float *v);
-double __cdecl Vec3Normalize(float *v);
-double __cdecl Vec2Normalize(float *v);
 void __cdecl AimAssist_UpdateGamePadInput(const AimInput *input, AimOutput *output);
 void __cdecl AimAssist_UpdateTweakables(int localClientNum);
 void __cdecl AimAssist_UpdateAdsLerp(const AimInput *input);
@@ -237,11 +233,6 @@ const AimScreenTarget *__cdecl AimAssist_GetBestTarget(
         float range,
         float regionWidth,
         float regionHeight);
-bool __cdecl AimAssist_DoBoundsIntersectCenterBox(
-        const float *clipMins,
-        const float *clipMaxs,
-        float clipHalfWidth,
-        float clipHalfHeight);
 bool __cdecl AimAssist_IsPlayerUsingOffhand(const AimAssistPlayerState *ps);
 bool __cdecl AimAssist_IsSlowdownActive(const AimAssistPlayerState *ps);
 double __cdecl AimAssist_GetProfileSensitivity();

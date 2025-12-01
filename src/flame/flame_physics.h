@@ -1,6 +1,17 @@
 #pragma once
 
-void __thiscall colgeom_visitor_inlined_t<500>::reset(colgeom_visitor_inlined_t<200> *this);
+struct flamePhysics_t // sizeof=0x34
+{                                       // XREF: flameGeneric_s/r
+    float origin[3];
+    float newPos[3];
+    float velocity[3];
+    float invStartSpeed;
+    float gravity;
+    float rotation;
+    float rotVel;
+};
+
+//void __thiscall colgeom_visitor_inlined_t<500>::reset(colgeom_visitor_inlined_t<200> *this);
 void __cdecl Flame_ClipVelocity(const float *in, const float *normal, float *out);
 void __cdecl trace_sphere(trace_t *trace, const float *start, const float *end, float radius, col_context_t *context);
 void __cdecl Flame_Phys_Collision(

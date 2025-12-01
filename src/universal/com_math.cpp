@@ -1055,29 +1055,26 @@ void __cdecl MatrixTranspose(const float (*in)[3], float (*out)[3])
   (*out)[8] = (*in)[8];
 }
 
-void __cdecl MatrixTranspose44(const float *in, float *out)
+void __cdecl MatrixTranspose44(const mat4x4 &in, mat4x4 &out)
 {
-  if ( in == out
-    && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.cpp", 1548, 0, "%s", "in != out") )
-  {
-    __debugbreak();
-  }
-  *out = *in;
-  out[1] = in[4];
-  out[2] = in[8];
-  out[3] = in[12];
-  out[4] = in[1];
-  out[5] = in[5];
-  out[6] = in[9];
-  out[7] = in[13];
-  out[8] = in[2];
-  out[9] = in[6];
-  out[10] = in[10];
-  out[11] = in[14];
-  out[12] = in[3];
-  out[13] = in[7];
-  out[14] = in[11];
-  out[15] = in[15];
+    iassert(in != out);
+
+    (out)[0][0] = (in)[0][0];
+    (out)[0][1] = (in)[1][0];
+    (out)[0][2] = (in)[2][0];
+    (out)[0][3] = (in)[3][0];
+    (out)[1][0] = (in)[0][1];
+    (out)[1][1] = (in)[1][1];
+    (out)[1][2] = (in)[2][1];
+    (out)[1][3] = (in)[3][1];
+    (out)[2][0] = (in)[0][2];
+    (out)[2][1] = (in)[1][2];
+    (out)[2][2] = (in)[2][2];
+    (out)[2][3] = (in)[3][2];
+    (out)[3][0] = (in)[0][3];
+    (out)[3][1] = (in)[1][3];
+    (out)[3][2] = (in)[2][3];
+    (out)[3][3] = (in)[3][3];
 }
 
 void __cdecl MatrixInverse(const float (*in)[3], float (*out)[3])
@@ -1138,95 +1135,86 @@ void __cdecl MatrixInverseOrthogonal43(const float (*in)[3], float (*out)[3])
   MatrixTransformVector(origin, out, &(*out)[9]);
 }
 
-void __cdecl MatrixInverse44(const float *mat, float *dst)
+void __cdecl MatrixInverse44(const mat4x4 &mat, mat4x4 &dst)
 {
-  float src[16]; // [esp+0h] [ebp-78h]
-  float det; // [esp+40h] [ebp-38h]
-  float tmp[12]; // [esp+44h] [ebp-34h]
-  int i; // [esp+74h] [ebp-4h]
+    float src[16]; // [esp+0h] [ebp-78h]
+    float tmp[12]; // [esp+44h] [ebp-34h]
 
-  if ( mat == dst
-    && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.cpp", 1640, 0, "%s", "mat != dst") )
-  {
-    __debugbreak();
-  }
-  for ( i = 0; i < 4; ++i )
-  {
-    src[i] = mat[4 * i];
-    src[i + 4] = mat[4 * i + 1];
-    src[i + 8] = mat[4 * i + 2];
-    src[i + 12] = mat[4 * i + 3];
-  }
-  tmp[0] = src[10] * src[15];
-  tmp[1] = src[11] * src[14];
-  tmp[2] = src[9] * src[15];
-  tmp[3] = src[11] * src[13];
-  tmp[4] = src[9] * src[14];
-  tmp[5] = src[10] * src[13];
-  tmp[6] = src[8] * src[15];
-  tmp[7] = src[11] * src[12];
-  tmp[8] = src[8] * src[14];
-  tmp[9] = src[10] * src[12];
-  tmp[10] = src[8] * src[13];
-  tmp[11] = src[9] * src[12];
-  *dst = (float)((float)((float)(src[10] * src[15]) * src[5]) + (float)((float)(src[11] * src[13]) * src[6]))
-       + (float)((float)(src[9] * src[14]) * src[7]);
-  *dst = *dst - (float)((float)((float)(tmp[1] * src[5]) + (float)(tmp[2] * src[6])) + (float)(tmp[5] * src[7]));
-  dst[1] = (float)((float)(tmp[1] * src[4]) + (float)(tmp[6] * src[6])) + (float)(tmp[9] * src[7]);
-  dst[1] = dst[1] - (float)((float)((float)(tmp[0] * src[4]) + (float)(tmp[7] * src[6])) + (float)(tmp[8] * src[7]));
-  dst[2] = (float)((float)(tmp[2] * src[4]) + (float)(tmp[7] * src[5])) + (float)(tmp[10] * src[7]);
-  dst[2] = dst[2] - (float)((float)((float)(tmp[3] * src[4]) + (float)(tmp[6] * src[5])) + (float)(tmp[11] * src[7]));
-  dst[3] = (float)((float)(tmp[5] * src[4]) + (float)(tmp[8] * src[5])) + (float)(tmp[11] * src[6]);
-  dst[3] = dst[3] - (float)((float)((float)(tmp[4] * src[4]) + (float)(tmp[9] * src[5])) + (float)(tmp[10] * src[6]));
-  dst[4] = (float)((float)(tmp[1] * src[1]) + (float)(tmp[2] * src[2])) + (float)(tmp[5] * src[3]);
-  dst[4] = dst[4] - (float)((float)((float)(tmp[0] * src[1]) + (float)(tmp[3] * src[2])) + (float)(tmp[4] * src[3]));
-  dst[5] = (float)((float)(tmp[0] * src[0]) + (float)(tmp[7] * src[2])) + (float)(tmp[8] * src[3]);
-  dst[5] = dst[5] - (float)((float)((float)(tmp[1] * src[0]) + (float)(tmp[6] * src[2])) + (float)(tmp[9] * src[3]));
-  dst[6] = (float)((float)(tmp[3] * src[0]) + (float)(tmp[6] * src[1])) + (float)(tmp[11] * src[3]);
-  dst[6] = dst[6] - (float)((float)((float)(tmp[2] * src[0]) + (float)(tmp[7] * src[1])) + (float)(tmp[10] * src[3]));
-  dst[7] = (float)((float)(tmp[4] * src[0]) + (float)(tmp[9] * src[1])) + (float)(tmp[10] * src[2]);
-  dst[7] = dst[7] - (float)((float)((float)(tmp[5] * src[0]) + (float)(tmp[8] * src[1])) + (float)(tmp[11] * src[2]));
-  tmp[0] = src[2] * src[7];
-  tmp[1] = src[3] * src[6];
-  tmp[2] = src[1] * src[7];
-  tmp[3] = src[3] * src[5];
-  tmp[4] = src[1] * src[6];
-  tmp[5] = src[2] * src[5];
-  tmp[6] = src[0] * src[7];
-  tmp[7] = src[3] * src[4];
-  tmp[8] = src[0] * src[6];
-  tmp[9] = src[2] * src[4];
-  tmp[10] = src[0] * src[5];
-  tmp[11] = src[1] * src[4];
-  dst[8] = (float)((float)((float)(src[2] * src[7]) * src[13]) + (float)((float)(src[3] * src[5]) * src[14]))
-         + (float)((float)(src[1] * src[6]) * src[15]);
-  dst[8] = dst[8] - (float)((float)((float)(tmp[1] * src[13]) + (float)(tmp[2] * src[14])) + (float)(tmp[5] * src[15]));
-  dst[9] = (float)((float)(tmp[1] * src[12]) + (float)(tmp[6] * src[14])) + (float)(tmp[9] * src[15]);
-  dst[9] = dst[9] - (float)((float)((float)(tmp[0] * src[12]) + (float)(tmp[7] * src[14])) + (float)(tmp[8] * src[15]));
-  dst[10] = (float)((float)(tmp[2] * src[12]) + (float)(tmp[7] * src[13])) + (float)(tmp[10] * src[15]);
-  dst[10] = dst[10]
-          - (float)((float)((float)(tmp[3] * src[12]) + (float)(tmp[6] * src[13])) + (float)(tmp[11] * src[15]));
-  dst[11] = (float)((float)(tmp[5] * src[12]) + (float)(tmp[8] * src[13])) + (float)(tmp[11] * src[14]);
-  dst[11] = dst[11]
-          - (float)((float)((float)(tmp[4] * src[12]) + (float)(tmp[9] * src[13])) + (float)(tmp[10] * src[14]));
-  dst[12] = (float)((float)(tmp[2] * src[10]) + (float)(tmp[5] * src[11])) + (float)(tmp[1] * src[9]);
-  dst[12] = dst[12] - (float)((float)((float)(tmp[4] * src[11]) + (float)(tmp[0] * src[9])) + (float)(tmp[3] * src[10]));
-  dst[13] = (float)((float)(tmp[8] * src[11]) + (float)(tmp[0] * src[8])) + (float)(tmp[7] * src[10]);
-  dst[13] = dst[13] - (float)((float)((float)(tmp[6] * src[10]) + (float)(tmp[9] * src[11])) + (float)(tmp[1] * src[8]));
-  dst[14] = (float)((float)(tmp[6] * src[9]) + (float)(tmp[11] * src[11])) + (float)(tmp[3] * src[8]);
-  dst[14] = dst[14] - (float)((float)((float)(tmp[10] * src[11]) + (float)(tmp[2] * src[8])) + (float)(tmp[7] * src[9]));
-  dst[15] = (float)((float)(tmp[10] * src[10]) + (float)(tmp[4] * src[8])) + (float)(tmp[9] * src[9]);
-  dst[15] = dst[15] - (float)((float)((float)(tmp[8] * src[9]) + (float)(tmp[11] * src[10])) + (float)(tmp[5] * src[8]));
-  det = (float)((float)((float)(src[0] * *dst) + (float)(src[1] * dst[1])) + (float)(src[2] * dst[2]))
-      + (float)(src[3] * dst[3]);
-  if ( det == 0.0
-    && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.cpp", 1715, 0, "%s", "det") )
-  {
-    __debugbreak();
-  }
-  det = 1.0 / det;
-  for ( i = 0; i < 16; ++i )
-    dst[i] = dst[i] * det;
+    float det; // [esp+40h] [ebp-38h]
+    int i; // [esp+74h] [ebp-4h]
+
+    iassert(mat != dst);
+
+    for (i = 0; i < 4; ++i)
+    {
+        src[i] = (mat)[i][0];
+        src[i + 4] = (mat)[i][1];
+        src[i + 8] = (mat)[i][2];
+        src[i + 12] = (mat)[i][3];
+    }
+    tmp[0] = src[10] * src[15];
+    tmp[1] = src[11] * src[14];
+    tmp[2] = src[9] * src[15];
+    tmp[3] = src[11] * src[13];
+    tmp[4] = src[9] * src[14];
+    tmp[5] = src[10] * src[13];
+    tmp[6] = src[8] * src[15];
+    tmp[7] = src[11] * src[12];
+    tmp[8] = src[8] * src[14];
+    tmp[9] = src[10] * src[12];
+    tmp[10] = src[8] * src[13];
+    tmp[11] = src[9] * src[12];
+    (dst)[0][0] = tmp[0] * src[5] + tmp[3] * src[6] + tmp[4] * src[7];
+    (dst)[0][0] = (dst)[0][0] - (tmp[1] * src[5] + tmp[2] * src[6] + tmp[5] * src[7]);
+    (dst)[0][1] = tmp[1] * src[4] + tmp[6] * src[6] + tmp[9] * src[7];
+    (dst)[0][1] = (dst)[0][1] - (tmp[0] * src[4] + tmp[7] * src[6] + tmp[8] * src[7]);
+    (dst)[0][2] = tmp[2] * src[4] + tmp[7] * src[5] + tmp[10] * src[7];
+    (dst)[0][2] = (dst)[0][2] - (tmp[3] * src[4] + tmp[6] * src[5] + tmp[11] * src[7]);
+    (dst)[0][3] = tmp[5] * src[4] + tmp[8] * src[5] + tmp[11] * src[6];
+    (dst)[0][3] = (dst)[0][3] - (tmp[4] * src[4] + tmp[9] * src[5] + tmp[10] * src[6]);
+    (dst)[1][0] = tmp[1] * src[1] + tmp[2] * src[2] + tmp[5] * src[3];
+    (dst)[1][0] = (dst)[1][0] - (tmp[0] * src[1] + tmp[3] * src[2] + tmp[4] * src[3]);
+    (dst)[1][1] = tmp[0] * src[0] + tmp[7] * src[2] + tmp[8] * src[3];
+    (dst)[1][1] = (dst)[1][1] - (tmp[1] * src[0] + tmp[6] * src[2] + tmp[9] * src[3]);
+    (dst)[1][2] = tmp[3] * src[0] + tmp[6] * src[1] + tmp[11] * src[3];
+    (dst)[1][2] = (dst)[1][2] - (tmp[2] * src[0] + tmp[7] * src[1] + tmp[10] * src[3]);
+    (dst)[1][3] = tmp[4] * src[0] + tmp[9] * src[1] + tmp[10] * src[2];
+    (dst)[1][3] = (dst)[1][3] - (tmp[5] * src[0] + tmp[8] * src[1] + tmp[11] * src[2]);
+    tmp[0] = src[2] * src[7];
+    tmp[1] = src[3] * src[6];
+    tmp[2] = src[1] * src[7];
+    tmp[3] = src[3] * src[5];
+    tmp[4] = src[1] * src[6];
+    tmp[5] = src[2] * src[5];
+    tmp[6] = src[0] * src[7];
+    tmp[7] = src[3] * src[4];
+    tmp[8] = src[0] * src[6];
+    tmp[9] = src[2] * src[4];
+    tmp[10] = src[0] * src[5];
+    tmp[11] = src[1] * src[4];
+    (dst)[2][0] = tmp[0] * src[13] + tmp[3] * src[14] + tmp[4] * src[15];
+    (dst)[2][0] = (dst)[2][0] - (tmp[1] * src[13] + tmp[2] * src[14] + tmp[5] * src[15]);
+    (dst)[2][1] = tmp[1] * src[12] + tmp[6] * src[14] + tmp[9] * src[15];
+    (dst)[2][1] = (dst)[2][1] - (tmp[0] * src[12] + tmp[7] * src[14] + tmp[8] * src[15]);
+    (dst)[2][2] = tmp[2] * src[12] + tmp[7] * src[13] + tmp[10] * src[15];
+    (dst)[2][2] = (dst)[2][2] - (tmp[3] * src[12] + tmp[6] * src[13] + tmp[11] * src[15]);
+    (dst)[2][3] = tmp[5] * src[12] + tmp[8] * src[13] + tmp[11] * src[14];
+    (dst)[2][3] = (dst)[2][3] - (tmp[4] * src[12] + tmp[9] * src[13] + tmp[10] * src[14]);
+    (dst)[3][0] = tmp[2] * src[10] + tmp[5] * src[11] + tmp[1] * src[9];
+    (dst)[3][0] = (dst)[3][0] - (tmp[4] * src[11] + tmp[0] * src[9] + tmp[3] * src[10]);
+    (dst)[3][1] = tmp[8] * src[11] + tmp[0] * src[8] + tmp[7] * src[10];
+    (dst)[3][1] = (dst)[3][1] - (tmp[6] * src[10] + tmp[9] * src[11] + tmp[1] * src[8]);
+    (dst)[3][2] = tmp[6] * src[9] + tmp[11] * src[11] + tmp[3] * src[8];
+    (dst)[3][2] = (dst)[3][2] - (tmp[10] * src[11] + tmp[2] * src[8] + tmp[7] * src[9]);
+    (dst)[3][3] = tmp[10] * src[10] + tmp[4] * src[8] + tmp[9] * src[9];
+    (dst)[3][3] = (dst)[3][3] - (tmp[8] * src[9] + tmp[11] * src[10] + tmp[5] * src[8]);
+    det = src[0] * (dst)[0][0] + src[1] * (dst)[0][1] + src[2] * (dst)[0][2] + src[3] * (dst)[0][3];
+
+    iassert(det != 0.0);
+
+    det = 1.0 / det;
+    for (i = 0; i < 16; ++i)
+        (dst)[0][i] = (dst)[0][i] * det;
 }
 
 void __cdecl MatrixTransformVector44(const float *vec, const float (*mat)[4], float *out)
@@ -1643,59 +1631,46 @@ void __cdecl SpotLightProjectionMatrix(float cosFov, float zNear, float zFar, fl
   (*mtx)[14] = COERCE_FLOAT(LODWORD(Q) ^ _mask__NegFloat_) * v4;
 }
 
-void __cdecl InfinitePerspectiveMatrix(float tanHalfFovX, float tanHalfFovY, float zNear, float (*mtx)[4])
+void __cdecl InfinitePerspectiveMatrix(float (*mtx)[4], float tanHalfFovX, float tanHalfFovY, float zNear)
 {
-  if ( !mtx && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.cpp", 2304, 0, "%s", "mtx") )
-    __debugbreak();
-  if ( zNear <= 0.0
-    && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.cpp", 2305, 0, "%s", "zNear > 0") )
-  {
-    __debugbreak();
-  }
-  memset((unsigned __int8 *)mtx, 0, 0x40u);
-  (*mtx)[0] = 0.99951172 / tanHalfFovX;
-  (*mtx)[5] = 0.99951172 / tanHalfFovY;
-  (*mtx)[10] = FLOAT_0_99951172;
-  (*mtx)[11] = 1.0f;
-  (*mtx)[14] = COERCE_FLOAT(LODWORD(zNear) ^ _mask__NegFloat_) * 0.99951172;
+    iassert(mtx);
+    iassert(zNear > 0);
+
+    memset((unsigned __int8 *)mtx, 0, sizeof(mat4x4));
+
+    (*mtx)[0] = MAX_11BIT_FLT / tanHalfFovX;
+    (*mtx)[5] = MAX_11BIT_FLT / tanHalfFovY;
+    (*mtx)[10] = MAX_11BIT_FLT;
+    (*mtx)[11] = 1.0f;
+    (*mtx)[14] = -zNear * MAX_11BIT_FLT;
 }
 
-void __cdecl MatrixForViewer(const float *origin, const float (*axis)[3], float (*mtx)[4])
+void __cdecl MatrixForViewer(mat4x4 &mtx, const vec3r origin, const mat3x3 &axis)
 {
-  if ( !mtx && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.cpp", 2353, 0, "%s", "mtx") )
-    __debugbreak();
-  if ( !origin
-    && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.cpp", 2354, 0, "%s", "origin") )
-  {
-    __debugbreak();
-  }
-  if ( !axis && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.cpp", 2355, 0, "%s", "axis") )
-    __debugbreak();
-  LODWORD((*mtx)[0]) = LODWORD((*axis)[3]) ^ _mask__NegFloat_;
-  LODWORD((*mtx)[4]) = LODWORD((*axis)[4]) ^ _mask__NegFloat_;
-  LODWORD((*mtx)[8]) = LODWORD((*axis)[5]) ^ _mask__NegFloat_;
-  LODWORD((*mtx)[12]) = COERCE_UNSIGNED_INT(
-                          (float)((float)(*origin * (*mtx)[0]) + (float)(origin[1] * (*mtx)[4]))
-                        + (float)(origin[2] * (*mtx)[8]))
-                      ^ _mask__NegFloat_;
-  (*mtx)[1] = (*axis)[6];
-  (*mtx)[5] = (*axis)[7];
-  (*mtx)[9] = (*axis)[8];
-  LODWORD((*mtx)[13]) = COERCE_UNSIGNED_INT(
-                          (float)((float)(*origin * (*mtx)[1]) + (float)(origin[1] * (*mtx)[5]))
-                        + (float)(origin[2] * (*mtx)[9]))
-                      ^ _mask__NegFloat_;
-  (*mtx)[2] = (*axis)[0];
-  (*mtx)[6] = (*axis)[1];
-  (*mtx)[10] = (*axis)[2];
-  LODWORD((*mtx)[14]) = COERCE_UNSIGNED_INT(
-                          (float)((float)(*origin * (*mtx)[2]) + (float)(origin[1] * (*mtx)[6]))
-                        + (float)(origin[2] * (*mtx)[10]))
-                      ^ _mask__NegFloat_;
-  (*mtx)[3] = 0.0f;
-  (*mtx)[7] = 0.0f;
-  (*mtx)[11] = 0.0f;
-  (*mtx)[15] = 1.0f;
+    iassert(mtx);
+    iassert(origin);
+    iassert(axis);
+
+    (mtx)[0][0] = -(axis)[1][0];
+    (mtx)[1][0] = -(axis)[1][1];
+    (mtx)[2][0] = -(axis)[1][2];
+    (mtx)[3][0] = -(*origin * (mtx)[0][0] + origin[1] * (mtx)[1][0] + origin[2] * (mtx)[2][0]);
+
+    (mtx)[0][1] = (axis)[2][0];
+    (mtx)[1][1] = (axis)[2][1];
+    (mtx)[2][1] = (axis)[2][2];
+    (mtx)[3][1] = -(*origin * (mtx)[0][1] + origin[1] * (mtx)[1][1] + origin[2] * (mtx)[2][1]);
+
+    (mtx)[0][2] = (axis)[0][0];
+
+    (mtx)[1][2] = (axis)[0][1];
+    (mtx)[2][2] = (axis)[0][2];
+    (mtx)[3][2] = -(*origin * (mtx)[0][2] + origin[1] * (mtx)[1][2] + origin[2] * (mtx)[2][2]);
+
+    (mtx)[0][3] = 0.0f;
+    (mtx)[1][3] = 0.0f;
+    (mtx)[2][3] = 0.0f;
+    (mtx)[3][3] = 1.0f;
 }
 
 void __cdecl AnglesSubtract(const float *v1, const float *v2, float *v3)
@@ -3180,4 +3155,54 @@ float __cdecl Vec3DistanceSq(const float *p1, const float *p2)
     v_4 = p2[1] - p1[1];
     v_8 = p2[2] - p1[2];
     return v_8 * v_8 + v_4 * v_4 + (float)(*p2 - *p1) * (float)(*p2 - *p1);
+}
+
+float Vec3Normalize(float *v)
+{
+    float ilength; // [esp+Ch] [ebp-8h]
+    float length; // [esp+10h] [ebp-4h]
+
+    length = sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+
+    if (length > 0.0f)
+        ilength = (1.0f / length);
+    else
+        ilength = 1.0f;
+
+    v[0] = v[0] * ilength;
+    v[1] = v[1] * ilength;
+    v[2] = v[2] * ilength;
+
+    return length;
+}
+
+float __cdecl Vec2Normalize(float *v)
+{
+    float ilength; // [esp+Ch] [ebp-8h]
+    float length; // [esp+10h] [ebp-4h]
+
+    length = sqrt(v[0] * v[0] + v[1] * v[1]);
+
+    if (length > 0.0f)
+        ilength = 1.0f / length;
+    else
+        ilength = 1.0f;
+
+    v[0] = v[0] * ilength;
+    v[1] = v[1] * ilength;
+
+    return length;
+}
+
+float __cdecl Vec2Length(const float *v)
+{
+    return sqrtf(v[1] * v[1] + v[0] * v[0]);
+}
+
+float AngleNormalize180(float angle)
+{
+    angle = fmodf(angle + 180.0f, 360.0f);
+    if (angle < 0.0f)
+        angle += 360.0f;
+    return angle - 180.0f;
 }

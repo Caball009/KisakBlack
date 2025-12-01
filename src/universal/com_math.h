@@ -1,5 +1,7 @@
 #pragma once
 
+#define MAX_11BIT_FLT 0.99951172f // not a real name
+
 struct cplane_s // sizeof=0x14
 {                                       // XREF: cplane_t/r
                                         // CM_TraceThroughBrush/r ...
@@ -21,6 +23,16 @@ struct float44 // sizeof=0x40
         float member[16];
     };
 };
+
+// TODO change if we ever actually use classes
+#define vec2r float*
+#define vec3r float*
+#define vec4r float*
+
+// note - row major order
+using mat3x3 = float[3][3];
+using mat4x3 = float[4][3];
+using mat4x4 = float[4][4];
 
 double __cdecl random();
 double __cdecl crandom();
@@ -64,10 +76,10 @@ void __cdecl MatrixMultiplyEquals(const float (*in)[3], float (*out)[3]);
 void __cdecl MatrixMultiply43(const float (*in1)[3], const float (*in2)[3], float (*out)[3]);
 void __cdecl MatrixMultiply44(const float (*in1)[4], const float (*in2)[4], float (*out)[4]);
 void __cdecl MatrixTranspose(const float (*in)[3], float (*out)[3]);
-void __cdecl MatrixTranspose44(const float *in, float *out);
+void __cdecl MatrixTranspose44(const mat4x4 &in, mat4x4 &out);
 void __cdecl MatrixInverse(const float (*in)[3], float (*out)[3]);
 void __cdecl MatrixInverseOrthogonal43(const float (*in)[3], float (*out)[3]);
-void __cdecl MatrixInverse44(const float *mat, float *dst);
+void __cdecl MatrixInverse44(const mat4x4 &mat, mat4x4 &dst);
 void __cdecl MatrixTransformVector44(const float *vec, const float (*mat)[4], float *out);
 void __cdecl MatrixTransformVector43(const float *in1, const float (*in2)[3], float *out);
 void __cdecl MatrixTransposeTransformVector43(const float *in1, const float (*in2)[3], float *out);
@@ -87,9 +99,9 @@ void  SpotLightViewMatrixDir3(
         const float *dirz,
         float (*mtx)[4]);
 void __cdecl SpotLightProjectionMatrix(float cosFov, float zNear, float zFar, float (*mtx)[4]);
-void __cdecl InfinitePerspectiveMatrix(float tanHalfFovX, float tanHalfFovY, float zNear, float (*mtx)[4]);
+void __cdecl InfinitePerspectiveMatrix(float (*mtx)[4], float tanHalfFovX, float tanHalfFovY, float zNear);
 
-void __cdecl MatrixForViewer(const float *origin, const float (*axis)[3], float (*mtx)[4]);
+void __cdecl MatrixForViewer(mat4x4 &mtx, const vec3r origin, const mat3x3 &axis);
 void __cdecl AnglesSubtract(const float *v1, const float *v2, float *v3);
 double __cdecl AngleNormalize360(float angle);
 double __cdecl AngleDelta(float angle1, float angle2);
@@ -181,8 +193,14 @@ void __cdecl colorHueMatrix(float (*finalMatrix)[4], float hue);
 void __cdecl colorSaturationMatrix(float (*finalMatrix)[4], float saturation);
 void __cdecl AxisCopy(const float (*in)[3], float (*out)[3]);
 
+float __cdecl Vec2Length(const float *v);
+
 void __cdecl Vec3Lerp(const float *start, const float *end, float fraction, float *endpos);
 float __cdecl Vec3DistanceSq(const float *p1, const float *p2);
+float __cdecl Vec3Normalize(float *v);
+float __cdecl Vec2Normalize(float *v);
+
+float AngleNormalize180(float angle);
 
 
 constexpr float vec2_origin[2] = { 0.0, 0.0 };
