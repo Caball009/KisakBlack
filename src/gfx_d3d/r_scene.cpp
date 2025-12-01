@@ -3200,7 +3200,7 @@ void __cdecl R_GenerateSortedDrawSurfs(
     v20 = (double)(unsigned int)(__int64)v15 / (double)den - rg.sunShadowmapScale;
     if ( fabs(v20) < bestError )
     {
-      LODWORD(bestError) = LODWORD(v20) & _mask__AbsFloat_;
+      bestError = fabs(v20);
       bestDen = den;
       bestNum = (__int64)v15;
     }

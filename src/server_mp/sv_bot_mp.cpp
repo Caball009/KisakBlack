@@ -1773,7 +1773,7 @@ double __cdecl Bot_UpdateYaw(float currentYaw, float targetYaw, bool forceSlow, 
   if ( forceSlow )
     rate = sv_botYawSpeedAds->current.value;
   v8 = AngleNormalize180(targetYaw - currentYaw);
-  LODWORD(diff) = LODWORD(v8) & _mask__AbsFloat_;
+  diff = fabs(v8);
   if ( fabs(v8) < 100.0 )
   {
     if ( (float)((float)(rate - (float)(COERCE_FLOAT(COERCE_UNSIGNED_INT(diff / 180.0) ^ _mask__NegFloat_) * rate))

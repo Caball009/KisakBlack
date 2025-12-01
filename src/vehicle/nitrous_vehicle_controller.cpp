@@ -108,7 +108,7 @@ void __userpurge NitrousVehicleController::UpdateScriptVehicleControl(
     max_reverse_dist = 4.0f;
   if ( v28->m_stuck_time > max_reverse_dist )
     v28->m_stuck_time = max_reverse_dist * -0.75;
-  LODWORD(v10) = LODWORD(rbveh->m_forward_vel) & _mask__AbsFloat_;
+  v10 = fabs(rbveh->m_forward_vel);
   if ( rbveh->m_vehicle_info->type != 2 && v14 > 0.80000001 && v19 < 400.0 )
     goto LABEL_23;
   if ( v28->m_stuck_time >= 0.0 || v13 >= -0.5 )
@@ -825,7 +825,7 @@ void __userpurge NitrousVehicleController::UpdateControlsDefault(
   v16 = (float)-v20->m_cmd.rightmove / 128.0;
   if ( steering->steerGraph )
   {
-    LODWORD(fraction) = LODWORD(v16) & _mask__AbsFloat_;
+    fraction = fabs(v16);
     if ( v16 < 0.0 )
       gas = -1.0f;
     else
@@ -1219,7 +1219,7 @@ void __userpurge NitrousVehicleController::UpdateApplyBoatAccel(
     v124 = *(float *)(LODWORD(center.w) + 56);
     forwardForce.x = *(float *)(LODWORD(center.w) + 60);
     turnProportion = rbveh->m_forward_vel;
-    LODWORD(speedFactor) = LODWORD(turnProportion) & _mask__AbsFloat_;
+    speedFactor = fabs(turnProportion);
     rotSpeedFactor = fabs(turnProportion)
                    / (float)(*(float *)(LODWORD(center.z) + 232) * rbveh->m_speed_scale);
     if ( rotSpeedFactor > 1.0 )

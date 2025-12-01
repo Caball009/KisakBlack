@@ -2450,7 +2450,7 @@ void __cdecl MissileLandAngles(gentity_s *ent, trace_t *trace, float *vAngles, i
     {
       fSurfacePitch = PitchForYawOnNormal(vAngles[1], trace->normal.vec.v);
       fAngleDelta = AngleNormalize180(fSurfacePitch - *vAngles);
-      LODWORD(fAbsAngDelta) = LODWORD(fAngleDelta) & _mask__AbsFloat_;
+      fAbsAngDelta = fabs(fAngleDelta);
       if ( !bForceAlign || bKeepSpeed )
       {
         ent->s.lerp.apos.trBase[0] = *vAngles;

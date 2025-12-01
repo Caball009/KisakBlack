@@ -1261,7 +1261,7 @@ unsigned int __cdecl R_TessXModelSkinnedDrawSurfList(
       if ( r_swrk_override_enable->current.enabled )
         value = r_swrk_override_wetness->current.value;
       else
-        LODWORD(value) = LODWORD(curWetness) & _mask__AbsFloat_;
+        value = fabs(curWetness);
       if ( curWetness >= 0.0 )
         z = 0.0f;
       else

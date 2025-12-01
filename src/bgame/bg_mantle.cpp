@@ -662,14 +662,14 @@ int __cdecl Mantle_FindTransition(float curHeight, float goalHeight)
   }
   bestIndex = 0;
   v4 = Trans_GetHeight(0) - height;
-  LODWORD(bestDiff) = LODWORD(v4) & _mask__AbsFloat_;
+  bestDiff = fabs(v4);
   for ( transIndex = 1; transIndex < 7; ++transIndex )
   {
     v3 = Trans_GetHeight(transIndex) - height;
     if ( bestDiff > fabs(v3) )
     {
       bestIndex = transIndex;
-      LODWORD(bestDiff) = LODWORD(v3) & _mask__AbsFloat_;
+      bestDiff = fabs(v3);
     }
   }
   return bestIndex;
@@ -735,7 +735,7 @@ void  Mount_CheckLedge(cStaticModel_s *a1@<ebp>, pmove_t *pm, pml_t *pml, Mantle
   heightToLedge = 0.0f;
   v23 = 1.0f;
   lookVec[1] = mresults->ledgePos[2] - v25->origin[2];
-  LODWORD(lookVec[0]) = LODWORD(lookVec[1]) & _mask__AbsFloat_;
+  lookVec[0] = fabs(lookVec[1]);
   if ( BG_GetWeaponDef(v25->weapon)->mountableWeapon
     && (mresults->flags & 0x20) != 0
     && lookVec[0] < 50.0

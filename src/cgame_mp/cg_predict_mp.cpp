@@ -176,11 +176,11 @@ LABEL_6:
       umove = umove + 127.0;
     if ( bitarray<51>::testBit(&cmd->button_bits, 6u) )
       umove = umove - 127.0;
-    LODWORD(max) = LODWORD(fmove) & _mask__AbsFloat_;
+    max = fabs(fmove);
     if ( fabs(smove) > fabs(fmove) )
-      LODWORD(max) = LODWORD(smove) & _mask__AbsFloat_;
+      max = fabs(smove);
     if ( fabs(umove) > max )
-      LODWORD(max) = LODWORD(umove) & _mask__AbsFloat_;
+      max = fabs(umove);
     total = sqrtf((float)((float)(fmove * fmove) + (float)(smove * smove)) + (float)(umove * umove));
     scale = (float)((float)(190.0 * max) / (float)(127.0 * total)) * 3.0;
     for ( i = 0; i < 3; ++i )

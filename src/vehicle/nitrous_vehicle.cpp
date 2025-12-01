@@ -1451,7 +1451,7 @@ double __thiscall NitrousVehicle::_get_stuck_accel_factor(NitrousVehicle *this, 
   }
   else if ( this->m_phys_user_data )
   {
-    LODWORD(abs_steer_factor) = LODWORD(this->m_steer_factor) & _mask__AbsFloat_;
+    abs_steer_factor = fabs(this->m_steer_factor);
     if ( (float)(vel_threshold * vel_threshold) <= (float)((float)((float)(this->m_phys_user_data->body->m_t_vel.x
                                                                          * this->m_phys_user_data->body->m_t_vel.x)
                                                                  + (float)(this->m_phys_user_data->body->m_t_vel.y
@@ -1707,7 +1707,7 @@ void __userpurge NitrousVehicle::_update_prolog(NitrousVehicle *this@<ecx>, int 
   }
   if ( (this->m_flags & 1) == 0 )
   {
-    LODWORD(v11) = LODWORD(this->m_forward_vel) & _mask__AbsFloat_;
+    v11 = fabs(this->m_forward_vel);
     if ( this->m_vehicle_info->accelGraph )
     {
       if ( (float)((float)(v11 / rbc_wheel) - 1.0) < 0.0 )

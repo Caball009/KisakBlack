@@ -983,7 +983,7 @@ void __cdecl CM_ClipMoveToEntities_r(
         }
         else
         {
-          LODWORD(absDiff) = LODWORD(diff) & _mask__AbsFloat_;
+          absDiff = fabs(diff);
           if ( diff < 0.0 )
             v7 = p[node->tree.axis] - node->tree.dist;
           else
@@ -1112,7 +1112,7 @@ int __cdecl CM_ClipSightTraceToEntities_r(
     }
     else
     {
-      LODWORD(absDiff) = LODWORD(diff) & _mask__AbsFloat_;
+      absDiff = fabs(diff);
       if ( diff < 0.0 )
         v7 = p[node->tree.axis] - node->tree.dist;
       else

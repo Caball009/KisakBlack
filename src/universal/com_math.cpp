@@ -1723,9 +1723,9 @@ double __cdecl RadiusFromBoundsSq(const float *mins, const float *maxs)
 
   for ( i = 0; i < 3; ++i )
   {
-    LODWORD(a) = LODWORD(mins[i]) & _mask__AbsFloat_;
+    a = fabs(mins[i]);
     if ( a <= fabs(maxs[i]) )
-      LODWORD(v3) = LODWORD(maxs[i]) & _mask__AbsFloat_;
+      v3 = fabs(maxs[i]);
     else
       v3 = a;
     corner[i] = v3;
@@ -1742,9 +1742,9 @@ double __cdecl RadiusFromBounds2DSq(const float *mins, const float *maxs)
 
   for ( i = 0; i < 2; ++i )
   {
-    LODWORD(a) = LODWORD(mins[i]) & _mask__AbsFloat_;
+    a = fabs(mins[i]);
     if ( a <= fabs(maxs[i]) )
-      LODWORD(v3) = LODWORD(maxs[i]) & _mask__AbsFloat_;
+      v3 = fabs(maxs[i]);
     else
       v3 = a;
     corner[i] = v3;

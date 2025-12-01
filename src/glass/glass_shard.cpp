@@ -3485,7 +3485,7 @@ double __thiscall GlassShard::GetMass(GlassShard *this)
   float v2; // [esp+4h] [ebp-1Ch]
   float volume; // [esp+10h] [ebp-10h]
 
-  LODWORD(v2) = LODWORD(this->thickness) & _mask__AbsFloat_;
+  v2 = fabs(this->thickness);
   volume = GlassShard::Outline::Area(&this->outline) * v2;
   if ( volume < 100.0 )
     return 0.001;

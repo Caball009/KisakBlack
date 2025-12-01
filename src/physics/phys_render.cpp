@@ -1678,7 +1678,7 @@ void  init_winding(float a1@<ebp>, const plane_lt *plane, phys_static_array<phys
   v61 = y;
   v60 = LODWORD(y) & _mask__AbsFloat_;
   abs_normal.w = x;
-  LODWORD(abs_normal.z) = LODWORD(x) & _mask__AbsFloat_;
+  abs_normal.z = fabs(x);
   v56 = LODWORD(x) & _mask__AbsFloat_;
   axis = LODWORD(y) & _mask__AbsFloat_;
   v58 = LODWORD(dist) & _mask__AbsFloat_;

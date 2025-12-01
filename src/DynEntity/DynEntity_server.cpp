@@ -667,7 +667,7 @@ void __cdecl DynEntSv_ClipMoveTrace_r(
         }
         else
         {
-          LODWORD(absDiff) = LODWORD(diff) & _mask__AbsFloat_;
+          absDiff = fabs(diff);
           if ( diff < 0.0 )
             v7 = p[sector->tree.axis] - sector->tree.dist;
           else

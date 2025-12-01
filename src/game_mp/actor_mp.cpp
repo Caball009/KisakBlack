@@ -3705,7 +3705,7 @@ bool __fastcall Actor_FindPathToGoalDirectInternal(actor_s *self)
   {
     return 1;
   }
-  LODWORD(sideMove) = LODWORD(self->sideMove) & _mask__AbsFloat_;
+  sideMove = fabs(self->sideMove);
   if ( sideMove > (float)(self->codeGoal.radius - 15.0) )
     sideMove = self->codeGoal.radius - 15.0;
   if ( sideMove <= 0.0 )
@@ -4917,7 +4917,7 @@ void __userpurge Path_UpdateMovementDelta(actor_s *self@<ecx>, float fMoveDist)
     maxSideMove[1] = vNewDir[0] * perp[1];
     vEndPos[2] = pPath_->fLookaheadDist * 0.5;
     vEndPos[1] = self_->sideMove;
-    LODWORD(vEndPos[0]) = LODWORD(vEndPos[1]) & _mask__AbsFloat_;
+    vEndPos[0] = fabs(vEndPos[1]);
 
     if ( vEndPos[2] > fabs(vEndPos[1]) )
       vEndPos[2] = vEndPos[0];

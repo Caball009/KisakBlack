@@ -216,9 +216,9 @@ phys_vec3 *__cdecl phys_AbsValue(phys_vec3 *result, const phys_vec3 *a)
   float v3; // [esp+8h] [ebp-10h]
   float v4; // [esp+10h] [ebp-8h]
 
-  LODWORD(v4) = LODWORD(a->z) & _mask__AbsFloat_;
-  LODWORD(v3) = LODWORD(a->y) & _mask__AbsFloat_;
-  LODWORD(result->x) = LODWORD(a->x) & _mask__AbsFloat_;
+  v4 = fabs(a->z);
+  v3 = fabs(a->y);
+  result->x = fabs(a->x);
   result->y = v3;
   result->z = v4;
   return result;
@@ -1369,7 +1369,7 @@ void __cdecl CG_ClipMoveToEntities_r(
         }
         else
         {
-          LODWORD(absDiff) = LODWORD(diff) & _mask__AbsFloat_;
+          absDiff = fabs(diff);
           if ( diff < 0.0 )
             v8 = p[sector->tree.axis] - sector->tree.dist;
           else

@@ -4581,7 +4581,7 @@ void  CG_DrawPlayerStance(
                  * 0.017453292);
       __libm_sse2_sin(v8);
       *(float *)&v7 = v7;
-      LODWORD(drawColor[0]) = LODWORD(v7) & _mask__AbsFloat_;
+      drawColor[0] = fabs(v7);
       UI_DrawText(
         &scrPlaceView[localClientNum],
         v10,

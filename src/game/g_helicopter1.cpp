@@ -362,7 +362,7 @@ char __cdecl VEH_HandleHeliLockHeight(gentity_s *ent)
     CM_GetHeliHeight(testPoint, 3000.0, &veh->phys.heliLockHeight);
   deltaHeight = testPoint[2] - veh->phys.heliLockHeight;
   moveStrength = 1.0f;
-  LODWORD(absDeltaHeight) = LODWORD(deltaHeight) & _mask__AbsFloat_;
+  absDeltaHeight = fabs(deltaHeight);
   if ( inputFallOffRange > fabs(deltaHeight) )
   {
     if ( stopInputRange <= absDeltaHeight )

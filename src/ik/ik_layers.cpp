@@ -949,7 +949,7 @@ void  IK_Layer_TerrainMapping(float a1@<ebp>, IKState *ikState)
                   v62 = (float)(v63 * v63) + (float)(cSq * cSq);
                   v61 = Vec3DistanceSq((const float *)&v67[48], v66);
                   cMaxSq = *(float *)&v67[56] - ikState->footMats[j][3][2];
-                  LODWORD(bSq) = LODWORD(cMaxSq) & _mask__AbsFloat_;
+                  bSq = fabs(cMaxSq);
                   if ( (float)(fabs(cMaxSq)
                              * fabs(cMaxSq)) > v62 )
                   {
@@ -2725,7 +2725,7 @@ void  IK_Layer_PlayerPitch(float a1@<ebp>, IKState *ikState, bool preControllers
     if ( !preControllers )
     {
       ofsUp[2] = v200;
-      LODWORD(ofsUp[1]) = LODWORD(v200) & _mask__AbsFloat_;
+      ofsUp[1] = fabs(v200);
       v4 = (float)(fabs(v200) / 90.0);
       __libm_sse2_pow(v14, v16);
       *(float *)&v4 = v4;
@@ -2767,9 +2767,9 @@ void  IK_Layer_PlayerPitch(float a1@<ebp>, IKState *ikState, bool preControllers
       v179 = 90.0f;
       v178 = 1.0f;
       ofsTwistVec[2] = ikState->controller_origin_angles[1] / 90.0;
-      LODWORD(ofsTwistVec[1]) = LODWORD(ofsTwistVec[2]) & _mask__AbsFloat_;
+      ofsTwistVec[1] = fabs(ofsTwistVec[2]);
       __libm_sse2_pow(v15, v16);
-      LODWORD(ofsUp[0]) = LODWORD(ofsTwistVec[2]) & _mask__AbsFloat_;
+      ofsUp[0] = fabs(ofsTwistVec[2]);
       if ( (float)(1.0 - fabs(ofsTwistVec[2])) < 0.0 )
         v5 = v178;
       else

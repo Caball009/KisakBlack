@@ -30,7 +30,7 @@ PackedUnitVec __cdecl Vec3PackUnitVec(const float *unitVec)
     decoded[1] = (float)((float)testEncoding[1] - 127.0) * decodeScale;
     decoded[2] = (float)((float)testEncoding[2] - 127.0) * decodeScale;
     v2 = Vec3Normalize(decoded) - 1.0;
-    LODWORD(lenError) = LODWORD(v2) & _mask__AbsFloat_;
+    lenError = fabs(v2);
     if ( fabs(v2) < 0.001 )
     {
       LODWORD(dirError) = COERCE_UNSIGNED_INT(
@@ -98,7 +98,7 @@ int __cdecl Vec4PackQuat(const float *in)
   {
     if ( maxValue < fabs(value[i]) )
     {
-      LODWORD(maxValue) = LODWORD(value[i]) & _mask__AbsFloat_;
+      maxValue = fabs(value[i]);
       maxIndex = i;
     }
   }

@@ -1123,7 +1123,7 @@ void __cdecl CG_UpdateVehicleSounds(int localClientNum, centity_s *cent)
   cgameGlob = CG_GetLocalClientGlobals(localClientNum);
   speedIPS = Abs(cent->currentState.pos.trDelta);
   if ( cent->nitrousVeh )
-    LODWORD(speedIPS) = LODWORD(cent->nitrousVeh->m_forward_vel) & _mask__AbsFloat_;
+    speedIPS = fabs(cent->nitrousVeh->m_forward_vel);
   isLocalPlayersVehicle = cgameGlob->bgs.clientinfo[cgameGlob->clientNum].attachedVehEntNum == cent->nextState.number;
   vehicleOccupied = 0;
   for ( i = 0; !vehicleOccupied && i < com_maxclients->current.integer; ++i )
@@ -1188,7 +1188,7 @@ void  CG_UpdateWheeledSurfaceSounds(
   velocity_forward = 0;
   v15 = 0.0f;
   velocity_forward = GetSoundInfoForVehicle(localClientNum, cent, &v15);
-  LODWORD(v14) = LODWORD(cent->nitrousVeh->m_forward_vel) & _mask__AbsFloat_;
+  v14 = fabs(cent->nitrousVeh->m_forward_vel);
   v13 = v14 / NitrousVehicle::get_max_speed(cent->nitrousVeh, 0) * 1.5707964;
   __libm_sse2_sin(v6);
   if ( (float)(v13 - 1.0) < 0.0 )

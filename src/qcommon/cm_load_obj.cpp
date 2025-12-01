@@ -490,9 +490,9 @@ unsigned int CMod_LoadSubmodels()
       out->maxs[j] = *(float *)&in[4 * j + 12] + 1.0;
       if ( (float)(fabs(out->mins[j])
                  - fabs(out->maxs[j])) < 0.0 )
-        LODWORD(v1) = LODWORD(out->maxs[j]) & _mask__AbsFloat_;
+        v1 = fabs(out->maxs[j]);
       else
-        LODWORD(v1) = LODWORD(out->mins[j]) & _mask__AbsFloat_;
+        v1 = fabs(out->mins[j]);
       extent[j] = v1;
     }
     out->radius = Abs(extent);

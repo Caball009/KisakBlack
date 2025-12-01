@@ -1081,7 +1081,7 @@ void __fastcall Path_TransferLookahead(path_t *pPath, const float *vStartPos)
     }
     heighta = (float)(pt->fDir2D[0] * offset[1]) - (float)(pt->fDir2D[1] * offset[0]);
     bInFront = (float)((float)((float)(pt->fDir2D[0] * vDir[1]) - (float)(pt->fDir2D[1] * vDir[0])) * heighta) > 0.0;
-    LODWORD(height) = LODWORD(heighta) & _mask__AbsFloat_;
+    height = fabs(heighta);
     dot = (float)(vDir[0] * offset[1]) - (float)(vDir[1] * offset[0]);
 
     if ( bInFront && (float)(dot * prevDot) < 0.0 )

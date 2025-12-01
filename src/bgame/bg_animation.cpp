@@ -2347,7 +2347,7 @@ void __cdecl BG_RunLerpFrameRate(
         if ( isLadderAnim )
         {
           v9 = lf->oldFramePos[2] - es->lerp.pos.trBase[2];
-          LODWORD(moveSpeed) = LODWORD(v9) & _mask__AbsFloat_;
+          moveSpeed = fabs(v9);
         }
         else
         {
@@ -2363,7 +2363,7 @@ void __cdecl BG_RunLerpFrameRate(
                                   - lf->oldFrameSnapshotTime)
                           * 0.001);
         v7 = AngleNormalize180(lf->oldFrameYaw - es->lerp.apos.trBase[1]);
-        LODWORD(rotSpeed) = LODWORD(v7) & _mask__AbsFloat_;
+        rotSpeed = fabs(v7);
         rotSpeed = fabs(v7)
                  / (float)((float)(*(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer
                                                            + _tls_index)

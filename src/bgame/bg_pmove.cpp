@@ -2461,11 +2461,11 @@ double __cdecl PM_MoveScale(playerState_s *ps, float fmove, float rmove, float u
   float scale; // [esp+8h] [ebp-4h]
   float scalea; // [esp+8h] [ebp-4h]
 
-  LODWORD(max) = LODWORD(fmove) & _mask__AbsFloat_;
+  max = fabs(fmove);
   if ( fabs(rmove) > fabs(fmove) )
-    LODWORD(max) = LODWORD(rmove) & _mask__AbsFloat_;
+    max = fabs(rmove);
   if ( fabs(umove) > max )
-    LODWORD(max) = LODWORD(umove) & _mask__AbsFloat_;
+    max = fabs(umove);
   if ( max == 0.0 )
     return 0.0;
   if ( !ps && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_pmove.cpp", 1204, 0, "%s", "ps") )

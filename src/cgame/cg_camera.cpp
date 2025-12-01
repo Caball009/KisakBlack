@@ -2252,7 +2252,7 @@ void __cdecl CG_Calc3rdPersonVehicleViewValues(int localClientNum)
       && NitrousVehicle::get_max_speed(vehicle->nitrousVeh, 0) > 0.0
       && cgameGlob->frametime > 0 )
     {
-      LODWORD(maxSpringOffset) = LODWORD(info->thirdPersonCameraSpringDistance) & _mask__AbsFloat_;
+      maxSpringOffset = fabs(info->thirdPersonCameraSpringDistance);
       maxSpringOffsetTimeMs = maxSpringOffset / (float)(info->thirdPersonCameraSpringTime * 1000.0);
       frameTimeMs = (float)cgameGlob->frametime * 0.001;
       m_forward_vel = vehicle->nitrousVeh->m_forward_vel;

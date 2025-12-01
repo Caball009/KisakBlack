@@ -6046,7 +6046,7 @@ void __cdecl VEH_UpdateClient(gentity_s *ent)
     if ( !info->type || info->type == 2 )
       VEH_GroundPlant(ent, &veh->phys, 1);
     MatrixTransposeTransformVector43(veh->phys.vel, axis, veh->phys.bodyVel);
-    LODWORD(veh->speed) = LODWORD(veh->phys.bodyVel[0]) & _mask__AbsFloat_;
+    veh->speed = fabs(veh->phys.bodyVel[0]);
     if ( veh->speed < 0.0
       && !Assert_MyHandler(
             "C:\\projects_pc\\cod\\codsrc\\src\\game\\g_scr_vehicle.cpp",
@@ -6859,7 +6859,7 @@ double __cdecl VEH_UpdateMove_GetDesiredYaw(scr_vehicle_s *veh, float *desiredDi
       timeToTurn = (float)(phys->maxAngleVel[1] / phys->yawAccel) * 2.0;
       stopAngle = (float)(phys->maxAngleVel[1] * 0.5) * timeToTurn;
       v3 = AngleNormalize180(desiredYaw - phys->angles[1]);
-      LODWORD(angleDiff) = LODWORD(v3) & _mask__AbsFloat_;
+      angleDiff = fabs(v3);
       if ( timeToStop > timeToTurn && angleDiff > stopAngle )
         timeToTurn = (float)((float)(angleDiff - stopAngle) / phys->maxAngleVel[1]) + timeToTurn;
       if ( timeToTurn >= timeToStop )
@@ -6977,7 +6977,7 @@ void __cdecl VEH_UpdateAngleAndAngularVel(
   if ( (float)(0.0099999998 * 0.0099999998) <= (float)(angleDiff * angleDiff)
     || (float)(0.050000001 * 0.050000001) <= (float)(phys->rotVel[index] * phys->rotVel[index]) )
   {
-    LODWORD(absCurAngleVel) = LODWORD(phys->rotVel[index]) & _mask__AbsFloat_;
+    absCurAngleVel = fabs(phys->rotVel[index]);
     targetAngleVel = phys->maxAngleVel[index];
     if ( (float)(angleDiff * phys->rotVel[index]) < 0.0 )
     {
@@ -8009,7 +8009,7 @@ LABEL_28:
                 _S3_0 |= 1u;
                 minDamageIPS = 5.0 * 17.6;
               }
-              LODWORD(speed) = LODWORD(veh->speed) & _mask__AbsFloat_;
+              speed = fabs(veh->speed);
               if ( minDamageIPS <= speed )
               {
                 damageScale = (float)(speed - minDamageIPS) / info->collisionSpeed;
