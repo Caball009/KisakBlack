@@ -1,4 +1,5 @@
 #include "cg_visionsets.h"
+#include <universal/com_memory.h>
 
 void __cdecl CG_RegisterVisionSetsDvars()
 {

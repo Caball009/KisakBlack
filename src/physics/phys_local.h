@@ -19,6 +19,22 @@ struct phys_vec3 // sizeof=0x10
 
 struct phys_mat44 // sizeof=0x40
 {                                       // XREF: .data:PHYS_IDENTITY_MATRIX/r
+    phys_mat44& operator=(const phys_mat44 *that)
+    {
+        this->x.x = that->x.x;
+        this->x.y = that->x.y;
+        this->x.z = that->x.z;
+        this->y.x = that->y.x;
+        this->y.y = that->y.y;
+        this->y.z = that->y.z;
+        this->z.x = that->z.x;
+        this->z.y = that->z.y;
+        this->z.z = that->z.z;
+        this->w.x = that->w.x;
+        this->w.y = that->w.y;
+        this->w.z = that->w.z;
+        return *this;
+    }
                                         // .data:PHYS_IDENTITY_MATRIX_0/r ...
     phys_vec3 x;                        // XREF: gjk_cylinder_t::get_feature(phys_contact_manifold *)+63/r
     // gjk_cylinder_t::get_feature(phys_contact_manifold *)+70/r ...
@@ -99,3 +115,37 @@ struct phys_simple_allocator//<phys_heap_gjk_cache_system_avl_tree::phys_gjk_cac
 //void __thiscall phys_simple_allocator<gjk_polygon_cylinder_t>::free(
 //    phys_simple_allocator<gjk_polygon_cylinder_t> *this,
 //    gjk_polygon_cylinder_t *slot);
+
+struct phys_memory_heap // sizeof=0x10
+{                                       // XREF: phys_contact_manifold_process/r
+    char *m_buffer_start;
+    char *m_buffer_end;
+    char *m_buffer_cur;
+    char *m_user_start;
+
+    //char *phys_memory_heap::fast_allocate(phys_memory_heap *this, int size, const char *error_msg);
+    char *fast_allocate(int size, const char *error_msg);
+};
+
+
+// oh fuck yes, in the compiler this is slurped into every file and duplicated 68 times
+static const phys_vec3 PHYS_X_VEC = { 1.0f, 0.0f, 0.0f, 0.0f };
+static const phys_vec3 PHYS_Y_VEC = { 0.0f, 1.0f, 0.0f, 0.0f };
+static const phys_vec3 PHYS_Z_VEC = { 0.0f, 0.0f, 1.0f, 0.0f };
+
+static const phys_vec3 PHYS_ZERO_VEC = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+static const phys_mat44 PHYS_IDENTITY_MATRIX =
+{
+    .x = PHYS_X_VEC,
+    .y = PHYS_Y_VEC,
+    .z = PHYS_Z_VEC,
+
+    .w = { PHYS_ZERO_VEC }
+};
+
+static const float PHYS_PI = 3.1415927f;
+static const float PHYS_PI_TIMES_2 = 6.2831855f;
+static const float PHYS_PI_OVER_2 = 1.5707964f;
+
+#define PHYS_ALIGNOF(type) alignof(type)

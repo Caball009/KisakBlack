@@ -1,9 +1,9 @@
 #include "xmodel.h"
+#include <universal/assertive.h>
 
 bool __cdecl XModelBad(const XModel *model)
 {
-  if ( !model && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\xanim\\xmodel.cpp", 56, 0, "%s", "model") )
-    __debugbreak();
+  iassert(model);
   if ( useFastFile->current.enabled )
     return DB_IsXAssetDefault(ASSET_TYPE_XMODEL, model->name);
   else

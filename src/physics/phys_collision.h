@@ -6,27 +6,6 @@
 #include "phys_local.h"
 #include "rigid_body.h"
 
-struct visitor_base_t // sizeof=0x4
-{                                       // XREF: colgeom_visitor_t/r
-    //visitor_base_t_vtbl *__vftable;     // XREF: CG_Vehicle_PreControllers(int,DObj const *,centity_s *)+2AD/w
-                                        // CG_Vehicle_PreControllers(int,DObj const *,centity_s *):loc_50E81E/r ...
-    virtual ~visitor_base_t() = default;
-};
-
-struct colgeom_visitor_t : visitor_base_t // sizeof=0x70
-{                                       // XREF: colgeom_visitor_inlined_t<200>/r
-                                        // static_colgeom_visitor_t/r ...
-    hybrid_vector m_mn;                 // XREF: query_brush_model_gjk_geom(ushort,int,gjk_collision_visitor *)+8F/o
-    hybrid_vector m_mx;                 // XREF: query_brush_model_gjk_geom(ushort,int,gjk_collision_visitor *)+8B/o
-    hybrid_vector m_p0;
-    hybrid_vector m_p1;
-    hybrid_vector m_delta;
-    hybrid_vector m_rvec;
-    float m_radius;
-    int m_mask;                         // XREF: query_brush_model_gjk_geom(ushort,int,gjk_collision_visitor *)+A3/w
-    TraceThreadInfo *m_threadInfo;
-};
-
 template <int NUM_PRIMS>
 struct colgeom_visitor_inlined_t : colgeom_visitor_t // sizeof=0x6B8
 {                                       // XREF: .data:dummy/r

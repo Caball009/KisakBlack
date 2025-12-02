@@ -397,47 +397,6 @@ struct XSurface // sizeof=0x44
     int partBits[5];
 };
 
-struct XModelLodInfo // sizeof=0x20
-{                                       // XREF: XModel/r
-    float dist;
-    unsigned __int16 numsurfs;
-    unsigned __int16 surfIndex;
-    int partBits[5];
-    unsigned __int8 lod;
-    unsigned __int8 smcIndexPlusOne;
-    unsigned __int8 smcAllocBits;
-    unsigned __int8 unused;
-};
-
-struct XModelCollTri_s // sizeof=0x30
-{                                       // XREF: XModelCollTri/r
-    float plane[4];
-    float svec[4];
-    float tvec[4];
-};
-
-struct XModelCollSurf_s // sizeof=0x2C
-{                                       // XREF: XModelCollSurf/r
-    XModelCollTri_s *collTris;
-    int numCollTris;
-    float mins[3];
-    float maxs[3];
-    int boneIdx;
-    int contents;
-    int surfFlags;
-};
-
-struct XModelHighMipBounds // sizeof=0x10
-{
-    float center[3];
-    float himipRadiusSq;
-};
-
-struct XModelStreamInfo // sizeof=0x4
-{                                       // XREF: XModel/r
-    XModelHighMipBounds *highMipBounds;
-};
-
 struct Collmap // sizeof=0x4
 {
     PhysGeomList *geomList;

@@ -26,6 +26,13 @@ enum CubemapShot : __int32
     CUBEMAPSHOT_COUNT = 0x7,
 };
 
+enum thirdPersonType : __int32
+{                                       // XREF: cg_s/r
+    TP_OFF        = 0x0,
+    TP_FOR_MODEL  = 0x1,
+    TP_FOR_SHADOW = 0x2,
+};
+
 struct snapshot_s // sizeof=0x20200
 {                                       // XREF: cg_s/r snapshot_t/r
     int snapFlags;
@@ -233,6 +240,84 @@ struct snapshot_s // sizeof=0x20200
     // padding byte
 };
 
+struct playerEntity_t // sizeof=0x30
+{                                       // XREF: cg_s/r
+    float fLastWeaponPosFrac;
+    int bPositionToADS;
+    float vPositionLastOrg[3];
+    float fLastIdleFactor;
+    float baseMoveOrigin[3];
+    float baseMoveAngles[3];
+};
+
+struct __declspec(align(16)) refdef_s // sizeof=0x18510
+{                                       // XREF: cg_s/r refdef_t/r
+    unsigned int x;
+    unsigned int y;
+    unsigned int width;
+    unsigned int height;
+    float tanHalfFovX;
+    float tanHalfFovY;
+    float fov_x;
+    float vieworg[3];
+    float yaw;
+    float viewaxis[3][3];
+    int time;
+    float zNear;
+    float zFar;
+    GfxVisionSet visionset;
+    float blurRadius;
+    GfxDepthOfField dof;
+    GfxDoubleVision doubleVision;
+    GfxCompositeFx flameFx;
+    GfxCompositeFx waterSheetingFx;
+    GfxGenericFilter genericFilter;
+    GfxPoison poisonFx;
+    GfxCompositeFx electrifiedFx;
+    GfxCompositeFx transportedFx;
+    GfxSaveScreenFx saveScreenFx;
+    float sunVisibility;
+    GfxLight primaryLights[255];
+    GfxViewport scissorViewport;
+    bool useScissorViewport;
+    // padding byte
+    // padding byte
+    // padding byte
+    int localClientNum;
+    int hideMatureContent;
+    int splitscreen;
+    int playerTeleported;
+    int oldExposureId;
+    int newExposureId;
+    GfxExposureValue exposureValue;
+    float lerpcount;
+    int lastTime;
+    unsigned int exposureMode;
+    float exposure;
+    float postEmissiveBrightening;
+    bool noLodCullOut;
+    // padding byte
+    // padding byte
+    // padding byte
+    WaterFogDef waterFog;
+    float extraCamPos[3];
+    bool extraCamPosValid;
+    bool extraCamLargeFrame;
+    // padding byte
+    // padding byte
+    float preExtraCamVieworg[3];
+    float preExtraCamViewaxis[3][3];
+    float preExtraCamTanHalfFovX;
+    float preExtraCamTanHalfFovY;
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+};
 
 struct __declspec(align(128)) cg_s // sizeof=0x71C80
 {                                       // XREF: cg_t/r

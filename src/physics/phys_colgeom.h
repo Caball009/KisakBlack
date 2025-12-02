@@ -2,19 +2,69 @@
 
 #include "phys_local.h"
 #include <xanim/xanim.h>
+#include <universal/q_shared.h>
+
+#define SURF_TYPECOUNT 31
+
+struct cpose_t;
+struct gentity_s;
+struct Glass;
+struct DynEntityDef;
+struct gjk_base_t;
+struct cLeafBrushNode_s;
+
+struct visitor_base_t // sizeof=0x4
+{                                       // XREF: colgeom_visitor_t/r
+    //visitor_base_t_vtbl *__vftable;     // XREF: CG_Vehicle_PreControllers(int,DObj const *,centity_s *)+2AD/w
+                                        // CG_Vehicle_PreControllers(int,DObj const *,centity_s *):loc_50E81E/r ...
+    virtual ~visitor_base_t() = default;
+};
+
+struct colgeom_visitor_t : visitor_base_t // sizeof=0x70
+{                                       // XREF: colgeom_visitor_inlined_t<200>/r
+                                        // static_colgeom_visitor_t/r ...
+    hybrid_vector m_mn;                 // XREF: query_brush_model_gjk_geom(ushort,int,gjk_collision_visitor *)+8F/o
+    hybrid_vector m_mx;                 // XREF: query_brush_model_gjk_geom(ushort,int,gjk_collision_visitor *)+8B/o
+    hybrid_vector m_p0;
+    hybrid_vector m_p1;
+    hybrid_vector m_delta;
+    hybrid_vector m_rvec;
+    float m_radius;
+    int m_mask;                         // XREF: query_brush_model_gjk_geom(ushort,int,gjk_collision_visitor *)+A3/w
+    TraceThreadInfo *m_threadInfo;
+};
+
+struct query_brush_model_gjk_geom_visitor : colgeom_visitor_t // sizeof=0x74
+{                                       // XREF: ?query_brush_model_gjk_geom@@YAXGHPAVgjk_collision_visitor@@@Z/r
+    gjk_collision_visitor *m_allocator; // XREF: query_brush_model_gjk_geom(ushort,int,gjk_collision_visitor *)+A9/w
+
+    void visit(const cbrush_t *brush);
+    void update(
+        const float *_mn,
+        const float *_mx,
+        int _mask,
+        const float *expand_vec);
+};
+
+struct gjk_collision_visitor // sizeof=0x4
+{                                       // XREF: create_gjk_geom_collision_visitor/r
+                                        // gjk_physics_collision_visitor/r ...
+    //gjk_collision_visitor_vtbl *__vftable;
+                                        // XREF: DynEntCl_CreatePhysObj(DynEntityDef const *,DynEntityClient *,GfxPlacement const *)+D7/w
+                                        // DynEntCl_CreatePhysObj(DynEntityDef const *,DynEntityClient *,GfxPlacement const *)+DE/w ...
+    void * allocate(const int, const int, const bool);
+    bool is_query();
+    void get_local_query_aabb(float *, float *);
+    bool query_create_prolog(const void *);
+    void query_create_epilog(gjk_base_t *);
+    bool query_create_prolog_1(const float *, const float *, const void *);
+    void query_create_epilog_1(gjk_base_t *);
+};
 
 const struct cached_simplex_info // sizeof=0x30
 {                                       // XREF: phys_gjk_cache_info/r
                                         // phys_gjk_cache_info/r ...
     phys_vec3 m_indices[3];
-};
-
-struct phys_memory_heap // sizeof=0x10
-{                                       // XREF: phys_contact_manifold_process/r
-    char *m_buffer_start;
-    char *m_buffer_end;
-    char *m_buffer_cur;
-    char *m_user_start;
 };
 
 struct __declspec(align(16)) contact_manifold_mesh_point // sizeof=0x20
@@ -69,34 +119,12 @@ struct phys_gjk_geom // sizeof=0x4
         const phys_vec3 *simplex_inds,
         int w_set,
         const phys_vec3 *normal,
-        cached_simplex_info *cache_info)
-    {
-        const phys_vec3 *v5; // [esp+4h] [ebp-Ch]
-        int i; // [esp+8h] [ebp-8h]
-
-        for (i = 0; i < 4; ++i)
-        {
-            if ((w_set & (1 << i)) != 0)
-            {
-                v5 = &simplex_inds[i];
-                cache_info->m_indices[0].x = v5->x;
-                cache_info->m_indices[0].y = v5->y;
-                cache_info->m_indices[0].z = v5->z;
-                cache_info = (cached_simplex_info *)((char *)cache_info + 16);
-            }
-        }
-    }
+        cached_simplex_info *cache_info);
     virtual const phys_vec3 * get_center(const phys_vec3 * result);
     virtual void get_feature(phys_contact_manifold *);
-    virtual float get_geom_radius()
-    {
-        return 0.0f;
-    }
+    virtual float get_geom_radius();
     virtual void calc_aabb(const phys_mat44 *, phys_vec3 *, phys_vec3 *);
-    virtual bool ray_cast(const phys_vec3 *, const phys_vec3 *, const float, float *, phys_vec3 *)
-    {
-        return false;
-    }
+    virtual bool ray_cast(const phys_vec3 *, const phys_vec3 *, const float, float *, phys_vec3 *);
     virtual bool is_polyhedron();
 };
 
@@ -133,10 +161,26 @@ public:
     // padding byte
     // padding byte
 
-    void __thiscall gjk_base_t::set_xform(gjk_base_t *this, const phys_mat44 *xform);
-    void __thiscall gjk_base_t::set_geom_id_new(gjk_base_t *this, unsigned int geom_id);
-    void __thiscall gjk_base_t::set_contents(gjk_base_t *this, int contents);
+    static const int FLAG_TEMP_ALLOCATION = 1;
 
+    inline int get_flag(int flag)
+    {
+        return m_flags & flag;
+    }
+
+    void set_xform(const phys_mat44 *xform);
+    void set_geom_id_new(unsigned int geom_id);
+    void set_contents(int contents);
+
+};
+
+struct gjk_geom_list_t // sizeof=0x8
+{                                       // XREF: PhysObjUserData/r
+                                        // ?InitPhysicsObj@GlassShard@@QAE_N_N@Z/r ...
+    gjk_base_t *m_first_geom;           // XREF: DynEntCl_CreatePhysObj(DynEntityDef const *,DynEntityClient *,GfxPlacement const *):loc_5B18F9/w
+                                        // DynEntPieces_SpawnPhysObj:loc_5BCF29/w ...
+    int m_geom_count;                   // XREF: DynEntCl_CreatePhysObj(DynEntityDef const *,DynEntityClient *,GfxPlacement const *)+D0/w
+                                        // DynEntPieces_SpawnPhysObj+50/w ...
 };
 
 struct __declspec(align(16)) gjk_aabb_t : gjk_base_t // sizeof=0x80
@@ -158,30 +202,28 @@ struct __declspec(align(16)) gjk_aabb_t : gjk_base_t // sizeof=0x80
     // padding byte
 
 
-    gjk_aabb_t *__cdecl gjk_aabb_t::create(
+    gjk_aabb_t *__cdecl create(
         const phys_vec3 *center,
         const phys_vec3 *dims,
         int stype,
         gjk_collision_visitor *allocator);
-    void __thiscall gjk_aabb_t::support(
+    void support(
         const phys_vec3 *v,
         phys_vec3 *support_vert,
         phys_vec3 *support_ind);
-    void __thiscall gjk_aabb_t::get_simplex(
+    void get_simplex(
         const cached_simplex_info *cache_info,
         int index_count,
         phys_vec3 *simplex_verts,
         phys_vec3 *simplex_inds);
-    const phys_vec3 *__thiscall gjk_aabb_t::get_center(gjk_polygon_cylinder_t *this, phys_vec3 *result);
-    void gjk_aabb_t::get_feature(
-        const phys_vec3 *a2,
-        phys_contact_manifold *cman);
-    void __thiscall gjk_aabb_t::calc_aabb(
+    const phys_vec3 * get_center(phys_vec3 *result);
+    void get_feature(phys_contact_manifold *cman);
+    void calc_aabb(
         const phys_mat44 *xform,
         phys_vec3 *aabb_min,
         phys_vec3 *aabb_max);
-    const cbrush_t *__thiscall gjk_aabb_t::get_brush();
-    void __cdecl gjk_aabb_t::destroy(gjk_aabb_t *geom);
+    const cbrush_t * get_brush();
+    void __cdecl destroy(gjk_aabb_t *geom);
 };
 
 struct BrushWrapper // sizeof=0x60
@@ -219,35 +261,29 @@ struct gjk_obb_t : gjk_base_t // sizeof=0xA0
     phys_vec3 m_dims;
     phys_mat44 m_xform;
 
-    gjk_obb_t *__cdecl gjk_obb_t::create(
+    gjk_obb_t *__cdecl create(
         const phys_mat44 *xform,
         const phys_vec3 *dims,
         int stype,
         gjk_collision_visitor *allocator);
-    void __userpurge gjk_obb_t::support(
-        gjk_obb_t *this@<ecx>,
-        int a2@<ebp>,
+    void support(
         const phys_vec3 *v,
         phys_vec3 *support_vert,
         phys_vec3 *support_ind);
-    void __userpurge gjk_obb_t::get_simplex(
-        gjk_obb_t *this@<ecx>,
-        int a2@<ebp>,
+    void get_simplex(
         const cached_simplex_info *cache_info,
         int index_count,
         phys_vec3 *simplex_verts,
         phys_vec3 *simplex_inds);
-    const phys_vec3 *__thiscall gjk_obb_t::get_center(gjk_obb_t *this, phys_vec3 *result);
-    void __userpurge gjk_obb_t::get_feature(gjk_obb_t *this@<ecx>, const phys_vec3 *a2@<ebp>, phys_contact_manifold *cman);
-    void __userpurge gjk_obb_t::calc_aabb(
-        gjk_obb_t *this@<ecx>,
-        int a2@<ebp>,
+    const phys_vec3 * get_center(phys_vec3 *result);
+    void get_feature(phys_contact_manifold *cman);
+    void calc_aabb(
         const phys_mat44 *xform,
         phys_vec3 *aabb_min,
         phys_vec3 *aabb_max);
-    unsigned int __thiscall gjk_obb_t::get_type(gjk_obb_t *this);
-    void __cdecl gjk_obb_t::destroy(gjk_cylinder_t *geom);
-    char __thiscall gjk_obb_t::is_polyhedron(gjk_query_output *this);
+    unsigned int get_type();
+    void __cdecl destroy(gjk_cylinder_t *geom);
+    bool is_polyhedron();
 };
 
 struct __declspec(align(16)) phys_contact_manifold // sizeof=0x60
@@ -278,7 +314,7 @@ struct __declspec(align(16)) phys_contact_manifold // sizeof=0x60
     // padding byte
     // padding byte
 
-    void phys_contact_manifold::add_feature_point(phys_contact_manifold *this, const phys_vec3 *p);
+    void add_feature_point(const phys_vec3 *p);
 };
 
 struct __declspec(align(8)) gjk_brush_t : gjk_base_t // sizeof=0x60
@@ -291,32 +327,64 @@ struct __declspec(align(8)) gjk_brush_t : gjk_base_t // sizeof=0x60
     // padding byte
     // padding byte
 
-    gjk_brush_t *gjk_brush_t::create@<eax>(
-        float a1@<ebp>,
+    gjk_brush_t *create(
         const cbrush_t *brush,
         int stype,
         gjk_collision_visitor *allocator);
-    void __thiscall gjk_brush_t::support(
-        gjk_brush_t *this,
+    void support(
         const phys_vec3 *v,
         phys_vec3 *support_vert,
         phys_vec3 *support_ind);
-    void __thiscall gjk_brush_t::get_simplex(
-        gjk_brush_t *this,
+    void get_simplex(
         const cached_simplex_info *cache_info,
         int index_count,
         phys_vec3 *simplex_verts,
         phys_vec3 *simplex_inds);
-    void gjk_brush_t::get_feature(gjk_brush_t *this@<ecx>, int a2@<ebp>, phys_contact_manifold *cman);
-    void gjk_brush_t::calc_aabb(
-        gjk_brush_t *this@<ecx>,
-        int a2@<ebp>,
+    void get_feature(phys_contact_manifold *cman);
+    void calc_aabb(
         const phys_mat44 *xform,
         phys_vec3 *aabb_min,
         phys_vec3 *aabb_max);
-    const cbrush_t *__thiscall gjk_brush_t::get_brush(gjk_brush_t *this);
-    unsigned int __thiscall gjk_brush_t::get_type(gjk_brush_t *this);
-    void __cdecl gjk_brush_t::destroy(gjk_brush_t *geom);
+    const cbrush_t *get_brush();
+    unsigned int get_type();
+    void __cdecl destroy(gjk_brush_t *geom);
+    const phys_vec3 *get_center(const phys_vec3 *result);
+};
+
+struct CollisionBorder // sizeof=0x1C
+{
+    float distEq[3];
+    float zBase;
+    float zSlope;
+    float start;
+    float length;
+};
+
+const struct CollisionPartition // sizeof=0x14
+{
+    unsigned __int8 triCount;
+    unsigned __int8 borderCount;
+    // padding byte
+    // padding byte
+    int firstTri;
+    int nuinds;
+    int fuind;
+    CollisionBorder *borders;
+};
+
+union CollisionAabbTreeIndex // sizeof=0x4
+{                                       // XREF: CollisionAabbTree/r
+    int firstChildIndex;
+    int partitionIndex;
+};
+
+const struct CollisionAabbTree // sizeof=0x20
+{
+    float origin[3];
+    unsigned __int16 materialIndex;
+    unsigned __int16 childCount;
+    float halfSize[3];
+    CollisionAabbTreeIndex u;
 };
 
 struct __declspec(align(16)) gjk_partition_t : gjk_base_t // sizeof=0x70
@@ -339,28 +407,23 @@ struct __declspec(align(16)) gjk_partition_t : gjk_base_t // sizeof=0x70
     // padding byte
     // padding byte
 
-    gjk_partition_t *__cdecl gjk_partition_t::create(const CollisionAabbTree *tree, gjk_collision_visitor *allocator);
-    void __thiscall gjk_partition_t::support(
-        gjk_partition_t *this,
+    gjk_partition_t *__cdecl create(const CollisionAabbTree *tree, gjk_collision_visitor *allocator);
+    void support(
         const phys_vec3 *v,
         phys_vec3 *support_vert,
         phys_vec3 *support_ind);
-    void __thiscall gjk_partition_t::get_simplex(
-        gjk_partition_t *this,
+    void get_simplex(
         const cached_simplex_info *cache_info,
         int index_count,
         phys_vec3 *simplex_verts,
         phys_vec3 *simplex_inds);
-    const phys_vec3 *__thiscall gjk_brush_t::get_center(gjk_partition_t *this, const phys_vec3 *result);
-    void __userpurge gjk_partition_t::get_feature(gjk_partition_t *this@<ecx>, int a2@<ebp>, phys_contact_manifold *cman);
-    void __userpurge gjk_partition_t::calc_aabb(
-        gjk_partition_t *this@<ecx>,
-        unsigned __int16 *a2@<ebp>,
+    void get_feature(phys_contact_manifold *cman);
+    void calc_aabb(
         const phys_mat44 *xform,
         phys_vec3 *aabb_min,
         phys_vec3 *aabb_max);
-    unsigned int __thiscall gjk_partition_t::get_type(gjk_partition_t *this);
-    void __cdecl gjk_partition_t::destroy(gjk_partition_t *geom);
+    unsigned int get_type();
+    void __cdecl destroy(gjk_partition_t *geom);
 };
 
 struct gjk_double_sphere_t : gjk_base_t // sizeof=0x90
@@ -371,43 +434,37 @@ struct gjk_double_sphere_t : gjk_base_t // sizeof=0x90
     float m_geom_radius;
     int m_count;
 
-    gjk_double_sphere_t *__thiscall gjk_double_sphere_t::gjk_double_sphere_t(gjk_double_sphere_t *this);
-    void __thiscall gjk_double_sphere_t::support(
-        gjk_double_sphere_t *this,
+    gjk_double_sphere_t();
+
+    void support(
         const phys_vec3 *v,
         phys_vec3 *support_vert,
         phys_vec3 *support_ind);
-    void __thiscall gjk_double_sphere_t::get_simplex(
-        gjk_double_sphere_t *this,
+    void get_simplex(
         const cached_simplex_info *cache_info,
         int index_count,
         phys_vec3 *simplex_verts,
         phys_vec3 *simplex_inds);
-    void __thiscall gjk_double_sphere_t::set_simplex(
-        gjk_double_sphere_t *this,
+    void set_simplex(
         const phys_vec3 *simplex_inds,
         int w_set,
         const phys_vec3 *normal,
         cached_simplex_info *cache_info);
-    const phys_vec3 *__thiscall gjk_double_sphere_t::get_center(gjk_double_sphere_t *this, phys_vec3 *result);
-    void __userpurge gjk_double_sphere_t::get_feature(
-        gjk_double_sphere_t *this@<ecx>,
-        int a2@<ebp>,
-        phys_contact_manifold *cman);
-    void __thiscall gjk_double_sphere_t::calc_aabb(
-        gjk_double_sphere_t *this,
+    const phys_vec3 *get_center(phys_vec3 *result);
+    void get_feature(phys_contact_manifold *cman);
+    void calc_aabb(
         const phys_mat44 *xform,
         phys_vec3 *aabb_min,
         phys_vec3 *aabb_max);
-    double __thiscall gjk_double_sphere_t::get_geom_radius(gjk_double_sphere_t *this);
-    bool __thiscall gjk_double_sphere_t::is_polyhedron(gjk_double_sphere_t *this);
-    gjk_double_sphere_t *__cdecl gjk_double_sphere_t::create(
+    float get_geom_radius();
+    bool is_polyhedron();
+    gjk_double_sphere_t *__cdecl create(
         const phys_vec3 *c0,
         const phys_vec3 *c1,
         float r,
         int stype,
         gjk_collision_visitor *allocator);
-    void __cdecl gjk_double_sphere_t::destroy(gjk_double_sphere_t *geom);
+    void __cdecl destroy(gjk_double_sphere_t *geom);
 };
 
 struct gjk_cylinder_t : gjk_base_t // sizeof=0xA0
@@ -418,52 +475,40 @@ struct gjk_cylinder_t : gjk_base_t // sizeof=0xA0
     float m_geom_radius;
     phys_mat44 xform;
 
-    gjk_cylinder_t *__cdecl gjk_cylinder_t::create(
+    gjk_cylinder_t *__cdecl create(
         int _direction,
         float _halfHeight,
         float _radius,
         const phys_mat44 *_xform,
         int stype,
         gjk_collision_visitor *allocator);
-    void __userpurge gjk_cylinder_t::support(
-        gjk_cylinder_t *this@<ecx>,
-        int a2@<ebp>,
+    void support(
         const phys_vec3 *v,
         phys_vec3 *support_vert,
         phys_vec3 *support_ind);
-    const phys_vec3 *__userpurge gjk_cylinder_t::get_dims@<eax>(
-        gjk_cylinder_t *this@<ecx>,
-        int a2@<ebp>,
-        const phys_vec3 *result);
-    void __userpurge gjk_cylinder_t::get_simplex(
-        gjk_cylinder_t *this@<ecx>,
-        int a2@<ebp>,
+    const phys_vec3 * get_dims(const phys_vec3 *result);
+    void get_simplex(
         const cached_simplex_info *cache_info,
         int index_count,
         phys_vec3 *simplex_verts,
         phys_vec3 *simplex_inds);
-    const phys_vec3 *__userpurge gjk_cylinder_t::get_center@<eax>(
-        gjk_cylinder_t *this@<ecx>,
-        int a2@<ebp>,
-        const phys_vec3 *result);
-    void __userpurge gjk_cylinder_t::get_feature(gjk_cylinder_t *this@<ecx>, int a2@<ebp>, phys_contact_manifold *cman);
-    void __userpurge gjk_cylinder_t::calc_aabb(
-        gjk_cylinder_t *this@<ecx>,
-        int a2@<ebp>,
+    const phys_vec3 * get_center(const phys_vec3 *result);
+    void get_feature(phys_contact_manifold *cman);
+    void calc_aabb(
         const phys_mat44 *xform_,
         phys_vec3 *aabb_min,
         phys_vec3 *aabb_max);
-    unsigned int __thiscall gjk_cylinder_t::get_type(gjk_cylinder_t *this);
-    double __thiscall gjk_cylinder_t::get_geom_radius(gjk_cylinder_t *this);
-    void __cdecl gjk_cylinder_t::destroy(gjk_cylinder_t *geom);
+    unsigned int get_type();
+    float get_geom_radius();
+    void __cdecl destroy(gjk_cylinder_t *geom);
 };
 
 struct gjk_unique_id_database_t // sizeof=0x4
 {                                       // XREF: .data:gjk_unique_id_database_t g_gjk_unique_id_database/r
-    unsigned int m_counter;
+    volatile unsigned int m_counter;
 
 
-    unsigned int __thiscall gjk_unique_id_database_t::get_unique_id(gjk_unique_id_database_t *this);
+    unsigned int get_unique_id();
 };
 
 struct __declspec(align(8)) gjk_polygon_cylinder_t : gjk_base_t // sizeof=0x80
@@ -481,19 +526,25 @@ struct __declspec(align(8)) gjk_polygon_cylinder_t : gjk_base_t // sizeof=0x80
     // padding byte
     // padding byte
 
-    void __thiscall gjk_polygon_cylinder_t::poly_verts::poly_verts(gjk_polygon_cylinder_t::poly_verts *this);
+    struct poly_verts // sizeof=0x20
+    {                                       // XREF: .data:gjk_polygon_cylinder_t::poly_verts gjk_polygon_cylinder_t::s_poly_verts/r
+        float m_co[4];
+        float m_si[4];
 
-    gjk_polygon_cylinder_t *__cdecl gjk_polygon_cylinder_t::create(
+        poly_verts();
+        //void gjk_polygon_cylinder_t::poly_verts::poly_verts(gjk_polygon_cylinder_t::poly_verts *this);
+    };
+
+    gjk_polygon_cylinder_t *__cdecl create(
         float (*mins)[3],
         float (*maxs)[3],
         float radius_adjust,
         int stype,
         gjk_collision_visitor *allocator);
-    void __cdecl gjk_polygon_cylinder_t::destroy(gjk_polygon_cylinder_t *geom);
+    void __cdecl destroy(gjk_polygon_cylinder_t *geom);
 };
 
 PhysGeomList *__cdecl xmodel_get_geomlist(const XModel *model, int bone_index);
-char *__thiscall phys_memory_heap::fast_allocate(phys_memory_heap *this, int size, const char *error_msg);
 
 void  phys_aabb_add_point(
     const phys_mat44 *xform,
@@ -527,7 +578,7 @@ gjk_aabb_t * create_aabb_gjk_geom(
         const float *mx,
         int stype,
         gjk_collision_visitor *allocator);
-gjk_obb_t * create_obb_gjk_geom@<eax>(
+gjk_obb_t * create_obb_gjk_geom(
         float (*orientation)[3],
         float *offset,
         float *halfLengths,
@@ -541,7 +592,7 @@ gjk_double_sphere_t * create_capsule_gjk_geom(
         unsigned int direction,
         int stype,
         gjk_collision_visitor *allocator);
-gjk_cylinder_t * create_cylinder_gjk_geom@<eax>(
+gjk_cylinder_t * create_cylinder_gjk_geom(
         float (*rot)[3],
         float *trans,
         float radius,
@@ -557,15 +608,6 @@ void __cdecl query_brush_model_gjk_geom(
         unsigned __int16 brushModel,
         int contents_mask,
         gjk_collision_visitor *allocator);
-void __thiscall query_brush_model_gjk_geom_visitor::visit(
-        query_brush_model_gjk_geom_visitor *this,
-        const cbrush_t *brush);
-void __thiscall query_brush_model_gjk_geom_visitor::update(
-        query_brush_model_gjk_geom_visitor *this,
-        const float *_mn,
-        const float *_mx,
-        int _mask,
-        const float *expand_vec);
 void __cdecl create_brush_model_gjk_geom(
         unsigned __int16 brushModel,
         int contents_mask,

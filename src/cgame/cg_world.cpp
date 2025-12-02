@@ -151,7 +151,6 @@ void  CG_GetEntityBModelBounds(
 }
 
 void  phys_calc_world_aabb(
-        float a1@<ebp>,
         const phys_vec3 *local_center,
         const phys_vec3 *local_half_aabb_dims,
         const phys_mat44 *local_to_world_xform,

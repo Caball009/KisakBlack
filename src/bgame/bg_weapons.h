@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/q_shared.h>
 
 struct BulletFireParams // sizeof=0x40
 {                                       // XREF: ?VEH_DebugAim@@YAXPAUgentity_s@@QBMH@Z/r
@@ -35,6 +36,12 @@ struct BulletTraceResults // sizeof=0x50
     // padding byte
     int depthSurfaceType;               // XREF: FireBulletPenetrate:loc_52B4A6/r
 };
+
+struct pmove_t;
+struct playerState_s;
+struct pml_t;
+struct WeaponVariantDef;
+struct WeaponDef;
 
 void __cdecl BG_LoadPenetrationDepthTable();
 void __cdecl BG_ParsePenetrationDepthTable(const char *penetrateType, float *depthTable, char *buffer);
