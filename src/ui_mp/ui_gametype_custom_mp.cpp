@@ -39,7 +39,7 @@ void __cdecl UI_Gametype_WriteDvarChunk(MemoryFile *memFile, char *dvarName)
         memFile->cacheBuffer[memFile->cacheBufferUsed++] = type;
         switch ( dvar->type )
         {
-            case DVAR_TYPE_bool:
+            case DVAR_TYPE_BOOL:
                 v2 = dvar->current.color[0];
                 if ( (unsigned int)(memFile->cacheBufferUsed + 1) >= 0x7FF8 )
                     MemFile_WriteDataFlushInternal(memFile);
@@ -350,7 +350,7 @@ bool __cdecl UI_Gametype_HasDvarChanged(const dvar_s *dvar)
 
     switch ( dvar->type )
     {
-        case DVAR_TYPE_bool:
+        case DVAR_TYPE_BOOL:
             result = dvar->current.color[0] != dvar->reset.color[0];
             break;
         case DVAR_TYPE_FLOAT:

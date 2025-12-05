@@ -503,7 +503,7 @@ void __cdecl Rope_Tick(const RopeUpdateCmdData *cmd, int rope_index, float dt, b
             {
                 if ( !v5 && (rope->m_flags & 8) != 0 )
                 {
-                    v4 = jpeg_mem_init();
+                    v4 = RETURN_ZERO32();
                     if ( !CG_GetLocalClientGlobals(v4)->nextSnap )
                         return;
                     Rope_Settle(rope_index);
@@ -594,7 +594,7 @@ void __cdecl Rope_ApplyPhysics(int rope_index, float dt)
     BG_GetVariantWindVector(rope_index % 16, wind_vector);
     wind_vector[0] = (float)((float)(rand() % 101) / 100.0) * wind_vector[0];
     wind_vector[1] = (float)((float)(rand() % 101) / 100.0) * wind_vector[1];
-    v2 = jpeg_mem_init();
+    v2 = RETURN_ZERO32();
     windscale = CG_GetLocalWindSourceScale(v2, (float *)rope) * 10.0 + 1.0;
     wind_vector[0] = wind_vector[0] * windscale;
     wind_vector[1] = wind_vector[1] * windscale;
@@ -1035,7 +1035,7 @@ void    Rope_Update(int a1@<ebp>, int localClientNum, int curtime)
         v7 = curtime - g_rope_sys_time;
         if ( curtime - g_rope_sys_time > 0 )
         {
-            if ( jpeg_mem_init() == localClientNum )
+            if ( RETURN_ZERO32() == localClientNum )
             {
                 LODWORD(cmd.viewOrg[0]) = g_ropeCount;
                 LODWORD(cmd.screenMtx[3][1]) = g_ropes;

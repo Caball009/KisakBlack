@@ -297,7 +297,7 @@ const char *__cdecl ClientConnect(unsigned int clientNum, unsigned int scriptPer
     ci->nextValid = 1;
     client->sess.connected = CON_CONNECTING;
     client->sess.scriptPersId = scriptPersId;
-    client->sess.cs.team = jpeg_mem_init();
+    client->sess.cs.team = RETURN_ZERO32();
     client->sess.sessionState = SESS_STATE_SPECTATOR;
     client->spectatorClient = -1;
     client->sess.forceSpectatorClient = -1;

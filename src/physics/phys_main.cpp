@@ -1747,7 +1747,7 @@ void __cdecl Phys_ObjSetOrientation(int id, const float *newPosition, const floa
     }
 }
 
-void    Phys_ObjSetAngularVelocity(int a1@<ebp>, int id, float *angularVel)
+void    Phys_ObjSetAngularVelocity(int id, float *angularVel)
 {
     phys_vec3 v3; // [esp-20h] [ebp-2Ch] BYREF
     float v4; // [esp-10h] [ebp-1Ch]
@@ -2475,7 +2475,7 @@ void __cdecl Phys_FindAndRenderBulletMesh(const float *start, const float *end)
         Vec3Normalize(viewDirNormalized);
         Phys_ComputeStringPosition(start, dynEntPose->pose.origin, stringPos);
         UnitQuatToAxis(dynEntPose->pose.quat, localToWorld);
-        numTriangles = jpeg_mem_init();
+        numTriangles = RETURN_ZERO32();
         Phys_RenderBulletMeshInfo(stringPos, dynEntDef->xModel, dynEntTypeStr, numTriangles, avgArea);
     }
     else
@@ -2510,7 +2510,7 @@ void __cdecl Phys_FindAndRenderBulletMesh(const float *start, const float *end)
                     }
                     else
                     {
-                        numTriangles = jpeg_mem_init();
+                        numTriangles = RETURN_ZERO32();
                         Phys_RenderBulletMeshInfo(stringPos, model, "dobj", numTriangles, avgArea);
                     }
                     ++modelIndex;
@@ -2527,7 +2527,7 @@ void __cdecl Phys_FindAndRenderBulletMesh(const float *start, const float *end)
                 Vec3Normalize(viewDirNormalized);
                 Phys_ComputeStringPosition(start, origin, stringPos);
                 MatrixInverse(results.staticModel->invScaledAxis, localToWorld);
-                numTriangles = jpeg_mem_init();
+                numTriangles = RETURN_ZERO32();
                 Phys_RenderBulletMeshInfo(stringPos, results.staticModel->xmodel, "static", numTriangles, avgArea);
             }
         }

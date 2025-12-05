@@ -76,31 +76,51 @@ struct phys_vec3 // sizeof=0x10
 
 struct phys_mat44 // sizeof=0x40
 {                                                                             // XREF: .data:PHYS_IDENTITY_MATRIX/r
-        phys_mat44& operator=(const phys_mat44 *that)
-        {
-                this->x.x = that->x.x;
-                this->x.y = that->x.y;
-                this->x.z = that->x.z;
-                this->y.x = that->y.x;
-                this->y.y = that->y.y;
-                this->y.z = that->y.z;
-                this->z.x = that->z.x;
-                this->z.y = that->z.y;
-                this->z.z = that->z.z;
-                this->w.x = that->w.x;
-                this->w.y = that->w.y;
-                this->w.z = that->w.z;
-                return *this;
-        }
-                                                                                // .data:PHYS_IDENTITY_MATRIX_0/r ...
-        phys_vec3 x;                                                // XREF: gjk_cylinder_t::get_feature(phys_contact_manifold *)+63/r
-        // gjk_cylinder_t::get_feature(phys_contact_manifold *)+70/r ...
-        phys_vec3 y;                                                // XREF: gjk_cylinder_t::get_feature(phys_contact_manifold *)+95/o
-        // SetIdentity(phys_mat44 &)+20/r ...
-        phys_vec3 z;                                                // XREF: gjk_cylinder_t::get_feature(phys_contact_manifold *):loc_834A44/o
-        // SetIdentity(phys_mat44 &)+3B/r ...
-        phys_vec3 w;                                                // XREF: phys_calc_world_aabb(phys_vec3 const &,phys_vec3 const &,phys_mat44 const &,phys_vec3 *,phys_vec3 *)+10/w
-        // create_obb_gjk_geom(float const (* const)[3],float const * const,float const * const,int,gjk_collision_visitor *)+10/w ...
+    phys_mat44(
+        const phys_vec3 *x_,
+        const phys_vec3 *y_,
+        const phys_vec3 *z_,
+        const phys_vec3 *w_)
+    {
+        this->x = *x_;
+        this->y = *y_;
+        this->z = *z_;
+        this->w = *w_;
+    }
+
+    void fix_w_column()
+    {
+        this->x.w = 0.0f;
+        this->y.w = 0.0f;
+        this->z.w = 0.0f;
+        this->w.w = 1.0f;
+    }
+
+    phys_mat44& operator=(const phys_mat44 *that)
+    {
+            this->x.x = that->x.x;
+            this->x.y = that->x.y;
+            this->x.z = that->x.z;
+            this->y.x = that->y.x;
+            this->y.y = that->y.y;
+            this->y.z = that->y.z;
+            this->z.x = that->z.x;
+            this->z.y = that->z.y;
+            this->z.z = that->z.z;
+            this->w.x = that->w.x;
+            this->w.y = that->w.y;
+            this->w.z = that->w.z;
+            return *this;
+    }
+                                                                            // .data:PHYS_IDENTITY_MATRIX_0/r ...
+    phys_vec3 x;                                                // XREF: gjk_cylinder_t::get_feature(phys_contact_manifold *)+63/r
+    // gjk_cylinder_t::get_feature(phys_contact_manifold *)+70/r ...
+    phys_vec3 y;                                                // XREF: gjk_cylinder_t::get_feature(phys_contact_manifold *)+95/o
+    // SetIdentity(phys_mat44 &)+20/r ...
+    phys_vec3 z;                                                // XREF: gjk_cylinder_t::get_feature(phys_contact_manifold *):loc_834A44/o
+    // SetIdentity(phys_mat44 &)+3B/r ...
+    phys_vec3 w;                                                // XREF: phys_calc_world_aabb(phys_vec3 const &,phys_vec3 const &,phys_mat44 const &,phys_vec3 *,phys_vec3 *)+10/w
+    // create_obb_gjk_geom(float const (* const)[3],float const * const,float const * const,int,gjk_collision_visitor *)+10/w ...
 };
 
 template <typename T>
@@ -131,7 +151,7 @@ struct phys_simple_allocator//<phys_heap_gjk_cache_system_avl_tree::phys_gjk_cac
         {
                 char *slot; // [esp+18h] [ebp-4h]
 
-                slot = PMM_ALLOC(sizeof(T), sizeof(T) <= 36 ? 4 : 16);
+                slot = PMM_ALLOC(sizeof(T), sizeof(T) % 16 == 0 ? 16 : 4);
                 if (!slot)
                         return 0;
                 ++this->m_count;
@@ -142,9 +162,9 @@ struct phys_simple_allocator//<phys_heap_gjk_cache_system_avl_tree::phys_gjk_cac
         {
                 if (slot)
                 {
-                        PMM_VALIDATE((char *)slot, sizeof(T), sizeof(T) <= 36 ? 4 : 16);
+                        PMM_VALIDATE((char *)slot, sizeof(T), sizeof(T) % 16 == 0 ? 16 : 4);
                         --this->m_count;
-                        PMM_FREE((unsigned __int8 *)slot, sizeof(T), sizeof(T) <= 36 ? 4 : 16);
+                        PMM_FREE((unsigned __int8 *)slot, sizeof(T), sizeof(T) % 16 == 0 ? 16 : 4);
                 }
         }
 };
@@ -245,6 +265,122 @@ public:
         iassert(is_member(data));
 
         *data = &this->m_slot_array[--this->m_alloc_count];
+    }
+};
+
+
+#define PTR_LIST_SIZE 256
+
+// whoever wrote this class is a crackhead
+template <typename T>
+struct phys_free_list
+{
+public:
+    struct T_internal_base
+    {
+        T_internal_base *m_prev_T_internal;
+        T_internal_base *m_next_T_internal;
+    };
+    static_assert(sizeof(T_internal_base) == 8);
+
+    struct __declspec(align(16)) T_internal : T_internal_base
+    {
+        T m_data;
+        int m_ptr_list_index;
+    };
+
+    T_internal_base m_dummy_head;
+
+    int m_list_count;
+    int m_list_count_high_water;
+
+    T *m_ptr_list[PTR_LIST_SIZE];
+    int m_ptr_list_count;
+
+public:
+
+    void debug_add(phys_free_list<NitrousVehicle>::T_internal *T_i)
+    {
+        int m_list_count; // [esp+0h] [ebp-10h]
+
+        if (this->m_list_count_high_water <= this->m_list_count)
+            m_list_count = this->m_list_count;
+        else
+            m_list_count = this->m_list_count_high_water;
+        this->m_list_count_high_water = m_list_count;
+        if (this->m_ptr_list_count >= PTR_LIST_SIZE)
+        {
+            T_i->m_ptr_list_index = -1;
+        }
+        else
+        {
+            T_i->m_ptr_list_index = this->m_ptr_list_count;
+            this->m_ptr_list[this->m_ptr_list_count++] = &T_i->m_data;
+        }
+    }
+
+    T *add(int no_error, const char *error_msg)
+    {
+        T_internal *ptr;
+
+        ptr = (T_internal *)PMM_ALLOC(sizeof(T), sizeof(T) % 16 == 0 ? 16 : 4);
+
+        if (ptr)
+        {
+            new (&ptr->m_data) T();
+            ptr->m_prev_T_internal = &this->m_dummy_head;
+            ptr->m_next_T_internal = this->m_dummy_head.m_next_T_internal;
+            this->m_dummy_head.m_next_T_internal->m_prev_T_internal = ptr;
+            this->m_dummy_head.m_next_T_internal = ptr;
+            
+            m_list_count++;
+
+            debug_add(ptr);
+
+            return &ptr->m_data;
+        }
+        else
+        {
+            iassert(no_error);
+            return NULL;
+        }
+    }
+
+    void debug_remove(T_internal *T_i)
+    {
+        if (T_i->m_ptr_list_index != -1)
+        {
+            iassert(T_i->m_ptr_list_index >= 0 && T_i->m_ptr_list_index < PTR_LIST_SIZE);
+            iassert(m_ptr_list[T_i->m_ptr_list_index] == &T_i->m_data);
+
+            this->m_ptr_list[--this->m_ptr_list_count][1].m_wheel_state[0].m_state = T_i->m_ptr_list_index;
+            this->m_ptr_list[T_i->m_ptr_list_index] = this->m_ptr_list[this->m_ptr_list_count];
+        }
+    }
+
+    void remove(T_internal *data)
+    {
+        T_internal_base *next; // [esp+14h] [ebp-8h]
+        T_internal_base *prev; // [esp+18h] [ebp-4h]
+
+        iassert(data);
+
+        --this->m_list_count;
+        debug_remove(data);
+        next = data->m_next_T_internal;
+        prev = data->m_prev_T_internal;
+        prev->m_next_T_internal = next;
+        next->m_prev_T_internal = prev;
+        PMM_FREE((unsigned __int8 *)data, sizeof(T), sizeof(T) % 16 == 0 ? 16 : 4);
+    }
+
+    void remove(T *data_)
+    {
+        if (data_)
+        {
+            PMM_VALIDATE((char *)data_ - (sizeof(T) % 16 == 0 ? 16 : 8), sizeof(T), (sizeof(T) % 16 == 0 ? 16 : 4));
+            remove((T_internal*)((char *)data_ - (sizeof(T) % 16 == 0 ? 16 : 8)));
+        }
     }
 };
 

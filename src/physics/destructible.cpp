@@ -2143,7 +2143,7 @@ void __cdecl CG_DestructibleUpdateBurn(int localClientNum, Destructible *destruc
     if ( destructible->oldestBurnTime )
     {
         ddef = destructible->ddef;
-        v2 = jpeg_mem_init();
+        v2 = RETURN_ZERO32();
         currentTime = CG_GetLocalClientGlobals(v2)->time;
         for ( i = 0; i < ddef->numPieces; ++i )
         {

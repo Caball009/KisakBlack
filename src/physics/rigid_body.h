@@ -411,6 +411,9 @@ public:
                 const phys_vec3 *point,
                 float torque_mult);
 
+        void set_flag(unsigned int f, int b);
+        unsigned int is_group_stable();
+
 
         phys_vec3 m_last_position;
         phys_vec3 m_moved_vec;
@@ -453,7 +456,13 @@ public:
         rb_inplace_partition_node m_partition_node;
 };
 
+//void __thiscall rigid_body::add_force(rigid_body *this, const phys_vec3 *force);
 
+//void __thiscall rigid_body::add_force(
+//    rigid_body *this,
+//    const phys_vec3 *force,
+//    const phys_vec3 *point,
+//    float torque_mult);
 
 //void __thiscall rigid_body::add_force(rigid_body *this, const phys_vec3 *force);
 //void __thiscall rigid_body::set_inertia(rigid_body *this, const phys_vec3 *inertia);

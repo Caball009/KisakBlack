@@ -1085,20 +1085,6 @@ gjk_entity_info_t *__thiscall gjk_geom_info_t::get_xform(gjk_geom_info_t *this)
         return (gjk_entity_info_t *)&PHYS_IDENTITY_MATRIX_1;
 }
 
-const phys_mat44 *__thiscall gjk_base_t::get_xform(gjk_base_t *this)
-{
-    if ( (this->m_flags & 8) == 0
-        && _tlAssert(
-                 "c:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_colgeom.h",
-                 105,
-                 "get_flag(FLAG_XFORM_VALID)",
-                 "") )
-    {
-        __debugbreak();
-    }
-    return this->m_xform_;
-}
-
 phys_gjk_info *__thiscall phys_gjk_info::phys_gjk_info(phys_gjk_info *this)
 {
     int v2; // [esp+4h] [ebp-28h]
@@ -3126,57 +3112,9 @@ bool __thiscall phys_gjk_geom::ray_cast(
     return 0;
 }
 
-gjk_base_t *__thiscall gjk_base_t::gjk_base_t(gjk_base_t *this)
-{
-    this->__vftable = (gjk_base_t_vtbl *)&phys_gjk_geom::`vftable';
-    this->__vftable = (gjk_base_t_vtbl *)&gjk_base_t::`vftable';
-    this->m_flags = 0;
-    return this;
-}
-
 double __thiscall phys_gjk_geom::get_geom_radius(phys_gjk_geom *this)
 {
     return 0.0;
-}
-
-void __thiscall gjk_base_t::~gjk_base_t(gjk_base_t *this)
-{
-    this->__vftable = (gjk_base_t_vtbl *)&gjk_base_t::`vftable';
-    if ( (this->m_flags & 1) != 0 )
-    {
-        if ( _tlAssert(
-                     "c:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_colgeom.h",
-                     87,
-                     "!get_flag(FLAG_TEMP_ALLOCATION)",
-                     "") )
-        {
-            __debugbreak();
-        }
-    }
-}
-
-void __thiscall gjk_base_t::comp_aabb_loc(gjk_base_t *this)
-{
-    if ( (this->m_flags & 2) == 0 )
-    {
-        this->m_flags |= 2u;
-        this->calc_aabb(this, &PHYS_IDENTITY_MATRIX_1, &this->m_aabb_mn_loc, &this->m_aabb_mx_loc);
-    }
-}
-
-const cbrush_t *__thiscall gjk_base_t::get_brush(gjk_base_t *this)
-{
-    return 0;
-}
-
-bool __thiscall gjk_base_t::is_foot(gjk_base_t *this, const phys_vec3 *hit_point)
-{
-    return 0;
-}
-
-bool __thiscall gjk_base_t::is_walkable(gjk_base_t *this, const phys_vec3 *hit_point, const phys_vec3 *up)
-{
-    return 0;
 }
 
 void __thiscall gjk_polygon_cylinder_t::poly_verts::get_co_si(

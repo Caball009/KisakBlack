@@ -69,7 +69,6 @@ void *__thiscall phys_transient_allocator::allocate(
 void __cdecl init_pgi(phys_gjk_input *pgi, const gjk_trace_input_t *gti);
 void __cdecl set_pgi_cg2(phys_gjk_input *pgi, const gjk_trace_input_t *gti, gjk_geom_info_t *gi);
 gjk_entity_info_t *__thiscall gjk_geom_info_t::get_xform(gjk_geom_info_t *this);
-const phys_mat44 *__thiscall gjk_base_t::get_xform(gjk_base_t *this);
 phys_gjk_info *__thiscall phys_gjk_info::phys_gjk_info(phys_gjk_info *this);
 void __cdecl setup_query_input(
                 const gjkcc_input_t *gjkcc_in,
@@ -168,13 +167,8 @@ bool __thiscall phys_gjk_geom::ray_cast(
                 float t_input,
                 float *t_output,
                 phys_vec3 *hitn);
-gjk_base_t *__thiscall gjk_base_t::gjk_base_t(gjk_base_t *this);
 double __thiscall phys_gjk_geom::get_geom_radius(phys_gjk_geom *this);
 void __thiscall gjk_base_t::~gjk_base_t(gjk_base_t *this);
-void __thiscall gjk_base_t::comp_aabb_loc(gjk_base_t *this);
-const cbrush_t *__thiscall gjk_base_t::get_brush(gjk_base_t *this);
-bool __thiscall gjk_base_t::is_foot(gjk_base_t *this, const phys_vec3 *hit_point);
-bool __thiscall gjk_base_t::is_walkable(gjk_base_t *this, const phys_vec3 *hit_point, const phys_vec3 *up);
 void __thiscall gjk_polygon_cylinder_t::poly_verts::get_co_si(
                 gjk_polygon_cylinder_t::poly_verts *this,
                 int i,

@@ -275,6 +275,13 @@ inline void BLOPS_NULLSUB(void *fakearg = nullptr)
 {
 }
 
+inline int RETURN_ZERO32()
+{
+    return 0;
+}
+
+#define COERCE_FLOAT(x) (float(x))
+
 //=============================================
 
 

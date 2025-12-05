@@ -1711,20 +1711,6 @@ void    gjk_query_cached(float a1@<ebp>, const gjk_query_input *input, gjk_query
     }
 }
 
-int __thiscall gjk_base_t::get_contents(gjk_base_t *this)
-{
-    if ( (this->m_flags & 0x10) == 0
-        && _tlAssert(
-                 "c:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_colgeom.h",
-                 90,
-                 "get_flag(FLAG_CONTENTS_VALID)",
-                 "") )
-    {
-        __debugbreak();
-    }
-    return this->m_contents;
-}
-
 char __thiscall gjk_query_input::is_in_skip_list(gjk_query_input *this, gjk_geom_info_t *gi_)
 {
     gjk_geom_info_t *gi_i; // [esp+14h] [ebp-4h]

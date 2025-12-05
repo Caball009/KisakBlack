@@ -1,9 +1,28 @@
 #include "cm_load.h"
+#include "common.h"
+#include <gfx_d3d/rb_backend.h>
+#include <gfx_d3d/r_dvars.h>
+#include <universal/com_memory.h>
+#include "com_profilemapload.h"
+#include "cm_load_obj.h"
+#include "cm_staticmodel_load_obj.h"
+#include <DynEntity/DynEntity_load_obj.h>
+#include <win32/win_main.h>
+
+clipMap_t cm;
+
+TraceThreadInfo g_traceThreadInfo[15];
+cbrush_t g_box_brush[12];
+cmodel_t g_box_model[12];
+
+int g_mapRopeCount;
+int g_totalRopeCount;
+int g_entsWithRopesCount;
 
 void __cdecl CM_LoadMap(const char *name, int *checksum)
 {
     if ( !name || !*name )
-        Com_Error(ERR_DROP, &byte_CD016C);
+        Com_Error(ERR_DROP, "CM_LoadMap: NULL name");
     CM_LoadMapData(name);
     CM_InitAllThreadData();
     cm.isInUse = 1;
@@ -74,7 +93,7 @@ void __cdecl CM_LoadMapData_LoadObj(const char *name)
 
 void __cdecl CM_LoadMapData_FastFile(const char *name)
 {
-    if ( DB_FindXAssetHeader(ASSET_TYPE_CLIPMAP_PVS, name, 1, -1).clipMap != &cm
+    if ( DB_FindXAssetHeader(ASSET_TYPE_CLIPMAP_PVS, (char*)name, 1, -1).clipMap != &cm
         && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\qcommon\\cm_load.cpp", 168, 0, "%s", "clipMap == &cm") )
     {
         __debugbreak();
@@ -128,7 +147,7 @@ void __cdecl CM_Unload()
         __debugbreak();
     }
     if ( cm.isInUse )
-        Sys_Error("Cannot unload collision while it is in use");
+        Sys_Error((char*)"Cannot unload collision while it is in use");
 }
 
 int __cdecl CM_LeafCluster(unsigned int leafnum)

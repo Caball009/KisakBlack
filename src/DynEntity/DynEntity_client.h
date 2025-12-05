@@ -7,11 +7,17 @@
 enum DynEntityType : __int32
 {                                       // XREF: DynEntityDef/r
                                         // ?DynEnt_GetEntityProps@@YAPBUDynEntityProps@@W4DynEntityType@@@Z/r
-    DYNENT_TYPE_INVALID  = 0x0,
-    DYNENT_TYPE_CLUTTER  = 0x1,
+    DYNENT_TYPE_INVALID = 0x0,
+    DYNENT_TYPE_CLUTTER = 0x1,
     DYNENT_TYPE_DESTRUCT = 0x2,
-    DYNENT_TYPE_COUNT    = 0x3,
+    DYNENT_TYPE_COUNT = 0x3,
+};
 
+struct DynEntityPose // sizeof=0x20
+{
+    GfxPlacement pose;
+    float radius;
+};
 
 const struct DynEntityDef // sizeof=0x54
 {

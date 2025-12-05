@@ -1,4 +1,19 @@
 #pragma once
+#include <clientscript/cscr_main.h>
+#include <clientscript/cscr_variable.h>
+#include <database/db_registry.h>
+#include <qcommon/common.h>
+
+struct gentity_s;
+struct scr_animscript_t;
+struct pathnode_t;
+struct objectiveState_t;
+struct objective_t;
+struct cached_tag_mat_t;
+struct XAnimTree_s;
+struct scr_animtree_t;
+
+
 
 void assertCmd();
 void assertexCmd();

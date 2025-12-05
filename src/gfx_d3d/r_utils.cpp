@@ -164,7 +164,7 @@ double __cdecl FresnelTerm(float n0, float n1, float cosIncidentAngle)
     }
     else
     {
-        sinSum_4 = DOUBLE_1_0;
+        sinSum_4 = 1.0;
     }
     __libm_sse2_asin(v7);
     __libm_sse2_sin(v8);

@@ -1,18 +1,23 @@
 #include "com_pack.h"
+#include "com_math.h"
+
+#include <cfloat>
 
 PackedUnitVec __cdecl Vec3PackUnitVec(const float *unitVec)
 {
-    float v2; // [esp+4h] [ebp-54h]
-    float dirError; // [esp+20h] [ebp-38h]
-    PackedUnitVec out; // [esp+24h] [ebp-34h]
-    unsigned __int8 testEncoding[4]; // [esp+28h] [ebp-30h]
-    float decodeScale; // [esp+2Ch] [ebp-2Ch]
-    float encodeScale; // [esp+30h] [ebp-28h]
-    float normalized[3]; // [esp+34h] [ebp-24h] BYREF
-    float bestLenError; // [esp+40h] [ebp-18h]
-    float bestDirError; // [esp+44h] [ebp-14h]
-    float lenError; // [esp+48h] [ebp-10h]
-    float decoded[3]; // [esp+4Ch] [ebp-Ch] BYREF
+    float v2; // [esp+0h] [ebp-8Ch]
+    float v3; // [esp+4h] [ebp-88h]
+    float v4; // [esp+40h] [ebp-4Ch]
+    float v5; // [esp+44h] [ebp-48h]
+    PackedUnitVec out; // [esp+58h] [ebp-34h]
+    unsigned __int8 testEncoding[4]; // [esp+5Ch] [ebp-30h]
+    float decodeScale; // [esp+60h] [ebp-2Ch]
+    float encodeScale; // [esp+64h] [ebp-28h]
+    float normalized[3]; // [esp+68h] [ebp-24h] BYREF
+    float bestLenError; // [esp+74h] [ebp-18h]
+    float bestDirError; // [esp+78h] [ebp-14h]
+    float lenError; // [esp+7Ch] [ebp-10h]
+    float decoded[3]; // [esp+80h] [ebp-Ch] BYREF
 
     Vec3NormalizeTo(unitVec, normalized);
     out.packed = 0;
@@ -21,45 +26,35 @@ PackedUnitVec __cdecl Vec3PackUnitVec(const float *unitVec)
     testEncoding[3] = 0;
     do
     {
-        encodeScale = 32385.0 / (float)((float)testEncoding[3] - -192.0);
-        testEncoding[0] = (int)(float)((float)(normalized[0] * encodeScale) + 127.5);
-        testEncoding[1] = (int)(float)((float)(normalized[1] * encodeScale) + 127.5);
-        testEncoding[2] = (int)(float)((float)(normalized[2] * encodeScale) + 127.5);
-        decodeScale = (float)((float)testEncoding[3] - -192.0) / 32385.0;
-        decoded[0] = (float)((float)testEncoding[0] - 127.0) * decodeScale;
-        decoded[1] = (float)((float)testEncoding[1] - 127.0) * decodeScale;
-        decoded[2] = (float)((float)testEncoding[2] - 127.0) * decodeScale;
-        v2 = Vec3Normalize(decoded) - 1.0;
-        lenError = fabs(v2);
-        if ( fabs(v2) < 0.001 )
+        encodeScale = 32385.0 / ((double)testEncoding[3] - -192.0);
+        testEncoding[0] = (int)(normalized[0] * encodeScale + 127.5);
+        testEncoding[1] = (int)(normalized[1] * encodeScale + 127.5);
+        testEncoding[2] = (int)(normalized[2] * encodeScale + 127.5);
+        decodeScale = ((double)testEncoding[3] - -192.0) / 32385.0;
+        decoded[0] = ((double)testEncoding[0] - 127.0) * decodeScale;
+        decoded[1] = ((double)testEncoding[1] - 127.0) * decodeScale;
+        decoded[2] = ((double)testEncoding[2] - 127.0) * decodeScale;
+        v5 = Vec3Normalize(decoded) - 1.0;
+        v3 = fabs(v5);
+        lenError = v3;
+        if (v3 < 0.001f)
         {
-            LODWORD(dirError) = COERCE_UNSIGNED_INT(
-                                                        (float)((float)((float)(decoded[0] * normalized[0]) + (float)(decoded[1] * normalized[1]))
-                                                                    + (float)(decoded[2] * normalized[2]))
-                                                    - 1.0)
-                                                & _mask__AbsFloat_;
-            if ( bestDirError > dirError || bestDirError == dirError && bestLenError > lenError )
+            v4 = Vec3Dot(decoded, normalized) - 1.0f;
+            v2 = fabs(v4);
+            if (v2 < (double)bestDirError || v2 == bestDirError && lenError < (double)bestLenError)
             {
-                LODWORD(bestDirError) = COERCE_UNSIGNED_INT(
-                                                                    (float)((float)((float)(decoded[0] * normalized[0])
-                                                                                                + (float)(decoded[1] * normalized[1]))
-                                                                                + (float)(decoded[2] * normalized[2]))
-                                                                - 1.0)
-                                                            & _mask__AbsFloat_;
+                bestDirError = v2;
                 bestLenError = lenError;
                 out.packed = *(unsigned int *)testEncoding;
-                if ( (float)(lenError + dirError) == 0.0 )
+                if (lenError + v2 == 0.0)
                     return *(PackedUnitVec *)testEncoding;
             }
         }
         ++testEncoding[3];
-    }
-    while ( testEncoding[3] );
-    if ( !out.packed
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_pack.cpp", 163, 0, "%s", "out.packed != 0") )
-    {
-        __debugbreak();
-    }
+    } while (testEncoding[3]);
+
+    iassert(out.packed != 0);
+
     return out;
 }
 
@@ -187,3 +182,10 @@ void __cdecl Vec2UnpackTexCoords(PackedTexCoords in, float *out)
     *((unsigned int *)out + 1) = v2;
 }
 
+void __cdecl Byte4UnpackRgba(const unsigned __int8 *from, float *to)
+{
+    to[0] = (float)((double)from[0] * 0.003921568859368563);
+    to[1] = (float)((double)from[1] * 0.003921568859368563);
+    to[2] = (float)((double)from[2] * 0.003921568859368563);
+    to[3] = (float)((double)from[3] * 0.003921568859368563);
+}

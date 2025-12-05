@@ -18,7 +18,6 @@ int __cdecl BG_GetHeldWeaponSlot(const playerState_s *ps, unsigned int weaponInd
 char __cdecl HaveRoomForAmmo(const playerState_s *ps, unsigned int weaponIndex);
 bool __cdecl BG_PlayerHasRoomForEntAllAmmoTypes(const entityState_s *ent, const playerState_s *ps);
 void __cdecl BG_EvaluateTrajectory(const trajectory_t *tr, int atTime, float *result);
-double __cdecl Vec3NormalizeTo(const float *v, float *out);
 void __cdecl BG_EvaluateTrajectoryDelta(const trajectory_t *tr, int atTime, float *result);
 bool __cdecl BG_ValidateOrigin(const float *pos, char xyBits, char zBits, const float *mapCenter);
 bool __cdecl BG_ValidateOriginValue(float val, char bits, float mapCenterValue);

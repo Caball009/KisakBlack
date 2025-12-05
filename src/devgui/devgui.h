@@ -115,7 +115,7 @@ int __cdecl DevGui_DvarRowCount(const dvar_s *dvar);
 void DevGui_DrawBindNextKey();
 void __cdecl DevGui_DrawGraph(const DevMenuItem *menu, int localClientNum);
 void __cdecl DevGui_Init();
-const dvar_s *DevGui_RegisterDvars();
+void DevGui_RegisterDvars();
 void __cdecl DevGui_Shutdown();
 void DevGui_MenuShutdown();
 void __cdecl DevGui_KeyPressed(int key);

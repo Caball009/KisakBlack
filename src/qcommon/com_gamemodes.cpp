@@ -1,4 +1,14 @@
 #include "com_gamemodes.h"
+#include <universal/dvar.h>
+#include <game_mp/g_main_mp.h>
+#include <universal/assertive.h>
+
+const dvar_s *onlinegame;
+const dvar_s *xblive_privatematch;
+const dvar_s *xblive_basictraining;
+const dvar_s *xblive_theater;
+const dvar_s *xblive_wagermatch;
+const dvar_s *xblive_clanmatch;
 
 bool __cdecl Com_GameMode_IsOnlineGame()
 {

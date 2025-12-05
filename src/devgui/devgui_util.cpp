@@ -1,5 +1,7 @@
 #include "devgui_util.h"
 
+#include <client_mp/cl_main_mp.h>
+
 unsigned int __cdecl DevGui_GetScreenWidth()
 {
     return cls.vidConfig.displayWidth;

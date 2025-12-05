@@ -1,6 +1,7 @@
 #pragma once
 
 #include <clientscript/cscr_animtree.h>
+#include <bgame/bg_local.h>
 
 #define ANIM_TOGGLEBIT (1 << 11)
 
@@ -226,14 +227,6 @@ struct animVehicleSeats_t // sizeof=0x4
     int seats;                          // XREF: BG_AddVehicleName(char const *,int,int,int,int)+DB/w
 };
 
-struct animScriptItem_t // sizeof=0xC8
-{                                       // XREF: animScriptData_t/r
-    int numConditions;
-    animScriptCondition_t conditions[4];
-    int numCommands;
-    animScriptCommand_t commands[8];    // XREF: _Com_InitHunkMemory+BD/o
-};
-
 struct animScript_t // sizeof=0x204
 {                                       // XREF: animScriptData_t/r
     int numItems;
@@ -272,11 +265,6 @@ struct controller_info_t // sizeof=0x60
     float angles[6][3];
     float tag_origin_angles[3];         // XREF: BG_Player_DoControllersSetup(entityState_s const *,clientInfo_t *,int)+13C/o
     float tag_origin_offset[3];         // XREF: BG_Player_DoControllersSetup(entityState_s const *,clientInfo_t *,int)+165/o
-};
-
-struct scr_animtree_t // sizeof=0x4
-{                                       // XREF: animScriptData_t/r
-    struct XAnim_s *anims;                     // XREF: BG_FindAnimTree+1A/w
 };
 
 struct bgsAnim_s // sizeof=0x8D3A8

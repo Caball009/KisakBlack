@@ -1,17 +1,8 @@
 #pragma once
 #include <DynEntity/DynEntity_gamestate.h>
+#include <physics/phys_colgeom.h>
 
-struct col_prim_t // sizeof=0x8
-{                                       // XREF: colgeom_visitor_inlined_t<200>/r
-                                        // colgeom_visitor_inlined_t<500>/r
-    int type;
-    //$9DB6BB71550D5B679E9F92FB2EA07EBE ___u1;
-    union //$9DB6BB71550D5B679E9F92FB2EA07EBE // sizeof=0x4
-    {                                       // XREF: col_prim_t/r
-        const struct CollisionAabbTree *tree;
-        const struct cbrush_t *brush;
-    };
-};
+
 
 struct IgnoreEntParams // sizeof=0xC
 {                                       // XREF: Flame_Server_Trace/r
@@ -158,6 +149,12 @@ struct moveclip_t // sizeof=0x60
                                         // CG_TraceCapsule(trace_t *,float const * const,float const * const,float const * const,float const * const,int,int,col_context_t &)+538/w ...
 };
 
+struct cNode_t // sizeof=0x8
+{
+    cplane_s *plane;
+    __int16 children[2];
+};
+
 struct clipMap_t // sizeof=0x14C
 {                                       // XREF: .data:clipMap_t cm/r
     const char *name;                   // XREF: CM_LoadMapData_LoadObj+10/r
@@ -170,7 +167,7 @@ struct clipMap_t // sizeof=0x14C
                                         // CMod_LoadPlanes(void)+70/r ...
     unsigned int numStaticModels;       // XREF: CM_LoadStaticModels(void):loc_6B39D9/w
                                         // CM_LoadStaticModels(void)+499/r ...
-    cStaticModel_s *staticModelList;    // XREF: CM_LoadStaticModels(void)+53/w
+    struct cStaticModel_s *staticModelList;    // XREF: CM_LoadStaticModels(void)+53/w
                                         // CM_LoadStaticModels(void)+159/w ...
     unsigned int numMaterials;          // XREF: CMod_LoadMaterials+63/w
                                         // CMod_LoadMaterials+98/r ...
@@ -241,7 +238,7 @@ struct clipMap_t // sizeof=0x14C
                                         // CMod_LoadVisibility+64/r ...
     int vised;                          // XREF: CMod_LoadVisibility:loc_6AA4A8/w
                                         // CM_ClusterPVS(int)+3/r
-    MapEnts *mapEnts;                   // XREF: CMod_LoadEntityString+11/w
+    struct MapEnts *mapEnts;                   // XREF: CMod_LoadEntityString+11/w
                                         // CM_EntityString(void)+3/r ...
     cbrush_t *box_brush;                // XREF: CM_InitThreadData+78/r
                                         // CM_InitBoxHull+14/w ...
@@ -254,17 +251,11 @@ struct clipMap_t // sizeof=0x14C
                                         // DynEnt_GetEntityDef(ushort,DynEntityDrawType)+19/r ...
     // padding byte
     // padding byte
-    DynEntityDef *dynEntDefList[2];     // XREF: DynEnt_GetEntityDef(ushort,DynEntityDrawType)+4F/r
-                                        // DynEnt_LoadEntities(void)+60/w ...
-    DynEntityPose *dynEntPoseList[2];   // XREF: DynEnt_LoadEntities(void)+6C/w
-                                        // DynEnt_LoadEntities(void)+72/w ...
-    DynEntityClient *dynEntClientList[2];
-                                        // XREF: DynEnt_GetClientEntity(ushort,DynEntityDrawType)+4F/r
-                                        // DynEntCl_DestroyEntityModel+D/r ...
-    DynEntityServer *dynEntServerList[2];
-                                        // XREF: DynEnt_LoadEntities(void)+88/w
-                                        // DynEnt_LoadEntities(void)+8D/w ...
-    DynEntityColl *dynEntCollList[4];   // XREF: DynEnt_GetEntityColl(DynEntityCollType,ushort)+79/r
+    struct DynEntityDef *dynEntDefList[2];     // XREF: DynEnt_GetEntityDef(ushort,DynEntityDrawType)+4F/r
+    struct DynEntityPose *dynEntPoseList[2];   // XREF: DynEnt_LoadEntities(void)+6C/w
+    struct DynEntityClient *dynEntClientList[2];
+    struct DynEntityServer *dynEntServerList[2];
+    struct DynEntityColl *dynEntCollList[4];   // XREF: DynEnt_GetEntityColl(DynEntityCollType,ushort)+79/r
                                         // DynEnt_LoadEntities(void)+94/w ...
     int num_constraints;                // XREF: DynEnt_FixupLightConstraints(int,int,int)+1B/r
                                         // CreateRopes(int)+52/r ...
@@ -272,9 +263,51 @@ struct clipMap_t // sizeof=0x14C
                                         // DynEnt_FixupLightConstraints(int,int,int)+30/r ...
     int max_ropes;                      // XREF: DynEnt_LoadEntities(void):loc_5B99EE/w
                                         // DynEnt_LoadEntities(void):loc_5B9B80/r ...
-    rope_t *ropes;                      // XREF: DynEnt_LoadEntities(void)+1147/w
+    struct rope_t *ropes;                      // XREF: DynEnt_LoadEntities(void)+1147/w
                                         // Rope_Reset(void)+10/r
     unsigned int checksum;              // XREF: CM_LoadMap(char const *,int *)+40/r
+};
+
+struct traceWork_t // sizeof=0xE0
+{                                       // XREF: ?CM_Trace@@YAXPAUtrace_t@@QBM111IHAAUcol_context_t@@@Z/r
+                                        // ?CM_BoxSightTrace@@YAHHQBM000IH@Z/r ...
+    hybrid_vector delta;                // XREF: CG_SightTracePointInternal(int *,float const * const,float const * const,int,trace_t *)+2AF/w
+                                        // CG_SightTracePointInternal(int *,float const * const,float const * const,int,trace_t *)+2C1/w ...
+    hybrid_vector midpoint;             // XREF: CG_SightTracePointInternal(int *,float const * const,float const * const,int,trace_t *)+251/w
+                                        // CG_SightTracePointInternal(int *,float const * const,float const * const,int,trace_t *)+277/w ...
+    hybrid_vector halfDelta;            // XREF: CG_SightTracePointInternal(int *,float const * const,float const * const,int,trace_t *)+2EB/w
+                                        // CG_SightTracePointInternal(int *,float const * const,float const * const,int,trace_t *)+303/w ...
+    hybrid_vector halfDeltaAbs;         // XREF: CG_SightTracePointInternal(int *,float const * const,float const * const,int,trace_t *)+384/w
+                                        // CG_SightTracePointInternal(int *,float const * const,float const * const,int,trace_t *)+3CD/w ...
+    hybrid_vector size;                 // XREF: CG_SightTracePointInternal(int *,float const * const,float const * const,int,trace_t *)+1BF/w
+                                        // CG_SightTracePointInternal(int *,float const * const,float const * const,int,trace_t *)+1CF/w ...
+    hybrid_vector bounds[2];            // XREF: CG_SightTracePointInternal(int *,float const * const,float const * const,int,trace_t *)+482/o
+                                        // CG_SightTracePointInternal(int *,float const * const,float const * const,int,trace_t *)+499/o ...
+    hybrid_vector radiusOffset;         // XREF: CG_SightTracePointInternal(int *,float const * const,float const * const,int,trace_t *)+32B/w
+                                        // CG_SightTracePointInternal(int *,float const * const,float const * const,int,trace_t *)+338/w ...
+    TraceExtents extents;               // XREF: CG_SightTracePointInternal(int *,float const * const,float const * const,int,trace_t *)+1EE/w
+                                        // CG_SightTracePointInternal(int *,float const * const,float const * const,int,trace_t *)+1FB/w ...
+    float deltaLen;                     // XREF: CG_SightTracePointInternal(int *,float const * const,float const * const,int,trace_t *)+47D/w
+                                        // CM_Trace(trace_t *,float const * const,float const * const,float const * const,float const * const,uint,int,col_context_t &)+368/w ...
+    float deltaLenSq;                   // XREF: CG_SightTracePointInternal(int *,float const * const,float const * const,int,trace_t *)+463/w
+                                        // CG_SightTracePointInternal(int *,float const * const,float const * const,int,trace_t *)+468/r ...
+    int contents;                       // XREF: CG_SightTracePointInternal(int *,float const * const,float const * const,int,trace_t *)+1B4/w
+                                        // CM_Trace(trace_t *,float const * const,float const * const,float const * const,float const * const,uint,int,col_context_t &)+170/w ...
+    bool isPoint;                       // XREF: CG_SightTracePointInternal(int *,float const * const,float const * const,int,trace_t *)+4B4/w
+                                        // CM_Trace(trace_t *,float const * const,float const * const,float const * const,float const * const,uint,int,col_context_t &)+64C/w ...
+    bool axialCullOnly;                 // XREF: CG_SightTracePointInternal(int *,float const * const,float const * const,int,trace_t *)+4B0/w
+                                        // CM_SightTracePoint(int,float const * const,float const * const,col_context_t &):loc_6BE4CF/w
+    bool doublesided;                   // XREF: CM_Trace(trace_t *,float const * const,float const * const,float const * const,float const * const,uint,int,col_context_t &)+658/w
+                                        // CM_Trace(trace_t *,float const * const,float const * const,float const * const,float const * const,uint,int,col_context_t &)+8C2/w ...
+    // padding byte
+    float radius;                       // XREF: CG_SightTracePointInternal(int *,float const * const,float const * const,int,trace_t *)+4C0/w
+                                        // CM_Trace(trace_t *,float const * const,float const * const,float const * const,float const * const,uint,int,col_context_t &)+3C6/w ...
+    float offsetZ;                      // XREF: CG_SightTracePointInternal(int *,float const * const,float const * const,int,trace_t *)+4DA/w
+                                        // CM_Trace(trace_t *,float const * const,float const * const,float const * const,float const * const,uint,int,col_context_t &)+3F3/w ...
+    float boundingRadius;               // XREF: CG_SightTracePointInternal(int *,float const * const,float const * const,int,trace_t *)+4CD/w
+                                        // CM_Trace(trace_t *,float const * const,float const * const,float const * const,float const * const,uint,int,col_context_t &)+3DA/w ...
+    TraceThreadInfo threadInfo;         // XREF: CG_SightTracePointInternal(int *,float const * const,float const * const,int,trace_t *)+4DF/o
+                                        // CM_Trace(trace_t *,float const * const,float const * const,float const * const,float const * const,uint,int,col_context_t &)+5C0/o ...
 };
 
 void __cdecl RotatePoint(const float *v, const float *q, float *out);

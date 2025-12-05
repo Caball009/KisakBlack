@@ -4,6 +4,7 @@
 
 #include <d3d9.h>
 #include <flame/flame_system.h>
+#include <universal/com_pack.h>
 
 struct XAnimParam // sizeof=0x14
 {
@@ -228,12 +229,6 @@ union GfxColor // sizeof=0x4
         unsigned __int8 array[4];
 };
 
-union PackedTexCoords // sizeof=0x4
-{                                                                             // XREF: Vec2PackTexCoords(float const * const)+120/w
-                                                                                // Vec2PackTexCoords(float const * const)+123/r ...
-        unsigned int packed;
-};
-
 struct GfxPackedVertex // sizeof=0x20
 {                                                                             // XREF: GfxPackedVertex0/r
                                                                                 // GfxPackedVertex1/r ...
@@ -444,17 +439,6 @@ struct XAnimTime // sizeof=0xC
         int frameIndex;                                         // XREF: XAnimCalcParts_unsigned_char_+28E/r
 };
 
-struct cplane_s // sizeof=0x14
-{                                                                             // XREF: cplane_t/r
-                                                                                // CM_TraceThroughBrush/r ...
-        float normal[3];                                        // XREF: CM_TraceThroughBrush+629/w
-                                                                                // CM_TraceThroughBrush+636/w ...
-        float dist;
-        unsigned __int8 type;
-        unsigned __int8 signbits;
-        unsigned __int8 pad[2];
-};
-
 struct cbrushside_t // sizeof=0xC
 {                                                                             // XREF: CM_TraceThroughBrush/r
                                                                                 // ?trace_sphere_through_brush@@YAXQBM0AAMMPBUcbrush_t@@QAMAAHPAUclipMap_t@@@Z/r
@@ -464,6 +448,59 @@ struct cbrushside_t // sizeof=0xC
                                                                                 // trace_sphere_through_brush(float const * const,float const * const,float &,float,cbrush_t const *,float * const,int &,clipMap_t *)+58D/w
         int sflags;                                                 // XREF: CM_TraceThroughBrush+61E/w
                                                                                 // trace_sphere_through_brush(float const * const,float const * const,float &,float,cbrush_t const *,float * const,int &,clipMap_t *)+5A6/w
+};
+
+struct __declspec(align(4)) cLeaf_s // sizeof=0x2C
+{                                       // XREF: cmodel_t/r cLeaf_t/r
+    unsigned __int16 firstCollAabbIndex;
+    unsigned __int16 collAabbCount;
+    int brushContents;                  // XREF: CM_InitBoxHull+3F/w
+    int terrainContents;                // XREF: CM_InitBoxHull+49/w
+    float mins[3];                      // XREF: CM_InitBoxHull+5B/w
+                                        // CM_InitBoxHull+6B/w ...
+    float maxs[3];                      // XREF: CM_InitBoxHull+8B/w
+                                        // CM_InitBoxHull+9B/w ...
+    int leafBrushNode;                  // XREF: CM_InitBoxHull+164/w
+    __int16 cluster;
+    // padding byte
+    // padding byte
+};
+
+struct cmodel_t // sizeof=0x48
+{                                       // XREF: .data:g_box_model/r
+                                        // clipMap_t/r
+    float mins[3];
+    float maxs[3];
+    float radius;
+    cLeaf_s leaf;                       // XREF: CM_InitBoxHull+3F/w
+                                        // CM_InitBoxHull+49/w ...
+};
+
+struct cLeafBrushNodeLeaf_t // sizeof=0x4
+{                                       // XREF: cLeafBrushNodeData_t/r
+    unsigned __int16 *brushes;
+};
+
+struct cLeafBrushNodeChildren_t // sizeof=0xC
+{                                       // XREF: cLeafBrushNodeData_t/r
+    float dist;
+    float range;
+    unsigned __int16 childOffset[2];
+};
+
+union cLeafBrushNodeData_t // sizeof=0xC
+{                                       // XREF: cLeafBrushNode_s/r
+    cLeafBrushNodeLeaf_t leaf;
+    cLeafBrushNodeChildren_t children;
+};
+
+struct cLeafBrushNode_s // sizeof=0x14
+{                                       // XREF: cLeafBrushNode_t/r
+    unsigned __int8 axis;
+    // padding byte
+    __int16 leafBrushCount;
+    int contents;
+    cLeafBrushNodeData_t data;
 };
 
 const struct __declspec(align(8)) cbrush_t // sizeof=0x60
@@ -482,6 +519,8 @@ const struct __declspec(align(8)) cbrush_t // sizeof=0x60
         // padding byte
         // padding byte
 };
+
+struct XModelNameMap;
 
 int __cdecl XAnimTreeSize();
 bool __cdecl XAnimTreeHasInfo(const XAnimTree_s *tree);

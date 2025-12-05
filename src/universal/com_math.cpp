@@ -3209,3 +3209,56 @@ float    __cdecl Abs(const float *v)
 {
         return (float)sqrt((float)((float)((float)(*v * *v) + (float)(v[1] * v[1])) + (float)(v[2] * v[2])));
 }
+
+float __cdecl Vec3NormalizeTo(const vec3r v, vec3r out)
+{
+    float v3; // [esp+0h] [ebp-14h]
+    float v4; // [esp+4h] [ebp-10h]
+    float ilength; // [esp+Ch] [ebp-8h]
+    float length; // [esp+10h] [ebp-4h]
+
+    length = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+    v4 = sqrt(length);
+    if (-v4 < 0.0)
+        v3 = v4;
+    else
+        v3 = 1.0;
+    ilength = 1.0 / v3;
+
+    out[0] = v[0] * ilength;
+    out[1] = v[1] * ilength;
+    out[2] = v[2] * ilength;
+    return v4;
+}
+
+float __cdecl Vec3Dot(const vec3r a, const vec3r b)
+{
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+
+float __cdecl Vec4Normalize(float *v)
+{
+    float v2; // [esp+0h] [ebp-Ch]
+    float ilength; // [esp+4h] [ebp-8h]
+    float length; // [esp+8h] [ebp-4h]
+
+    length = *v * *v + v[1] * v[1] + v[2] * v[2] + v[3] * v[3];
+    v2 = sqrt(length);
+    if (v2 != 0.0)
+    {
+        ilength = 1.0 / v2;
+        *v = *v * ilength;
+        v[1] = v[1] * ilength;
+        v[2] = v[2] * ilength;
+        v[3] = v[3] * ilength;
+    }
+    return v2;
+}
+
+void __cdecl Vec4Lerp(const float *from, const float *to, float frac, float *result)
+{
+    *result = (float)((float)(*to - *from) * frac) + *from;
+    result[1] = (float)((float)(to[1] - from[1]) * frac) + from[1];
+    result[2] = (float)((float)(to[2] - from[2]) * frac) + from[2];
+    result[3] = (float)((float)(to[3] - from[3]) * frac) + from[3];
+}

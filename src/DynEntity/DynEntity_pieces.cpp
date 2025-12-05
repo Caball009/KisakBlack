@@ -8,6 +8,7 @@
 #include <xanim/xmodel.h>
 #include <qcommon/common.h>
 #include <bgame/bg_weapons_view.h>
+#include <physics/phys_colgeom.h>
 
 const dvar_s *dynEntPieces_velocity;
 const dvar_s *dynEntPieces_angularVelocity;
@@ -122,7 +123,7 @@ char __cdecl DynEntPieces_SpawnPhysicsModel(
             surfFlags = model->collSurfs->surfFlags;
         else
             surfFlags = 13631488;
-        stype = (unsigned __int8)((int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & surfFlags) >> 20);
+        stype = (surfFlags & 0x3F00000) >> 20;
         physObjId = (int)DynEntPieces_SpawnPhysObj(
                                              model->name,
                                              stype,
@@ -176,12 +177,13 @@ PhysObjUserData *__cdecl DynEntPieces_SpawnPhysObj(
     {
         gjk_geom_list.m_first_geom = 0;
         gjk_geom_list.m_geom_count = 0;
-        aabb_gjk_geom = create_aabb_gjk_geom(COERCE_FLOAT(&savedregs), mins, maxs, stype, &g_empty_collision_visitor);
-        gjk_geom_list_t::add_geom(&gjk_geom_list, aabb_gjk_geom);
+        aabb_gjk_geom = create_aabb_gjk_geom(mins, maxs, stype, &g_empty_collision_visitor);
+        //gjk_geom_list_t::add_geom(&gjk_geom_list, aabb_gjk_geom);
+        gjk_geom_list.add_geom(aabb_gjk_geom);
         physObjId = Phys_ObjCreate(0, position, quat, velocity, physPreset, &gjk_geom_list, 1, -1);
         if ( physObjId )
         {
-            Phys_ObjSetAngularVelocity((int)&savedregs, (int)physObjId, angularVelocity);
+            Phys_ObjSetAngularVelocity( (int)physObjId, angularVelocity);
             return physObjId;
         }
         else

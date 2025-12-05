@@ -7,8 +7,32 @@
 #include <qcommon/cmd.h>
 #include <gfx_d3d/r_font.h>
 #include <client_mp/cl_main_mp.h>
+#include <client/cl_keys.h>
+#include "devgui_util.h"
+#include "devgui_input.h"
+#include <universal/com_pack.h>
 
 devguiGlob_t devguiGlob;
+
+const dvar_t *devgui_colorBgnd;
+const dvar_t *devgui_colorText;
+const dvar_t *devgui_colorBgndSel;
+const dvar_t *devgui_colorTextSel;
+const dvar_t *devgui_colorBgndGray;
+const dvar_t *devgui_colorTextGray;
+const dvar_t *devgui_colorBgndGraySel;
+const dvar_t *devgui_colorTextGraySel;
+const dvar_t *devgui_colorSliderBgnd;
+const dvar_t *devgui_colorSliderKnob;
+const dvar_t *devgui_colorSliderKnobSel;
+const dvar_t *devgui_bevelShade;
+const dvar_t *devgui_colorGraphKnotNormal;
+const dvar_t *devgui_colorGraphKnotSelected;
+const dvar_t *devgui_colorGraphKnotEditing;
+const dvar_t *devgui_zoomEnabled;
+const dvar_t *devgui_colorBgnd;
+const dvar_t *devgui_colorBgnd;
+const dvar_t *devgui_colorBgnd;
 
 void __cdecl DevGui_AddDvar(const char *path, const dvar_s *dvar)
 {
@@ -449,7 +473,7 @@ void __cdecl DevGui_FreeMenu_r(unsigned __int16 handle)
             DevGui_FreeMenu_r(menu->menus[0].child.menu);
         }
         DevGui_FreeMenu_r(menu->menus[0].nextSibling);
-        *(unsigned int *)menu->menus[0].label = devguiGlob.nextFreeMenu;
+        *(unsigned int *)menu->menus[0].label = (unsigned int)devguiGlob.nextFreeMenu;
         devguiGlob.nextFreeMenu = (DevMenuItem *)menu;
     }
 }
@@ -628,7 +652,7 @@ void __cdecl DevGui_DrawMenuVertically(const DevMenuItem *menu, unsigned __int16
         *(unsigned int *)textColor = devgui_colorText->current.integer;
         shade = devgui_bevelShade->current.value;
         DevGui_DrawBevelBox(x, y, w, h, shade, bgndColor);
-        DevGui_DrawFont(fontXOffset + x, fontYOffset + y, textColor, "...", fontXScale, 1.0);
+        DevGui_DrawFont(fontXOffset + x, fontYOffset + y, textColor, (char*)"...", fontXScale, 1.0);
         y += h;
     }
     childCount = 0;
@@ -693,7 +717,7 @@ void __cdecl DevGui_DrawMenuVertically(const DevMenuItem *menu, unsigned __int16
             DevGui_DrawBevelBox(x, y, w, h, shade, bgndColor);
             DevGui_DrawFont(fontXOffset + x, fontYOffset + y, textColor, (char *)childMenua, fontXScale, fontYScale);
             if ( !childMenua->menus[0].childType && childMenua->menus[0].child.menu )
-                DevGui_DrawFont(subMenuStringPos, fontYOffset + y, textColor, " >", fontXScale, fontYScale);
+                DevGui_DrawFont(subMenuStringPos, fontYOffset + y, textColor, (char*)" >", fontXScale, fontYScale);
             y += h;
             ++childCount;
         }
@@ -829,16 +853,16 @@ void __cdecl DevGui_DrawSliders(const DevMenuItem *menu)
     const char *v1; // eax
     const char *v2; // eax
     float v3; // [esp+8h] [ebp-BCh]
-    DvarValue *v4; // [esp+Ch] [ebp-B8h]
-    DvarValue *v5; // [esp+10h] [ebp-B4h]
-    DvarValue *v6; // [esp+14h] [ebp-B0h]
+    const DvarValue *v4; // [esp+Ch] [ebp-B8h]
+    const DvarValue *v5; // [esp+10h] [ebp-B4h]
+    const DvarValue *v6; // [esp+14h] [ebp-B0h]
     double v7; // [esp+18h] [ebp-ACh]
     double v8; // [esp+20h] [ebp-A4h]
     double v9; // [esp+28h] [ebp-9Ch]
     double v10; // [esp+30h] [ebp-94h]
     double v11; // [esp+38h] [ebp-8Ch]
     double v12; // [esp+40h] [ebp-84h]
-    DvarValue *p_current; // [esp+48h] [ebp-7Ch]
+    const DvarValue *p_current; // [esp+48h] [ebp-7Ch]
     unsigned __int8 color[4]; // [esp+58h] [ebp-6Ch] BYREF
     double G; // [esp+5Ch] [ebp-68h]
     double X; // [esp+64h] [ebp-60h]
@@ -934,32 +958,32 @@ void __cdecl DevGui_DrawSliders(const DevMenuItem *menu)
             if ( R >= 0.0 )
                 v12 = R;
             else
-                v12 = DOUBLE_0_0;
+                v12 = 0.0;
             R = v12;
             if ( v12 <= 1.0 )
                 v11 = R;
             else
-                v11 = DOUBLE_1_0;
+                v11 = 1.0;
             R = v11;
             if ( G >= 0.0 )
                 v10 = G;
             else
-                v10 = DOUBLE_0_0;
+                v10 = 0.0;
             G = v10;
             if ( v10 <= 1.0 )
                 v9 = G;
             else
-                v9 = DOUBLE_1_0;
+                v9 = 1.0;
             G = v9;
             if ( B >= 0.0 )
                 v8 = B;
             else
-                v8 = DOUBLE_0_0;
+                v8 = 0.0;
             B = v8;
             if ( v8 <= 1.0 )
                 v7 = B;
             else
-                v7 = DOUBLE_1_0;
+                v7 = 1.0;
             B = v7;
             gammaColor[0] = (int)(sqrt(R) * 255.0);
             gammaColor[1] = (int)(sqrt(G) * 255.0);
@@ -1139,9 +1163,9 @@ void __cdecl DevGui_DrawSingleSlider(
 void __cdecl DevGui_DrawDvarValue(int x, int y, const dvar_s *dvar)
 {
     const char *v3; // eax
-    double v4; // xmm0_8
-    double v5; // xmm0_8
-    double value; // xmm0_8
+    float v4; // xmm0_8
+    float v5; // xmm0_8
+    float value; // xmm0_8
     long double v7; // [esp+30h] [ebp-7Ch]
     double v8; // [esp+30h] [ebp-7Ch]
     long double v9; // [esp+38h] [ebp-74h]
@@ -1179,9 +1203,10 @@ void __cdecl DevGui_DrawDvarValue(int x, int y, const dvar_s *dvar)
                 else
                 {
                     v4 = dvar->latched.vector[2];
-                    __libm_sse2_pow(v7, v9);
-                    *(float *)&v4 = v4;
-                    v14 = (float)(*(float *)&v4 * 1.0549999) - 0.055;
+                    //__libm_sse2_pow(v7, v9);
+                    //*(float *)&v4 = v4;
+                    v4 = pow(v4, 0.4166666567325592);
+                    v14 = (float)(v4 * 1.0549999) - 0.055;
                 }
                 if ( dvar->latched.vector[1] <= 0.0031308001 )
                 {
@@ -1190,9 +1215,10 @@ void __cdecl DevGui_DrawDvarValue(int x, int y, const dvar_s *dvar)
                 else
                 {
                     v5 = dvar->latched.vector[1];
-                    __libm_sse2_pow(v7, v9);
-                    *(float *)&v5 = v5;
-                    v13 = (float)(*(float *)&v5 * 1.0549999) - 0.055;
+                    v5 = pow(v5, 0.4166666567325592);
+                    //__libm_sse2_pow(v7, v9);
+                    //*(float *)&v5 = v5;
+                    v13 = (float)(v5 * 1.0549999) - 0.055;
                 }
                 if ( dvar->latched.value <= 0.0031308001 )
                 {
@@ -1201,9 +1227,10 @@ void __cdecl DevGui_DrawDvarValue(int x, int y, const dvar_s *dvar)
                 else
                 {
                     value = dvar->latched.value;
-                    __libm_sse2_pow(v7, v9);
-                    *(float *)&value = value;
-                    v12 = (float)(*(float *)&value * 1.0549999) - 0.055;
+                    //__libm_sse2_pow(v7, v9);
+                    //*(float *)&value = value;
+                    value = pow(value, 0.4166666567325592);
+                    v12 = (float)(value * 1.0549999) - 0.055;
                 }
                 text = va(
                                  "sRGB: %g %g %g Linear: %g %g %g",
@@ -1227,7 +1254,8 @@ void __cdecl DevGui_DrawDvarValue(int x, int y, const dvar_s *dvar)
                 }
                 else
                 {
-                    __libm_sse2_pow(v7, v9);
+                    //__libm_sse2_pow(v7, v9);  
+                    R = pow(R, 0.4166666666666667);
                     v11 = (R - 0.055) * 1.055;
                 }
                 if ( G <= 0.0031308 )
@@ -1236,7 +1264,8 @@ void __cdecl DevGui_DrawDvarValue(int x, int y, const dvar_s *dvar)
                 }
                 else
                 {
-                    __libm_sse2_pow(v7, v9);
+                    //__libm_sse2_pow(v7, v9);
+                    G = pow(G, 0.4166666666666667);
                     v10 = (G - 0.055) * 1.055;
                 }
                 Ga = v10;
@@ -1246,7 +1275,8 @@ void __cdecl DevGui_DrawDvarValue(int x, int y, const dvar_s *dvar)
                 }
                 else
                 {
-                    __libm_sse2_pow(v7, v10);
+                    //__libm_sse2_pow(v7, v10);
+                    B = pow(v7, v10);
                     v8 = (B - 0.055) * 1.055;
                 }
                 r = (int)floor(v11 * 255.0 + 0.5);
@@ -1328,6 +1358,7 @@ void DevGui_DrawBindNextKey()
     DevGui_DrawFont(x, y, textColor, (char *)text, 1.0, 1.0);
 }
 
+static const char *MYINSTRUCTIONS = "<Y> Edits node,  <LB> Adds new node,  <RB> Removes node,  <START> Saves to disk";
 void __cdecl DevGui_DrawGraph(const DevMenuItem *menu, int localClientNum)
 {
     const char *v2; // eax
@@ -1446,7 +1477,6 @@ void __cdecl DevGui_DrawGraph(const DevMenuItem *menu, int localClientNum)
         endKnotPos[0] = (float)((float)width * nextKnot) + (float)x;
         endKnotPos[1] = (float)graphBottomY - (float)((float)(graphBottomY - 48) * nextKnot_4);
         DevGui_DrawLine(
-            COERCE_FLOAT(&savedregs),
             startKnotPos,
             endKnotPos,
             2,
@@ -1479,10 +1509,10 @@ void __cdecl DevGui_Init()
     int screen_xPad; // [esp+8h] [ebp-4h]
 
     DevGui_RegisterDvars();
-    screen_xPad = jpeg_mem_init();
-    screen_yPad = jpeg_mem_init();
+    screen_xPad = RETURN_ZERO32();
+    screen_yPad = RETURN_ZERO32();
     for ( menuIndex = 0; menuIndex < 0x7FF; ++menuIndex )
-        *(unsigned int *)devguiGlob.menus[menuIndex].label = &devguiGlob.menus[menuIndex + 1];
+        *(unsigned int *)devguiGlob.menus[menuIndex].label = (unsigned int)&devguiGlob.menus[menuIndex + 1];
     *(unsigned int *)devguiGlob.menus[menuIndex].label = 0;
     devguiGlob.nextFreeMenu = (DevMenuItem *)&devguiGlob;
     devguiGlob.topmostMenu.childType = 0;
@@ -1504,7 +1534,9 @@ void __cdecl DevGui_Init()
     devguiGlob.isInitialized = 1;
 }
 
-const dvar_s *DevGui_RegisterDvars()
+
+
+void DevGui_RegisterDvars()
 {
     const dvar_s *result; // eax
 
@@ -1614,9 +1646,7 @@ const dvar_s *DevGui_RegisterDvars()
                                                                      1.0,
                                                                      0,
                                                                      "Devgui color graph knot editing color");
-    result = _Dvar_RegisterBool("devgui_zoomEnabled", 0, 0, "Enlarges the currently selected Devgui cell.");
-    devgui_zoomEnabled = result;
-    return result;
+    devgui_zoomEnabled = _Dvar_RegisterBool("devgui_zoomEnabled", 0, 0, "Enlarges the currently selected Devgui cell.");
 }
 
 void __cdecl DevGui_Shutdown()
@@ -2150,7 +2180,7 @@ int DevGui_ScrollUpInternal()
     {
         DevGui_MoveUp();
         menu = DevGui_GetMenu(devguiGlob.selectedMenu);
-        LOBYTE(result) = DevGui_EditableMenuItem(menu->menus);
+        result = DevGui_EditableMenuItem(menu->menus);
     }
     while ( !(_BYTE)result );
     return result;
@@ -2195,7 +2225,7 @@ int DevGui_ScrollDownInternal()
     {
         DevGui_MoveDown();
         menu = DevGui_GetMenu(devguiGlob.selectedMenu);
-        LOBYTE(result) = DevGui_EditableMenuItem(menu->menus);
+        result = DevGui_EditableMenuItem(menu->menus);
     }
     while ( !(_BYTE)result );
     return result;
@@ -2224,7 +2254,7 @@ void __cdecl DevGui_UpdateDvar(float deltaTime, bool channelLink, bool dvarReset
         Dvar_Reset((dvar_s *)dvar, DVAR_SOURCE_DEVGUI);
     switch ( dvar->type )
     {
-        case DVAR_TYPE_bool:
+        case DVAR_TYPE_BOOL:
             boolValue = (unsigned int)DevGui_UpdateIntScroll(deltaTime, dvar->latched.color[0] != 0, 0, 1, SCROLL_XAXIS) != 0;
             if ( boolValue != dvar->latched.enabled )
                 Dvar_SetBoolFromSource((dvar_s *)dvar, boolValue, DVAR_SOURCE_DEVGUI);

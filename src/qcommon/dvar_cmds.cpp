@@ -156,7 +156,7 @@ bool __cdecl Dvar_ToggleSimple(dvar_s *dvar)
         __debugbreak();
     switch ( dvar->type )
     {
-        case DVAR_TYPE_bool:
+        case DVAR_TYPE_BOOL:
             Dvar_SetBoolFromSource(dvar, !dvar->current.enabled, DVAR_SOURCE_EXTERNAL);
             result = 1;
             break;

@@ -1706,7 +1706,7 @@ void __cdecl FireBulletPenetrate(
                 G_DebugStar(br->hitPos, colorRedFaded, 3 * cg_debugLocHitTime->current.integer);
             }
             if ( hitEnt && hitEnt->nextState.eType == 14 && hitEnt->destructible )
-                effectFlags |= jpeg_mem_init();
+                effectFlags |= RETURN_ZERO32();
         }
         if ( traceHitEntityId != 1022 )
             DynEntCl_EntityImpactEvent(&br->trace, localClientNum, attacker->nextState.number, bp->start, br->hitPos, 0);

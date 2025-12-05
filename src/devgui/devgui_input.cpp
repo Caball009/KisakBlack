@@ -1,5 +1,37 @@
 #include "devgui_input.h"
+#include "devgui.h"
+#include <qcommon/cmd.h>
+#include <win32/win_gamepad.h>
+#include <client_mp/cl_input_mp.h>
+#include <client/cl_keys.h>
+#include <qcommon/com_clients.h>
 
+#include <cmath>
+#include <universal/assertive.h>
+
+DevGuiInput s_input;
+
+int s_butMapsKey[13] =
+{ 154, 155, 156, 157, 13, 27, 9, 32, 161, 162, 171, 173, 174 };
+
+GamePadButton s_butMapsGamepad[13] =
+{
+  GPAD_UP,
+  GPAD_DOWN,
+  GPAD_LEFT,
+  GPAD_RIGHT,
+  GPAD_A,
+  GPAD_B,
+  GPAD_X,
+  GPAD_Y,
+  GPAD_L_SHLDR,
+  GPAD_R_SHLDR,
+  GPAD_START,
+  GPAD_R_SHLDR,
+  GPAD_Y
+};
+
+cmd_function_s DevGui_Toggle_VAR;
 void __cdecl DevGui_InputInit()
 {
     Cmd_AddCommandInternal("devgui", DevGui_Toggle, &DevGui_Toggle_VAR);
@@ -102,7 +134,8 @@ void __cdecl DevGui_UpdateScrollInputs(int localClientNum)
     if ( s_input.gamePadIndex < 0 && Key_IsDown(localClientNum, 200) )
     {
         lx = s_input.mousePos[0];
-        LODWORD(ly) = LODWORD(s_input.mousePos[1]) ^ _mask__NegFloat_;
+        //LODWORD(ly) = LODWORD(s_input.mousePos[1]) ^ _mask__NegFloat_;
+        ly = -s_input.mousePos[1];
     }
     s_input.mousePos[0] = 0.0f;
     s_input.mousePos[1] = 0.0f;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <physics/phys_local.h>
+
 struct flamePhysics_t // sizeof=0x34
 {                                                                             // XREF: flameGeneric_s/r
         float origin[3];
@@ -78,13 +80,14 @@ void __cdecl Flame_Phys_Update_Item_Drip(
                 int time,
                 phys_static_array<flameGeneric_s *,1000> *flames);
 
-void __thiscall colgeom_visitor_inlined_t<500>::visit(
-                colgeom_visitor_inlined_t<500> *this,
-                const CollisionAabbTree *tree);
-void __thiscall colgeom_visitor_inlined_t<500>::visit(colgeom_visitor_inlined_t<500> *this, const cbrush_t *brush);
-void __thiscall colgeom_visitor_inlined_t<500>::update(
-                colgeom_visitor_inlined_t<500> *this,
-                const float *_mn,
-                const float *_mx,
-                int mask,
-                const float *expand_vec);
+//void __thiscall colgeom_visitor_inlined_t<500>::visit(
+//                colgeom_visitor_inlined_t<500> *this,
+//                const CollisionAabbTree *tree);
+//void __thiscall colgeom_visitor_inlined_t<500>::visit(colgeom_visitor_inlined_t<500> *this, const cbrush_t *brush);
+//void __thiscall colgeom_visitor_inlined_t<500>::update(
+//                colgeom_visitor_inlined_t<500> *this,
+//                const float *_mn,
+//                const float *_mx,
+//                int mask,
+//                const float *expand_vec);
+//

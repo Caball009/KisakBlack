@@ -2,6 +2,7 @@
 #include "assertive.h"
 
 #include <math.h>
+#include "com_pack.h"
 
 #define MAX_11BIT_FLT 0.99951172f // not a real name
 
@@ -25,13 +26,6 @@ struct float44 // sizeof=0x40
                 float m[4][4];
                 float member[16];
         };
-};
-
-union PackedUnitVec // sizeof=0x4
-{                                                                             // XREF: FX_GenSpriteVerts+8BE/w
-                                                                                // FX_GenSpriteVerts+986/w ...
-        unsigned int packed;
-        unsigned __int8 array[4];
 };
 
 union float4 {
@@ -219,8 +213,13 @@ float __cdecl Vec2Length(const float *v);
 void __cdecl Vec3Lerp(const float *start, const float *end, float fraction, float *endpos);
 float __cdecl Vec3DistanceSq(const float *p1, const float *p2);
 float __cdecl Vec3Normalize(float *v);
+float __cdecl Vec3NormalizeTo(const vec3r v, vec3r out);
 float __cdecl Vec2Normalize(float *v);
 void __cdecl Vec3Cross(const float *v0, const float *v1, float *cross);
+float __cdecl Vec3Dot(const vec3r a, const vec3r b);
+
+void __cdecl Vec4Lerp(const float *from, const float *to, float frac, float *result);
+float __cdecl Vec4Normalize(float *v);
 
 float AngleNormalize180(float angle);
 

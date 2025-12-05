@@ -267,7 +267,7 @@ void __cdecl Sys_SetAutoConfigureGHz(SysInfo *sysInfo)
     }
     if ( sysInfo->physicalCpuCount == 1 )
     {
-        multiCpuFactor = DOUBLE_1_0;
+        multiCpuFactor = 1.0;
     }
     else if ( sysInfo->physicalCpuCount == 2 )
     {

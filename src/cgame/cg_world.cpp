@@ -223,12 +223,11 @@ phys_vec3 *__cdecl phys_AbsValue(phys_vec3 *result, const phys_vec3 *a)
     return result;
 }
 
-const phys_vec3 * phys_full_multiply@<eax>(
-                int a1@<ebp>,
-                const phys_vec3 *result,
+const phys_vec3 * phys_full_multiply(
                 const phys_mat44 *mat,
                 const phys_vec3 *v)
 {
+    const phys_vec3 *result;
     float v5; // [esp-30h] [ebp-3Ch]
     float v6; // [esp-2Ch] [ebp-38h]
     const phys_vec3 *v7; // [esp-24h] [ebp-30h]

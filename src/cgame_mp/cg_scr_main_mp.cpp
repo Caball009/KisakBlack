@@ -1724,7 +1724,7 @@ int __cdecl GetTeam(centity_s *cent)
     }
     if ( cent->nextState.eType != 1 )
         return cent->nextState.faction.iHeadIconTeam & 3;
-    localClientNum = jpeg_mem_init();
+    localClientNum = RETURN_ZERO32();
     if ( localClientNum >= 2
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\cgame_mp\\cg_scr_main_mp.cpp",

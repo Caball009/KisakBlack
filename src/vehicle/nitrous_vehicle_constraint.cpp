@@ -1,6 +1,6 @@
 #include "nitrous_vehicle_constraint.h"
 
-void    path_constraint_update(int a1@<ebp>, rigid_body_constraint_custom_path *vpc, gentity_s *veh)
+void    path_constraint_update(rigid_body_constraint_custom_path *vpc, gentity_s *veh)
 {
     float v3[9]; // [esp+58h] [ebp-38h] BYREF
     phys_mat44 *p_m_path_mat; // [esp+7Ch] [ebp-14h]

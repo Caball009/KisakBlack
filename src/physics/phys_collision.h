@@ -6,20 +6,6 @@
 #include "phys_local.h"
 #include "rigid_body.h"
 
-template <int NUM_PRIMS>
-struct colgeom_visitor_inlined_t : colgeom_visitor_t // sizeof=0x6B8
-{                                                                             // XREF: .data:dummy/r
-                                                                                // .data:dummy_0/r ...
-        int nprims;                                                 // XREF: debug_loop(void)+385/r
-                                                                                // Rope_CollideWorld(int)+28A/r
-        bool overflow;
-        // padding byte
-        // padding byte
-        // padding byte
-        col_prim_t prims[NUM_PRIMS];                            // XREF: debug_loop(void)+38C/o
-                                                                                // Rope_CollideWorld(int)+27E/o
-};
-
 struct pulse_sum_cache // sizeof=0x4
 {                                                                             // XREF: rigid_body_constraint_point/r
                                                                                 // rigid_body_constraint_hinge/r ...
@@ -82,7 +68,7 @@ struct __declspec(align(8)) broad_phase_info : broad_phase_base // sizeof=0x70
         const phys_mat44 *m_rb_to_world_xform;
         const phys_mat44 *m_cg_to_world_xform;
         const phys_mat44 *m_cg_to_rb_xform;
-        const phys_gjk_geom *m_gjk_geom;
+        const struct phys_gjk_geom *m_gjk_geom;
         unsigned int m_gjk_geom_id;
         int m_surface_type;
         // padding byte
@@ -97,7 +83,7 @@ struct phys_collision_pair : phys_link_list_base<phys_collision_pair> // sizeof=
         broad_phase_info *m_bpi1;
         broad_phase_info *m_bpi2;
         float m_hit_time;
-        phys_gjk_cache_info *m_gjk_ci;
+        struct phys_gjk_cache_info *m_gjk_ci;
 };
 
 class __declspec(align(16)) contact_point_info // sizeof=0x50

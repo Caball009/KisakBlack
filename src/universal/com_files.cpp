@@ -2494,7 +2494,7 @@ const dvar_s *__thiscall FS_RegisterDvars(jpeg_common_struct *cinfo)
                                         "Game data directory. Must be \"\" or a sub directory of 'mods/'.");
     fs_usermapDir = _Dvar_RegisterString("fs_usermapdir", (char *)"", 0x144u, "Usermap data directory.");
     fs_ignoreLocalized = _Dvar_RegisterBool("fs_ignoreLocalized", 0, 0xA0u, "Ignore localized files");
-    homePath = (char *)jpeg_mem_init();
+    homePath = (char *)RETURN_ZERO32();
     if ( !homePath || !*homePath )
         homePath = (char *)fs_basepath->reset.integer;
     fs_homepath = _Dvar_RegisterString(aFsH, homePath, 0x210u, "Game home path");

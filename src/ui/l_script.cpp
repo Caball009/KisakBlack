@@ -345,7 +345,7 @@ void __cdecl NumberValue(char *string, __int16 subtype, unsigned int *intvalue, 
 
     dotfound = 0;
     *intvalue = 0;
-    *floatvalue = DOUBLE_0_0;
+    *floatvalue = 0.0;
     if ( (subtype & 0x800) != 0 )
     {
         while ( *string )

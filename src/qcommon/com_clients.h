@@ -1,4 +1,14 @@
 #pragma once
+#include "msg_mp.h"
+
+struct ClientGameState // sizeof=0x14
+{                                       // XREF: .data:ClientGameState * clientGameStates/r
+    int flags;                          // XREF: Com_InitClientGameStates(void)+6/w
+    int localClientNum;                 // XREF: Com_InitClientGameStates(void)+B/w
+    int controllerIndex;                // XREF: Com_InitClientGameStates(void)+10/w
+    int uiContextIndex;                 // XREF: Com_InitClientGameStates(void)+15/w
+    netsrc_t networkID;                 // XREF: Com_InitClientGameStates(void)+1A/w
+};
 
 void __cdecl Com_InitClientGameStates();
 void __cdecl Com_LocalClients_CompressClients();

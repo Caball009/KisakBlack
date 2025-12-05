@@ -163,5 +163,3 @@ void __cdecl CG_DrawPlayerWeaponLowAmmoWarning(
                 float text_y,
                 int textAlignMode,
                 Material *material);
-void __cdecl Vec4Lerp(const float *from, const float *to, float frac, float *result);
-void __cdecl Byte4UnpackRgba(const unsigned __int8 *from, float *to);

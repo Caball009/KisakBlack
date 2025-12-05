@@ -184,7 +184,7 @@ const char *__cdecl Dvar_ValueToString(const dvar_s *dvar, DvarValue value)
 
     switch ( dvar->type )
     {
-        case DVAR_TYPE_bool:
+        case DVAR_TYPE_BOOL:
             if ( value.enabled )
                 v4 = "1";
             else
@@ -283,7 +283,7 @@ char __cdecl Dvar_ValueInDomain(dvarType_t type, DvarValue value, DvarLimits dom
 
     switch ( type )
     {
-        case DVAR_TYPE_bool:
+        case DVAR_TYPE_BOOL:
             if ( value.color[0] != 1
                 && value.enabled
                 && !Assert_MyHandler(
@@ -400,7 +400,7 @@ char *__cdecl Dvar_DomainToString_Internal(
         *outLineCount = 0;
     switch ( type )
     {
-        case DVAR_TYPE_bool:
+        case DVAR_TYPE_BOOL:
             _snprintf(outBuffer, outBufferLen, "Domain is 0 or 1");
             break;
         case DVAR_TYPE_FLOAT:
@@ -587,7 +587,7 @@ bool __cdecl Dvar_ValuesEqual(dvarType_t type, DvarValue val0, DvarValue val1)
 
     switch ( type )
     {
-        case DVAR_TYPE_bool:
+        case DVAR_TYPE_BOOL:
             result = val0.color[0] == val1.color[0];
             break;
         case DVAR_TYPE_FLOAT:
@@ -772,7 +772,7 @@ DvarValue *__cdecl Dvar_ClampValueToDomain(
 
     switch ( type )
     {
-        case DVAR_TYPE_bool:
+        case DVAR_TYPE_BOOL:
             value.enabled = value.color[0] != 0;
             break;
         case DVAR_TYPE_FLOAT:
@@ -902,7 +902,7 @@ bool __cdecl Dvar_GetBool(const char *dvarName)
                     1244,
                     0,
                     "%s\n\t(dvar->type) = %i",
-                    "(dvar->type == DVAR_TYPE_bool || (dvar->type == DVAR_TYPE_STRING && (dvar->flags & (1 << 14))))",
+                    "(dvar->type == DVAR_TYPE_BOOL || (dvar->type == DVAR_TYPE_STRING && (dvar->flags & (1 << 14))))",
                     dvar->type) )
     {
         __debugbreak();
@@ -937,7 +937,7 @@ int __cdecl Dvar_GetInt(const char *dvarName)
                     1260,
                     0,
                     "%s\n\t(dvar->type) = %i",
-                    "(dvar->type == DVAR_TYPE_bool || dvar->type == DVAR_TYPE_INT || dvar->type == DVAR_TYPE_FLOAT || dvar->type =="
+                    "(dvar->type == DVAR_TYPE_BOOL || dvar->type == DVAR_TYPE_INT || dvar->type == DVAR_TYPE_FLOAT || dvar->type =="
                     " DVAR_TYPE_ENUM || (dvar->type == DVAR_TYPE_STRING && (dvar->flags & (1 << 14))))",
                     dvar->type) )
     {
@@ -948,7 +948,7 @@ int __cdecl Dvar_GetInt(const char *dvarName)
         case DVAR_TYPE_INT:
         case DVAR_TYPE_ENUM:
             return dvar->current.integer;
-        case DVAR_TYPE_bool:
+        case DVAR_TYPE_BOOL:
             return dvar->current.color[0] != 0;
         case DVAR_TYPE_FLOAT:
             return (int)dvar->current.value;
@@ -977,7 +977,7 @@ int __cdecl Dvar_GetInt(const dvar_s *dvar)
                     1278,
                     0,
                     "%s\n\t(dvar->type) = %i",
-                    "(dvar->type == DVAR_TYPE_bool || dvar->type == DVAR_TYPE_INT || dvar->type == DVAR_TYPE_FLOAT || dvar->type =="
+                    "(dvar->type == DVAR_TYPE_BOOL || dvar->type == DVAR_TYPE_INT || dvar->type == DVAR_TYPE_FLOAT || dvar->type =="
                     " DVAR_TYPE_ENUM || (dvar->type == DVAR_TYPE_STRING && (dvar->flags & (1 << 14))))",
                     dvar->type) )
     {
@@ -988,7 +988,7 @@ int __cdecl Dvar_GetInt(const dvar_s *dvar)
         case DVAR_TYPE_INT:
         case DVAR_TYPE_ENUM:
             return dvar->current.integer;
-        case DVAR_TYPE_bool:
+        case DVAR_TYPE_BOOL:
             return dvar->current.color[0] != 0;
         case DVAR_TYPE_FLOAT:
             return (int)dvar->current.value;
@@ -1013,7 +1013,7 @@ int __cdecl Dvar_GetInt(int dvarHash)
                     1299,
                     0,
                     "%s\n\t(dvar->type) = %i",
-                    "(dvar->type == DVAR_TYPE_bool || dvar->type == DVAR_TYPE_INT || dvar->type == DVAR_TYPE_FLOAT || dvar->type =="
+                    "(dvar->type == DVAR_TYPE_BOOL || dvar->type == DVAR_TYPE_INT || dvar->type == DVAR_TYPE_FLOAT || dvar->type =="
                     " DVAR_TYPE_ENUM || (dvar->type == DVAR_TYPE_STRING && (dvar->flags & (1 << 14))))",
                     dvar->type) )
     {
@@ -1024,7 +1024,7 @@ int __cdecl Dvar_GetInt(int dvarHash)
         case DVAR_TYPE_INT:
         case DVAR_TYPE_ENUM:
             return dvar->current.integer;
-        case DVAR_TYPE_bool:
+        case DVAR_TYPE_BOOL:
             return dvar->current.color[0] != 0;
         case DVAR_TYPE_FLOAT:
             return (int)dvar->current.value;
@@ -1743,7 +1743,7 @@ const dvar_s *__cdecl _Dvar_RegisterBool(const char *dvarName, bool value, unsig
 
     dvarValue.integer = value;
     memset(&v5, 0, sizeof(v5));
-    return Dvar_RegisterVariant(dvarName, DVAR_TYPE_bool, flags, dvarValue, v5, description);
+    return Dvar_RegisterVariant(dvarName, DVAR_TYPE_BOOL, flags, dvarValue, v5, description);
 }
 
 const dvar_s *__cdecl Dvar_RegisterVariant(
@@ -1933,7 +1933,7 @@ DvarValue *__cdecl Dvar_StringToValue(DvarValue *result, dvarType_t type, DvarLi
         __debugbreak();
     switch ( type )
     {
-        case DVAR_TYPE_bool:
+        case DVAR_TYPE_BOOL:
             value.enabled = Dvar_StringToBool(string);
             break;
         case DVAR_TYPE_FLOAT:
@@ -2599,7 +2599,7 @@ void __cdecl Dvar_SetBoolFromSource(dvar_s *dvar, bool value, DvarSetSource sour
                     2128,
                     0,
                     "%s\n\t(dvar->name) = %s",
-                    "(dvar->type == DVAR_TYPE_bool || (dvar->type == DVAR_TYPE_STRING && (dvar->flags & (1 << 14))))",
+                    "(dvar->type == DVAR_TYPE_BOOL || (dvar->type == DVAR_TYPE_STRING && (dvar->flags & (1 << 14))))",
                     dvar->name) )
     {
         __debugbreak();

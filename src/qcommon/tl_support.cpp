@@ -11,7 +11,7 @@ void __cdecl Sys_SetupTLCallbacks(int hunkMemSize)
     callbacks.Warning = TL_Warning;
     callbacks.DebugPrint = (void (__cdecl *)(const char *))TL_DebugPrint;
     callbacks.MemAlloc = (void *(__cdecl *)(unsigned int, unsigned int, unsigned int))TL_MemAlloc;
-    callbacks.MemRealloc = (void *(__cdecl *)(void *, unsigned int, unsigned int, unsigned int))jpeg_mem_init;
+    callbacks.MemRealloc = (void *(__cdecl *)(void *, unsigned int, unsigned int, unsigned int))RETURN_ZERO32;
     callbacks.MemFree = TL_MemFree;
     tlSetSystemCallbacks(&callbacks);
 }

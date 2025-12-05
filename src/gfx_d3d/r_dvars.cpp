@@ -466,9 +466,6 @@ const dvar_s *r_remotescreen_renderlastframe;
 const dvar_s *r_offscreenCasterLodScale;
 const dvar_s *r_dynSModelBurnValueDisplayRange;
 const dvar_s *r_useHidePartbits;
-
-
-
 const dvar_s *r_smp_worker_threads;
 const dvar_s *r_smp_worker_thread[8];
 

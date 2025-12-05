@@ -172,7 +172,7 @@ int __cdecl RB_PixelCost_GetCostForRecordIndex(int recordIndex)
         {
             __debugbreak();
         }
-        standardDeviationSum = DOUBLE_0_0;
+        standardDeviationSum = 0.0;
         avgCost = totalCost / validCount;
         for ( frameIndexa = 0; frameIndexa < validCount; ++frameIndexa )
         {

@@ -1,18 +1,20 @@
 #include "com_clients.h"
 
+ClientGameState clientGameStates[1];
+
 void __cdecl Com_InitClientGameStates()
 {
     int client; // [esp+0h] [ebp-4h]
 
     clientGameStates[0].flags = 0;
-    dword_3F6EEE4[0] = 0;
-    dword_3F6EEE8 = 0;
-    dword_3F6EEEC = 0;
-    dword_3F6EEF0[0] = 0;
-    for ( client = 0; client < 1; ++client )
+    clientGameStates[0].localClientNum = 0;
+    clientGameStates[0].controllerIndex = 0;
+    clientGameStates[0].uiContextIndex = 0;
+    clientGameStates[0].networkID = NS_CLIENT1;
+    for (client = 0; client < 1; ++client)
     {
-        dword_3F6EEE4[5 * client] = client;
-        dword_3F6EEF0[5 * client] = client;
+        clientGameStates[client].localClientNum = client;
+        clientGameStates[client].networkID = (netsrc_t)client;
     }
 }
 
@@ -26,17 +28,17 @@ void __cdecl Com_LocalClients_CompressClients()
     int lastUsedIndex; // [esp+74h] [ebp-4h]
 
     lastUsedIndex = 0;
-    for ( cgsIndex = 0; cgsIndex < 1; ++cgsIndex )
+    for (cgsIndex = 0; cgsIndex < 1; ++cgsIndex)
     {
-        if ( Com_LocalClient_IsBeingUsed(cgsIndex) )
+        if (Com_LocalClient_IsBeingUsed(cgsIndex))
         {
             lastUsedIndex = cgsIndex;
         }
         else
         {
-            for ( activeIndex = cgsIndex + 1; activeIndex < 1; ++activeIndex )
+            for (activeIndex = cgsIndex + 1; activeIndex < 1; ++activeIndex)
             {
-                if ( Com_LocalClient_IsBeingUsed(activeIndex) )
+                if (Com_LocalClient_IsBeingUsed(activeIndex))
                 {
                     SwapClients(cgsIndex, activeIndex);
                     lastUsedIndex = cgsIndex;
@@ -45,25 +47,25 @@ void __cdecl Com_LocalClients_CompressClients()
             }
         }
     }
-    for ( localClientNum = 0; localClientNum <= lastUsedIndex; ++localClientNum )
+    for (localClientNum = 0; localClientNum <= lastUsedIndex; ++localClientNum)
     {
-        if ( !Com_LocalClient_IsBeingUsed(localClientNum)
+        if (!Com_LocalClient_IsBeingUsed(localClientNum)
             && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\qcommon\\com_clients.cpp",
-                        108,
-                        0,
-                        "%s",
-                        "Com_LocalClient_IsBeingUsed(cgsIndex)") )
+                "C:\\projects_pc\\cod\\codsrc\\src\\qcommon\\com_clients.cpp",
+                108,
+                0,
+                "%s",
+                "Com_LocalClient_IsBeingUsed(cgsIndex)"))
         {
             __debugbreak();
         }
         swapIndex = localClientNum;
-        for ( testIndex = localClientNum + 1; testIndex <= lastUsedIndex; ++testIndex )
+        for (testIndex = localClientNum + 1; testIndex <= lastUsedIndex; ++testIndex)
         {
-            if ( dword_3F6EEE8[5 * localClientNum] > dword_3F6EEE8[5 * testIndex] )
+            if (clientGameStates[localClientNum].controllerIndex > clientGameStates[testIndex].controllerIndex)
                 swapIndex = testIndex;
         }
-        if ( swapIndex != localClientNum )
+        if (swapIndex != localClientNum)
             SwapClients(localClientNum, swapIndex);
     }
 }

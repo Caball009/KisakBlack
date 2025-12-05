@@ -1,5 +1,7 @@
 #pragma once
 
+#include "cm_trace.h"
+
 void __cdecl CM_LoadMap(const char *name, int *checksum);
 void CM_InitAllThreadData();
 void __cdecl CM_InitThreadData(unsigned int threadContext);
@@ -17,3 +19,6 @@ unsigned __int8 *__cdecl CM_Hunk_Alloc(unsigned int size, const char *name, int 
 void __cdecl CM_Hunk_CheckTempMemoryHighClear();
 unsigned int __cdecl CM_Hunk_AllocateTempMemoryHigh(int size, const char *name);
 void __cdecl CM_Hunk_ClearTempMemoryHigh();
+
+
+extern clipMap_t cm;

@@ -1,4 +1,52 @@
 #pragma once
+#include "rigid_body.h"
+
+struct PhysObjUserData // sizeof=0x130
+{                                       // XREF: phys_free_list<PhysObjUserData>::T_internal/r
+    rigid_body *body;
+    NitrousVehicle *vehicle;
+    gjk_geom_list_t m_gjk_geom_list;
+    PhysObjUserData *m_next_link;
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    phys_mat44 cg2rb;
+    phys_mat44 cg2w;
+    broad_phase_base *m_bpb;
+    float savedPos[3];
+    float savedRot[3][3];
+    float friction;
+    float bounce;
+    int id;
+    int refcount;
+    int underwater;
+    int buoyancy;
+    int timeBuoyant;
+    int timeRipple;
+    unsigned __int16 trDuration;
+    // padding byte
+    // padding byte
+    float m_time_since_last_event;
+    float m_time_since_last_reeval;
+    int m_flags;
+    float mass;
+    float buoyancyBoxMin[3];
+    float buoyancyBoxMax[3];
+    float centerOfMassOffset[3];
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+};
 
 void __cdecl destroy_gjk_geom(gjk_aabb_t *geom);
 void __cdecl Phys_Init();
@@ -47,7 +95,7 @@ PhysObjUserData *__cdecl Phys_ObjCreateAxis(
                 bool do_collision_test);
 void    Phys_ObjSetPosition(int a1@<ebp>, int id, float *newPosition);
 void __cdecl Phys_ObjSetOrientation(int id, const float *newPosition, const float *newOrientation);
-void    Phys_ObjSetAngularVelocity(int a1@<ebp>, int id, float *angularVel);
+void    Phys_ObjSetAngularVelocity(int id, float *angularVel);
 void __thiscall rigid_body::dangerous_set_a_vel(rigid_body *this, const phys_vec3 *a_vel);
 void    Phys_ObjSetVelocity(int a1@<ebp>, int id, float *velocity);
 void __thiscall rigid_body::dangerous_set_t_vel(rigid_body *this, const phys_vec3 *t_vel);

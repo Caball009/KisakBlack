@@ -11455,7 +11455,7 @@ void __cdecl GScr_GetLoadoutItemFromProfile(scr_entref_t entref)
         Scr_GetString(1u, SCRIPTINSTANCE_SERVER);
         Scr_GetString(0, SCRIPTINSTANCE_SERVER);
     }
-    item = jpeg_mem_init();
+    item = RETURN_ZERO32();
     Scr_AddInt(item, SCRIPTINSTANCE_SERVER);
 }
 

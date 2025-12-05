@@ -212,7 +212,7 @@ void __cdecl Snd_StreamOpen(
     scoped_performance_error pe; // [esp+24h] [ebp-20h] BYREF
     snd_stream *s; // [esp+40h] [ebp-4h]
 
-    pe.threshold = DOUBLE_0_0003000000142492354;
+    pe.threshold = 0.0003000000142492354;
     pe.what = "Snd_StreamOpen";
     pe.start = tlPcGetTick().QuadPart;
     if ( !g_snd_streams
@@ -326,7 +326,7 @@ void __cdecl Snd_StreamClose(unsigned int index)
     scoped_performance_error pe; // [esp+2Ch] [ebp-20h] BYREF
     snd_stream *s; // [esp+48h] [ebp-4h]
 
-    pe.threshold = DOUBLE_0_0003000000142492354;
+    pe.threshold = 0.0003000000142492354;
     pe.what = "Snd_StreamClose";
     pe.start = tlPcGetTick().QuadPart;
     if ( index >= 0xA
@@ -411,7 +411,7 @@ snd_stream_status __cdecl Snd_StreamStatus(unsigned int index)
     snd_stream_status status; // [esp+40h] [ebp-8h]
     snd_stream *s; // [esp+44h] [ebp-4h]
 
-    pe.threshold = DOUBLE_0_0003000000142492354;
+    pe.threshold = 0.0003000000142492354;
     pe.what = "Snd_StreamStatus";
     pe.start = tlPcGetTick().QuadPart;
     if ( index >= 0xA
@@ -502,7 +502,7 @@ unsigned int __cdecl Snd_StreamGetFreeWindows(unsigned int index)
     snd_stream *s; // [esp+40h] [ebp-8h]
     unsigned int count; // [esp+44h] [ebp-4h]
 
-    pe.threshold = DOUBLE_0_00009999999747378752;
+    pe.threshold = 0.00009999999747378752;
     pe.what = "Snd_StreamGetFreeWindows";
     pe.start = tlPcGetTick().QuadPart;
     if ( index >= 0xA
@@ -585,7 +585,7 @@ snd_stream_status __cdecl Snd_StreamAcquireWindow(
     snd_stream_status status; // [esp+74h] [ebp-8h]
     snd_stream *s; // [esp+78h] [ebp-4h]
 
-    pe.threshold = DOUBLE_0_00009999999747378752;
+    pe.threshold = 0.00009999999747378752;
     pe.what = "Snd_StreamAcquireWindow";
     pe.start = tlPcGetTick().QuadPart;
     if ( index >= 0xA
@@ -1328,7 +1328,7 @@ void __cdecl Snd_StreamGetRequest(snd_stream *s, snd_stream_request *r)
     loaded1 = v3;
     if ( active && need && valid && !loaded0 && !loaded1 )
     {
-        pe.threshold = DOUBLE_0_0003000000142492354;
+        pe.threshold = 0.0003000000142492354;
         pe.what = "Snd_StreamSetRequest_if1";
         pe.start = tlPcGetTick().QuadPart;
         strncpy((unsigned __int8 *)r, (unsigned __int8 *)s, 0x104u);
@@ -1372,7 +1372,7 @@ bool __cdecl Snd_StreamSetRequest(snd_stream *s, snd_stream_request *r)
     bool used_buffer; // [esp+6Eh] [ebp-2h]
     bool same_file; // [esp+6Fh] [ebp-1h]
 
-    pe.threshold = DOUBLE_0_0003000000142492354;
+    pe.threshold = 0.0003000000142492354;
     pe.what = "Snd_StreamSetRequest";
     pe.start = tlPcGetTick().QuadPart;
     tlAtomicMutex::Lock(&s->mutex);
@@ -1391,7 +1391,7 @@ bool __cdecl Snd_StreamSetRequest(snd_stream *s, snd_stream_request *r)
     if ( same_file && same_offset )
     {
         used_buffer = 1;
-        v6.threshold = DOUBLE_0_0003000000142492354;
+        v6.threshold = 0.0003000000142492354;
         v6.what = "Snd_StreamSetRequest_if1";
         v6.start = tlPcGetTick().QuadPart;
         if ( !s->in_use
@@ -1436,7 +1436,7 @@ snd_buffer *__cdecl Snd_FindBuffer(const char *filename, unsigned int offset)
     unsigned int i; // [esp+24h] [ebp-1Ch]
     scoped_performance_error pe; // [esp+28h] [ebp-18h] BYREF
 
-    pe.threshold = DOUBLE_0_0003000000142492354;
+    pe.threshold = 0.0003000000142492354;
     pe.what = "Snd_FindBuffer";
     pe.start = tlPcGetTick().QuadPart;
     for ( i = 0; ; ++i )

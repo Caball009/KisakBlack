@@ -2046,22 +2046,6 @@ void __cdecl BG_EvaluateTrajectory(const trajectory_t *tr, int atTime, float *re
     }
 }
 
-double __cdecl Vec3NormalizeTo(const float *v, float *out)
-{
-    float v3; // [esp+0h] [ebp-10h]
-    float length; // [esp+Ch] [ebp-4h]
-
-    length = sqrtf((float)((float)(*v * *v) + (float)(v[1] * v[1])) + (float)(v[2] * v[2]));
-    if ( COERCE_FLOAT(LODWORD(length) ^ _mask__NegFloat_) < 0.0 )
-        v3 = length;
-    else
-        v3 = 1.0f;
-    *out = *v * (float)(1.0 / v3);
-    out[1] = v[1] * (float)(1.0 / v3);
-    out[2] = v[2] * (float)(1.0 / v3);
-    return length;
-}
-
 void __cdecl BG_EvaluateTrajectoryDelta(const trajectory_t *tr, int atTime, float *result)
 {
     double v3; // xmm0_8

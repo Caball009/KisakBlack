@@ -761,7 +761,7 @@ const char *__cdecl UI_FeederItemText_CommmonPlayerListHandler(
                 }
                 else if ( (friendInfo.status & 2) != 0 )
                 {
-                    if ( !jpeg_mem_init() )
+                    if ( !RETURN_ZERO32() )
                         return friendInfo.presence;
                     presenceString = "MENU_PLAYING_COD";
                 }

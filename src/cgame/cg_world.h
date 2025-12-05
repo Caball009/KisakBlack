@@ -16,9 +16,7 @@ void    phys_calc_world_aabb(
                 phys_vec3 *aabb_max);
 double __cdecl phys_dot(const phys_vec3 *a, const phys_vec3 *b);
 phys_vec3 *__cdecl phys_AbsValue(phys_vec3 *result, const phys_vec3 *a);
-const phys_vec3 * phys_full_multiply@<eax>(
-                int a1@<ebp>,
-                const phys_vec3 *result,
+const phys_vec3 * phys_full_multiply(
                 const phys_mat44 *mat,
                 const phys_vec3 *v);
 void __cdecl phys_transpose(phys_mat44 *dest, const phys_mat44 *source);

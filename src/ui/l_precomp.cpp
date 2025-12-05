@@ -1226,7 +1226,7 @@ int __cdecl PC_EvaluateTokens(source_s *source, token_s *tokens, int *intvalue, 
     if ( intvalue )
         *intvalue = 0;
     if ( floatvalue )
-        *floatvalue = DOUBLE_0_0;
+        *floatvalue = 0.0;
     while ( tokens )
     {
         type = tokens->type;
@@ -1292,12 +1292,12 @@ LABEL_37:
                     if ( PC_FindHashedDefine(source->definehash, tokens->string) )
                     {
                         v->intvalue = 1;
-                        v->floatvalue = DOUBLE_1_0;
+                        v->floatvalue = 1.0;
                     }
                     else
                     {
                         v->intvalue = 0;
-                        v->floatvalue = DOUBLE_0_0;
+                        v->floatvalue = 0.0;
                     }
                     v->parentheses = parentheses;
                     v->next = 0;
@@ -1465,7 +1465,7 @@ $LN82:
     }
     gotquestmarkvalue = 0;
     questmarkintvalue = 0;
-    questmarkfloatvalue = DOUBLE_0_0;
+    questmarkfloatvalue = 0.0;
     while ( !error && firstoperator )
     {
         v = firstvalue;
@@ -1653,7 +1653,7 @@ LABEL_113:
     if ( intvalue )
         *intvalue = 0;
     if ( floatvalue )
-        *floatvalue = DOUBLE_0_0;
+        *floatvalue = 0.0;
     return 0;
 }
 
@@ -1675,7 +1675,7 @@ int __cdecl PC_DollarEvaluate(source_s *source, int *intvalue, long double *floa
     if ( intvalue )
         *intvalue = 0;
     if ( floatvalue )
-        *floatvalue = DOUBLE_0_0;
+        *floatvalue = 0.0;
     if ( !PC_ReadSourceToken(source, &token) )
     {
         SourceError(source, "no leading ( after $evalint/$evalfloat");
@@ -1809,7 +1809,7 @@ int __cdecl PC_Evaluate(source_s *source, int *intvalue, long double *floatvalue
     if ( intvalue )
         *intvalue = 0;
     if ( floatvalue )
-        *floatvalue = DOUBLE_0_0;
+        *floatvalue = 0.0;
     if ( PC_ReadLine(source, &token, 1) )
     {
         firsttoken = 0;

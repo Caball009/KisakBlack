@@ -322,8 +322,8 @@ void ProfLoad_PrintHotSpots()
     else
         v10 = v14;
     v14 = v10;
-    v15 = DOUBLE_0_0;
-    v16 = DOUBLE_0_0;
+    v15 = 0.0;
+    v16 = 0.0;
     for ( j = 0; j < v14; ++j )
     {
         v18 = (double)__PAIR64__(HIDWORD(v11[j].ticksSelf), v11[j].ticksSelf) * msecPerRawTimerTick * 0.001000000047497451;

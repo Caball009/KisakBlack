@@ -292,7 +292,7 @@ void __cdecl G_ProcessCameraCommand(SpawnVar *spawnVar)
 
     origin_string = GetPairValue(spawnVar, "origin");
     angles_string = GetPairValue(spawnVar, "angles");
-    v1 = jpeg_mem_init();
+    v1 = RETURN_ZERO32();
     cgameGlob = CG_GetLocalClientGlobals(v1);
     if ( cgameGlob )
     {
@@ -349,7 +349,7 @@ void __cdecl G_ProcessMiscModelCommand(const RadiantCommand *command, SpawnVar *
     scale = 1.0f;
     memset(origin, 0, sizeof(origin));
     memset(angles, 0, sizeof(angles));
-    v2 = jpeg_mem_init();
+    v2 = RETURN_ZERO32();
     cgameGlob = CG_GetLocalClientGlobals(v2);
     if ( cgameGlob && rgp.world )
     {
@@ -445,7 +445,7 @@ void __cdecl G_ProcessCoronaCommand(const RadiantCommand *command, SpawnVar *spa
     intensity = 1.0f;
     memset(origin, 0, sizeof(origin));
     memset(color, 0, sizeof(color));
-    v2 = jpeg_mem_init();
+    v2 = RETURN_ZERO32();
     cgameGlob = CG_GetLocalClientGlobals(v2);
     if ( cgameGlob && rgp.world )
     {
@@ -820,7 +820,7 @@ void __cdecl G_RadiantDebugDraw()
         color[1] = corona->color[1];
         color[2] = corona->color[2];
         color[3] = corona->intensity;
-        v0 = jpeg_mem_init();
+        v0 = RETURN_ZERO32();
         cgameGlob = CG_GetLocalClientGlobals(v0);
         if ( cgameGlob )
         {

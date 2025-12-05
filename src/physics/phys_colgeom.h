@@ -3,6 +3,7 @@
 #include "phys_local.h"
 #include <xanim/xanim.h>
 #include <universal/q_shared.h>
+#include <qcommon/cm_trace.h>
 
 #define SURF_TYPECOUNT 31
 
@@ -23,15 +24,153 @@ struct visitor_base_t // sizeof=0x4
 struct colgeom_visitor_t : visitor_base_t // sizeof=0x70
 {                                                                             // XREF: colgeom_visitor_inlined_t<200>/r
                                                                                 // static_colgeom_visitor_t/r ...
-        hybrid_vector m_mn;                                 // XREF: query_brush_model_gjk_geom(ushort,int,gjk_collision_visitor *)+8F/o
-        hybrid_vector m_mx;                                 // XREF: query_brush_model_gjk_geom(ushort,int,gjk_collision_visitor *)+8B/o
-        hybrid_vector m_p0;
-        hybrid_vector m_p1;
-        hybrid_vector m_delta;
-        hybrid_vector m_rvec;
-        float m_radius;
-        int m_mask;                                                 // XREF: query_brush_model_gjk_geom(ushort,int,gjk_collision_visitor *)+A3/w
-        TraceThreadInfo *m_threadInfo;
+    colgeom_visitor_t &operator=(colgeom_visitor_t *that)
+    {
+        this->m_mn = that->m_mn;
+        this->m_mx = that->m_mx;
+        this->m_p0 = that->m_p0;
+        this->m_p1 = that->m_p1;
+        this->m_delta = that->m_delta;
+        this->m_rvec = that->m_rvec;
+        this->m_radius = that->m_radius;
+        this->m_mask = that->m_mask;
+        this->m_threadInfo = that->m_threadInfo;
+    }
+
+    hybrid_vector m_mn;                                 // XREF: query_brush_model_gjk_geom(ushort,int,gjk_collision_visitor *)+8F/o
+    hybrid_vector m_mx;                                 // XREF: query_brush_model_gjk_geom(ushort,int,gjk_collision_visitor *)+8B/o
+    hybrid_vector m_p0;
+    hybrid_vector m_p1;
+    hybrid_vector m_delta;
+    hybrid_vector m_rvec;
+    float m_radius;
+    int m_mask;                                                 // XREF: query_brush_model_gjk_geom(ushort,int,gjk_collision_visitor *)+A3/w
+    TraceThreadInfo *m_threadInfo;
+};
+
+struct col_prim_t // sizeof=0x8
+{                                       // XREF: colgeom_visitor_inlined_t<200>/r
+                                        // colgeom_visitor_inlined_t<500>/r
+    int type;
+    //$9DB6BB71550D5B679E9F92FB2EA07EBE ___u1;
+    union //$9DB6BB71550D5B679E9F92FB2EA07EBE // sizeof=0x4
+    {                                       // XREF: col_prim_t/r
+        const struct CollisionAabbTree *tree;
+        const struct cbrush_t *brush;
+    };
+};
+
+template <int NUM_PRIMS>
+struct colgeom_visitor_inlined_t : colgeom_visitor_t // sizeof=0x6B8
+{                                                                             // XREF: .data:dummy/r
+    int nprims;                                                 // XREF: debug_loop(void)+385/r
+    // Rope_CollideWorld(int)+28A/r
+    bool overflow;
+    // padding byte
+    // padding byte
+    // padding byte
+    col_prim_t prims[NUM_PRIMS];                            // XREF: debug_loop(void)+38C/o
+    // Rope_CollideWorld(int)+27E/o
+
+    colgeom_visitor_inlined_t() : colgeom_visitor_t()
+    {
+        reset();
+    }
+
+    colgeom_visitor_inlined_t &operator=(const colgeom_visitor_inlined_t *that)
+    {
+        colgeom_visitor_t::operator=(that);
+        this->nprims = that->nprims;
+        this->overflow = that->overflow;
+
+        for (int i = 0; i < NUM_PRIMS; i++)
+        {
+            this->prims[i].type = that->prims[i].type;
+            this->prims[i].tree = that->prims[i].tree;
+        }
+    }
+
+    void visit(const cbrush_t *brush)
+    {
+        col_prim_t *prim;
+
+        if (this->nprims < NUM_PRIMS)
+        {
+            prim = &this->prims[this->nprims++];
+            prim->type = 1;
+            prim->tree = (const CollisionAabbTree *)brush;
+        }
+    }
+
+    void visit(const CollisionAabbTree *tree)
+    {
+        col_prim_t *prim; // [esp+4h] [ebp-4h]
+
+        if (this->nprims < NUM_PRIMS)
+        {
+            prim = &this->prims[this->nprims++];
+            prim->type = 0;
+            prim->tree = tree;
+        }
+    }
+
+    void reset()
+    {
+        this->nprims = 0;
+        this->overflow = 0;
+
+        this->m_mn.vec.v[0] = 9.9999997e37; // cool float constant, man
+        this->m_mn.vec.v[1] = 9.9999997e37;
+        this->m_mn.vec.v[2] = 9.9999997e37;
+
+        this->m_mask.vec.v[0] = -9.9999997e37;
+        this->m_mask.vec.v[1] = -9.9999997e37;
+        this->m_mask.vec.v[2] = -9.9999997e37;
+    }
+
+    void update(
+        const float *_mn,
+        const float *_mx,
+        int mask,
+        const float *expand_vec)
+    {
+        bool v5; // [esp+0h] [ebp-58h]
+        float result[3]; // [esp+18h] [ebp-40h] BYREF
+        float b[3]; // [esp+24h] [ebp-34h] BYREF
+        float a[3]; // [esp+30h] [ebp-28h] BYREF
+        bool inside; // [esp+3Fh] [ebp-19h]
+        float mx[3]; // [esp+40h] [ebp-18h] BYREF
+        float mn[3]; // [esp+4Ch] [ebp-Ch] BYREF
+
+        a[0] = this->m_mn.vec.v[0] - *_mn;
+        a[1] = this->m_mn.vec.v[1] - _mn[1];
+        a[2] = this->m_mn.vec.v[2] - _mn[2];
+        b[0] = *_mx - this->m_mx.vec.v[0];
+        b[1] = _mx[1] - this->m_mx.vec.v[1];
+        b[2] = _mx[2] - this->m_mx.vec.v[2];
+        Vec3Max(a, b, result);
+        v5 = result[0] < 0.0 && result[1] < 0.0 && result[2] < 0.0;
+        inside = v5;
+        if (this->m_mask != mask || !inside)
+        {
+            mn[0] = *_mn - *expand_vec;
+            mn[1] = _mn[1] - expand_vec[1];
+            mn[2] = _mn[2] - expand_vec[2];
+            mx[0] = *_mx + *expand_vec;
+            mx[1] = _mx[1] + expand_vec[1];
+            mx[2] = _mx[2] + expand_vec[2];
+            //colgeom_visitor_inlined_t<500>::reset(this);
+            reset();
+            //colgeom_visitor_t::intersect_box(this, mn, mx, mask);
+            intersect_box(mn, mx, mask);
+            if (this->nprims == NUM_PRIMS)
+            {
+                StatMon_Warning(8, 3000, "code_warning_collision");
+                this->nprims = 0;
+                this->overflow = 1;
+            }
+        }
+    }
 };
 
 struct query_brush_model_gjk_geom_visitor : colgeom_visitor_t // sizeof=0x74
@@ -59,6 +198,13 @@ struct gjk_collision_visitor // sizeof=0x4
         void query_create_epilog(gjk_base_t *);
         bool query_create_prolog_1(const float *, const float *, const void *);
         void query_create_epilog_1(gjk_base_t *);
+};
+
+struct create_gjk_geom_collision_visitor : gjk_collision_visitor // sizeof=0x8
+{                                       // XREF: .data:create_gjk_geom_collision_visitor g_empty_collision_visitor/r
+                                        // XDoll_CreatePhysObj/r ...
+    gjk_geom_list_t *gjk_geom_list;     // XREF: DynEntCl_CreatePhysObj(DynEntityDef const *,DynEntityClient *,GfxPlacement const *)+E8/w
+                                        // FX_SpawnModelPhysics+5D6/w ...
 };
 
 const struct cached_simplex_info // sizeof=0x30
@@ -120,7 +266,7 @@ struct phys_gjk_geom // sizeof=0x4
                 int w_set,
                 const phys_vec3 *normal,
                 cached_simplex_info *cache_info);
-        virtual const phys_vec3 * get_center(const phys_vec3 * result);
+        virtual const phys_vec3 * get_center(phys_vec3 *result);
         virtual void get_feature(phys_contact_manifold *);
         virtual float get_geom_radius();
         virtual void calc_aabb(const phys_mat44 *, phys_vec3 *, phys_vec3 *);
@@ -168,9 +314,26 @@ public:
                 return m_flags & flag;
         }
 
-        void set_xform(const phys_mat44 *xform);
-        void set_geom_id_new(unsigned int geom_id);
+        virtual ~gjk_base_t()
+        {
+            iassert(!get_flag(FLAG_TEMP_ALLOCATION));
+        }
+
+        gjk_base_t() : phys_gjk_geom()
+        {
+            this->m_flags = 0;
+        }
+
+        void comp_aabb_loc();
+        const cbrush_t *get_brush();
+        int get_contents();
+        unsigned int get_geom_id();
+        const phys_mat44 *get_xform();
+        bool is_foot(const phys_vec3 *hit_point);
+        bool is_walkable(const phys_vec3 *hit_point, const phys_vec3 *up);
         void set_contents(int contents);
+        void set_geom_id_new(unsigned int geom_id);
+        void set_xform(const phys_mat44 *xform);
 
 };
 
@@ -181,6 +344,12 @@ struct gjk_geom_list_t // sizeof=0x8
                                                                                 // DynEntPieces_SpawnPhysObj:loc_5BCF29/w ...
         int m_geom_count;                                     // XREF: DynEntCl_CreatePhysObj(DynEntityDef const *,DynEntityClient *,GfxPlacement const *)+D0/w
                                                                                 // DynEntPieces_SpawnPhysObj+50/w ...
+public:
+        int get_geom_count();
+        void add_geom(gjk_base_t *geom);
+        void comp_aabb_loc(
+            phys_vec3 *aabb_mn_loc,
+            phys_vec3 *aabb_mx_loc);
 };
 
 struct __declspec(align(16)) gjk_aabb_t : gjk_base_t // sizeof=0x80
@@ -202,11 +371,13 @@ struct __declspec(align(16)) gjk_aabb_t : gjk_base_t // sizeof=0x80
         // padding byte
 
 
-        gjk_aabb_t *__cdecl create(
+        static gjk_aabb_t *__cdecl create(
                 const phys_vec3 *center,
                 const phys_vec3 *dims,
                 int stype,
                 gjk_collision_visitor *allocator);
+
+
         void support(
                 const phys_vec3 *v,
                 phys_vec3 *support_vert,
@@ -261,29 +432,31 @@ struct gjk_obb_t : gjk_base_t // sizeof=0xA0
         phys_vec3 m_dims;
         phys_mat44 m_xform;
 
-        gjk_obb_t *__cdecl create(
-                const phys_mat44 *xform,
-                const phys_vec3 *dims,
-                int stype,
-                gjk_collision_visitor *allocator);
+        static gjk_obb_t *__cdecl create(
+            const phys_mat44 *xform,
+            const phys_vec3 *dims,
+            int stype,
+            gjk_collision_visitor *allocator);
+
+        void calc_aabb(
+            const phys_mat44 *xform,
+            phys_vec3 *aabb_min,
+            phys_vec3 *aabb_max);
+
+        void __cdecl destroy(gjk_obb_t *geom);
+        const phys_vec3 *get_center(phys_vec3 *result);
+        void get_feature(phys_contact_manifold *cman);
+        void get_simplex(
+            const cached_simplex_info *cache_info,
+            int index_count,
+            phys_vec3 *simplex_verts,
+            phys_vec3 *simplex_inds);
+        unsigned int get_type();
+        bool is_polyhedron();
         void support(
                 const phys_vec3 *v,
                 phys_vec3 *support_vert,
                 phys_vec3 *support_ind);
-        void get_simplex(
-                const cached_simplex_info *cache_info,
-                int index_count,
-                phys_vec3 *simplex_verts,
-                phys_vec3 *simplex_inds);
-        const phys_vec3 * get_center(phys_vec3 *result);
-        void get_feature(phys_contact_manifold *cman);
-        void calc_aabb(
-                const phys_mat44 *xform,
-                phys_vec3 *aabb_min,
-                phys_vec3 *aabb_max);
-        unsigned int get_type();
-        void __cdecl destroy(gjk_cylinder_t *geom);
-        bool is_polyhedron();
 };
 
 struct __declspec(align(16)) phys_contact_manifold // sizeof=0x60
@@ -348,7 +521,7 @@ struct __declspec(align(8)) gjk_brush_t : gjk_base_t // sizeof=0x60
         const cbrush_t *get_brush();
         unsigned int get_type();
         void __cdecl destroy(gjk_brush_t *geom);
-        const phys_vec3 *get_center(const phys_vec3 *result);
+        const phys_vec3 *get_center(phys_vec3 *result);
 };
 
 struct CollisionBorder // sizeof=0x1C
@@ -492,7 +665,7 @@ struct gjk_cylinder_t : gjk_base_t // sizeof=0xA0
                 int index_count,
                 phys_vec3 *simplex_verts,
                 phys_vec3 *simplex_inds);
-        const phys_vec3 * get_center(const phys_vec3 *result);
+        const phys_vec3 * get_center(phys_vec3 *result);
         void get_feature(phys_contact_manifold *cman);
         void calc_aabb(
                 const phys_mat44 *xform_,
@@ -649,3 +822,6 @@ void __cdecl create_gjk_geom(const Glass *glass, gjk_collision_visitor *allocato
 void __cdecl create_gjk_geom(const DynEntityDef *dynEntDef, gjk_collision_visitor *allocator, unsigned int brush_mask);
 
 void __cdecl destroy_gjk_geom(gjk_geom_list_t *gjk_geom_list);
+
+
+extern create_gjk_geom_collision_visitor g_empty_collision_visitor;

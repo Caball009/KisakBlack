@@ -1937,7 +1937,7 @@ LABEL_25:
     client->ps.eFlags = v10;
     client->ps.otherFlags &= ~4u;
     client->ps.otherFlags |= 2u;
-    if ( client->sess.forceSpectatorClient >= 0 || jpeg_mem_init() )
+    if ( client->sess.forceSpectatorClient >= 0 || RETURN_ZERO32() )
     {
         client->ps.otherFlags &= 0xFFFFFFE7;
     }

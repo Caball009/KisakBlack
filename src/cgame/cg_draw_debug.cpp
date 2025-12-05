@@ -1042,7 +1042,7 @@ double __cdecl CG_DrawFPS(int localClientNum, const ScreenPlacement *scrPlace, f
         }
         ya = CG_CornerDebugPrint(scrPlace, farRight, yb, labelWidth, s, " script ms/frame", color) + yb;
     }
-    freeMem = (float)((float)jpeg_mem_init() / 1024.0) / 1024.0;
+    freeMem = (float)((float)RETURN_ZERO32() / 1024.0) / 1024.0;
     if ( freeMem >= 5.0 )
     {
         if ( freeMem >= 10.0 )

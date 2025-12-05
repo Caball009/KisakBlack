@@ -1226,7 +1226,7 @@ void CScr_LoadedFX()
     filename = Scr_GetString(0, SCRIPTINSTANCE_CLIENT);
     if ( !I_strncmp(filename, "fx/", 3) )
         Scr_ParamError(0, "effect name should start after the 'fx' folder.", SCRIPTINSTANCE_CLIENT);
-    v0 = jpeg_mem_init();
+    v0 = RETURN_ZERO32();
     id = Effect_Index(v0, filename);
     if ( !id )
     {

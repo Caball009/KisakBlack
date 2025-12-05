@@ -263,7 +263,7 @@ void __cdecl Ragdoll_ExplosionEvent(
     {
         __debugbreak();
     }
-    if ( localClientNum == jpeg_mem_init() && outerRadius != 0.0 )
+    if ( localClientNum == RETURN_ZERO32() && outerRadius != 0.0 )
     {
         outerRadiusSqr = outerRadius * outerRadius;
         innerRadiusSqr = innerRadius * innerRadius;
@@ -433,7 +433,7 @@ void __cdecl Ragdoll_Launch(int localClientNum, const cpose_t *ragdollHandle, co
     int numBones; // [esp+8h] [ebp-8h]
     RagdollBody *body; // [esp+Ch] [ebp-4h]
 
-    if ( localClientNum == jpeg_mem_init() )
+    if ( localClientNum == RETURN_ZERO32() )
     {
         body = (RagdollBody *)Ragdoll_HandleBody(ragdollHandle);
         if ( !body
@@ -529,7 +529,7 @@ void __cdecl Ragdoll_Attach(int localClientNum, const cpose_t *ragdollHandle, in
 {
     RagdollBody *body; // [esp+0h] [ebp-4h]
 
-    if ( localClientNum == jpeg_mem_init() )
+    if ( localClientNum == RETURN_ZERO32() )
     {
         body = (RagdollBody *)Ragdoll_HandleBody(ragdollHandle);
         if ( !body

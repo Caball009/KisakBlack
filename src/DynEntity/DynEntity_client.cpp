@@ -1,4 +1,18 @@
 #include "DynEntity_client.h"
+#include "DynEntity_pieces.h"
+#include "DynEntity_coll.h"
+#include "DynEntity_load_obj.h"
+#include <gfx_d3d/r_scene.h>
+
+const dvar_t *dynEnt_bulletForce;
+const dvar_t *dynEnt_explodeForce;
+const dvar_t *dynEnt_explodeUpbias;
+const dvar_t *dynEnt_explodeSpinScale;
+const dvar_t *dynEnt_explodeMinForce;
+const dvar_t *dynEnt_explodeMaxEnts;
+const dvar_t *dynEnt_spawnedLimit;
+const dvar_t *dynEnt_sentientAutoActivate;
+
 
 void __cdecl DynEntCl_RegisterDvars()
 {
@@ -100,17 +114,16 @@ void __cdecl DynEntCl_LinkModel(unsigned __int16 dynEntId)
     dynEntPose = DynEnt_GetClientPose(dynEntId, DYNENT_DRAW_MODEL);
     dynEntClient = DynEnt_GetClientEntity(dynEntId, DYNENT_DRAW_MODEL);
     model = DynEntCl_GetCurrentXModel(dynEntDef, dynEntClient);
-    if ( !model
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\DynEntity\\DynEntity_client.cpp", 148, 0, "%s", "model") )
-    {
-        __debugbreak();
-    }
+    iassert(model);
     dynEntPose->radius = XModelGetRadius(model);
     XModelGetBounds(model, modelBoundsVec3[0], modelBoundsVec3[1]);
-    *(_QWORD *)modelBoundsFloat4[0].v = *(_QWORD *)&modelBoundsVec3[0][0];
-    *(_QWORD *)&modelBoundsFloat4[0].unitVec[2].packed = __PAIR64__(
-                                                                                                                 0,
-                                                                                                                 LODWORD(modelBoundsVec3[0][2]));
+    //*(_QWORD *)modelBoundsFloat4[0].v = *(_QWORD *)&modelBoundsVec3[0][0];
+    modelBoundsFloat4[0].v[0] = modelBoundsVec3[0][0];
+    modelBoundsFloat4[0].v[1] = modelBoundsVec3[0][1];
+    //*(_QWORD *)&modelBoundsFloat4[0].unitVec[2].packed = __PAIR64__(0,LODWORD(modelBoundsVec3[0][2]));
+    modelBoundsFloat4[0].v[2] = modelBoundsVec3[0][2];
+    modelBoundsFloat4[0].v[3] = 0.0f;
+
     modelBoundsFloat4[1].v[0] = modelBoundsVec3[1][0];
     modelBoundsFloat4[1].v[1] = modelBoundsVec3[1][1];
     modelBoundsFloat4[1].v[2] = modelBoundsVec3[1][2];
@@ -216,7 +229,7 @@ void __cdecl DynEntCl_LinkModel(unsigned __int16 dynEntId)
                                                         + worldBoundsFloat4[1].v[2];
     worldBoundsFloat4[1].v[3] = (float)(modelBoundsFloat4[1].v[2] * 0.0) + worldBoundsFloat4[1].v[3];
     *(_QWORD *)&worldBoundsVec3[0][0] = *(_QWORD *)worldBoundsFloat4[0].v;
-    LODWORD(worldBoundsVec3[0][2]) = worldBoundsFloat4[0].u[2];
+    (worldBoundsVec3[0][2]) = worldBoundsFloat4[0].u[2];
     worldBoundsVec3[1][0] = worldBoundsFloat4[1].v[0];
     worldBoundsVec3[1][1] = worldBoundsFloat4[1].v[1];
     worldBoundsVec3[1][2] = worldBoundsFloat4[1].v[2];
@@ -427,7 +440,7 @@ void __cdecl DynEntCl_Shutdown(int localClientNum)
     unsigned __int16 dynEntId; // [esp+18h] [ebp-4h]
     unsigned __int16 dynEntIda; // [esp+18h] [ebp-4h]
 
-    if ( CL_LocalClient_GetActiveCount() && localClientNum == jpeg_mem_init() )
+    if ( CL_LocalClient_GetActiveCount() && localClientNum == RETURN_ZERO32() )
     {
         DynEnt_ResetBurning();
         DynEnt_ResetFading();
@@ -483,7 +496,7 @@ void __cdecl DynEntCl_InitEntities(int localClientNum)
     unsigned __int16 dynEntIdb; // [esp+28h] [ebp-8h]
     DynEntityColl *dynEntColl; // [esp+2Ch] [ebp-4h]
 
-    if ( localClientNum == jpeg_mem_init() && !r_reflectionProbeGenerate->current.enabled )
+    if ( localClientNum == RETURN_ZERO32() && !r_reflectionProbeGenerate->current.enabled )
     {
         DynEnt_ResetBurning();
         DynEnt_ResetFading();
@@ -1005,7 +1018,7 @@ void    DynEnt_SetupConstraints(PhysConstraint *a1@<ebp>, const DynEntityDef *dy
                     cgameGlob = (cg_s *)LODWORD(rb1->m_mat.y.y);
                     z = rb1->m_mat.y.z;
 LABEL_33:
-                    v4 = jpeg_mem_init();
+                    v4 = RETURN_ZERO32();
                     LODWORD(temp[0]) = CG_GetLocalClientGlobals(v4);
                     if ( dynEnt2Pose )
                         dynEnt2Pose->pose.origin[0] = *(float *)(LODWORD(temp[0]) + 263304);
@@ -1916,7 +1929,7 @@ void __cdecl DynEntCl_Damage(
     {
         __debugbreak();
     }
-    if ( localClientNum == jpeg_mem_init() )
+    if ( localClientNum == RETURN_ZERO32() )
     {
         CG_GetLocalClientGlobals(localClientNum);
         dynEntDef = DynEnt_GetEntityDef(dynEntId, (DynEntityDrawType)drawType);
@@ -2307,7 +2320,7 @@ void __cdecl DynEntCl_FlameDamage(
     {
         __debugbreak();
     }
-    if ( localClientNum == jpeg_mem_init() )
+    if ( localClientNum == RETURN_ZERO32() )
     {
         dynEntDef = DynEnt_GetEntityDef(dynEntId, (DynEntityDrawType)drawType);
         dynEntClient = DynEnt_GetClientEntity(dynEntId, (DynEntityDrawType)drawType);
@@ -2648,7 +2661,7 @@ char __cdecl DynEntCl_EventNeedsProcessed(int localClientNum, int sourceEntityNu
         if ( (nextSnap->ps.otherFlags & 6) == 0 || sourceEntityNum != nextSnap->ps.clientNum )
             return 0;
     }
-    else if ( localClientNum != jpeg_mem_init(v3) )
+    else if ( localClientNum != RETURN_ZERO32(v3) )
     {
         return 0;
     }
@@ -2710,7 +2723,7 @@ char __cdecl DynEntCl_DynEntImpactEvent(
         }
         goto LABEL_24;
     }
-    if ( localClientNum == jpeg_mem_init() )
+    if ( localClientNum == RETURN_ZERO32() )
     {
 LABEL_24:
         memset((unsigned __int8 *)&trace, 0, sizeof(trace));
