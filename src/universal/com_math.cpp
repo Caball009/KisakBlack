@@ -3,6 +3,208 @@
 #include <stdlib.h>
 #include "assertive.h"
 #include <cmath>
+#include <cstring>
+#include "q_shared.h"
+
+float bytedirs[162][3] =
+{
+  { -0.52573103, 0.0, 0.85065103 },
+  { -0.44286299, 0.238856, 0.86418802 },
+  { -0.29524201, 0.0, 0.955423 },
+  { -0.309017, 0.5, 0.809017 },
+  { -0.16246, 0.26286599, 0.951056 },
+  { 0.0, 0.0, 1.0 },
+  { 0.0, 0.85065103, 0.52573103 },
+  { -0.14762101, 0.71656698, 0.68171799 },
+  { 0.14762101, 0.71656698, 0.68171799 },
+  { 0.0, 0.52573103, 0.85065103 },
+  { 0.309017, 0.5, 0.809017 },
+  { 0.52573103, 0.0, 0.85065103 },
+  { 0.29524201, 0.0, 0.955423 },
+  { 0.44286299, 0.238856, 0.86418802 },
+  { 0.16246, 0.26286599, 0.951056 },
+  { -0.68171799, 0.14762101, 0.71656698 },
+  { -0.809017, 0.309017, 0.5 },
+  { -0.58778501, 0.42532501, 0.688191 },
+  { -0.85065103, 0.52573103, 0.0 },
+  { -0.86418802, 0.44286299, 0.238856 },
+  { -0.71656698, 0.68171799, 0.14762101 },
+  { -0.688191, 0.58778501, 0.42532501 },
+  { -0.5, 0.809017, 0.309017 },
+  { -0.238856, 0.86418802, 0.44286299 },
+  { -0.42532501, 0.688191, 0.58778501 },
+  { -0.71656698, 0.68171799, -0.14762101 },
+  { -0.5, 0.809017, -0.309017 },
+  { -0.52573103, 0.85065103, 0.0 },
+  { 0.0, 0.85065103, -0.52573103 },
+  { -0.238856, 0.86418802, -0.44286299 },
+  { 0.0, 0.955423, -0.29524201 },
+  { -0.26286599, 0.951056, -0.16246 },
+  { 0.0, 1.0, 0.0 },
+  { 0.0, 0.955423, 0.29524201 },
+  { -0.26286599, 0.951056, 0.16246 },
+  { 0.238856, 0.86418802, 0.44286299 },
+  { 0.26286599, 0.951056, 0.16246 },
+  { 0.5, 0.809017, 0.309017 },
+  { 0.238856, 0.86418802, -0.44286299 },
+  { 0.26286599, 0.951056, -0.16246 },
+  { 0.5, 0.809017, -0.309017 },
+  { 0.85065103, 0.52573103, 0.0 },
+  { 0.71656698, 0.68171799, 0.14762101 },
+  { 0.71656698, 0.68171799, -0.14762101 },
+  { 0.52573103, 0.85065103, 0.0 },
+  { 0.42532501, 0.688191, 0.58778501 },
+  { 0.86418802, 0.44286299, 0.238856 },
+  { 0.688191, 0.58778501, 0.42532501 },
+  { 0.809017, 0.309017, 0.5 },
+  { 0.68171799, 0.14762101, 0.71656698 },
+  { 0.58778501, 0.42532501, 0.688191 },
+  { 0.955423, 0.29524201, 0.0 },
+  { 1.0, 0.0, 0.0 },
+  { 0.951056, 0.16246, 0.26286599 },
+  { 0.85065103, -0.52573103, 0.0 },
+  { 0.955423, -0.29524201, 0.0 },
+  { 0.86418802, -0.44286299, 0.238856 },
+  { 0.951056, -0.16246, 0.26286599 },
+  { 0.809017, -0.309017, 0.5 },
+  { 0.68171799, -0.14762101, 0.71656698 },
+  { 0.85065103, 0.0, 0.52573103 },
+  { 0.86418802, 0.44286299, -0.238856 },
+  { 0.809017, 0.309017, -0.5 },
+  { 0.951056, 0.16246, -0.26286599 },
+  { 0.52573103, 0.0, -0.85065103 },
+  { 0.68171799, 0.14762101, -0.71656698 },
+  { 0.68171799, -0.14762101, -0.71656698 },
+  { 0.85065103, 0.0, -0.52573103 },
+  { 0.809017, -0.309017, -0.5 },
+  { 0.86418802, -0.44286299, -0.238856 },
+  { 0.951056, -0.16246, -0.26286599 },
+  { 0.14762101, 0.71656698, -0.68171799 },
+  { 0.309017, 0.5, -0.809017 },
+  { 0.42532501, 0.688191, -0.58778501 },
+  { 0.44286299, 0.238856, -0.86418802 },
+  { 0.58778501, 0.42532501, -0.688191 },
+  { 0.688191, 0.58778501, -0.42532501 },
+  { -0.14762101, 0.71656698, -0.68171799 },
+  { -0.309017, 0.5, -0.809017 },
+  { 0.0, 0.52573103, -0.85065103 },
+  { -0.52573103, 0.0, -0.85065103 },
+  { -0.44286299, 0.238856, -0.86418802 },
+  { -0.29524201, 0.0, -0.955423 },
+  { -0.16246, 0.26286599, -0.951056 },
+  { 0.0, 0.0, -1.0 },
+  { 0.29524201, 0.0, -0.955423 },
+  { 0.16246, 0.26286599, -0.951056 },
+  { -0.44286299, -0.238856, -0.86418802 },
+  { -0.309017, -0.5, -0.809017 },
+  { -0.16246, -0.26286599, -0.951056 },
+  { 0.0, -0.85065103, -0.52573103 },
+  { -0.14762101, -0.71656698, -0.68171799 },
+  { 0.14762101, -0.71656698, -0.68171799 },
+  { 0.0, -0.52573103, -0.85065103 },
+  { 0.309017, -0.5, -0.809017 },
+  { 0.44286299, -0.238856, -0.86418802 },
+  { 0.16246, -0.26286599, -0.951056 },
+  { 0.238856, -0.86418802, -0.44286299 },
+  { 0.5, -0.809017, -0.309017 },
+  { 0.42532501, -0.688191, -0.58778501 },
+  { 0.71656698, -0.68171799, -0.14762101 },
+  { 0.688191, -0.58778501, -0.42532501 },
+  { 0.58778501, -0.42532501, -0.688191 },
+  { 0.0, -0.955423, -0.29524201 },
+  { 0.0, -1.0, 0.0 },
+  { 0.26286599, -0.951056, -0.16246 },
+  { 0.0, -0.85065103, 0.52573103 },
+  { 0.0, -0.955423, 0.29524201 },
+  { 0.238856, -0.86418802, 0.44286299 },
+  { 0.26286599, -0.951056, 0.16246 },
+  { 0.5, -0.809017, 0.309017 },
+  { 0.71656698, -0.68171799, 0.14762101 },
+  { 0.52573103, -0.85065103, 0.0 },
+  { -0.238856, -0.86418802, -0.44286299 },
+  { -0.5, -0.809017, -0.309017 },
+  { -0.26286599, -0.951056, -0.16246 },
+  { -0.85065103, -0.52573103, 0.0 },
+  { -0.71656698, -0.68171799, -0.14762101 },
+  { -0.71656698, -0.68171799, 0.14762101 },
+  { -0.52573103, -0.85065103, 0.0 },
+  { -0.5, -0.809017, 0.309017 },
+  { -0.238856, -0.86418802, 0.44286299 },
+  { -0.26286599, -0.951056, 0.16246 },
+  { -0.86418802, -0.44286299, 0.238856 },
+  { -0.809017, -0.309017, 0.5 },
+  { -0.688191, -0.58778501, 0.42532501 },
+  { -0.68171799, -0.14762101, 0.71656698 },
+  { -0.44286299, -0.238856, 0.86418802 },
+  { -0.58778501, -0.42532501, 0.688191 },
+  { -0.309017, -0.5, 0.809017 },
+  { -0.14762101, -0.71656698, 0.68171799 },
+  { -0.42532501, -0.688191, 0.58778501 },
+  { -0.16246, -0.26286599, 0.951056 },
+  { 0.44286299, -0.238856, 0.86418802 },
+  { 0.16246, -0.26286599, 0.951056 },
+  { 0.309017, -0.5, 0.809017 },
+  { 0.14762101, -0.71656698, 0.68171799 },
+  { 0.0, -0.52573103, 0.85065103 },
+  { 0.42532501, -0.688191, 0.58778501 },
+  { 0.58778501, -0.42532501, 0.688191 },
+  { 0.688191, -0.58778501, 0.42532501 },
+  { -0.955423, 0.29524201, 0.0 },
+  { -0.951056, 0.16246, 0.26286599 },
+  { -1.0, 0.0, 0.0 },
+  { -0.85065103, 0.0, 0.52573103 },
+  { -0.955423, -0.29524201, 0.0 },
+  { -0.951056, -0.16246, 0.26286599 },
+  { -0.86418802, 0.44286299, -0.238856 },
+  { -0.951056, 0.16246, -0.26286599 },
+  { -0.809017, 0.309017, -0.5 },
+  { -0.86418802, -0.44286299, -0.238856 },
+  { -0.951056, -0.16246, -0.26286599 },
+  { -0.809017, -0.309017, -0.5 },
+  { -0.68171799, 0.14762101, -0.71656698 },
+  { -0.68171799, -0.14762101, -0.71656698 },
+  { -0.85065103, 0.0, -0.52573103 },
+  { -0.688191, 0.58778501, -0.42532501 },
+  { -0.58778501, 0.42532501, -0.688191 },
+  { -0.42532501, 0.688191, -0.58778501 },
+  { -0.42532501, -0.688191, -0.58778501 },
+  { -0.58778501, -0.42532501, -0.688191 },
+  { -0.688191, -0.58778501, -0.42532501 }
+};
+
+float bradfordMA[4][4] =
+{
+  { 0.8951, -0.75019997, 0.038899999, 0.0 },
+  { 0.26640001, 1.7135, -0.068499997, 0.0 },
+  { -0.16140001, 0.036699999, 1.0296, 0.0 },
+  { 0.0, 0.0, 0.0, 1.0 }
+};
+
+float sRGBtoXYZ[4][4] =
+{
+  { 0.41240001, 0.21259999, 0.019300001, 0.0 },
+  { 0.3576, 0.71520001, 0.1192, 0.0 },
+  { 0.1805, 0.0722, 0.95050001, 0.0 },
+  { 0.0, 0.0, 0.0, 1.0 }
+};
+
+float XYZtosRGB[4][4] =
+{
+  { 3.24071, -0.96925801, 0.055635199, 0.0 },
+  { -1.5372601, 1.87599, -0.203996, 0.0 },
+  { -0.49857101, 0.041555699, 1.05707, 0.0 },
+  { 0.0, 0.0, 0.0, 1.0 }
+};
+
+float bradfordMI[4][4] =
+{
+  { 0.98699301, 0.43230501, -0.008529, 0.0 },
+  { -0.147054, 0.51836002, 0.040043, 0.0 },
+  { 0.159963, 0.049291, 0.96848702, 0.0 },
+  { 0.0, 0.0, 0.0, 1.0 }
+};
+
+
 
 double __cdecl random()
 {
@@ -71,14 +273,22 @@ double __cdecl LinearTrack(float tgt, float cur, float rate, float deltaTime)
     float step; // [esp+8h] [ebp-4h]
 
     err = tgt - cur;
-    if ( (float)(tgt - cur) <= 0.0 )
-        step = COERCE_FLOAT(LODWORD(rate) ^ _mask__NegFloat_) * deltaTime;
+    if ((float)(tgt - cur) <= 0.0)
+    {
+        //step = COERCE_FLOAT(LODWORD(rate) ^ _mask__NegFloat_) * deltaTime;
+        step = -rate * deltaTime;
+    }
     else
+    {
         step = rate * deltaTime;
+    }
+
     if ( fabs(err) <= 0.001 )
         return tgt;
+
     if ( fabs(step) <= fabs(err) )
         return cur + step;
+
     return tgt;
 }
 
@@ -220,14 +430,14 @@ double __cdecl GraphGetValueFromFraction(int knotCount, const float (*knots)[2],
 
 double __cdecl Q_acos(float c)
 {
-    long double angle; // [esp+0h] [ebp-4h]
+    float v2; // [esp+0h] [ebp-8h]
 
-    __libm_sse2_acos(angle);
-    if ( c > 3.1415927 )
-        return 3.1415927;
-    if ( c >= -3.1415927 )
-        return c;
-    return 3.1415927;
+    v2 = acos(c);
+    if (v2 > 3.141592741012573)
+        return 3.1415927f;
+    if (v2 >= -3.141592741012573)
+        return v2;
+    return 3.1415927f;
 }
 
 char __cdecl ClampChar(int i)
@@ -351,84 +561,69 @@ void __cdecl Vec3ProjectionCoords(const float *dir, int *xCoord, int *yCoord)
 
 void __cdecl RotatePointAroundVector(float *dst, const float *dir, const float *point, float degrees)
 {
-    float m[3][3]; // [esp+1Ch] [ebp-E0h] BYREF
+    mat3x3 m; // [esp+1Ch] [ebp-E0h] BYREF
+    mat3x3 rot; // [esp+74h] [ebp-88h] BYREF
+
+    mat3x3 tmpmat; // [esp+B4h] [ebp-48h] BYREF
+    mat3x3 im; // [esp+D8h] [ebp-24h] BYREF
+
     float rad; // [esp+40h] [ebp-BCh]
     float vr[3]; // [esp+44h] [ebp-B8h] BYREF
-    float zrot[3][3]; // [esp+50h] [ebp-ACh] BYREF
-    float rot[3][3]; // [esp+74h] [ebp-88h] BYREF
+
+
     float vf[3]; // [esp+98h] [ebp-64h] BYREF
     float vup[3]; // [esp+A4h] [ebp-58h] BYREF
     int i; // [esp+B0h] [ebp-4Ch]
-    float tmpmat[3][3]; // [esp+B4h] [ebp-48h] BYREF
-    float im[3][3]; // [esp+D8h] [ebp-24h] BYREF
 
-    if ( *dir == 0.0
-        && dir[1] == 0.0
-        && dir[2] == 0.0
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.cpp",
-                    733,
-                    0,
-                    "%s",
-                    "dir[0] || dir[1] || dir[2]") )
-    {
-        __debugbreak();
-    }
-    *(_QWORD *)vf = *(_QWORD *)dir;
+    iassert(dir[0] || dir[1] || dir[2]);
+
+    vf[0] = *dir;
+    vf[1] = dir[1];
     vf[2] = dir[2];
+
     PerpendicularVector(dir, vr);
     Vec3Cross(vr, vf, vup);
-    *(_QWORD *)&m[0][0] = __PAIR64__(LODWORD(vup[0]), LODWORD(vr[0]));
-    *(_QWORD *)&m[1][0] = __PAIR64__(LODWORD(vup[1]), LODWORD(vr[1]));
-    *(_QWORD *)&m[2][0] = __PAIR64__(LODWORD(vup[2]), LODWORD(vr[2]));
-    m[1][2] = vf[1];
+
+    m[0][0] = vr[0];
+    m[1][0] = vr[1];
+    m[2][0] = vr[2];
+    m[0][1] = vup[0];
+    m[1][1] = vup[1];
+    m[2][1] = vup[2];
     m[0][2] = vf[0];
+    m[1][2] = vf[1];
     m[2][2] = vf[2];
+
     memcpy(im, m, sizeof(im));
-    *(_QWORD *)&im[0][1] = *(_QWORD *)&vr[1];
+    im[0][1] = vr[1];
+    im[0][2] = vr[2];
     im[1][0] = vup[0];
     im[1][2] = vup[2];
-    *(_QWORD *)&im[2][0] = *(_QWORD *)vf;
-    zrot[0][2] = 0.0;
-    zrot[1][0] = 0.0;
-    *(_QWORD *)&zrot[2][0] = 0;
-    zrot[2][2] = 1.0f;
-    *(_QWORD *)&zrot[1][1] = LODWORD(1.0f);
-    *(_QWORD *)&zrot[0][0] = LODWORD(1.0f);
-    rad = degrees * 0.017453292;
-    if ( (COERCE_UNSIGNED_INT(degrees * 0.017453292) & 0x7F800000) == 0x7F800000
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.cpp", 768, 0, "%s", "!IS_NAN(rad)") )
-    {
-        __debugbreak();
-    }
+    im[2][0] = vf[0];
+    im[2][1] = vf[1];
+
+    mat3x3 zrot{};
+
+    zrot[2][2] = 1.0;
+    zrot[1][1] = 1.0;
+    zrot[0][0] = 1.0;
+    rad = degrees * 0.01745329238474369;
+    iassert(!isnan(rad));
+
     zrot[0][0] = cos(rad);
     zrot[0][1] = sin(rad);
-    if ( (LODWORD(zrot[0][1]) & 0x7F800000) == 0x7F800000
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.cpp",
-                    772,
-                    0,
-                    "%s",
-                    "!IS_NAN(zrot[0][1])") )
-    {
-        __debugbreak();
-    }
-    if ( (LODWORD(zrot[0][0]) & 0x7F800000) == 0x7F800000
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.cpp",
-                    773,
-                    0,
-                    "%s",
-                    "!IS_NAN(zrot[0][0])") )
-    {
-        __debugbreak();
-    }
-    LODWORD(zrot[1][0]) = LODWORD(zrot[0][1]) ^ _mask__NegFloat_;
+
+    iassert(!isnan(zrot[0][1]));
+    iassert(!isnan(zrot[0][0]));
+
+    zrot[1][0] = -zrot[0][1];
     zrot[1][1] = zrot[0][0];
+
     MatrixMultiply(m, zrot, tmpmat);
     MatrixMultiply(tmpmat, im, rot);
-    for ( i = 0; i < 3; ++i )
-        dst[i] = (float)((float)(rot[i][0] * *point) + (float)(rot[i][1] * point[1])) + (float)(rot[i][2] * point[2]);
+
+    for (i = 0; i < 3; ++i)
+        dst[i] = rot[i][0] * *point + rot[i][1] * point[1] + rot[i][2] * point[2];
 }
 
 void __cdecl Vec3Basis_RightHanded(const float *forward, float *left, float *up)
@@ -437,147 +632,121 @@ void __cdecl Vec3Basis_RightHanded(const float *forward, float *left, float *up)
     Vec3Cross(up, forward, left);
 }
 
-double __cdecl vectoyaw(const float *vec)
+float __cdecl vectoyaw(const float *vec)
 {
-    double v1; // xmm0_8
-    long double v3; // [esp+0h] [ebp-10h]
-    float v4; // [esp+0h] [ebp-10h]
-    long double v5; // [esp+8h] [ebp-8h]
-    float yawa; // [esp+Ch] [ebp-4h]
+    float v2; // [esp+0h] [ebp-14h]
+    float v3; // [esp+4h] [ebp-10h]
+    float yawa; // [esp+10h] [ebp-4h]
 
-    if ( vec[1] == 0.0 && *vec == 0.0 )
+    if (vec[1] == 0.0 && *vec == 0.0)
     {
-        return 0.0f;
+        return 0.0;
     }
     else
     {
-        *((float *)&v3 + 1) = vec[1];
-        *(float *)&v5 = *vec;
-        v1 = *((float *)&v3 + 1);
-        __libm_sse2_atan2(v3, v5);
-        *(float *)&v1 = v1;
-        yawa = (float)(*(float *)&v1 * 180.0) / 3.1415927;
-        if ( yawa < 0.0 )
-            v4 = 360.0f;
+        v3 = atan2(vec[1], *vec);
+        yawa = v3 * 180.0 / 3.141592741012573;
+        if (yawa < 0.0)
+            v2 = 360.0;
         else
-            v4 = 0.0f;
-        return (float)(yawa + v4);
+            v2 = 0.0;
+        return (yawa + v2);
     }
 }
 
-double __cdecl vectosignedyaw(const float *vec)
+float __cdecl vectosignedyaw(const float *vec)
 {
-    double v1; // xmm0_8
-    long double v3; // [esp+0h] [ebp-Ch]
-    long double yaw; // [esp+8h] [ebp-4h]
-    float yawa; // [esp+8h] [ebp-4h]
+    float v2; // [esp+0h] [ebp-10h]
+    float yaw; // [esp+Ch] [ebp-4h]
 
-    if ( vec[1] == 0.0 && *vec == 0.0 )
+    if (vec[1] == 0.0 && *vec == 0.0)
     {
-        return 0.0f;
+        return 0.0;
     }
     else
     {
-        *(float *)&v3 = vec[1];
-        *((float *)&v3 + 1) = *vec;
-        v1 = *(float *)&v3;
-        __libm_sse2_atan2(v3, yaw);
-        *(float *)&v1 = v1;
-        yawa = (float)(*(float *)&v1 * 180.0) / 3.1415927;
-        if ( yawa < -180.0
-            && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.cpp", 859, 0, "%s", "yaw >= -180") )
-        {
-            __debugbreak();
-        }
-        if ( yawa > 180.0
-            && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.cpp", 860, 0, "%s", "yaw <= 180") )
-        {
-            __debugbreak();
-        }
+        v2 = atan2(vec[1], *vec);
+        yaw = v2 * 180.0 / 3.141592741012573;
+        iassert(yaw >= -180);
+        iassert(yaw <= 180);
     }
-    return yawa;
+    return yaw;
 }
 
-double __cdecl vectopitch(const float *vec)
+float __cdecl vectopitch(const float *vec)
 {
-    double v1; // xmm0_8
-    long double v3; // [esp-1Ch] [ebp-2Ch]
-    long double v4; // [esp-14h] [ebp-24h]
-    float v5; // [esp-14h] [ebp-24h]
-    float v7; // [esp-4h] [ebp-14h]
+    float v2; // [esp+0h] [ebp-20h]
+    float v3; // [esp+4h] [ebp-1Ch]
+    float v4; // [esp+8h] [ebp-18h]
+    float v6; // [esp+14h] [ebp-Ch]
+    float pitcha; // [esp+1Ch] [ebp-4h]
 
-    if ( vec[1] == 0.0 && *vec == 0.0 )
+    if (vec[1] == 0.0 && *vec == 0.0)
     {
-        if ( COERCE_FLOAT(*((unsigned int *)vec + 2) ^ _mask__NegFloat_) < 0.0 )
-            return 270.0f;
+        if (-vec[2] < 0.0)
+            return 270.0;
         else
-            return 90.0f;
+            return 90.0;
     }
     else
     {
-        *((float *)&v4 + 1) = vec[2];
-        v1 = *((float *)&v4 + 1);
-        __libm_sse2_atan2(v3, v4);
-        *(float *)&v1 = v1;
-        v7 = (float)(*(float *)&v1 * -180.0) / 3.1415927;
-        if ( v7 < 0.0 )
-            v5 = 360.0f;
+        v6 = vec[1] * vec[1] + *vec * *vec;
+        v4 = sqrt(v6);
+        v3 = atan2(vec[2], v4);
+        pitcha = v3 * -180.0 / 3.141592741012573;
+        if (pitcha < 0.0)
+            v2 = 360.0;
         else
-            v5 = 0.0f;
-        return (float)(v7 + v5);
+            v2 = 0.0;
+        return (pitcha + v2);
     }
 }
 
 void __cdecl vectoangles(const float *vec, float *angles)
 {
-    double v2; // xmm0_8
-    double v3; // xmm0_8
-    long double v4; // [esp-1Ch] [ebp-3Ch]
-    long double v5; // [esp-1Ch] [ebp-3Ch]
-    long double v6; // [esp-14h] [ebp-34h]
-    long double v7; // [esp-14h] [ebp-34h]
-    float v8; // [esp-14h] [ebp-34h]
-    float v9; // [esp-4h] [ebp-24h]
-    float v10; // [esp+8h] [ebp-18h]
-    float v11; // [esp+8h] [ebp-18h]
-    float v12; // [esp+Ch] [ebp-14h]
-    float v13; // [esp+10h] [ebp-10h]
-    float v14; // [esp+10h] [ebp-10h]
+    float v2; // [esp+0h] [ebp-34h]
+    float v3; // [esp+4h] [ebp-30h]
+    float v4; // [esp+8h] [ebp-2Ch]
+    float v5; // [esp+Ch] [ebp-28h]
+    float v6; // [esp+10h] [ebp-24h]
+    float v7; // [esp+14h] [ebp-20h]
+    float v8; // [esp+1Ch] [ebp-18h]
+    float yaw; // [esp+28h] [ebp-Ch]
+    float yawa; // [esp+28h] [ebp-Ch]
+    float pitch; // [esp+30h] [ebp-4h]
+    float pitcha; // [esp+30h] [ebp-4h]
 
-    if ( vec[1] == 0.0 && *vec == 0.0 )
+    if (vec[1] == 0.0 && *vec == 0.0)
     {
-        v13 = 0.0f;
-        if ( COERCE_FLOAT(*((unsigned int *)vec + 2) ^ _mask__NegFloat_) < 0.0 )
-            v12 = 270.0f;
+        yaw = 0.0;
+        if (-vec[2] < 0.0)
+            v7 = 270.0;
         else
-            v12 = 90.0f;
-        v10 = v12;
+            v7 = 90.0;
+        pitch = v7;
     }
     else
     {
-        v2 = vec[1];
-        __libm_sse2_atan2(v4, v6);
-        *(float *)&v2 = v2;
-        v14 = (float)(*(float *)&v2 * 180.0) / 3.1415927;
-        if ( v14 < 0.0 )
-            v9 = 360.0f;
+        v6 = atan2(vec[1], *vec);
+        yawa = v6 * 180.0 / 3.141592741012573;
+        if (yawa < 0.0)
+            v5 = 360.0;
         else
-            v9 = 0.0f;
-        v13 = v14 + v9;
-        *((float *)&v7 + 1) = vec[2];
-        v3 = *((float *)&v7 + 1);
-        __libm_sse2_atan2(v5, v7);
-        *(float *)&v3 = v3;
-        v11 = (float)(*(float *)&v3 * -180.0) / 3.1415927;
-        if ( v11 < 0.0 )
-            v8 = 360.0f;
+            v5 = 0.0;
+        yaw = yawa + v5;
+        v8 = vec[1] * vec[1] + *vec * *vec;
+        v4 = sqrt(v8);
+        v3 = atan2(vec[2], v4);
+        pitcha = v3 * -180.0 / 3.141592741012573;
+        if (pitcha < 0.0)
+            v2 = 360.0;
         else
-            v8 = 0.0f;
-        v10 = v11 + v8;
+            v2 = 0.0;
+        pitch = pitcha + v2;
     }
-    *angles = v10;
-    angles[1] = v13;
-    angles[2] = 0.0f;
+    *angles = pitch;
+    angles[1] = yaw;
+    angles[2] = 0.0;
 }
 
 void __cdecl UnitQuatToAngles(const float *quat, float *angles)
@@ -590,79 +759,66 @@ void __cdecl UnitQuatToAngles(const float *quat, float *angles)
 
 void __cdecl YawVectors(float yaw, float *forward, float *right)
 {
-    long double v3; // st7
     float cy; // [esp+8h] [ebp-Ch]
+    float angle; // [esp+Ch] [ebp-8h]
     float sy; // [esp+10h] [ebp-4h]
 
-    v3 = (float)(yaw * 0.017453292);
-    cy = cos(v3);
-    sy = sin(v3);
-    if ( forward )
+    angle = yaw * 0.01745329238474369;
+    cy = cos(angle);
+    sy = sin(angle);
+    if (forward)
     {
         *forward = cy;
         forward[1] = sy;
-        forward[2] = 0.0f;
+        forward[2] = 0.0;
     }
-    if ( right )
+    if (right)
     {
         *right = sy;
-        *((unsigned int *)right + 1) = LODWORD(cy) ^ _mask__NegFloat_;
-        right[2] = 0.0f;
+        right[1] = -cy;
+        right[2] = 0.0;
     }
 }
 
 void __cdecl YawVectors2D(float yaw, float *forward, float *right)
 {
-    long double v3; // st7
     float cy; // [esp+8h] [ebp-Ch]
+    float angle; // [esp+Ch] [ebp-8h]
     float sy; // [esp+10h] [ebp-4h]
 
-    v3 = (float)(yaw * 0.017453292);
-    cy = cos(v3);
-    sy = sin(v3);
-    if ( forward )
+    angle = yaw * 0.01745329238474369;
+    cy = cos(angle);
+    sy = sin(angle);
+    if (forward)
     {
         *forward = cy;
         forward[1] = sy;
     }
-    if ( right )
+    if (right)
     {
         *right = sy;
-        *((unsigned int *)right + 1) = LODWORD(cy) ^ _mask__NegFloat_;
+        right[1] = -cy;
     }
 }
 
 void __cdecl PerpendicularVector(const float *src, float *dst)
 {
-    double v2; // st7
-    const char *v3; // eax
+    const char *v2; // eax
+    float scale; // [esp+18h] [ebp-34h]
     int pos; // [esp+38h] [ebp-14h]
     float d; // [esp+3Ch] [ebp-10h]
     float srcSq[3]; // [esp+40h] [ebp-Ch]
 
-    if ( !Vec3IsNormalized(src) )
-    {
-        v2 = Abs(src);
-        v3 = va("(%g %g %g) len %g", *src, src[1], src[2], v2);
-        if ( !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.cpp",
-                        992,
-                        0,
-                        "%s\n\t%s",
-                        "Vec3IsNormalized( src )",
-                        v3) )
-            __debugbreak();
-    }
+    iassert(Vec3IsNormalized(src));
+
     srcSq[0] = *src * *src;
     srcSq[1] = src[1] * src[1];
     srcSq[2] = src[2] * src[2];
     pos = srcSq[0] > srcSq[1];
-    if ( srcSq[pos] > srcSq[2] )
+    if (srcSq[pos] > srcSq[2])
         pos = 2;
-    LODWORD(d) = LODWORD(src[pos]) ^ _mask__NegFloat_;
-    *dst = d * *src;
-    dst[1] = d * src[1];
-    dst[2] = d * src[2];
+    d = -src[pos];
+    Vec3Scale(src, d, dst);
     dst[pos] = dst[pos] + 1.0;
     Vec3Normalize(dst);
 }
@@ -685,44 +841,41 @@ double __cdecl PointToLineDistSq(const float *point, const float *start, const f
     ptToLine_4 = point[1] - start[1];
     ptToLine_8 = point[2] - start[2];
     segDot = (float)((float)(seg * seg) + (float)(seg_4 * seg_4)) + (float)(seg_8 * seg_8);
-    if ( segDot == 0.0
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.cpp", 1082, 0, "%s", "segDot") )
-    {
-        __debugbreak();
-    }
+
+    iassert(segDot);
+
     ptToLineDot = (float)((float)(ptToLine * seg) + (float)(ptToLine_4 * seg_4)) + (float)(ptToLine_8 * seg_8);
-    return (float)((float)(COERCE_FLOAT(COERCE_UNSIGNED_INT(ptToLineDot / segDot) ^ _mask__NegFloat_) * seg_8) + ptToLine_8)
-             * (float)((float)(COERCE_FLOAT(COERCE_UNSIGNED_INT(ptToLineDot / segDot) ^ _mask__NegFloat_) * seg_8) + ptToLine_8)
-             + (float)((float)(COERCE_FLOAT(COERCE_UNSIGNED_INT(ptToLineDot / segDot) ^ _mask__NegFloat_) * seg_4) + ptToLine_4)
-             * (float)((float)(COERCE_FLOAT(COERCE_UNSIGNED_INT(ptToLineDot / segDot) ^ _mask__NegFloat_) * seg_4) + ptToLine_4)
-             + (float)((float)(COERCE_FLOAT(COERCE_UNSIGNED_INT(ptToLineDot / segDot) ^ _mask__NegFloat_) * seg) + ptToLine)
-             * (float)((float)(COERCE_FLOAT(COERCE_UNSIGNED_INT(ptToLineDot / segDot) ^ _mask__NegFloat_) * seg) + ptToLine);
+    return     (float)((float)(-(ptToLineDot / segDot) * seg_8) + ptToLine_8)
+             * (float)((float)(-(ptToLineDot / segDot) * seg_8) + ptToLine_8)
+             + (float)((float)(-(ptToLineDot / segDot) * seg_4) + ptToLine_4)
+             * (float)((float)(-(ptToLineDot / segDot) * seg_4) + ptToLine_4)
+             + (float)((float)(-(ptToLineDot / segDot) * seg) + ptToLine)
+             * (float)((float)(-(ptToLineDot / segDot) * seg) + ptToLine);
 }
 
-double __cdecl PointToLineDistSq2D(const float *point, const float *start, const float *end)
+float PointToLineDistSq2D(const float *point, const float *start, const float *end)
 {
-    float segDot; // [esp+Ch] [ebp-18h]
-    float seg; // [esp+10h] [ebp-14h]
-    float seg_4; // [esp+14h] [ebp-10h]
-    float ptToLine; // [esp+18h] [ebp-Ch]
-    float ptToLine_4; // [esp+1Ch] [ebp-8h]
-    float ptToLineDot; // [esp+20h] [ebp-4h]
+    float dx = end[0] - start[0];
+    float dy = end[1] - start[1];
 
-    seg = *end - *start;
-    seg_4 = end[1] - start[1];
-    ptToLine = *point - *start;
-    ptToLine_4 = point[1] - start[1];
-    segDot = (float)(seg * seg) + (float)(seg_4 * seg_4);
-    if ( segDot == 0.0
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.cpp", 1108, 0, "%s", "segDot") )
+    float px = point[0] - start[0];
+    float py = point[1] - start[1];
+
+    float segDot = dx * dx + dy * dy;
+
+    if (segDot == 0.0f)
     {
-        __debugbreak();
+        iassert(0);
+        return 0.0f;
     }
-    ptToLineDot = (float)(ptToLine * seg) + (float)(ptToLine_4 * seg_4);
-    return (float)((float)(COERCE_FLOAT(COERCE_UNSIGNED_INT(ptToLineDot / segDot) ^ _mask__NegFloat_) * seg_4) + ptToLine_4)
-             * (float)((float)(COERCE_FLOAT(COERCE_UNSIGNED_INT(ptToLineDot / segDot) ^ _mask__NegFloat_) * seg_4) + ptToLine_4)
-             + (float)((float)(COERCE_FLOAT(COERCE_UNSIGNED_INT(ptToLineDot / segDot) ^ _mask__NegFloat_) * seg) + ptToLine)
-             * (float)((float)(COERCE_FLOAT(COERCE_UNSIGNED_INT(ptToLineDot / segDot) ^ _mask__NegFloat_) * seg) + ptToLine);
+
+    float proj = -(px * dx + py * dy) / segDot;
+
+    float projX = dx * proj + px;
+    float projY = dy * proj + py;
+
+    float distSq = projX * projX + projY * projY;
+    return distSq;
 }
 
 int __cdecl BoxInPlanes(const float (*planes)[4], unsigned int numPlanes, const float *mins, const float *maxs)
@@ -896,15 +1049,17 @@ void __cdecl MatrixVecMultiplyProject(const float (*mulMat)[4], const float *mul
 
 void __cdecl MatrixMultiplyEquals(const float (*in)[3], float (*out)[3])
 {
-    __int64 temp; // [esp+8h] [ebp-18h]
+    //__int64 temp; // [esp+8h] [ebp-18h]
+    float temp_0;
+    float temp_4;
     float temp_8; // [esp+10h] [ebp-10h]
     float temp_12; // [esp+14h] [ebp-Ch]
     float temp_16; // [esp+18h] [ebp-8h]
     float temp_20; // [esp+1Ch] [ebp-4h]
 
-    *(float *)&temp = (float)((float)((*in)[0] * (*out)[0]) + (float)((float)(*in)[1] * (*out)[3]))
+    temp_0 = (float)((float)((*in)[0] * (*out)[0]) + (float)((float)(*in)[1] * (*out)[3]))
                                     + (float)((float)(*in)[2] * (*out)[6]);
-    *((float *)&temp + 1) = (float)((float)((*in)[0] * (*out)[1]) + (float)((float)(*in)[1] * (*out)[4]))
+    temp_4 = (float)((float)((*in)[0] * (*out)[1]) + (float)((float)(*in)[1] * (*out)[4]))
                                                 + (float)((float)(*in)[2] * (*out)[7]);
     temp_8 = (float)((float)((*in)[0] * (*out)[2]) + (float)((float)(*in)[1] * (*out)[5]))
                  + (float)((float)(*in)[2] * (*out)[8]);
@@ -920,7 +1075,9 @@ void __cdecl MatrixMultiplyEquals(const float (*in)[3], float (*out)[3])
                         + (float)((float)(*in)[8] * (*out)[7]);
     (*out)[8] = (float)((float)((float)(*in)[6] * (*out)[2]) + (float)((float)(*in)[7] * (*out)[5]))
                         + (float)((float)(*in)[8] * (*out)[8]);
-    *(_QWORD *)&(*out)[0] = temp;
+    //*(_QWORD *)&(*out)[0] = temp;
+    (*out)[0] = temp_0;
+    (*out)[1] = temp_4;
     (*out)[2] = temp_8;
     (*out)[3] = temp_12;
     (*out)[4] = temp_16;
@@ -1082,45 +1239,23 @@ void __cdecl MatrixInverse(const float (*in)[3], float (*out)[3])
     float det; // [esp+0h] [ebp-4h]
     float deta; // [esp+0h] [ebp-4h]
 
-    if ( in == out
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.cpp", 1578, 0, "%s", "in != out") )
-    {
-        __debugbreak();
-    }
+    iassert(in != out);
     det = (float)((float)((float)((float)((float)(*in)[8] * (float)(*in)[4]) - (float)((float)(*in)[7] * (float)(*in)[5]))
                                             * (*in)[0])
                             - (float)((float)((float)((float)(*in)[8] * (float)(*in)[1]) - (float)((float)(*in)[7] * (float)(*in)[2]))
                                             * (float)(*in)[3]))
             + (float)((float)((float)((float)(*in)[5] * (float)(*in)[1]) - (float)((float)(*in)[4] * (float)(*in)[2]))
                             * (float)(*in)[6]);
-    if ( det == 0.0
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.cpp", 1582, 0, "%s", "det") )
-    {
-        __debugbreak();
-    }
+    iassert(det);
     deta = 1.0 / det;
     (*out)[0] = (float)((float)((float)(*in)[8] * (float)(*in)[4]) - (float)((float)(*in)[7] * (float)(*in)[5])) * deta;
-    (*out)[1] = COERCE_FLOAT(
-                                COERCE_UNSIGNED_INT((float)((float)(*in)[8] * (float)(*in)[1]) - (float)((float)(*in)[7]
-                                                                                                                                                                             * (float)(*in)[2]))
-                            ^ _mask__NegFloat_)
-                        * deta;
+    (*out)[1] = COERCE_FLOAT(COERCE_UNSIGNED_INT((float)((float)(*in)[8] * (float)(*in)[1]) - (float)((float)(*in)[7] * (float)(*in)[2])) ^ _mask__NegFloat_) * deta;
     (*out)[2] = (float)((float)((float)(*in)[5] * (float)(*in)[1]) - (float)((float)(*in)[4] * (float)(*in)[2])) * deta;
-    (*out)[3] = COERCE_FLOAT(
-                                COERCE_UNSIGNED_INT((float)((float)(*in)[8] * (float)(*in)[3]) - (float)((float)(*in)[6]
-                                                                                                                                                                             * (float)(*in)[5]))
-                            ^ _mask__NegFloat_)
-                        * deta;
+    (*out)[3] = COERCE_FLOAT(COERCE_UNSIGNED_INT((float)((float)(*in)[8] * (float)(*in)[3]) - (float)((float)(*in)[6] * (float)(*in)[5])) ^ _mask__NegFloat_) * deta;
     (*out)[4] = (float)((float)((float)(*in)[8] * (*in)[0]) - (float)((float)(*in)[6] * (float)(*in)[2])) * deta;
-    (*out)[5] = COERCE_FLOAT(
-                                COERCE_UNSIGNED_INT((float)((float)(*in)[5] * (*in)[0]) - (float)((float)(*in)[3] * (float)(*in)[2]))
-                            ^ _mask__NegFloat_)
-                        * deta;
+    (*out)[5] = COERCE_FLOAT(COERCE_UNSIGNED_INT((float)((float)(*in)[5] * (*in)[0]) - (float)((float)(*in)[3] * (float)(*in)[2])) ^ _mask__NegFloat_) * deta;
     (*out)[6] = (float)((float)((float)(*in)[7] * (float)(*in)[3]) - (float)((float)(*in)[6] * (float)(*in)[4])) * deta;
-    (*out)[7] = COERCE_FLOAT(
-                                COERCE_UNSIGNED_INT((float)((float)(*in)[7] * (*in)[0]) - (float)((float)(*in)[6] * (float)(*in)[1]))
-                            ^ _mask__NegFloat_)
-                        * deta;
+    (*out)[7] = COERCE_FLOAT(COERCE_UNSIGNED_INT((float)((float)(*in)[7] * (*in)[0]) - (float)((float)(*in)[6] * (float)(*in)[1])) ^ _mask__NegFloat_) * deta;
     (*out)[8] = (float)((float)((float)(*in)[4] * (*in)[0]) - (float)((float)(*in)[3] * (float)(*in)[1])) * deta;
 }
 
@@ -2638,13 +2773,15 @@ void __cdecl AxisToQuat(const float (*mat)[3], float *out)
 
 void __cdecl QuatLerp(const float *qa, const float *qb, float frac, float *out)
 {
-    if ( (float)((float)((float)((float)(*qa * *qb) + (float)(qa[1] * qb[1])) + (float)(qa[2] * qb[2]))
-                         + (float)(qa[3] * qb[3])) < 0.0 )
+    float dot; // [esp+8h] [ebp-4h]
+
+    dot = Vec4Dot(qa, qb);
+    if (dot < 0.0)
     {
-        *(unsigned int *)out = *(unsigned int *)qb ^ _mask__NegFloat_;
-        *((unsigned int *)out + 1) = *((unsigned int *)qb + 1) ^ _mask__NegFloat_;
-        *((unsigned int *)out + 2) = *((unsigned int *)qb + 2) ^ _mask__NegFloat_;
-        *((unsigned int *)out + 3) = *((unsigned int *)qb + 3) ^ _mask__NegFloat_;
+        *out = -*qb;
+        out[1] = -qb[1];
+        out[2] = -qb[2];
+        out[3] = -qb[3];
         Vec4Lerp(qa, out, frac, out);
     }
     else
@@ -2708,9 +2845,9 @@ bool __cdecl CullBoxFromCone(
     dist = (float)((float)(farCorner * *coneDir) + (float)(farCorner_4 * coneDir[1])) + (float)(farCorner_8 * coneDir[2]);
     if ( dist >= 0.0 )
         return 1;
-    perpendicular = (float)(COERCE_FLOAT(LODWORD(dist) ^ _mask__NegFloat_) * *coneDir) + farCorner;
-    perpendicular_4 = (float)(COERCE_FLOAT(LODWORD(dist) ^ _mask__NegFloat_) * coneDir[1]) + farCorner_4;
-    perpendicular_8 = (float)(COERCE_FLOAT(LODWORD(dist) ^ _mask__NegFloat_) * coneDir[2]) + farCorner_8;
+    perpendicular =   (float)( -dist * coneDir[0]) + farCorner;
+    perpendicular_4 = (float)( -dist * coneDir[1]) + farCorner_4;
+    perpendicular_8 = (float)( -dist * coneDir[2]) + farCorner_8;
     perpLenSq = (float)((float)(perpendicular * perpendicular) + (float)(perpendicular_4 * perpendicular_4))
                         + (float)(perpendicular_8 * perpendicular_8);
     sinHalfFovSq = 1.0 - (float)(cosHalfFov * cosHalfFov);
@@ -2823,9 +2960,9 @@ bool __cdecl CullBoxFromConicSectionOfSphere(
     dist = (float)((float)(farCorner * *coneDir) + (float)(farCorner_4 * coneDir[1])) + (float)(farCorner_8 * coneDir[2]);
     if ( dist >= 0.0 )
         return 1;
-    perpendicular = (float)(COERCE_FLOAT(LODWORD(dist) ^ _mask__NegFloat_) * *coneDir) + farCorner;
-    perpendicular_4 = (float)(COERCE_FLOAT(LODWORD(dist) ^ _mask__NegFloat_) * coneDir[1]) + farCorner_4;
-    perpendicular_8 = (float)(COERCE_FLOAT(LODWORD(dist) ^ _mask__NegFloat_) * coneDir[2]) + farCorner_8;
+    perpendicular =   (float)(-dist * coneDir[0]) + farCorner;
+    perpendicular_4 = (float)(-dist * coneDir[1]) + farCorner_4;
+    perpendicular_8 = (float)(-dist * coneDir[2]) + farCorner_8;
     perpLenSq = (float)((float)(perpendicular * perpendicular) + (float)(perpendicular_4 * perpendicular_4))
                         + (float)(perpendicular_8 * perpendicular_8);
     sinHalfFovSq = 1.0 - (float)(cosHalfFov * cosHalfFov);
@@ -2872,12 +3009,16 @@ bool __cdecl CullSphereFromCone(
     dist = (float)((float)(delta * *coneDir) + (float)(delta_4 * coneDir[1])) + (float)(delta_8 * coneDir[2]);
     if ( dist >= radius )
         return 1;
-    perpendicular_4 = (float)(COERCE_FLOAT(LODWORD(dist) ^ _mask__NegFloat_) * coneDir[1]) + delta_4;
-    perpendicular_8 = (float)(COERCE_FLOAT(LODWORD(dist) ^ _mask__NegFloat_) * coneDir[2]) + delta_8;
+    //perpendicular_4 = (float)(COERCE_FLOAT(LODWORD(dist) ^ _mask__NegFloat_) * coneDir[1]) + delta_4;
+    perpendicular_4 = (float)(-dist * coneDir[1]) + delta_4;
+    //perpendicular_8 = (float)(COERCE_FLOAT(LODWORD(dist) ^ _mask__NegFloat_) * coneDir[2]) + delta_8;
+    perpendicular_8 = (float)(-dist * coneDir[2]) + delta_8;
     discriminant = (float)(sqrtf(1.0 - (float)(cosHalfFov * cosHalfFov)) * dist) - radius;
-    return (float)((float)((float)((float)((float)((float)(COERCE_FLOAT(LODWORD(dist) ^ _mask__NegFloat_) * *coneDir)
+    //return (float)((float)((float)((float)((float)((float)(COERCE_FLOAT(LODWORD(dist) ^ _mask__NegFloat_) * *coneDir)
+    return (float)((float)((float)((float)((float)((float)(-dist * *coneDir)
                                                                                              + delta)
-                                                                             * (float)((float)(COERCE_FLOAT(LODWORD(dist) ^ _mask__NegFloat_) * *coneDir)
+                                                                             //* (float)((float)(COERCE_FLOAT(LODWORD(dist) ^ _mask__NegFloat_) * *coneDir)
+                                                                             * (float)((float)( -dist * *coneDir)
                                                                                              + delta))
                                                              + (float)(perpendicular_4 * perpendicular_4))
                                              + (float)(perpendicular_8 * perpendicular_8))
@@ -2963,11 +3104,11 @@ void __cdecl colorTempToXYZ(float colorTemp, float *XYZ)
     if ( colorTemp >= 1650.0 )
         v5 = colorTemp;
     else
-        v5 = DOUBLE_1650_0;
+        v5 = 1650.0;
     if ( v5 <= 25000.0 )
         v4 = v5;
     else
-        v4 = DOUBLE_25000_0;
+        v4 = 25000.0;
     t2 = v4 * v4;
     t3 = v4 * v4 * v4;
     if ( v4 >= 4000.0 )
@@ -3019,30 +3160,30 @@ void __cdecl colorHueMatrix(float (*finalMatrix)[4], float hue)
     float v12; // [esp+3F4h] [ebp-118h]
     float out[68]; // [esp+3FCh] [ebp-110h] BYREF
 
-    out[52] = FLOAT_0_81649655;
+    out[52] = 0.81649655;
     out[53] = 0.0f;
-    out[54] = 0.5f3451085;
+    out[54] = 0.53451085;
     out[55] = 0.0f;
-    out[56] = FLOAT_N0_40824828;
-    out[57] = FLOAT_0_70710665;
-    out[58] = 1.0f555116;
+    out[56] = -0.40824828;
+    out[57] = 0.70710665;
+    out[58] = 1.0555116;
     out[59] = 0.0f;
-    out[60] = FLOAT_N0_40824828;
-    out[61] = FLOAT_N0_70710677;
-    out[62] = 0.1f4204822;
+    out[60] = -0.40824828;
+    out[61] = -0.70710677;
+    out[62] = 0.14204822;
     memset(&out[63], 0, 16);
     out[67] = 1.0f;
-    out[36] = FLOAT_0_84678853;
-    out[37] = FLOAT_N0_37795621;
-    out[38] = FLOAT_N0_37795624;
+    out[36] = 0.84678853;
+    out[37] = -0.37795621;
+    out[38] = -0.37795624;
     out[39] = 0.0f;
     out[40] = -0.37292805f;
     out[41] = 0.33417869f;
-    out[42] = -1.0f800347;
+    out[42] = -1.0800347;
     out[43] = 0.0f;
-    out[44] = 0.5f773502;
-    out[45] = 0.5f773502;
-    out[46] = 0.5f773502;
+    out[44] = 0.5773502;
+    out[45] = 0.5773502;
+    out[46] = 0.5773502;
     memset(&out[47], 0, 16);
     out[51] = 1.0f;
     __libm_sse2_sin(v2);
@@ -3192,6 +3333,11 @@ void __cdecl Vec3Cross(const float *v0, const float *v1, float *cross)
     cross[2] = (float)(*v0 * v1[1]) - (float)(v0[1] * *v1);
 }
 
+bool __cdecl Vec3IsNormalized(const float *v)
+{
+    return fabs((float)((float)((float)(*v * *v) + (float)(v[1] * v[1])) + (float)(v[2] * v[2])) - 1.0) < 0.002f;
+}
+
 float __cdecl Vec2Length(const float *v)
 {
         return sqrtf(v[1] * v[1] + v[0] * v[0]);
@@ -3208,6 +3354,13 @@ float AngleNormalize180(float angle)
 float    __cdecl Abs(const float *v)
 {
         return (float)sqrt((float)((float)((float)(*v * *v) + (float)(v[1] * v[1])) + (float)(v[2] * v[2])));
+}
+
+void __cdecl Vec3Scale(const float *v, float scale, float *result)
+{
+    result[0] = scale * v[0];
+    result[1] = scale * v[1];
+    result[2] = scale * v[2];
 }
 
 float __cdecl Vec3NormalizeTo(const vec3r v, vec3r out)
@@ -3307,4 +3460,32 @@ void __cdecl Vec3Max(const float *a, const float *b, float *result)
     else
         v3 = *((unsigned int *)a + 2);
     *((unsigned int *)result + 2) = v3;
+}
+
+void __cdecl Vec3Abs(const float *a, float *res)
+{
+    //*(_DWORD *)res = *(_DWORD *)a & _mask__AbsFloat_;
+    //*((_DWORD *)res + 1) = (_DWORD)a[1] & _mask__AbsFloat_;
+    //*((_DWORD *)res + 2) = (_DWORD)a[2] & _mask__AbsFloat_;
+    res[0] = fabs(a[0]);
+    res[1] = fabs(a[1]);
+    res[2] = fabs(a[2]);
+}
+
+float __cdecl Vec4LengthSq(const float *v)
+{
+    return *v * *v + v[1] * v[1] + v[2] * v[2] + v[3] * v[3];
+}
+
+bool __cdecl Vec4IsNormalized(const float *v)
+{
+    float v2; // [esp+4h] [ebp-4h]
+
+    v2 = Vec4LengthSq(v) - 1.0f;
+    return fabs(v2) < 0.002f;
+}
+
+float __cdecl Vec4Dot(const float *a, const float *b)
+{
+    return (float)(*a * *b + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]);
 }

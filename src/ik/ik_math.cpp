@@ -1,4 +1,7 @@
 #include "ik_math.h"
+#include <universal/assertive.h>
+#include <cstring>
+#include <cgame_mp/cg_pose_mp.h>
 
 void __cdecl ikMatrixIdentity44(float (*out)[4])
 {

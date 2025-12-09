@@ -1,4 +1,56 @@
 #include "phys_effects.h"
+#include <sound/snd_bank.h>
+#include <cgame_mp/cg_local_mp.h>
+#include <client/splitscreen.h>
+#include <bgame/bg_slidemove.h>
+
+const char *surface_type_names[8] = { "hard", "soft", "metal", "glass", "water", "wood", "foliage", "flesh" };
+
+Phys_SurfaceType remap_table[31] =
+{
+  EFFECT_SURF_TYPE_SOFT,
+  EFFECT_SURF_TYPE_HARD,
+  EFFECT_SURF_TYPE_HARD,
+  EFFECT_SURF_TYPE_SOFT,
+  EFFECT_SURF_TYPE_SOFT,
+  EFFECT_SURF_TYPE_HARD,
+  EFFECT_SURF_TYPE_HARD,
+  EFFECT_SURF_TYPE_FLESH,
+  EFFECT_SURF_TYPE_FOLIAGE,
+  EFFECT_SURF_TYPE_GLASS,
+  EFFECT_SURF_TYPE_SOFT,
+  EFFECT_SURF_TYPE_HARD,
+  EFFECT_SURF_TYPE_HARD,
+  EFFECT_SURF_TYPE_METAL,
+  EFFECT_SURF_TYPE_SOFT,
+  EFFECT_SURF_TYPE_SOFT,
+  EFFECT_SURF_TYPE_SOFT,
+  EFFECT_SURF_TYPE_HARD,
+  EFFECT_SURF_TYPE_SOFT,
+  EFFECT_SURF_TYPE_SOFT,
+  EFFECT_SURF_TYPE_WATER,
+  EFFECT_SURF_TYPE_WOOD,
+  EFFECT_SURF_TYPE_HARD,
+  EFFECT_SURF_TYPE_GLASS,
+  EFFECT_SURF_TYPE_HARD,
+  EFFECT_SURF_TYPE_SOFT,
+  EFFECT_SURF_TYPE_SOFT,
+  EFFECT_SURF_TYPE_SOFT,
+  EFFECT_SURF_TYPE_METAL,
+  EFFECT_SURF_TYPE_SOFT,
+  EFFECT_SURF_TYPE_SOFT
+};
+
+unsigned int sound_aliases[36];
+
+const dvar_t *phys_impact_intensity_limit;
+const dvar_t *phys_impact_silence_window;
+const dvar_t *phys_impact_distance_cutoff;
+const dvar_t *phys_impact_render;
+const dvar_t *phys_impact_fx;
+const dvar_t *phys_reeval_frequency;
+const dvar_t *phys_impact_max_pfx_per_frame;
+const dvar_t *phys_impact_max_sfx_per_frame;
 
 void __cdecl Phys_InitSoundAliases()
 {
@@ -155,11 +207,6 @@ void __cdecl Phys_ReEvalPriority(PhysObjUserData *userData)
 void __cdecl Phys_EffectsProcess()
 {
     ;
-}
-
-unsigned int __thiscall rigid_body::is_user_rigid_body(rigid_body *this)
-{
-    return this->m_flags & 0x20;
 }
 
 Phys_SurfaceType __cdecl Phys_RemmapSurfaceType(int stype)

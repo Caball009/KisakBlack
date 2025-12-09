@@ -1582,6 +1582,8 @@
     <ClInclude Include="src\live\live_ticker.h" />
     <ClInclude Include="src\live\live_win.h" />
     <ClInclude Include="src\live\live_win_common.h" />
+    <ClInclude Include="src\minilzo\lzoconf.h" />
+    <ClInclude Include="src\minilzo\lzodefs.h" />
     <ClInclude Include="src\minilzo\minilzo.h" />
     <ClInclude Include="src\mjpeg\avi.h" />
     <ClInclude Include="src\mjpeg\mjpeg.h" />

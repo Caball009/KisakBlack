@@ -1,13 +1,11 @@
 #include "phys_mem_new.h"
 
-unsigned int __cdecl phys_slot_pool::encode_size_alignment(unsigned int size, unsigned int alignment)
-{
-    if ( size > 0xFFFF && _tlAssert("source/phys_mem_new.cpp", 38, "size <= 0xFFFF", "") )
-        __debugbreak();
-    if ( alignment > 0xFFFF && _tlAssert("source/phys_mem_new.cpp", 39, "alignment <= 0xFFFF", "") )
-        __debugbreak();
-    return size | (alignment << 16);
-}
+#include <Windows.h> // interlockedexchange
+#include <new>
+
+void *g_phys_memory_buffer;
+int g_phys_memory_buffer_size;
+phys_memory_manager *g_phys_memory_manager;
 
 void __cdecl phys_memory_manager_term()
 {
@@ -16,7 +14,7 @@ void __cdecl phys_memory_manager_term()
     g_phys_memory_manager = 0;
 }
 
-void __thiscall phys_slot_pool::init(phys_slot_pool *this, unsigned int slot_size, unsigned int slot_alignment)
+void phys_slot_pool::init(unsigned int slot_size, unsigned int slot_alignment)
 {
     this->m_first_free_slot.m_ptr = 0;
     this->m_first_free_slot.m_tag = 0;
@@ -33,9 +31,7 @@ void __cdecl ppu_pmm_get_linear_buffer(char ***linear_buffer_cur, char **linear_
 
 void __cdecl PSP_FREE(phys_slot_pool *slot_pool, unsigned __int8 *slot)
 {
-    int savedregs; // [esp+0h] [ebp+0h] BYREF
-
-    phys_slot_pool::free_slot(slot_pool, (unsigned int)&savedregs, slot);
+    slot_pool->free_slot(slot);
 }
 
 void __cdecl transient_allocator_update_largest_size()
@@ -43,23 +39,23 @@ void __cdecl transient_allocator_update_largest_size()
     ;
 }
 
-int __thiscall phys_memory_manager::allocate(phys_memory_manager *this, unsigned int size, unsigned int alignment)
+int phys_memory_manager::allocate(unsigned int size, unsigned int alignment)
 {
     unsigned int v3; // edx
     unsigned int v4; // eax
-    volatile signed __int32 *p_m_buffer_cur; // edi
+    volatile unsigned __int32 *p_m_buffer_cur; // edi
     signed __int32 v6; // esi
     int v7; // edx
     unsigned int v9; // [esp+Ch] [ebp-8h]
-    phys_memory_manager *v10; // [esp+10h] [ebp-4h]
+    //phys_memory_manager *v10; // [esp+10h] [ebp-4h]
     unsigned int alignmenta; // [esp+20h] [ebp+Ch]
 
     v3 = alignment - 1;
     v4 = ~(alignment - 1);
-    v10 = this;
+    //v10 = this;
     alignmenta = alignment - 1;
     v9 = v4;
-    p_m_buffer_cur = (volatile signed __int32 *)&this->m_buffer_cur;
+    p_m_buffer_cur = (volatile unsigned __int32 *)&this->m_buffer_cur;
     while ( 1 )
     {
         v7 = v4 & (*p_m_buffer_cur + v3);
@@ -68,30 +64,31 @@ int __thiscall phys_memory_manager::allocate(phys_memory_manager *this, unsigned
         v6 = *p_m_buffer_cur;
         if ( _InterlockedCompareExchange(p_m_buffer_cur, v7 + size, v6) == v6 )
             break;
-        this = v10;
+        //this = v10;
         v3 = alignmenta;
         v4 = v9;
     }
     return v7;
 }
 
-phys_slot_pool *__thiscall phys_memory_manager::allocate_slot_pool(phys_memory_manager *this)
+phys_slot_pool *phys_memory_manager::allocate_slot_pool()
 {
     minspec_mutex *p_m_slot_pool_allocate_mutex; // ebx
     int m_list_preallocated_slot_pools_count; // eax
     phys_slot_pool *v4; // edi
     int v6; // eax
-    int Target; // [esp+Ch] [ebp-4h] BYREF
+    volatile unsigned int Target; // [esp+Ch] [ebp-4h] BYREF
 
     p_m_slot_pool_allocate_mutex = &this->m_slot_pool_allocate_mutex;
-    while ( _InterlockedCompareExchange((volatile signed __int32 *)p_m_slot_pool_allocate_mutex, 1, 0) )
+    while ( _InterlockedCompareExchange((volatile unsigned __int32 *)p_m_slot_pool_allocate_mutex, 1, 0) )
         ;
     Target = 0;
     InterlockedExchange(&Target, 0);
     m_list_preallocated_slot_pools_count = this->m_list_preallocated_slot_pools_count;
     if ( m_list_preallocated_slot_pools_count >= 28 )
     {
-        v6 = phys_memory_manager::allocate(this, 0x18u, 8u);
+        //v6 = phys_memory_manager::allocate(this, 0x18u, 8u);
+        v6 = this->allocate(24, 8);
         ++this->m_list_slot_pool_count;
         v4 = (phys_slot_pool *)v6;
     }
@@ -101,12 +98,12 @@ phys_slot_pool *__thiscall phys_memory_manager::allocate_slot_pool(phys_memory_m
         v4 = &this->m_list_preallocated_slot_pools[m_list_preallocated_slot_pools_count];
         this->m_list_preallocated_slot_pools_count = m_list_preallocated_slot_pools_count + 1;
     }
-    minspec_mutex::Unlock(p_m_slot_pool_allocate_mutex);
+    p_m_slot_pool_allocate_mutex->Unlock();
+    //minspec_mutex::Unlock(p_m_slot_pool_allocate_mutex);
     return v4;
 }
 
 phys_slot_pool *__thiscall phys_memory_manager::get_slot_pool(
-                phys_memory_manager *this,
                 unsigned int slot_size,
                 unsigned int slot_alignment)
 {
@@ -134,19 +131,23 @@ phys_slot_pool *__thiscall phys_memory_manager::get_slot_pool(
         __debugbreak();
     }
     slot_sizea = slot_size + 8;
+    //v5 = phys_slot_pool::encode_size_alignment(slot_size + 8, slot_alignment);
     v5 = phys_slot_pool::encode_size_alignment(slot_size + 8, slot_alignment);
     p_m_slot_pool_map_mutex = &this->m_slot_pool_map_mutex;
-    minspec_read_write_mutex::ReadLock(&this->m_slot_pool_map_mutex);
+    //minspec_read_write_mutex::ReadLock(&this->m_slot_pool_map_mutex);
+    this->m_slot_pool_map_mutex.ReadLock();
     p_m_slot_pool_map = &this->m_slot_pool_map;
     for ( i = p_m_slot_pool_map->m_hash_table[v5 % p_m_slot_pool_map->m_mod]; i; i = i->m_hash_next )
     {
         if ( i->m_map_key == v5 )
             break;
     }
-    minspec_read_write_mutex::ReadUnlock(p_m_slot_pool_map_mutex);
+    //minspec_read_write_mutex::ReadUnlock(p_m_slot_pool_map_mutex);
+    p_m_slot_pool_map_mutex->ReadUnlock();
     if ( !i )
     {
-        minspec_read_write_mutex::WriteLock(p_m_slot_pool_map_mutex);
+        //minspec_read_write_mutex::WriteLock(p_m_slot_pool_map_mutex);
+        p_m_slot_pool_map_mutex->WriteLock();
         for ( j = p_m_slot_pool_map->m_hash_table[v5 % p_m_slot_pool_map->m_mod]; j; j = j->m_hash_next )
         {
             if ( j->m_map_key == v5 )
@@ -155,15 +156,18 @@ phys_slot_pool *__thiscall phys_memory_manager::get_slot_pool(
         i = j;
         if ( !j )
         {
-            i = phys_memory_manager::allocate_slot_pool(this);
+            //i = phys_memory_manager::allocate_slot_pool(this);
+            i = this->allocate_slot_pool();
             i->m_first_free_slot.m_ptr = 0;
             i->m_first_free_slot.m_tag = 0;
             i->m_map_key = phys_slot_pool::encode_size_alignment(slot_sizea, slot_alignment);
             i->m_total_slot_count = 0;
             i->m_allocated_slot_count = 0;
-            minspec_hash_table<phys_slot_pool,64>::add(p_m_slot_pool_map, v5, i);
+            //minspec_hash_table<phys_slot_pool,64>::add(p_m_slot_pool_map, v5, i);
+            p_m_slot_pool_map->add(v5, i);
         }
-        minspec_read_write_mutex::WriteUnlock(p_m_slot_pool_map_mutex);
+        //minspec_read_write_mutex::WriteUnlock(p_m_slot_pool_map_mutex);
+        p_m_slot_pool_map_mutex->WriteUnlock();
     }
     return i;
 }
@@ -172,7 +176,8 @@ void *__cdecl PMM_PERM_ALLOCATE(unsigned int size, unsigned int alignment)
 {
     void *result; // eax
 
-    result = (void *)phys_memory_manager::allocate(g_phys_memory_manager, size, alignment);
+    //result = (void *)phys_memory_manager::allocate(g_phys_memory_manager, size, alignment);
+    result = (void *)g_phys_memory_manager->allocate(size, alignment);
     if ( !result )
     {
         if ( _tlAssert("source/phys_mem_new.cpp", 265, "ptr", "physics memory manager error: out of memory.") )
@@ -186,50 +191,50 @@ void *__cdecl PMM_PERM_ALLOCATE(unsigned int size, unsigned int alignment)
 char *__cdecl PMM_ALLOC(unsigned int size, unsigned int alignment)
 {
     phys_slot_pool *slot_pool; // eax
-    int savedregs; // [esp+4h] [ebp+0h] BYREF
 
     if ( !size && _tlAssert("source/phys_mem_new.cpp", 465, "size > 0", "") )
         __debugbreak();
-    slot_pool = phys_memory_manager::get_slot_pool(g_phys_memory_manager, size, alignment);
-    return phys_slot_pool::allocate_slot(slot_pool, (unsigned int)&savedregs);
+    //slot_pool = phys_memory_manager::get_slot_pool(g_phys_memory_manager, size, alignment);
+    slot_pool = g_phys_memory_manager->get_slot_pool(size, alignment);
+    //return phys_slot_pool::allocate_slot(slot_pool, (unsigned int)&savedregs);
+    return slot_pool->allocate_slot();
 }
 
 void __cdecl PMM_FREE(unsigned __int8 *ptr, unsigned int size, unsigned int alignment)
 {
     phys_slot_pool *slot_pool; // eax
-    int savedregs; // [esp+0h] [ebp+0h] BYREF
 
-    slot_pool = phys_memory_manager::get_slot_pool(g_phys_memory_manager, size, alignment);
-    phys_slot_pool::free_slot(slot_pool, (unsigned int)&savedregs, ptr);
+    //slot_pool = phys_memory_manager::get_slot_pool(g_phys_memory_manager, size, alignment);
+    slot_pool = g_phys_memory_manager->get_slot_pool(size, alignment);
+    //phys_slot_pool::free_slot(slot_pool, (unsigned int)&savedregs, ptr);
+    slot_pool->free_slot(ptr);
 }
 
-// bad sp value at call has been detected, the output may be wrong!
 char *__cdecl PSP_ALLOC(phys_slot_pool *slot_pool)
 {
-    int savedregs; // [esp+0h] [ebp+0h] BYREF
-
-    return phys_slot_pool::allocate_slot(slot_pool, (unsigned int)&savedregs);
+    //return phys_slot_pool::allocate_slot(slot_pool, (unsigned int)&savedregs);
+    return slot_pool->allocate_slot();
 }
 
 phys_slot_pool *__cdecl GET_PHYS_SLOT_POOL(unsigned int size, unsigned int alignment)
 {
     if ( !size && _tlAssert("source/phys_mem_new.cpp", 489, "size > 0", "") )
         __debugbreak();
-    return phys_memory_manager::get_slot_pool(g_phys_memory_manager, size, alignment);
+    //return phys_memory_manager::get_slot_pool(g_phys_memory_manager, size, alignment);
+    return g_phys_memory_manager->get_slot_pool(size, alignment);
 }
 
 void __cdecl PMM_VALIDATE(char *ptr, unsigned int size, unsigned int alignment)
 {
     phys_slot_pool *slot_pool; // eax
 
-    slot_pool = phys_memory_manager::get_slot_pool(g_phys_memory_manager, size, alignment);
-    phys_slot_pool::validate_slot(slot_pool, ptr);
+    //slot_pool = phys_memory_manager::get_slot_pool(g_phys_memory_manager, size, alignment);
+    slot_pool = g_phys_memory_manager->get_slot_pool(size, alignment);
+    //phys_slot_pool::validate_slot(slot_pool, ptr);
+    slot_pool->validate_slot(ptr);
 }
 
-phys_memory_manager *__thiscall phys_memory_manager::phys_memory_manager(
-                phys_memory_manager *this,
-                char *memory_buffer,
-                int memory_buffer_size)
+phys_memory_manager::phys_memory_manager(char *memory_buffer, int memory_buffer_size)
 {
     this->m_slot_pool_map_mutex.m_count = 1;
     memset(&this->m_slot_pool_map, 0, 0x100u);
@@ -246,7 +251,6 @@ phys_memory_manager *__thiscall phys_memory_manager::phys_memory_manager(
     this->m_slot_pool_map.m_total_collisions = 0;
     this->m_slot_pool_map.m_mod = 1;
     this->m_list_preallocated_slot_pools_count = 0;
-    return this;
 }
 
 void __cdecl phys_memory_manager_init(void *const memory_buffer, int memory_buffer_size)
@@ -272,14 +276,17 @@ void __cdecl phys_memory_manager_init(void *const memory_buffer, int memory_buff
     g_phys_memory_buffer = memory_buffer;
     g_phys_memory_buffer_size = memory_buffer_size;
     g_phys_memory_manager = (phys_memory_manager *)v2;
-    if ( v2 )
-        phys_memory_manager::phys_memory_manager(
-            (phys_memory_manager *)v2,
-            (char *)(v2 + 976),
-            (int)memory_buffer + memory_buffer_size - v2 - 976);
+    if (v2)
+    {
+        new (v2) phys_memory_manager((char*)(v2 + sizeof(phys_memory_manager)), (int)(((unsigned int)memory_buffer + memory_buffer_size) - v2 - sizeof(phys_memory_manager)));
+        //phys_memory_manager::phys_memory_manager(
+        //    (phys_memory_manager *)v2,
+        //    (char *)(v2 + 976),
+        //    (int)memory_buffer + memory_buffer_size - v2 - 976);
+    }
 }
 
-void __thiscall phys_slot_pool::extra_info_init(phys_slot_pool *this, char *slot)
+void phys_slot_pool::extra_info_init(char *slot)
 {
     phys_slot_pool **v2; // eax
 
@@ -302,11 +309,11 @@ void __thiscall phys_slot_pool::extra_info_init(phys_slot_pool *this, char *slot
             }
         }
         slot = 0;
-        InterlockedExchange((volatile int *)&slot, 0);
+        InterlockedExchange((volatile unsigned int *)&slot, 0);
     }
 }
 
-void __thiscall phys_slot_pool::extra_info_allocate(phys_slot_pool *this, char *slot)
+void __thiscall phys_slot_pool::extra_info_allocate(char *slot)
 {
     char *v3; // ebx
     unsigned int m_map_key; // edi
@@ -461,115 +468,7 @@ void __userpurge phys_slot_pool::free_slot(phys_slot_pool *this@<ecx>, unsigned 
     }
 }
 
-void __thiscall minspec_hash_table<phys_slot_pool,64>::add(
-                minspec_hash_table<phys_slot_pool,64> *this,
-                unsigned int key,
-                phys_slot_pool *entry_to_add)
-{
-    phys_slot_pool *v4; // edx
-    unsigned int v5; // ebx
-    unsigned int i; // ecx
-    phys_slot_pool *j; // eax
-    unsigned int v8; // edx
-    unsigned int v9; // eax
-    unsigned int v10; // edi
-    unsigned int v11; // ecx
-    unsigned int v12; // edx
-    unsigned int v13; // eax
-    unsigned int m_mod; // eax
-    unsigned int k; // edi
-    phys_slot_pool *v16; // ecx
-    unsigned int v17; // edx
-    unsigned int collision_counts[64]; // [esp+Ch] [ebp-200h] BYREF
-    phys_slot_pool *entry_list[64]; // [esp+10Ch] [ebp-100h]
-    unsigned int total_collisions; // [esp+214h] [ebp+8h]
-    unsigned int mod_i; // [esp+218h] [ebp+Ch]
-
-    v4 = this->m_hash_table[key % this->m_mod];
-    if ( v4 )
-    {
-        while ( v4->m_map_key != key )
-        {
-            v4 = v4->m_hash_next;
-            if ( !v4 )
-                goto LABEL_7;
-        }
-        if ( _tlAssert(
-                     "C:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_hash_table.h",
-                     38,
-                     "find(key) == NULL",
-                     "") )
-        {
-            __debugbreak();
-        }
-    }
-LABEL_7:
-    entry_list[0] = entry_to_add;
-    v5 = 1;
-    for ( i = 0; i < 0x40; ++i )
-    {
-        for ( j = this->m_hash_table[i]; j; ++v5 )
-        {
-            entry_list[v5] = j;
-            j = j->m_hash_next;
-        }
-        this->m_hash_table[i] = 0;
-    }
-    this->m_mod = v5;
-    this->m_highest_collision = 100000;
-    this->m_total_collisions = 100000;
-    v8 = v5;
-    for ( mod_i = v5; v8 < 0x40; mod_i = v8 )
-    {
-        if ( v8 )
-            memset(collision_counts, 0, 4 * v8);
-        v9 = 0;
-        v10 = 0;
-        v11 = 0;
-        total_collisions = 0;
-        if ( v5 )
-        {
-            do
-            {
-                v12 = entry_list[v11]->m_map_key % mod_i;
-                v13 = ++collision_counts[v12];
-                if ( v13 > v10 )
-                    v10 = collision_counts[v12];
-                total_collisions += v13;
-                ++v11;
-            }
-            while ( v11 < v5 );
-            v8 = mod_i;
-            v9 = total_collisions;
-        }
-        if ( v9 < this->m_total_collisions )
-        {
-            this->m_mod = v8;
-            this->m_highest_collision = v10;
-            this->m_total_collisions = v9;
-        }
-        ++v8;
-    }
-    m_mod = this->m_mod;
-    if ( (!m_mod || m_mod >= 0x40)
-        && _tlAssert(
-                 "C:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_hash_table.h",
-                 83,
-                 "m_mod > 0 && m_mod < TABLE_SIZE",
-                 "") )
-    {
-        __debugbreak();
-    }
-    for ( k = 0; k < v5; this->m_hash_table[v17] = v16 )
-    {
-        v16 = entry_list[k];
-        v17 = v16->m_map_key % this->m_mod;
-        ++k;
-        v16->m_hash_next = this->m_hash_table[v17];
-    }
-}
-
-char * phys_slot_pool::allocate_slot@<eax>(phys_slot_pool *this@<ecx>, unsigned int a2@<ebp>)
+char * phys_slot_pool::allocate_slot()
 {
     char **m_ptr; // edi
     char *v3; // esi

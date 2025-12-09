@@ -9,7 +9,6 @@ void __cdecl ikAxisToQuat(const float (*mat)[3], float *out);
 void __cdecl ikMat44Set(float (*mat)[4], const float *v1, const float *v2, const float *v3, const float *pos);
 // local variable allocation has failed, the output may be wrong!
 void    ikCalcBoneModelMatrix_r(
-                float *a1@<ebp>,
                 IKState *ikState,
                 int boneNum,
                 float *inMatArray,
@@ -29,7 +28,6 @@ void __cdecl ikSolve2D(
                 float *CosLower);
 // local variable allocation has failed, the output may be wrong!
 void    ikMap2DTo3D(
-                float a1@<ebp>,
                 float UpperLimbLength,
                 float SinUpper,
                 float CosUpper,
@@ -44,7 +42,6 @@ void    ikMap2DTo3D(
                 float (*LowerLocalToModel)[4]);
 // local variable allocation has failed, the output may be wrong!
 void    ikSolveLegJoint(
-                int a1@<ebp>,
                 IKState *ikState,
                 IKJointBones *jointBones,
                 IKJointVars *jointVars,
@@ -54,7 +51,6 @@ void    ikSolveLegJoint(
                 bool flipHack);
 // local variable allocation has failed, the output may be wrong!
 void    ikSolveArmJoint(
-                int a1@<ebp>,
                 IKState *ikState,
                 IKJointBones *jointBones,
                 IKJointVars *jointVars,
@@ -65,5 +61,5 @@ void    ikSolveArmJoint(
 void __cdecl IK_FlipHack(float (*mat)[4]);
 void __cdecl ikNormalizedMatrixAssert_func(float (*mat)[4]);
 // local variable allocation has failed, the output may be wrong!
-void    ikRotateBone(float *a1@<ebp>, IKState *ikState, IKBoneNames boneName, float *rot, bool local);
+void    ikRotateBone(IKState *ikState, IKBoneNames boneName, float *rot, bool local);
 void __cdecl ikMatrixLerp44(float (*from)[4], float (*to)[4], float lerp, float (*res)[4]);

@@ -1,5 +1,30 @@
 #pragma once
 
+#include <universal/dvar.h>
+#include "bg_public.h"
+#include "bg_weapons.h"
+
+struct MantleResults // sizeof=0x38
+{                                       // XREF: ?Mantle_Check@@YAXPAUpmove_t@@PAUpml_t@@@Z/r
+    float dir[3];                       // XREF: Mantle_Check(pmove_t *,pml_t *)+19B/w
+                                        // Mantle_Check(pmove_t *,pml_t *)+1A5/w ...
+    float startPos[3];                  // XREF: Mantle_Check(pmove_t *,pml_t *)+1CA/w
+                                        // Mantle_Check(pmove_t *,pml_t *)+1DA/w ...
+    float ledgePos[3];
+    float endPos[3];
+    int flags;                          // XREF: Mantle_Check(pmove_t *,pml_t *)+1FA/r
+                                        // Mantle_Check(pmove_t *,pml_t *)+200/w ...
+    int duration;
+};
+
+struct MantleState // sizeof=0x10
+{                                                                             // XREF: playerState_s/r
+    float yaw;
+    int timer;
+    int transIndex;
+    int flags;
+};
+
 void __cdecl Mantle_RegisterDvars();
 void __cdecl Mantle_CreateAnims(void *(__cdecl *xanimAlloc)(int));
 int __cdecl Trans_GetUpIndex(unsigned int transIndex);
@@ -17,9 +42,8 @@ int __cdecl Mantle_GetOverLength(const MantleState *mstate);
 void __cdecl Mantle_GetAnimDelta(MantleState *mstate, int time, float *delta);
 int __cdecl Mantle_FindTransition(float curHeight, float goalHeight);
 void __cdecl Mantle_SetHaveWeapon(MantleState *mstate, const playerState_s *ps);
-// local variable allocation has failed, the output may be wrong!
-void    Mount_CheckLedge(cStaticModel_s *a1@<ebp>, pmove_t *pm, pml_t *pml, MantleResults *mresults);
-char    Mantle_FindMantleSurface@<al>(int a1@<ebp>, pmove_t *pm, pml_t *pml, trace_t *trace, float *mantleDir);
+void    Mount_CheckLedge(pmove_t *pm, pml_t *pml, MantleResults *mresults);
+char    Mantle_FindMantleSurface(pmove_t *pm, pml_t *pml, trace_t *trace, float *mantleDir);
 void __cdecl Mantle_Move(pmove_t *pm, playerState_s *ps, pml_t *pml);
 int __cdecl Mantle_GetAnim(MantleState *mstate);
 void __cdecl Mantle_CapView(playerState_s *ps);

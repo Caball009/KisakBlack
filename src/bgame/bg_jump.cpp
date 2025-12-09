@@ -1,4 +1,13 @@
 #include "bg_jump.h"
+#include "bg_local.h"
+#include "bg_pmove.h"
+#include "bg_misc.h"
+
+const dvar_t *jump_height;
+const dvar_t *jump_stepSize;
+const dvar_t *jump_slowdownEnable;
+const dvar_t *jump_ladderPushVel;
+const dvar_t *jump_spreadAdd;
 
 void __cdecl Jump_RegisterDvars()
 {
@@ -231,11 +240,14 @@ char __cdecl Jump_Check(pmove_t *pm, pml_t *pml)
         return 0;
     if ( PM_GetEffectiveStance(ps) && ps->groundEntityNum != 1023 )
         return 0;
-    if ( !bitarray<51>::testBit(&pm->cmd.button_bits, 0xAu) )
+    //if ( !bitarray<51>::testBit(&pm->cmd.button_bits, 0xAu) )
+    if ( !pm->cmd.button_bits.testBit(10) )
         return 0;
-    if ( bitarray<51>::testBit(&pm->oldcmd.button_bits, 0xAu) )
+    //if ( bitarray<51>::testBit(&pm->oldcmd.button_bits, 0xAu) )
+    if ( pm->oldcmd.button_bits.testBit(10) )
     {
-        bitarray<51>::resetBit(&pm->cmd.button_bits, 0xAu);
+        //bitarray<51>::resetBit(&pm->cmd.button_bits, 0xAu);
+        pm->cmd.button_bits.resetBit(10);
         return 0;
     }
     else if ( (pml->groundTrace.sflags & 2) != 0 )
@@ -381,18 +393,19 @@ void __cdecl Jump_AddSurfaceEvent(playerState_s *ps, pml_t *pml)
     }
 }
 
-void __thiscall bitarray<51>::resetBit(bitarray<51> *this, unsigned int pos)
-{
-    if ( pos >= 0x33
-        && !Assert_MyHandler(
-                    "c:\\projects_pc\\cod\\codsrc\\src\\universal\\../qcommon/bitarray.h",
-                    127,
-                    0,
-                    "%s",
-                    "pos < BIT_COUNT") )
-    {
-        __debugbreak();
-    }
-    this->array[pos >> 5] &= ~(0x80000000 >> (pos & 0x1F));
-}
-
+//void __thiscall bitarray<51>::resetBit(bitarray<51> *this, unsigned int pos)
+//{
+//    if ( pos >= 0x33
+//        && !Assert_MyHandler(
+//                    "c:\\projects_pc\\cod\\codsrc\\src\\universal\\../qcommon/bitarray.h",
+//                    127,
+//                    0,
+//                    "%s",
+//                    "pos < BIT_COUNT") )
+//    {
+//        __debugbreak();
+//    }
+//    this->array[pos >> 5] &= ~(0x80000000 >> (pos & 0x1F));
+//}
+//
+//

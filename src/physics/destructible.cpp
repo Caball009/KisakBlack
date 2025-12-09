@@ -1,4 +1,35 @@
 #include "destructible.h"
+#include <game_mp/g_utils_mp.h>
+#include <game_mp/g_main_mp.h>
+#include <cgame_mp/cg_local_mp.h>
+#include "xdoll.h"
+#include <universal/mem_userhunk.h>
+#include <xanim/xmodel_utils.h>
+#include <server_mp/sv_init_mp.h>
+#include <sound/snd_bank.h>
+#include <xanim/dobj.h>
+#include <xanim/xmodel.h>
+#include <cgame_mp/cg_main_mp.h>
+#include <clientscript/scr_const.h>
+#include <game_mp/g_spawn_mp.h>
+
+int g_numDisabledLables;
+int g_disabledLabels[10];
+
+Destructible s_destructibles[64];
+unsigned int s_numDestructibles;
+int cg_numDisabledLables;
+
+int cg_disabledLabels[10];
+Destructible *cg_destructibles[1];
+
+HunkUser *g_pieceArrayHunk;
+HunkUser *g_cgPieceArrayHunk;
+
+int cg_updateTime[1];
+unsigned int cg_numDestructibles[1];
+
+unsigned __int8 g_pieceArrayBuffer[73728];
 
 bool __cdecl hasLabel(DestructibleDef *ddef, unsigned __int16 label)
 {
@@ -51,7 +82,7 @@ void __cdecl DisableDestructiblePiece(int label)
     g_disabledLabels[g_numDisabledLables++] = label;
     for ( j = 0; j < s_numDestructibles; ++j )
     {
-        if ( hasLabel((DestructibleDef *)dword_9BBD5A4[43 * j], label) )
+        if (hasLabel(s_destructibles[j].ddef, label))
             G_DObjUpdate(&g_entities[s_destructibles[j].entNum]);
     }
 }
@@ -150,8 +181,8 @@ Destructible *__cdecl Destructible_GetFreeDestructible()
         if ( s_destructibles[i].entNum == 1023 )
         {
             ++s_numDestructibles;
-            dword_9BBD598[43 * i] = 0;
-            byte_9BBD59C[172 * i] = 0;
+            s_destructibles[i].oldestBurnTime = 0;
+            s_destructibles[i].destructiblePoseID = 0;
             return &s_destructibles[i];
         }
     }
@@ -490,7 +521,7 @@ unsigned int __cdecl DestructibleUpdate(gentity_s *ent, DObjModel_s *dobjModels,
     }
     else
     {
-        Com_Error(ERR_DROP, &byte_D14D38, 64, ddef->name);
+        Com_Error(ERR_DROP, "Hit max destructible count [%d] when creating %s", 64, ddef->name);
     }
     if ( !ent->destructible->ddef
         && !Assert_MyHandler(
@@ -720,7 +751,7 @@ void __cdecl DestructibleExplosiveDamageEvent(
                 gentity_s *self,
                 const float *point,
                 float radius,
-                entityState_s::<unnamed_type_un1> mod)
+                entityState_s::unnamed_type_un1 mod)
 {
     gentity_s *tent; // [esp+1Ch] [ebp-4h]
 
@@ -761,7 +792,7 @@ void __cdecl DestructibleBulletDamageEvent(
                 gentity_s *self,
                 const float *point,
                 const float *dir,
-                entityState_s::<unnamed_type_un1> mod)
+                entityState_s::unnamed_type_un1 mod)
 {
     gentity_s *tent; // [esp+1Ch] [ebp-4h]
 

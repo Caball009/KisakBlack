@@ -590,11 +590,6 @@ notSet:
     }
 }
 
-double __cdecl Vec4LengthSq(const float *v)
-{
-    return *v * *v + v[1] * v[1] + v[2] * v[2] + v[3] * v[3];
-}
-
 void __cdecl MatrixTransformVectorQuatTrans(const float *in, const DObjAnimMat *mat, float *out)
 {
     float axis[3][3]; // [esp+48h] [ebp-24h] BYREF

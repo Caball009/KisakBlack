@@ -1,5 +1,10 @@
 #pragma once
 
+#include <universal/dvar.h>
+#include "bg_public.h"
+#include "bg_weapons.h"
+
+
 void __cdecl Jump_RegisterDvars();
 void __cdecl Jump_ClearState(playerState_s *ps);
 char __cdecl Jump_GetStepHeight(playerState_s *ps, const float *origin, float *stepSize);
@@ -14,4 +19,10 @@ void __cdecl Jump_Start(pmove_t *pm, pml_t *pml, float height);
 double __cdecl Jump_GetLandFactor(playerState_s *ps);
 void __cdecl Jump_PushOffLadder(playerState_s *ps, pml_t *pml);
 void __cdecl Jump_AddSurfaceEvent(playerState_s *ps, pml_t *pml);
-void __thiscall bitarray<51>::resetBit(bitarray<51> *this, unsigned int pos);
+//void __thiscall bitarray<51>::resetBit(bitarray<51> *this, unsigned int pos);
+
+extern const dvar_t *jump_height;
+extern const dvar_t *jump_stepSize;
+extern const dvar_t *jump_slowdownEnable;
+extern const dvar_t *jump_ladderPushVel;
+extern const dvar_t *jump_spreadAdd;

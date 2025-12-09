@@ -1,4 +1,90 @@
 #include "ik_import.h"
+#include <clientscript/cscr_stringlist.h>
+#include <xanim/dobj_utils.h>
+#include <xanim/xmodel.h>
+#include <cgame_mp/cg_pose_mp.h>
+#include <xanim/dobj_skel.h>
+#include "ik_math.h"
+
+unsigned __int16 ikImportMiscBoneStringVars[3];
+
+const char *ikImportBoneStrings[23] =
+{
+  "tag_origin",
+  "j_mainroot",
+  "j_spinelower",
+  "j_spineupper",
+  "j_spine4",
+  "j_neck",
+  "j_head",
+  "j_clavicle_le",
+  "j_shoulder_le",
+  "j_elbow_le",
+  "j_wrist_le",
+  "j_wristtwist_le",
+  "j_clavicle_ri",
+  "j_shoulder_ri",
+  "j_elbow_ri",
+  "j_wrist_ri",
+  "j_hip_le",
+  "j_knee_le",
+  "j_ankle_le",
+  "j_hip_ri",
+  "j_knee_ri",
+  "j_ankle_ri",
+  "tag_weapon_right"
+};
+
+const char *ikImportMiscBoneStrings[3] =
+{ "left_hand_ik", "right_hand_ik", "tag_head" };
+
+IKBoneNames minBoneExtents[6] =
+{
+  IKBONE_HEAD,
+  IKBONE_LHAND,
+  IKBONE_LWRIST_TWIST,
+  IKBONE_RWEAPON,
+  IKBONE_LFOOT,
+  IKBONE_RFOOT
+};
+
+bool ikEssentialBones[] =
+{
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  false,
+  false,
+  false,
+  false,
+  false
+};
+
+
+
+unsigned __int16 ikImportBoneStringVars[24];
+
+
 
 void __cdecl IKImport_InitVars(IKSystem *ikSystem)
 {
@@ -35,18 +121,18 @@ void __cdecl IKImport_InitVars(IKSystem *ikSystem)
                                                     "Turn on/off AI hand IK tuning. 1 = Use anim flag. 2 = Force on for all anims.");
     ikSystem->dvars[12] = _Dvar_RegisterVec3(
                                                     "ik_ai_hand_offset_vec",
-                                                    COERCE_UNSIGNED_INT(0.0),
-                                                    COERCE_UNSIGNED_INT(0.0),
-                                                    COERCE_UNSIGNED_INT(0.0),
+                                                    unsigned int(0.0),
+                                                    unsigned int(0.0),
+                                                    unsigned int(0.0),
                                                     -10.0,
                                                     10.0,
                                                     0x4080u,
                                                     "Offset vector for hand tuning");
     ikSystem->dvars[13] = _Dvar_RegisterVec3(
                                                     "ik_ai_hand_rotation_vec",
-                                                    COERCE_UNSIGNED_INT(0.0),
-                                                    COERCE_UNSIGNED_INT(0.0),
-                                                    COERCE_UNSIGNED_INT(0.0),
+                                                    unsigned int(0.0),
+                                                    unsigned int(0.0),
+                                                    unsigned int(0.0),
                                                     -180.0,
                                                     180.0,
                                                     0x4080u,
@@ -154,7 +240,7 @@ int __cdecl IKImport_GetVar_IK_Hand_Tuning()
 
 void __cdecl IKImport_GetVar_IK_Hand_Offset_Vec(float *offset)
 {
-    DvarValue *p_current; // [esp+0h] [ebp-4h]
+    const DvarValue *p_current; // [esp+0h] [ebp-4h]
 
     p_current = &ikSystem.dvars[12]->current;
     *offset = ikSystem.dvars[12]->current.value;
@@ -164,7 +250,7 @@ void __cdecl IKImport_GetVar_IK_Hand_Offset_Vec(float *offset)
 
 void __cdecl IKImport_GetVar_IK_Hand_Rotation_Vec(float *rotation)
 {
-    DvarValue *p_current; // [esp+0h] [ebp-4h]
+    const DvarValue *p_current; // [esp+0h] [ebp-4h]
 
     p_current = &ikSystem.dvars[13]->current;
     *rotation = ikSystem.dvars[13]->current.value;
@@ -525,7 +611,7 @@ void __cdecl IKImport_ApplyIKToSkeletonModelBones()
 }
 
 // local variable allocation has failed, the output may be wrong!
-void    IKImport_ApplyIKToSkeletonLocalBones(DObjAnimMat *a1@<ebp>, IKState *ikState)
+void    IKImport_ApplyIKToSkeletonLocalBones(IKState *ikState)
 {
     _BYTE v2[76]; // [esp-Ch] [ebp-24Ch] OVERLAPPED BYREF
     float v3; // [esp+40h] [ebp-200h]
@@ -587,12 +673,12 @@ void    IKImport_ApplyIKToSkeletonLocalBones(DObjAnimMat *a1@<ebp>, IKState *ikS
     unsigned __int8 *boneLookup; // [esp+20Ch] [ebp-34h]
     int i; // [esp+210h] [ebp-30h]
     DObjAnimMat animMatXform; // [esp+214h] [ebp-2Ch] BYREF
-    DObjAnimMat *matArray; // [esp+234h] [ebp-Ch]
-    DObj *obj; // [esp+238h] [ebp-8h]
+    //DObjAnimMat *matArray; // [esp+234h] [ebp-Ch]
+    //DObj *obj; // [esp+238h] [ebp-8h]
     DObj *retaddr; // [esp+240h] [ebp+0h]
 
-    matArray = a1;
-    obj = retaddr;
+    //matArray = a1;
+    //obj = retaddr;
     LODWORD(animMatXform.trans[2]) = ikState->model;
     if ( !LODWORD(animMatXform.trans[2])
         && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\ik\\ik_import.cpp", 915, 0, "%s", "obj") )
@@ -789,10 +875,8 @@ void    IKImport_ApplyIKToSkeletonLocalBones(DObjAnimMat *a1@<ebp>, IKState *ikS
 
 void __cdecl IKImport_ApplyIKToSkeleton(IKState *ikState, bool isLocalBones)
 {
-    int savedregs; // [esp+0h] [ebp+0h] BYREF
-
     if ( isLocalBones )
-        IKImport_ApplyIKToSkeletonLocalBones((DObjAnimMat *)&savedregs, ikState);
+        IKImport_ApplyIKToSkeletonLocalBones(ikState);
     else
         IKImport_ApplyIKToSkeletonModelBones();
 }
@@ -840,7 +924,7 @@ bool __cdecl IKImport_IsIKEntity_Internal(unsigned __int8 *model)
     DObjSetFlag((DObj *)model, 8u, 0);
     if ( !IKImport_GetVar_IK_Enable() )
         return 0;
-    if ( !dword_9C3D758[DObjGetLocalClientIndex((const DObj *)model)] )
+    if ( !ikStates[DObjGetLocalClientIndex((const DObj *)model) + 1] )
         return 0;
     if ( ikState && !ikState->isIKModel )
         return 0;
@@ -932,7 +1016,7 @@ bool __cdecl IKImport_BypassTerrainMapping(IKState *ikState)
     return 1;
 }
 
-char __cdecl IKImport_ApplyTerrainMapping(IKState *ikState)
+bool __cdecl IKImport_ApplyTerrainMapping(IKState *ikState)
 {
     int LocalClientIndex; // eax
     int v3; // eax
@@ -2498,7 +2582,7 @@ bool __cdecl IKImport_IsSpectating(IKState *ikState)
             && ikState->entityNum == cgameGlob->predictedPlayerState.clientNum;
 }
 
-char __cdecl IKImport_IsMoving(IKState *ikState)
+bool __cdecl IKImport_IsMoving(IKState *ikState)
 {
     float velocity[3]; // [esp+4h] [ebp-Ch] BYREF
 
@@ -2560,7 +2644,7 @@ void __cdecl IKImport_UpdateWeaponClass(IKState *ikState)
     ikState->weaponClass = IKImport_GetWeaponDef(ikState)->weapClass == WEAPCLASS_SPREAD;
 }
 
-LerpEntityStateActor::<unnamed_type_index> __cdecl IKImport_GetActorNum(unsigned __int8 *model)
+int __cdecl IKImport_GetActorNum(unsigned __int8 *model)
 {
     int LocalClientIndex; // eax
     int v2; // eax

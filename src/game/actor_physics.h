@@ -1,5 +1,66 @@
 #pragma once
 
+#include <physics/phys_colgeom.h>
+
+enum aiphys_t : __int32
+{                                       // XREF: actor_physics_t/r
+    AIPHYS_BAD                    = 0x0,
+    AIPHYS_NORMAL_ABSOLUTE        = 0x1,
+    AIPHYS_NORMAL_RELATIVE        = 0x2,
+    AIPHYS_NOCLIP                 = 0x3,
+    AIPHYS_NOGRAVITY              = 0x4,
+    AIPHYS_ZONLY_PHYSICS_RELATIVE = 0x5,
+};
+
+struct actor_physics_t // sizeof=0x7D0
+{                                       // XREF: actor_s/r
+    //actor_physics_t *__thiscall actor_physics_t::operator=(actor_physics_t *this, const actor_physics_t *__that);
+    
+                                        // Path_CanLinkNodes/r ...
+    float vOrigin[3];                   // XREF: AIPhys_StepSlideMove+48B/r
+                                        // AIPhys_StepSlideMove+4A3/r ...
+    float vVelocity[3];                 // XREF: Path_CanLinkNodes+281/w
+                                        // Path_CanLinkNodes+291/w ...
+    unsigned __int16 groundEntNum;      // XREF: Path_CanLinkNodes+2AE/w
+    // padding byte
+    // padding byte
+    int iFootstepTimer;
+    int bHasGroundPlane;                // XREF: Path_CanLinkNodes:loc_92E42B/r
+    float groundplaneSlope;
+    int iSurfaceType;
+    float vWishDelta[3];                // XREF: Path_CanLinkNodes+2C2/w
+                                        // Path_CanLinkNodes+2D7/w ...
+    int bIsAlive;                       // XREF: Path_CanLinkNodes+2EF/w
+    int iEntNum;                        // XREF: Path_CanLinkNodes+2F9/w
+    aiphys_t ePhysicsType;              // XREF: Path_CanLinkNodes+303/w
+    float fGravity;                     // XREF: Path_CanLinkNodes+318/w
+    int iMsec;                          // XREF: Path_CanLinkNodes+320/w
+    float vMins[3];                     // XREF: Path_CanLinkNodes+332/w
+                                        // Path_CanLinkNodes+342/w ...
+    float vMaxs[3];                     // XREF: Path_CanLinkNodes+362/w
+                                        // Path_CanLinkNodes+372/w ...
+    bool prone;
+    // padding byte
+    // padding byte
+    // padding byte
+    int iTraceMask;                     // XREF: Path_CanLinkNodes+3EA/w
+    int foliageSoundTime;
+    int iNumTouch;
+    int iTouchEnts[32];
+    int iHitEntnum;                     // XREF: Path_CanLinkNodes:loc_92E476/r
+                                        // Path_CanLinkNodes:loc_92E56F/r
+    float vHitOrigin[3];
+    float vHitNormal[3];
+    unsigned __int8 bStuck;
+    unsigned __int8 bDeflected;
+    // padding byte
+    // padding byte
+    const gjkcc_input_t *m_gjkcc_input;
+    colgeom_visitor_inlined_t<200> proximity_data;
+                                        // XREF: AIPhys_StepSlideMove+49/o
+                                        // AIPhys_StepSlideMove+133/w ...
+};
+
 void __cdecl setup_gjkcc_input(pmove_t *pm, gjkcc_input_t *gjkcc_in);
 void __cdecl AIPhys_AddTouchEnt(actor_physics_t *pPhys, int entityNum);
 void __cdecl setup_gjkcc_input(actor_physics_t *pPhys, gjkcc_input_t *gjkcc_in);
@@ -20,11 +81,7 @@ void __cdecl AIPhys_ClipVelocity(const float *in, const float *normal, bool isWa
 bool __cdecl AIPhys_StepSlideMove(actor_physics_t *pPhys, int gravity, int zonly);
 int __cdecl AIPhys_SlideMove(actor_physics_t *pPhys, int gravity, int zonly);
 void __thiscall ai_gjk_slide_move_input_t::custom_process(ai_gjk_slide_move_input_t *this, gjk_trace_output_t *gto);
-actor_physics_t *__thiscall actor_physics_t::operator=(actor_physics_t *this, const actor_physics_t *__that);
-colgeom_visitor_inlined_t<200> *__thiscall colgeom_visitor_inlined_t<200>::operator=(
-                colgeom_visitor_inlined_t<200> *this,
-                const colgeom_visitor_inlined_t<200> *__that);
-colgeom_visitor_t *__thiscall colgeom_visitor_t::operator=(colgeom_visitor_t *this, const colgeom_visitor_t *__that);
+
 bool __cdecl AIPhys_WalkMove(actor_physics_t *pPhys);
 bool __cdecl AIPhys_ZOnlyPhysicsMove(actor_physics_t *pPhys);
 void __cdecl AIPhys_NoClipMove(actor_physics_t *pPhys);
@@ -34,5 +91,8 @@ int __cdecl Actor_Physics(actor_physics_t *pPhys);
 int __cdecl Actor_Physics_z(actor_physics_t *pPhys);
 void __cdecl Actor_PostPhysics(actor_physics_t *pPhys);
 void __cdecl AIPhys_Footsteps(actor_physics_t *pPhys);
-colgeom_visitor_inlined_t<200> *__thiscall colgeom_visitor_inlined_t<200>::colgeom_visitor_inlined_t<200>(
-                colgeom_visitor_inlined_t<200> *this);
+//colgeom_visitor_inlined_t<200> *__thiscall colgeom_visitor_inlined_t<200>::colgeom_visitor_inlined_t<200>(colgeom_visitor_inlined_t<200> *this);
+//colgeom_visitor_inlined_t<200> *__thiscall colgeom_visitor_inlined_t<200>::operator=(
+//    colgeom_visitor_inlined_t<200> *this,
+//    const colgeom_visitor_inlined_t<200> *__that);
+//colgeom_visitor_t *__thiscall colgeom_visitor_t::operator=(colgeom_visitor_t *this, const colgeom_visitor_t *__that);

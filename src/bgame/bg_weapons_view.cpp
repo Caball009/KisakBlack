@@ -1157,20 +1157,6 @@ void __cdecl BG_ApplyWeaponMovement_BobOrigin(weaponState_t *ws, float *origin)
     MatrixTransformVector(originCopy, bobAxis, origin);
 }
 
-void __cdecl MatrixTransformVector(const float *in1, const float (*in2)[3], float *out)
-{
-    if ( in1 == out
-        && !Assert_MyHandler("c:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.h", 1399, 0, "%s", "in1 != out") )
-    {
-        __debugbreak();
-    }
-    *out = (float)((float)(*in1 * (*in2)[0]) + (float)(in1[1] * (float)(*in2)[3])) + (float)(in1[2] * (float)(*in2)[6]);
-    out[1] = (float)((float)(*in1 * (float)(*in2)[1]) + (float)(in1[1] * (float)(*in2)[4]))
-                 + (float)(in1[2] * (float)(*in2)[7]);
-    out[2] = (float)((float)(*in1 * (float)(*in2)[2]) + (float)(in1[1] * (float)(*in2)[5]))
-                 + (float)(in1[2] * (float)(*in2)[8]);
-}
-
 double __cdecl BG_CalculateViewMovement_VerticalBobFactor(const playerState_s *ps, float cycle, float speed)
 {
     long double v4; // [esp+0h] [ebp-14h]

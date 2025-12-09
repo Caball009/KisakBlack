@@ -1,7 +1,7 @@
 #include "ik_layers.h"
 
 // local variable allocation has failed, the output may be wrong!
-void    IK_Layer_TerrainMapping(float a1@<ebp>, IKState *ikState)
+void    IK_Layer_TerrainMapping(IKState *ikState)
 {
     float *v2; // edx
     float *v3; // ecx
@@ -288,7 +288,7 @@ void    IK_Layer_TerrainMapping(float a1@<ebp>, IKState *ikState)
     layerLerp = a1;
     layerName = retaddr;
     *(unsigned int *)&v281[72] = 9;
-    *(float *)&v281[68] = IKImport_GetLayerLerp(ikState, IKLAYER_TERRAIN_MAPPING, flt_E12704);
+    *(float *)&v281[68] = IKImport_GetLayerLerp(ikState, IKLAYER_TERRAIN_MAPPING, 0.1f);
     if ( *(float *)&v281[68] > 0.0 )
     {
         v280 = ikState->entityNum < 32;

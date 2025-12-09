@@ -1,5 +1,8 @@
 #pragma once
 
+struct leafList_s;
+struct cLeafBrushNode_s;
+
 int __cdecl CM_PointLeafnum_r(const float *p, int num);
 int __cdecl CM_PointLeafnum(const float *p);
 void __cdecl CM_BoxLeafnums_r(leafList_s *ll, int nodenum);

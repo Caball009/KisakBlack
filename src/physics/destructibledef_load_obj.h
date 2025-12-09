@@ -1,4 +1,7 @@
 #pragma once
+#include "destructible.h"
+
+struct XModel;
 
 int __cdecl XModelGetBoneIndex(const XModel *model, unsigned int name, unsigned int offset, unsigned __int8 *index);
 bool __cdecl DestructiblePiece_ParseDefSpecificFieldType(unsigned __int8 *pStruct, const char *pValue, int iFieldType);

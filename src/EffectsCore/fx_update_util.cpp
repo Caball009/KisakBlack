@@ -365,14 +365,6 @@ void __cdecl FX_GetOrientation(
     }
 }
 
-bool __cdecl Vec4IsNormalized(const float *v)
-{
-    float v2; // [esp+4h] [ebp-4h]
-
-    v2 = Vec4LengthSq(v) - 1.0;
-    return fabs(v2) < 0.0020000001;
-}
-
 void __cdecl FX_GetVelocityAtTime(
                 const FxElemDef *elemDef,
                 int randomSeed,

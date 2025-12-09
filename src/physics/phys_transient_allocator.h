@@ -1,7 +1,31 @@
 #pragma once
+#include "phys_local.h"
 
-void __thiscall phys_transient_allocator::reset(phys_transient_allocator *this);
-void __thiscall phys_transient_allocator::reset_to_state(
-                phys_transient_allocator *this,
-                const phys_transient_allocator::allocator_state *as);
-void __thiscall phys_transient_allocator::resize(phys_transient_allocator *this);
+struct phys_transient_allocator // sizeof=0x18
+{                                       // XREF: pulse_sum_constraint_solver/r
+    struct block_header // sizeof=0xC
+    {
+        unsigned int m_block_size;
+        unsigned int m_block_alignment;
+        phys_transient_allocator::block_header *m_next_block;
+    };
+    struct allocator_state // sizeof=0x10
+    {                                       // XREF: gjk_query_output/r
+        phys_transient_allocator::block_header *m_first_block;
+        char *m_cur;                        // XREF: pulse_sum_constraint_solver::execute_constraint_solver(rigid_body * const)+2B9/w
+        char *m_end;                        // XREF: pulse_sum_constraint_solver::execute_constraint_solver(rigid_body * const)+2CE/w
+        unsigned int m_total_memory_allocated;
+    };
+    phys_transient_allocator::block_header *m_first_block;
+    char *m_cur;                        // XREF: physics_system::time_step(float,bool)+14F/w
+    char *m_end;                        // XREF: physics_system::time_step(float,bool)+152/w
+    unsigned int m_total_memory_allocated;
+    minspec_read_write_mutex m_mutex;   // XREF: physics_system::time_step(float,bool)+158/w
+    void *m_slot_pool;                  // XREF: physics_system::time_step(float,bool)+15F/w
+
+    ~phys_transient_allocator();
+
+    void reset();
+    void reset_to_state(const phys_transient_allocator::allocator_state *as);
+    void resize();
+};

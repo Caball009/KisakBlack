@@ -1,8 +1,128 @@
 #include "ik.h"
+#include "ik_import.h"
+#include <win32/win_common.h>
+#include <qcommon/common.h>
+#include "ik_math.h"
+#include "ik_process.h"
+
+IKBoneNames IKBoneParents[] =
+{
+  IKBONE_NONE,
+  IKBONE_FIRST,
+  IKBONE_PELVIS,
+  IKBONE_SPINE,
+  IKBONE_SPINE1,
+  IKBONE_SPINE2,
+  IKBONE_NECK,
+  IKBONE_SPINE2,
+  IKBONE_LCLAVICLE,
+  IKBONE_LUPPERARM,
+  IKBONE_LFOREARM,
+  IKBONE_LFOREARM,
+  IKBONE_SPINE2,
+  IKBONE_RCLAVICLE,
+  IKBONE_RUPPERARM,
+  IKBONE_RFOREARM,
+  IKBONE_PELVIS,
+  IKBONE_LTHIGH,
+  IKBONE_LCALF,
+  IKBONE_PELVIS,
+  IKBONE_RTHIGH,
+  IKBONE_RCALF,
+  IKBONE_RHAND
+};
+
+bool ikEssentialBones[] =
+{
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  false,
+  false,
+  false,
+  false,
+  false
+};
+
+float ikLayerLerpTimes[] =
+{
+  0.30000001,
+  0.30000001,
+  1.5,
+  0.69999999,
+  0.40000001,
+  0.050000001,
+  0.5,
+  0.40000001,
+  0.30000001,
+  0.1,
+  0.30000001,
+  0.15000001,
+  0.30000001,
+  0.30000001,
+  0.30000001,
+  0.0,
+  0.1,
+  0.2,
+  0.0,
+  0.30000001,
+  0.30000001,
+  0.0
+};
+
+int ikLayerRealLayers[] =
+{ 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0 };
+
+int ikLegSolverLayers[21] =
+{ 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1 };
+
+int ikArmSolverLayers[21] =
+{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0 };
+
+
+
+bool (__cdecl *ikStatusFunctions[10])(IKState *) =
+{
+  &IKImport_IsSpectating,
+  &IKImport_IsProne,
+  &IKImport_IsCrouching,
+  &IKImport_IsFiring,
+  &IKImport_IsMountedTurret,
+  &IKImport_ApplyTerrainMapping,
+  &IKImport_BypassTerrainMapping,
+  &IKImport_ApplyLeftHandIK,
+  &IKImport_ApplyRightHandIK,
+  &IKImport_IsMoving
+};
+
+
+IKState *ikStates[2];
+IKSystem ikSystem;
+
 
 void __cdecl IK_AllocateLocalClientMemory(void *ikStatesBuf, int localClientIndex)
 {
-    dword_9C3D758[localClientIndex] = (int)ikStatesBuf;
+    ikStates[localClientIndex + 1] = (IKState*)ikStatesBuf;
 }
 
 void __cdecl IK_InitSystem()
@@ -33,7 +153,7 @@ void __cdecl IK_InitSystem()
     ikSystem.bInitialized = 1;
 }
 
-IKState *__cdecl IK_GetIKStateForEntity(unsigned int entityNum, unsigned __int8 *model, bool bScanAll)
+IKState *__cdecl IK_GetIKStateForEntity(int entityNum, unsigned __int8 *model, bool bScanAll)
 {
     int actorNum; // [esp+0h] [ebp-Ch]
     int modelLocalClientIndex; // [esp+4h] [ebp-8h]
@@ -41,47 +161,47 @@ IKState *__cdecl IK_GetIKStateForEntity(unsigned int entityNum, unsigned __int8 
     IKState *ikState; // [esp+8h] [ebp-4h]
     IKState *ikStatea; // [esp+8h] [ebp-4h]
 
-    if ( entityNum >= 0x400
+    if ((unsigned int)entityNum >= 0x400
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\ik\\ik.cpp",
-                    389,
-                    0,
-                    "%s",
-                    "entityNum >= 0 && entityNum <= IK_STATE_ENTITY_LOOKUP_MAX") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\ik\\ik.cpp",
+            389,
+            0,
+            "%s",
+            "entityNum >= 0 && entityNum <= IK_STATE_ENTITY_LOOKUP_MAX"))
     {
         __debugbreak();
     }
-    if ( !model )
+    if (!model)
         return 0;
-    if ( entityNum == 1023 )
+    if (entityNum == 1023)
         return 0;
     ikState = IKImport_FetchDObjIKState(model);
-    if ( !ikState )
+    if (!ikState)
     {
-LABEL_17:
+    LABEL_17:
         modelLocalClientIndexa = IKImport_GetLocalClientIndexForModel(model);
-        if ( !dword_9C3D758[modelLocalClientIndexa] )
+        if (!ikStates[modelLocalClientIndexa + 1])
             return 0;
-        if ( (int)entityNum >= 32 )
+        if (entityNum >= 32)
         {
-            actorNum = IKImport_GetActorNum(model).actorNum;
-            if ( (unsigned int)actorNum >= 0x10
+            actorNum = IKImport_GetActorNum(model);
+            if ((unsigned int)actorNum >= 0x10
                 && !Assert_MyHandler(
-                            "C:\\projects_pc\\cod\\codsrc\\src\\ik\\ik.cpp",
-                            442,
-                            0,
-                            "%s",
-                            "actorNum >= 0 && actorNum < MAX_ACTORS") )
+                    "C:\\projects_pc\\cod\\codsrc\\src\\ik\\ik.cpp",
+                    442,
+                    0,
+                    "%s",
+                    "actorNum >= 0 && actorNum < MAX_ACTORS"))
             {
                 __debugbreak();
             }
-            ikStatea = (IKState *)(dword_9C3D758[modelLocalClientIndexa] + 3680 * (actorNum + 32));
+            ikStatea = &ikStates[modelLocalClientIndexa + 1][actorNum + 32];
         }
         else
         {
-            ikStatea = (IKState *)(dword_9C3D758[modelLocalClientIndexa] + 3680 * entityNum);
+            ikStatea = &ikStates[modelLocalClientIndexa + 1][entityNum];
         }
-        if ( ikStatea->inUse )
+        if (ikStatea->inUse)
         {
             ikStatea->model = model;
             IK_InitializeIKState(ikStatea);
@@ -90,21 +210,21 @@ LABEL_17:
         }
         else
         {
-            if ( bScanAll )
+            if (bScanAll)
                 return IK_CreateIKForEntity(entityNum, model);
             return 0;
         }
     }
     modelLocalClientIndex = IKImport_GetLocalClientIndexForModel(model);
-    if ( ikState->inUse )
+    if (ikState->inUse)
     {
-        if ( ikState->entityNum == entityNum && ikState->localClientIndex == modelLocalClientIndex )
+        if (ikState->entityNum == entityNum && ikState->localClientIndex == modelLocalClientIndex)
             return ikState;
         ikState->inUse = 0;
         IKImport_SetDObjIKState((DObj *)model, 0);
         goto LABEL_17;
     }
-    if ( IKImport_IsMainThread() )
+    if (IKImport_IsMainThread())
         return IK_CreateIKForEntity(entityNum, model);
     return 0;
 }
@@ -209,8 +329,7 @@ IKState *__cdecl IK_FindFreeIKState(int entityNum, unsigned __int8 *model)
     return 0;
 }
 
-// local variable allocation has failed, the output may be wrong!
-void    IK_GetJointVars(IKJointBones *a1@<ebp>, IKState *ikState)
+void    IK_GetJointVars(IKState *ikState)
 {
     float v2; // [esp-8h] [ebp-138h]
     float footHeightFromGround; // [esp+0h] [ebp-130h]
@@ -221,11 +340,11 @@ void    IK_GetJointVars(IKJointBones *a1@<ebp>, IKState *ikState)
     int *joints; // [esp+118h] [ebp-18h]
     int v10; // [esp+11Ch] [ebp-14h]
     IKJointVars *jointVars; // [esp+120h] [ebp-10h]
-    IKJointBones *joint; // [esp+124h] [ebp-Ch]
+    //IKJointBones *joint; // [esp+124h] [ebp-Ch]
     int i; // [esp+128h] [ebp-8h]
     int retaddr; // [esp+130h] [ebp+0h]
 
-    joint = a1;
+    //joint = a1;
     i = retaddr;
     HIBYTE(jointVars) = 1;
     v10 = 0;
@@ -270,8 +389,11 @@ void    IK_GetJointVars(IKJointBones *a1@<ebp>, IKState *ikState)
                     v8->LowerIKc = 1.0 / (float)(2.0 * footHeightFromGround);
                     v8->LowerIKInvc = (float)((float)(footHeightFromGround * footHeightFromGround) - (float)(v2 * v2))
                                                     / (float)(2.0 * footHeightFromGround);
-                    if ( v10 >= 2 )
-                        ikState->footHeightFromGround = FLOAT_5_8000002;
+                    if (v10 >= 2)
+                    {
+                        //ikState->footHeightFromGround = FLOAT_5_8000002;
+                        ikState->footHeightFromGround = 5.8f;
+                    }
                     v8->bValid = 1;
                 }
                 else
@@ -303,21 +425,21 @@ void __cdecl IK_UpdateTimeAll(int time, int localClientIndex, bool inViewer)
     IKState *ikState; // [esp+0h] [ebp-8h]
     int i; // [esp+4h] [ebp-4h]
 
-    if ( IKImport_GetVar_IK_Enable() && dword_9C3D758[localClientIndex] )
+    if (IKImport_GetVar_IK_Enable() && ikStates[localClientIndex + 1])
     {
         i = 0;
-        ikState = (IKState *)dword_9C3D758[localClientIndex];
-        while ( i < 32 )
+        ikState = ikStates[localClientIndex + 1];
+        while (i < 32)
         {
-            if ( ikState->inUse )
+            if (ikState->inUse)
             {
-                if ( ikState->localClientIndex != localClientIndex
+                if (ikState->localClientIndex != localClientIndex
                     && !Assert_MyHandler(
-                                "C:\\projects_pc\\cod\\codsrc\\src\\ik\\ik.cpp",
-                                772,
-                                0,
-                                "%s",
-                                "ikState->localClientIndex == localClientIndex") )
+                        "C:\\projects_pc\\cod\\codsrc\\src\\ik\\ik.cpp",
+                        772,
+                        0,
+                        "%s",
+                        "ikState->localClientIndex == localClientIndex"))
                 {
                     __debugbreak();
                 }
@@ -370,7 +492,7 @@ void __cdecl IK_ResetTime()
 
 void __cdecl IK_UpdateDvarValues(IKState *ikState)
 {
-    DvarValue *p_current; // eax
+    const DvarValue *p_current; // eax
     DvarValue *v2; // ecx
     int i; // [esp+0h] [ebp-4h]
 
@@ -453,10 +575,10 @@ void __cdecl IK_UpdateStatusFunctions(IKState *ikState)
                 ikState->statusFlags |= 1 << i;
         }
         ikState->gunnerCrouch = IKImport_GetGunnerCrouch(ikState);
-        if ( IKImport_GetLayerLerp(ikState, IKLAYER_TERRAIN_MAPPING, flt_E12704) > 0.0 )
+        if ( IKImport_GetLayerLerp(ikState, IKLAYER_TERRAIN_MAPPING, 0.1f) > 0.0 )
             IKImport_UpdateCollisionCache(ikState);
         //BLOPS_NULLSUB();
-        IKImport_GetEntityXform((gentity_s *)&savedregs, ikState);
+        IKImport_GetEntityXform(ikState);
         IK_CheckSolverLayers(ikState);
         ikState->lastUpdateStatusFlags = ikState->timeMS;
     }
@@ -507,8 +629,8 @@ void __cdecl IK_UpdateEntity(unsigned int entityNum, unsigned __int8 *model, boo
                 {
                     if ( !ikState->timeMS )
                         ikState->timeMS = 10000;
-                    IKImport_GetEntityXform((gentity_s *)&savedregs, ikState);
-                    IK_Process((int)&savedregs, ikState, isLocalBones);
+                    IKImport_GetEntityXform(ikState);
+                    IK_Process(ikState, isLocalBones);
                 }
             }
         }

@@ -1,4 +1,68 @@
 #include "bg_mantle.h"
+#include "bg_misc.h"
+#include "bg_local.h"
+#include "bg_perks.h"
+#include <qcommon/common.h>
+#include "bg_weapons_def.h"
+#include <universal/com_math_anglevectors.h>
+
+
+const dvar_t *mantle_enable;
+const dvar_t *mantle_debug;
+const dvar_t *mantle_check_range;
+const dvar_t *mantle_check_radius;
+const dvar_t *mantle_check_angle;
+const dvar_t *mantle_check_glass_extra_range;
+const dvar_t *mantle_view_yawcap;
+const dvar_t *mantle_weapon_height;
+const dvar_t *mantle_weapon_anim_height;
+const dvar_t *vehicle_push_during_mantle;
+const dvar_t *prone_bipod_enable;
+
+struct MantleAnimTransition // sizeof=0xC
+{                                       // XREF: .data:s_mantleTrans/r
+    int upAnimIndex;
+    int overAnimIndex;
+    float height;                       // XREF: Mantle_RegisterDvars(void)+190/r
+};
+
+MantleAnimTransition s_mantleTrans[7] =
+{
+  { 1, 8, 57.0 },
+  { 2, 8, 51.0 },
+  { 3, 9, 45.0 },
+  { 4, 9, 39.0 },
+  { 5, 9, 33.0 },
+  { 6, 10, 27.0 },
+  { 7, 10, 21.0 }
+};
+
+const char *s_mantleAnimNames[11] =
+{
+  "mp_mantle_root",
+  "mp_mantle_up_57",
+  "mp_mantle_up_51",
+  "mp_mantle_up_45",
+  "mp_mantle_up_39",
+  "mp_mantle_up_33",
+  "mp_mantle_up_27",
+  "mp_mantle_up_21",
+  "mp_mantle_over_high",
+  "mp_mantle_over_mid",
+  "player_mantle_over_low"
+};
+
+const float playerMins[3] = { -15.0, -15.0, 0.0 };
+const float playerMaxs[3] = { 15.0, 15.0, 70.0 };
+
+const float turretPronePitchMax = 8.0f;
+const float turretTestDist = 16.0f;
+const float heightTestDist = 3.0f;
+const float dropTraceWidth = 2.0f;
+const float turretTestFeetRaise = 8.0f;
+const float turretTestFeetDist = -40.0f;
+
+XAnim_s *s_mantleAnims;
 
 void __cdecl Mantle_RegisterDvars()
 {
@@ -198,7 +262,7 @@ void __cdecl Mantle_Check(pmove_t *pm, pml_t *pml)
                     Mount_CheckProne(pm);
                 Mantle_DebugPrint("Mantle Failed: Player not standing");
             }
-            else if ( Mantle_FindMantleSurface((int)&savedregs, pm, pml, &trace, mantleDir) )
+            else if ( Mantle_FindMantleSurface(pm, pml, &trace, mantleDir) )
             {
                 memset((unsigned __int8 *)&mresults, 0, sizeof(mresults));
                 mresults.dir[0] = mantleDir[0];
@@ -276,8 +340,10 @@ void __cdecl Mount_CheckProne(pmove_t *pm)
         traceEnd[0] = traceStart[0];
         traceEnd[1] = traceStart[1];
         traceEnd[2] = traceStart[2] - heightTestDist;
-        LODWORD(dropMins[0]) = LODWORD(dropTraceWidth) ^ _mask__NegFloat_;
-        LODWORD(dropMins[1]) = LODWORD(dropTraceWidth) ^ _mask__NegFloat_;
+        //LODWORD(dropMins[0]) = LODWORD(dropTraceWidth) ^ _mask__NegFloat_;
+        dropMins[0] = -dropTraceWidth;
+        //LODWORD(dropMins[1]) = LODWORD(dropTraceWidth) ^ _mask__NegFloat_;
+        dropMins[1] = -dropTraceWidth;
         dropMins[2] = 0.0f;
         dropMaxs[0] = dropTraceWidth;
         dropMaxs[1] = dropTraceWidth;
@@ -334,8 +400,10 @@ char __cdecl Mantle_CheckLedge(pmove_t *pm, pml_t *pml, MantleResults *mresults,
         __debugbreak();
     v4 = va("Checking for ledge at %f units", height);
     Mantle_DebugPrint(v4);
-    LODWORD(mins[0]) = LODWORD(playerMaxs[0]) ^ _mask__NegFloat_;
-    LODWORD(mins[1]) = LODWORD(playerMaxs[0]) ^ _mask__NegFloat_;
+    //LODWORD(mins[0]) = LODWORD(playerMaxs[0]) ^ _mask__NegFloat_;
+    mins[0] = -playerMaxs[0];
+    //LODWORD(mins[1]) = LODWORD(playerMaxs[0]) ^ _mask__NegFloat_;
+    mins[1] = -playerMaxs[0];
     mins[2] = 0.0f;
     maxs[0] = playerMaxs[0];
     maxs[1] = playerMaxs[0];
@@ -410,14 +478,15 @@ char __cdecl Mantle_CheckLedge(pmove_t *pm, pml_t *pml, MantleResults *mresults,
                 else
                 {
                     if ( (ps->mantleState.flags & 0x200) == 0 )
-                        Mount_CheckLedge((cStaticModel_s *)&savedregs, pm, pml, mresults);
+                        Mount_CheckLedge(pm, pml, mresults);
                     if ( (mresults->flags & 1) != 0 || (mresults->flags & 2) != 0 )
                     {
                         ps->mantleState.flags |= 0x10u;
                         mresults->flags |= 0x10u;
                         Mantle_DebugPrint("Mantle available!");
                         Mantle_CalcEndPos(pm, mresults);
-                        if ( bitarray<51>::testBit(&pm->cmd.button_bits, 0xAu) )
+                        //if ( bitarray<51>::testBit(&pm->cmd.button_bits, 0xAu) )
+                        if ( pm->cmd.button_bits.testBit(10) )
                         {
                             if ( (ps->eFlags & 4) == 0 )
                             {
@@ -682,7 +751,7 @@ void __cdecl Mantle_SetHaveWeapon(MantleState *mstate, const playerState_s *ps)
 }
 
 // local variable allocation has failed, the output may be wrong!
-void    Mount_CheckLedge(cStaticModel_s *a1@<ebp>, pmove_t *pm, pml_t *pml, MantleResults *mresults)
+void    Mount_CheckLedge(pmove_t *pm, pml_t *pml, MantleResults *mresults)
 {
     float angle; // [esp+4h] [ebp-108h]
     long double v5; // [esp+10h] [ebp-FCh]
@@ -814,7 +883,7 @@ void    Mount_CheckLedge(cStaticModel_s *a1@<ebp>, pmove_t *pm, pml_t *pml, Mant
     }
 }
 
-char    Mantle_FindMantleSurface@<al>(int a1@<ebp>, pmove_t *pm, pml_t *pml, trace_t *trace, float *mantleDir)
+char    Mantle_FindMantleSurface(pmove_t *pm, pml_t *pml, trace_t *trace, float *mantleDir)
 {
     double v6; // xmm0_8
     long double v7; // [esp-14h] [ebp-8Ch]
@@ -1068,17 +1137,22 @@ void __cdecl Mantle_CapView(playerState_s *ps)
     if ( mantle_enable->current.enabled )
     {
         delta = AngleDelta(ps->mantleState.yaw, ps->viewangles[1]);
-        if ( delta < COERCE_FLOAT(mantle_view_yawcap->current.integer ^ _mask__NegFloat_)
+        //if ( delta < COERCE_FLOAT(mantle_view_yawcap->current.integer ^ _mask__NegFloat_)
+        if ( delta < -mantle_view_yawcap->current.value
             || mantle_view_yawcap->current.value < delta )
         {
-            while ( COERCE_FLOAT(mantle_view_yawcap->current.integer ^ _mask__NegFloat_) > delta )
+            //while ( COERCE_FLOAT(mantle_view_yawcap->current.integer ^ _mask__NegFloat_) > delta )
+            while ( -mantle_view_yawcap->current.value > delta )
                 delta = delta + mantle_view_yawcap->current.value;
             while ( delta > mantle_view_yawcap->current.value )
                 delta = delta - mantle_view_yawcap->current.value;
             if ( delta <= 0.0 )
                 value = mantle_view_yawcap->current.value;
             else
-                LODWORD(value) = mantle_view_yawcap->current.integer ^ _mask__NegFloat_;
+            {
+                //LODWORD(value) = mantle_view_yawcap->current.integer ^ _mask__NegFloat_;
+                value = -mantle_view_yawcap->current.value;
+            }
             ps->delta_angles[1] = ps->delta_angles[1] + delta;
             ps->viewangles[1] = AngleNormalize360(ps->mantleState.yaw + value);
         }

@@ -2,6 +2,153 @@
 
 #include <game/teams.h>
 #include <universal/q_shared.h>
+#include <demo/demo_common.h>
+#include "g_scr_main_mp.h"
+#include <bgame/bg_public.h>
+
+enum sessionState_t : __int32
+{                                       // XREF: clientSession_t/r
+    SESS_STATE_PLAYING      = 0x0,
+    SESS_STATE_DEAD         = 0x1,
+    SESS_STATE_SPECTATOR    = 0x2,
+    SESS_STATE_INTERMISSION = 0x3,
+};
+
+enum clientConnected_t : __int32
+{                                       // XREF: clientSession_t/r
+    CON_DISCONNECTED = 0x0,
+    CON_CONNECTING   = 0x1,
+    CON_CONNECTED    = 0x2,
+};
+
+struct playerTeamState_t // sizeof=0x4
+{                                       // XREF: clientSession_t/r
+    int location;
+};
+
+struct __declspec(align(8)) clientSession_t // sizeof=0x1F0
+{                                       // XREF: gclient_s/r
+                                        // ?ClientSpawn@@YAXPAUgentity_s@@QBM1@Z/r
+    sessionState_t sessionState;
+    int forceSpectatorClient;
+    int killCamEntity;
+    int killCamTargetEntity;
+    int archiveTime;
+    unsigned int scriptPersId;
+    clientConnected_t connected;
+    usercmd_s cmd;
+    usercmd_s oldcmd;
+    int localClient;
+    int predictItemPickup;
+    char newnetname[32];
+    int maxHealth;
+    int enterTime;
+    playerTeamState_t teamState;
+    int voteCount;
+    int teamVoteCount;
+    float moveSpeedScaleMultiplier;
+    int viewmodelIndex;
+    int noSpectate;
+    int teamInfo;
+    clientState_s cs;
+    int psOffsetTime;
+    int scoreboardColumnCache[18];
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+};
+
+struct trigger_info_t // sizeof=0xC
+{                                       // XREF: level_locals_t/r
+                                        // level_locals_t/r ...
+    unsigned __int16 entnum;
+    unsigned __int16 otherEntnum;
+    int useCount;
+    int otherUseCount;
+};
+
+struct gclient_s // sizeof=0x29E0
+{                                       // XREF: .data:g_clients/r
+                                        // gclient_t/r
+    gclient_s();
+
+    playerState_s ps;
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    clientSession_t sess;
+    int spectatorClient;
+    int flags;
+    int lastCmdTime;
+    bitarray<51> button_bits;
+    bitarray<51> oldbutton_bits;
+    bitarray<51> latched_button_bits;
+    bitarray<51> button_bitsSinceLastFrame;
+    float fGunPitch;
+    float fGunYaw;
+    int damage_blood;
+    float damage_from[3];
+    int damage_fromWorld;
+    int inactivityTime;
+    int inactivityWarning;
+    int lastVoiceTime;
+    int outWaterTime;
+    int switchSeatTime;
+    float currentAimSpreadScale;
+    int dropWeaponTime;
+    int sniperRifleFiredTime;
+    float sniperRifleMuzzleYaw;
+    int PCSpecialPickedUpCount;
+    bool prevLinkAnglesSet;
+    // padding byte
+    // padding byte
+    // padding byte
+    float prevLinkedInvQuat[4];
+    float linkAnglesFrac;
+    bool linkAnglesLocked;
+    // padding byte
+    // padding byte
+    // padding byte
+    float linkAnglesMinClamp[2];
+    float linkAnglesMaxClamp[2];
+    bool link_rotationMovesEyePos;
+    // padding byte
+    EntHandle useHoldEntity;
+    // padding byte
+    // padding byte
+    int useHoldTime;
+    int useButtonDone;
+    int iLastCompassPlayerInfoEnt;
+    int compassPingTime;
+    int damageTime;
+    float v_dmg_roll;
+    float v_dmg_pitch;
+    float swayViewAngles[3];
+    float swayOffset[3];
+    float swayAngles[3];
+    float baseAngles[3];
+    float baseOrigin[3];
+    float recoilAngles[3];
+    float fLastIdleFactor;
+    int weapIdleTime;
+    float recoilSpeed[3];
+    int lastServerTime;
+    int lastSpawnTime;
+    unsigned int lastWeapon;
+    bool previouslyFiring;
+    bool previouslyUsingNightVision;
+    bool previouslyBeganWeaponRaise;
+    bool previouslySprinting;
+    unsigned int hasSpyplane;
+    unsigned int hasSatellite;
+    int revive;
+    int reviveTime;
+    int disallowVehicleUsage;
+    int lastStand;
+    int lastStandTime;
+};
 
 struct __declspec(align(64)) level_locals_t // sizeof=0x3880
 {                                       // XREF: .data:level_locals_t level/r
@@ -293,7 +440,7 @@ void __cdecl G_UpdateTimedDamage(gentity_s *ent);
 void __cdecl G_DebugTimedDamage();
 void __cdecl G_UpdateClientLinkInfo(gentity_s *ent);
 bool __cdecl ResolveParentClientMask(const gentity_s *entChild, gentity_s *entParent);
-void    G_RunFrame(__m128 a1@<xmm0>, int levelTime);
+void    G_RunFrame(int levelTime);
 void __cdecl G_ClientDoPerFrameNotifies(gentity_s *ent);
 bool __cdecl DoPerFrameNotify(
                 gentity_s *ent,
@@ -303,14 +450,15 @@ bool __cdecl DoPerFrameNotify(
                 unsigned __int16 end);
 void __cdecl G_UpdateIKCulling(gentity_s *ent);
 void __cdecl G_RunFrameForEntity(gentity_s *ent);
-void    G_UpdateWeapons(__m128 a1@<xmm0>, gentity_s *ent);
+void    G_UpdateWeapons( gentity_s *ent);
 int G_PopulateMatchState();
 bool __cdecl G_IsEntWalkable(int localClientNum, int entityNum);
 bool __cdecl G_GetEntityOriginAngles(int localClientNum, int entityNum, float *origin, float *angles);
 void __cdecl G_EntityLinkFromPMove(unsigned int entityNum, int parentEntityNum, int tagName);
 void __cdecl G_AddDebugString(const float *xyz, const float *color, float scale, char *pszText, int duration);
-gclient_s *__thiscall gclient_s::gclient_s(gclient_s *this);
+//gclient_s *__thiscall gclient_s::gclient_s(gclient_s *this);
 void __cdecl G_SafeDObjFree(gentity_s *ent);
 
+extern level_locals_t level;
 
 extern gentity_s g_entities[MAX_GENTITIES];

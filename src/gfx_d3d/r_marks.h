@@ -1,7 +1,6 @@
 #pragma once
 
 void    R_BoxSurfaces(
-                int a1@<ebp>,
                 const float *mins,
                 const float *maxs,
                 int (__cdecl **allowSurf)(int, void *),

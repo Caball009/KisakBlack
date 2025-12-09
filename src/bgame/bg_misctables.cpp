@@ -1,4 +1,15 @@
 #include "bg_misctables.h"
+#include <universal/q_shared.h>
+#include <qcommon/common.h>
+#include <clientscript/cscr_stringlist.h>
+#include <clientscript/cscr_vm.h>
+#include <client/cl_keys.h>
+#include <qcommon/graph.h>
+
+const char *s_vehicleCameraModes[6] = { "first", "chase", "view", "strafe", "horse", "oldtank" };
+const char *s_vehicleBoostModes[2] = { "burst", "continuous" };
+const char *s_tractionTypeNames[3] = { "TRACTION_TYPE_FRONT", "TRACTION_TYPE_BACK", "TRACTION_TYPE_ALL_WD" };
+const char *s_vehicleClassNames[7] = { "4 wheel", "motorcycle", "tank", "plane", "boat", "artillery", "helicopter" };
 
 int __cdecl VEH_ParseSpecificField(unsigned __int8 *pStruct, char *pValue, int fieldType, int fieldOffset)
 {
@@ -32,7 +43,7 @@ int __cdecl VEH_ParseSpecificField(unsigned __int8 *pStruct, char *pValue, int f
                 break;
             }
             if ( ia == 6 )
-                Com_Error(ERR_DROP, &byte_C6A36C, pValue);
+                Com_Error(ERR_DROP, "Unknown vehicle camera mode [%s]", pValue);
             return 1;
         case 17:
             ib = 0;
@@ -50,7 +61,7 @@ int __cdecl VEH_ParseSpecificField(unsigned __int8 *pStruct, char *pValue, int f
                 break;
             }
             if ( ib == 2 )
-                Com_Error(ERR_DROP, &byte_C6A348, pValue);
+                Com_Error(ERR_DROP, "Unknown vehicle boost mode [%s]", pValue);
             return 1;
         case 18:
             ic = 0;
@@ -68,7 +79,7 @@ int __cdecl VEH_ParseSpecificField(unsigned __int8 *pStruct, char *pValue, int f
                 break;
             }
             if ( ic == 3 )
-                Com_Error(ERR_DROP, &byte_C6A328, pValue);
+                Com_Error(ERR_DROP, "Unknown traction type [%s]", pValue);
             return 1;
         case 19:
             v8 = atof(pValue);
@@ -103,13 +114,13 @@ int __cdecl VEH_ParseSpecificField(unsigned __int8 *pStruct, char *pValue, int f
             *(unsigned int *)&pStruct[fieldOffset] = Key_StringToKeynum(pValue);
             return 1;
         case 24:
-            *(unsigned int *)&pStruct[fieldOffset] = GraphFloat_Load(pValue);
+            *(unsigned int *)&pStruct[fieldOffset] = (unsigned int)GraphFloat_Load(pValue);
             return 1;
         default:
             v5 = va("Bad vehicle field type %i\n", fieldType);
             if ( !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_misctables.cpp", 528, 0, v5) )
                 __debugbreak();
-            Com_Error(ERR_DROP, &byte_C6A278, fieldType);
+            Com_Error(ERR_DROP, "Bad vehicle field type %i", fieldType);
             return 0;
     }
     while ( 1 )
@@ -123,7 +134,7 @@ int __cdecl VEH_ParseSpecificField(unsigned __int8 *pStruct, char *pValue, int f
     *((_WORD *)pStruct + 32) = i;
 LABEL_7:
     if ( i == 7 )
-        Com_Error(ERR_DROP, &byte_C6A390, pValue);
+        Com_Error(ERR_DROP, "Unknown vehicle type [%s]", pValue);
     return 1;
 }
 

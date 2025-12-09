@@ -137,7 +137,7 @@ void __thiscall pulse_sum_angular::set_object_col_pt(pulse_sum_angular *this, co
     this->m_b2_r.z = object_col_pt->z;
 }
 
-rigid_body *__thiscall rigid_body::operator=(rigid_body *this, const rigid_body *__that)
+rigid_body *rigid_body::operator=(rigid_body *this, const rigid_body *__that)
 {
     rigid_body *result; // eax
 

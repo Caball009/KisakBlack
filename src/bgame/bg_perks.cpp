@@ -1,4 +1,94 @@
 #include "bg_perks.h"
+#include <universal/q_shared.h>
+
+const dvar_t *perk_skillSet;
+const dvar_t *perk_weapSpreadMultiplier;
+const dvar_t *perk_weapRateMultiplier;
+const dvar_t *perk_weapReloadMultiplier;
+const dvar_t *perk_weapSwitchMultiplier;
+const dvar_t *perk_weapAdsMultiplier;
+const dvar_t *perk_weapMeleeMultiplier;
+const dvar_t *perk_extraBreath;
+const dvar_t *perk_bulletPenetrationMultiplier;
+const dvar_t *perk_grenadeDeath;
+const dvar_t *perk_sprintMultiplier;
+const dvar_t *perk_grenadeTossBackTimer;
+const dvar_t *perk_killstreakReduction;
+const dvar_t *perk_extraMoneyMultiplier;
+const dvar_t *perk_delayExplosiveTime;
+const dvar_t *perk_disarmExplosiveTime;
+const dvar_t *perk_speedMultiplier;
+const dvar_t *perk_deathStreakCountRequired;
+const dvar_t *perk_sprintRecoveryMultiplier;
+const dvar_t *perk_healthRegenMultiplier;
+const dvar_t *perk_damageKickReduction;
+const dvar_t *perk_shellShockReduction;
+const dvar_t *perk_mantleReduction;
+const dvar_t *perk_interactSpeedMultiplier;
+const dvar_t *perk_throwbackInnerRadius;
+const dvar_t *perk_flakJacket;
+const dvar_t *perk_flakJacket_hardcore;
+const dvar_t *perk_fireproof;
+const dvar_t *perk_armorPiercing;
+const dvar_t *perk_dogsAttackGhost;
+const dvar_t *perk_blackbirdShowsGpsJammer;
+
+
+const char *bg_perkNames[52] =
+{
+  "specialty_armorpiercing",
+  "specialty_armorvest",
+  "specialty_bulletaccuracy",
+  "specialty_bulletdamage",
+  "specialty_bulletflinch",
+  "specialty_bulletpenetration",
+  "specialty_copycat",
+  "specialty_delayexplosive",
+  "specialty_detectexplosive",
+  "specialty_disarmexplosive",
+  "specialty_explosivedamage",
+  "specialty_extraammo",
+  "specialty_extramoney",
+  "specialty_fallheight",
+  "specialty_fastads",
+  "specialty_fastinteract",
+  "specialty_fastmantle",
+  "specialty_fastmeleerecovery",
+  "specialty_fastreload",
+  "specialty_fastweaponswitch",
+  "specialty_finalstand",
+  "specialty_fireproof",
+  "specialty_flakjacket",
+  "specialty_gambler",
+  "specialty_gas_mask",
+  "specialty_gpsjammer",
+  "specialty_grenadepulldeath",
+  "specialty_healthregen",
+  "specialty_holdbreath",
+  "specialty_killstreak",
+  "specialty_longersprint",
+  "specialty_loudenemies",
+  "specialty_movefaster",
+  "specialty_nomotionsensor",
+  "specialty_noname",
+  "specialty_nottargetedbyai",
+  "specialty_pin_back",
+  "specialty_pistoldeath",
+  "specialty_quieter",
+  "specialty_reconnaissance",
+  "specialty_rof",
+  "specialty_scavenger",
+  "specialty_shades",
+  "specialty_showenemyequipment",
+  "specialty_stunprotection",
+  "specialty_shellshock",
+  "specialty_sprintrecovery",
+  "specialty_showonradar",
+  "specialty_twoattach",
+  "specialty_twogrenades",
+  "specialty_twoprimaries",
+  "specialty_unlimitedsprint"
+};
 
 unsigned int __cdecl BG_GetPerkIndexForName(const char *perkName)
 {

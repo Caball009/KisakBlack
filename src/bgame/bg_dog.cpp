@@ -8,6 +8,7 @@
 #include "bg_local.h"
 #include "bg_misc.h"
 #include "bg_dog_animations_mp.h"
+#include <qcommon/ent.h>
 
 const dvar_s *dog_debug;
 const dvar_s *dog_turn90_angle;

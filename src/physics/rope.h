@@ -1,4 +1,99 @@
 #pragma once
+#include <gfx_d3d/r_material.h>
+
+enum rope_constraint_e : __int32
+{                                       // XREF: constraint_t/r
+                                        // ?Rope_AddAnchor@@YAXHHQBMHHW4rope_constraint_e@@@Z/r
+    ROPE_PAIR_CONSTRAINT    = 0x0,
+    ROPE_WORLD_CONSTRAINT   = 0x1,
+    ROPE_DENTITY_CONSTRAINT = 0x2,
+    ROPE_CENTITY_CONSTRAINT = 0x3,
+};
+
+struct par_t // sizeof=0x28
+{                                       // XREF: rope_t/r
+    float p[3];
+    float p0[3];
+    float p_prev[3];
+    int flags;
+};
+
+struct __declspec(align(4)) constraint_t // sizeof=0x1C
+{                                       // XREF: rope_t/r
+    float p[3];
+    rope_constraint_e type;
+    int entity_index;
+    int bone_name_hash;
+    unsigned __int8 pi1;
+    unsigned __int8 pi2;
+    // padding byte
+    // padding byte
+};
+
+struct rope_frame_verts_t // sizeof=0x25C
+{                                       // XREF: rope_client_verts_t/r
+    int num_verts;
+    float v[50][3];
+};
+
+struct rope_client_verts_t // sizeof=0x4BC
+{                                       // XREF: rope_t/r
+    rope_frame_verts_t frame_verts[2];
+    unsigned int frame_index;
+};
+
+struct __declspec(align(4)) rope_t // sizeof=0xC74
+{
+    par_t m_particles[25];
+    constraint_t m_constraints[30];
+    int m_entity_anchors[3];
+    int m_num_particles;
+    int m_num_constraints;
+    int m_num_entity_anchors;
+    int m_num_draw_verts;
+    rope_client_verts_t m_client_verts;
+    float m_min[3];
+    float m_max[3];
+    float m_start[3];
+    float m_end[3];
+    int m_in_use;
+    int m_visible;
+    int m_dist_constraint;
+    int m_flags;
+    const Material *m_material;
+    float m_seglen;
+    float m_length;
+    float m_width;
+    float m_scale;
+    float m_force_scale;
+    int m_health;
+    int m_frame;
+    int m_stable_count;
+    int m_static_rope;
+    unsigned __int16 m_lightingHandle;
+    // padding byte
+    // padding byte
+};
+
+struct __declspec(align(16)) RopeUpdateCmdData // sizeof=0x60
+{                                       // XREF: ?Rope_Update@@YAXHH@Z/r
+    float viewOrg[3];
+    int ropeCount;
+    float screenMtx[4][4];
+    rope_t *ropes;
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+};
 
 bool __cdecl Rope_IsValid(int rope_index);
 void __cdecl Rope_SetFlag(int rope_index, int flags, int onoff);
@@ -51,8 +146,7 @@ void __cdecl Rope_ApplyContactConstraint(int rope_index, int contact_index);
 void __cdecl Rope_ApplyConstraint(int rope_index, int constraint_index);
 void __cdecl Rope_UpdateVisible(int rope_index);
 void __cdecl Rope_BuildCurve(const RopeUpdateCmdData *cmd, int rope_index);
-// local variable allocation has failed, the output may be wrong!
-void    Rope_Update(int a1@<ebp>, int localClientNum, int curtime);
+void    Rope_Update(int localClientNum, int curtime);
 void __cdecl Rope_Render(unsigned int localClientNum);
 void __cdecl Rope_DebugDraw(int rope_index);
 void __cdecl Rope_Draw(int rope_index, unsigned int localClientNum);

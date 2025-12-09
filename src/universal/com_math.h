@@ -69,16 +69,16 @@ int __cdecl VecNCompareCustomEpsilon(const float *v0, const float *v1, float eps
 void __cdecl Vec3ProjectionCoords(const float *dir, int *xCoord, int *yCoord);
 void __cdecl RotatePointAroundVector(float *dst, const float *dir, const float *point, float degrees);
 void __cdecl Vec3Basis_RightHanded(const float *forward, float *left, float *up);
-double __cdecl vectoyaw(const float *vec);
-double __cdecl vectosignedyaw(const float *vec);
-double __cdecl vectopitch(const float *vec);
+float __cdecl vectoyaw(const float *vec);
+float __cdecl vectosignedyaw(const float *vec);
+float __cdecl vectopitch(const float *vec);
 void __cdecl vectoangles(const float *vec, float *angles);
 void __cdecl UnitQuatToAngles(const float *quat, float *angles);
 void __cdecl YawVectors(float yaw, float *forward, float *right);
 void __cdecl YawVectors2D(float yaw, float *forward, float *right);
 void __cdecl PerpendicularVector(const float *src, float *dst);
 double __cdecl PointToLineDistSq(const float *point, const float *start, const float *end);
-double __cdecl PointToLineDistSq2D(const float *point, const float *start, const float *end);
+float __cdecl PointToLineDistSq2D(const float *point, const float *start, const float *end);
 int __cdecl BoxInPlanes(const float (*planes)[4], unsigned int numPlanes, const float *mins, const float *maxs);
 int __cdecl SphereInPlanes(const float (*planes)[4], unsigned int numPlanes, const float *center, float radius);
 void __cdecl MatrixIdentity33(float (*out)[3]);
@@ -219,13 +219,30 @@ void __cdecl Vec3Cross(const float *v0, const float *v1, float *cross);
 float __cdecl Vec3Dot(const vec3r a, const vec3r b);
 void __cdecl Vec3Min(const float *a, const float *b, float *result);
 void __cdecl Vec3Max(const float *a, const float *b, float *result);
+void __cdecl Vec3Abs(const float *a, float *res);
+bool __cdecl Vec3IsNormalized(const float *v);
+void __cdecl Vec3Scale(const float *v, float scale, float *result);
 
 void __cdecl Vec4Lerp(const float *from, const float *to, float frac, float *result);
 float __cdecl Vec4Normalize(float *v);
+float __cdecl Vec4LengthSq(const float *v);
+bool __cdecl Vec4IsNormalized(const float *v);
+float __cdecl Vec4Dot(const float *a, const float *b);
 
 float AngleNormalize180(float angle);
 
 float    __cdecl Abs(const float *v);
+
+inline void MatrixTransformVector(const float *in1, const float (*in2)[3], float *out)
+{
+    iassert(in1 != out);
+
+    out[0] = (float)((float)(*in1 * (*in2)[0]) + (float)(in1[1] * (float)(*in2)[3])) + (float)(in1[2] * (float)(*in2)[6]);
+    out[1] = (float)((float)(*in1 * (float)(*in2)[1]) + (float)(in1[1] * (float)(*in2)[4]))
+        + (float)(in1[2] * (float)(*in2)[7]);
+    out[2] = (float)((float)(*in1 * (float)(*in2)[2]) + (float)(in1[1] * (float)(*in2)[5]))
+        + (float)(in1[2] * (float)(*in2)[8]);
+}
 
 /*
 ===========================================================================
@@ -284,3 +301,20 @@ float Q_fabs(float f);
 constexpr float vec2_origin[2] = { 0.0, 0.0 };
 constexpr float vec3_origin[3] = { 0.0, 0.0, 0.0 };
 constexpr float vec4_origin[4] = { 0.0, 0.0, 0.0, 0.0 };
+
+constexpr float ikIdentityMatrix44[4][4] =
+{
+  { 1.0, 0.0, 0.0, 0.0 },
+  { 0.0, 1.0, 0.0, 0.0 },
+  { 0.0, 0.0, 1.0, 0.0 },
+  { 0.0, 0.0, 0.0, 1.0 }
+};
+
+constexpr float identityMatrix44[4][4] =
+{
+  { 1.0, 0.0, 0.0, 0.0 },
+  { 0.0, 1.0, 0.0, 0.0 },
+  { 0.0, 0.0, 1.0, 0.0 },
+  { 0.0, 0.0, 0.0, 1.0 }
+};
+

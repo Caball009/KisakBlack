@@ -1993,11 +1993,6 @@ void __cdecl CG_ClampPrimaryLightDir(GfxLight *light, const ComPrimaryLight *ref
     }
 }
 
-bool __cdecl Vec3IsNormalized(const float *v)
-{
-    return fabs((float)((float)((float)(*v * *v) + (float)(v[1] * v[1])) + (float)(v[2] * v[2])) - 1.0) < 0.0020000001;
-}
-
 bool __cdecl CG_ShouldDelayEntityPacketPostPS(int localClientNum, centity_s *cent)
 {
     int viewlocked_entNum; // [esp+0h] [ebp-Ch]

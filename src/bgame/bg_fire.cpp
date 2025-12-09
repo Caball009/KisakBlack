@@ -1,4 +1,28 @@
 #include "bg_fire.h"
+#include <cgame/cg_weapons.h>
+#include <EffectsCore/fx_load_obj.h>
+#include <cstring>
+#include <gfx_d3d/r_material.h>
+#include <gfx_d3d/r_vertexstream2.h>
+#include <game_mp/g_main_mp.h>
+#include <gfx_d3d/r_marks.h>
+
+const dvar_t *fire_audio_repeat_duration;
+const dvar_t *fire_audio_random_max_duration;
+const dvar_t *fire_world_damage_duration;
+const dvar_t *fire_burn_time;
+const dvar_t *fire_world_damage;
+const dvar_t *fire_world_damage_rate;
+const dvar_t *fire_debug;
+
+int gLastBurnParticleSpawnTime;
+bool gFireInited;
+const FxEffectDef *g_FM_fx_flamethrower_effect[3];
+const FxEffectDef *g_FM_fx_wall_effect[1];
+
+FM_ACTIVECELL_DATA g_FM_ActiveCells[256];
+MemTrackInst TRACKINST_g_FM_BurnData;
+int g_FM_BurnDataActiveCount;
 
 void __cdecl BG_Flame_RegisterDvars()
 {
@@ -148,7 +172,7 @@ void __cdecl TerrainScorch(float *loresCellPos, bool instant)
         mins[2] = loresCellPos[2] + COERCE_FLOAT(LODWORD(96.0f) ^ _mask__NegFloat_);
         floatIn = (float)G_GetTime() * 0.001;
         surfLists = (GfxSurface **)v21;
-        R_BoxSurfaces((int)&savedregs, mins, maxs, allowSurf, 0, &surfLists, 0x400u, surfCounts, 1u);
+        R_BoxSurfaces(mins, maxs, allowSurf, 0, &surfLists, 0x400u, surfCounts, 1u);
         for ( i = 0; i < surfCounts[0]; ++i )
         {
             v28 = v21[i];
@@ -655,13 +679,13 @@ void __cdecl Sync_VisualBurn_To_FM_State()
     R_FoliageSetInitialBurnState();
 }
 
-void __cdecl MemFile_WriteInt(MemoryFile *memFile, int value)
-{
-    if ( (unsigned int)(memFile->cacheBufferUsed + 4) >= 0x7FF8 )
-        MemFile_WriteDataFlushInternal(memFile);
-    *(unsigned int *)&memFile->cacheBuffer[memFile->cacheBufferUsed] = value;
-    memFile->cacheBufferUsed += 4;
-}
+//void __cdecl MemFile_WriteInt(MemoryFile *memFile, int value)
+//{
+//    if ( (unsigned int)(memFile->cacheBufferUsed + 4) >= 0x7FF8 )
+//        MemFile_WriteDataFlushInternal(memFile);
+//    *(unsigned int *)&memFile->cacheBuffer[memFile->cacheBufferUsed] = value;
+//    memFile->cacheBufferUsed += 4;
+//}
 
 void __cdecl CG_GenerateFireSounds(int localClientNum)
 {

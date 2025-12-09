@@ -5042,5 +5042,11 @@
     <ClInclude Include="src\server\server.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\minilzo\lzodefs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\minilzo\lzoconf.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -1,6 +1,7 @@
 #include "phys_transient_allocator.h"
+#include "phys_mem_new.h"
 
-void __thiscall phys_transient_allocator::reset(phys_transient_allocator *this)
+void phys_transient_allocator::reset()
 {
     phys_transient_allocator::block_header *m_first_block; // eax
     phys_slot_pool *m_slot_pool; // ebx
@@ -24,9 +25,7 @@ void __thiscall phys_transient_allocator::reset(phys_transient_allocator *this)
     this->m_total_memory_allocated = 0;
 }
 
-void __thiscall phys_transient_allocator::reset_to_state(
-                phys_transient_allocator *this,
-                const phys_transient_allocator::allocator_state *as)
+void __thiscall phys_transient_allocator::reset_to_state(const phys_transient_allocator::allocator_state *as)
 {
     phys_transient_allocator::block_header *m_first_block; // eax
     phys_transient_allocator::block_header *m_next_block; // esi
@@ -47,7 +46,7 @@ void __thiscall phys_transient_allocator::reset_to_state(
     *(phys_transient_allocator::allocator_state *)&this->m_first_block = *as;
 }
 
-void __thiscall phys_transient_allocator::resize(phys_transient_allocator *this)
+void __thiscall phys_transient_allocator::resize()
 {
     phys_slot_pool *m_slot_pool; // eax
     char *v3; // eax
@@ -63,7 +62,7 @@ void __thiscall phys_transient_allocator::resize(phys_transient_allocator *this)
     {
         *(unsigned int *)v3 = 0x4000;
         *((unsigned int *)v3 + 1) = 4;
-        *((unsigned int *)v3 + 2) = this->m_first_block;
+        *((unsigned int *)v3 + 2) = (unsigned int)this->m_first_block;
         this->m_first_block = (phys_transient_allocator::block_header *)v3;
         this->m_total_memory_allocated += 0x4000;
         this->m_cur = v3 + 12;

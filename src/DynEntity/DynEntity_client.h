@@ -199,3 +199,13 @@ void __cdecl CreateRopes(int localClientNum);
 void __cdecl MapHitLocationToRagdollBoneName(hitLocation_t hitLoc, unsigned int *boneName);
 const DynEntityDef *__cdecl DynEnt_GetEntityDef(unsigned __int16 absDynEntId);
 DynEntityClient *__cdecl DynEnt_GetClientEntity(unsigned __int16 id);
+
+
+extern const dvar_t *dynEnt_bulletForce;
+extern const dvar_t *dynEnt_explodeForce;
+extern const dvar_t *dynEnt_explodeUpbias;
+extern const dvar_t *dynEnt_explodeSpinScale;
+extern const dvar_t *dynEnt_explodeMinForce;
+extern const dvar_t *dynEnt_explodeMaxEnts;
+extern const dvar_t *dynEnt_spawnedLimit;
+extern const dvar_t *dynEnt_sentientAutoActivate;

@@ -7,13 +7,22 @@
 struct gentity_s;
 struct scr_animscript_t;
 struct pathnode_t;
-struct objectiveState_t;
+enum objectiveState_t;
 struct objective_t;
-struct cached_tag_mat_t;
 struct XAnimTree_s;
 struct scr_animtree_t;
 
 
+struct cached_tag_mat_t // sizeof=0x3C
+{                                       // XREF: .data:cached_tag_mat_t cg_cachedTagMat/r
+    int time;
+    int entnum;
+    unsigned __int16 name;              // XREF: GScr_Shutdown(void)+3/r
+                                        // GScr_Shutdown(void)+12/o
+    // padding byte
+    // padding byte
+    float tagMat[4][3];                 // XREF: CScr_GetTagOrigin(scr_entref_t)+117/o
+};
 
 void assertCmd();
 void assertexCmd();

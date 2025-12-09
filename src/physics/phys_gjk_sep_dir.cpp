@@ -1,9 +1,6 @@
 #include "phys_gjk_sep_dir.h"
 
-const phys_vec3 * gjk_sep_dir::comp_sep_dir@<eax>(
-                int a1@<ebp>,
-                float *a2@<edi>,
-                float *a3@<esi>,
+const phys_vec3 * gjk_sep_dir::comp_sep_dir(
                 const phys_vec3 *result,
                 const phys_gjk_input *m_pcd,
                 phys_gjk_info *m_gjk_info)

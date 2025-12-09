@@ -1,4 +1,8 @@
 #include "phys_assert.h"
+#include <stdio.h>
+
+void(__cdecl *g_phys_debug_callback)(void *);
+phys_assert_info *g_list_phys_assert_info;
 
 void __cdecl phys_set_debug_callback(void (__cdecl *debug_callback)(void *))
 {
@@ -18,8 +22,7 @@ void __cdecl PHYS_WARNING(const char *file, int line, const char *expr, const ch
     tlWarning(strbuf);
 }
 
-phys_assert_info *__thiscall phys_assert_info::phys_assert_info(
-                phys_assert_info *this,
+phys_assert_info::phys_assert_info(
                 int max_hits_total,
                 int max_hits_per_frame,
                 bool use_warnings_only)
@@ -34,10 +37,9 @@ phys_assert_info *__thiscall phys_assert_info::phys_assert_info(
     this->m_use_warnings_only = use_warnings_only;
     this->m_next = g_list_phys_assert_info;
     g_list_phys_assert_info = this;
-    return result;
 }
 
-void __thiscall phys_assert_info::frame_advance(phys_assert_info *this)
+void phys_assert_info::frame_advance()
 {
     this->m_hits_frame_count = 0;
 }

@@ -1,4 +1,138 @@
 #pragma once
+#include <qcommon/msg_mp.h>
+#include "rigid_body.h"
+
+struct DestructibleStage // sizeof=0x30
+{                                       // XREF: DestructiblePiece/r
+    unsigned __int16 showBone;
+    // padding byte
+    // padding byte
+    float breakHealth;
+    float maxTime;
+    unsigned int flags;
+    const struct FxEffectDef *breakEffect;
+    const char *breakSound;
+    const char *breakNotify;
+    const char *loopSound;
+    struct XModel *spawnModel[3];
+    struct PhysPreset *physPreset;
+};
+
+struct DestructiblePiece // sizeof=0x138
+{
+    DestructibleStage stages[5];
+    unsigned __int8 parentPiece;
+    // padding byte
+    // padding byte
+    // padding byte
+    float parentDamagePercent;
+    float bulletDamageScale;
+    float explosiveDamageScale;
+    float meleeDamageScale;
+    float impactDamageScale;
+    float entityDamageTransfer;
+    struct PhysConstraints *physConstraints;
+    int health;
+    const char *damageSound;
+    const FxEffectDef *burnEffect;
+    const char *burnSound;
+    unsigned __int16 enableLabel;
+    // padding byte
+    // padding byte
+    int hideBones[5];
+};
+
+struct DestructibleDef // sizeof=0x18
+{                                       // XREF: XAssetPoolEntry<DestructibleDef>/r
+    const char *name;
+    struct XModel *model;
+    struct XModel *pristineModel;
+    int numPieces;
+    DestructiblePiece *pieces;
+    int clientOnly;
+};
+
+struct DestructibleBurnData // sizeof=0xC
+{                                       // XREF: DESTRUCTIBLE_PIECE_INFO/r
+    int burnTime;
+    unsigned int fx;
+    int sndId;
+};
+
+struct DESTRUCTIBLE_PIECE_INFO // sizeof=0x18
+{
+    __int16 health;
+    // padding byte
+    // padding byte
+    int xdollHandle;
+    unsigned int fx;
+    DestructibleBurnData burnData;
+};
+
+struct LerpEntityStateDestructibleHit // sizeof=0x18
+{                                       // XREF: LerpEntityStateTypeUnion/r
+    int modelState0;                    // XREF: CG_DestructibleRewindToTime(int,Destructible *,int)+60/w
+    int modelState1;                    // XREF: CG_DestructibleRewindToTime(int,Destructible *,int)+66/w
+    int modelState2;                    // XREF: CG_DestructibleRewindToTime(int,Destructible *,int)+6C/w
+    int dummy;                          // XREF: CG_DestructibleRewindToTime(int,Destructible *,int)+72/w
+    int modelState3;                    // XREF: CG_DestructibleRewindToTime(int,Destructible *,int)+78/w
+    int modelState4;                    // XREF: CG_DestructibleRewindToTime(int,Destructible *,int)+7E/w
+};
+
+struct DestructibleState // sizeof=0x1C
+{                                       // XREF: Destructible/r
+    LerpEntityStateDestructibleHit state;
+    int time;                           // XREF: CG_DestructibleHitEvent(int,int,entityState_s const *,int)+1F2/w
+};
+
+struct __declspec(align(4)) Destructible // sizeof=0xAC
+{
+    int entNum;
+    DESTRUCTIBLE_PIECE_INFO *pieceArray;
+    int oldestBurnTime;
+    unsigned __int8 destructiblePoseID;
+    // padding byte
+    // padding byte
+    // padding byte
+    int pieceCount;
+    DestructibleDef *ddef;
+    unsigned int flags;
+    DestructibleState states[5];
+    unsigned __int8 bHasBeenHit;
+    // padding byte
+    // padding byte
+    // padding byte
+};
+
+struct destructible_gamestate // sizeof=0x44
+{                                       // XREF: .data:destructible_gamestate (* s_destructible_gamestates)[32]/r
+    unsigned __int8 localClientNum;
+    unsigned __int8 numPieces;
+    __int16 entityNum;                  // XREF: Destructible_FindGameState(int,int)+34/r
+    __int16 health[32];
+};
+
+struct Destructible_BonePose // sizeof=0x2C
+{                                       // XREF: DestructiblePose/r
+    int boneid;
+    int pieceIndex;
+    float angles_original[3];
+    float angles_offset[3];
+    float angles_vel[3];
+
+    Destructible_BonePose();
+};
+
+struct DestructiblePose // sizeof=0x584
+{                                       // XREF: .data:DestructiblePose * s_cgDestructiblePoses/r
+    Destructible_BonePose bones[32];
+    __int16 numBones;
+    __int16 destructibleID;             // XREF: CG_GetFreeDestructiblePose(void)+25/r
+};
+
+struct gentity_s;
+struct DObjModel_s;
+struct centity_s;
 
 bool __cdecl hasLabel(DestructibleDef *ddef, unsigned __int16 label);
 int __cdecl Destructible_GetPieceIndexForLabel(DestructibleDef *ddef, unsigned __int16 enableLabel);
@@ -24,7 +158,7 @@ int __cdecl Destructible_GetShowBoneNameForPiece(Destructible *destructible, int
 int __cdecl Destructible_GetDestructibleStage(const DestructibleDef *ddef, int pieceIndex, int health);
 void __cdecl Destructible_GetHideParts(Destructible *destructible, unsigned int *partBits);
 int __cdecl Destructible_GetPieceParentBone(DestructibleDef *ddef, int pieceIndex);
-PhysPreset *__cdecl Destructible_GetPiecePhysPreset(DestructibleDef *ddef, int pieceIndex);
+struct PhysPreset *__cdecl Destructible_GetPiecePhysPreset(DestructibleDef *ddef, int pieceIndex);
 unsigned int __cdecl DestructibleUpdate(gentity_s *ent, DObjModel_s *dobjModels, unsigned int numModels);
 char __cdecl Destructible_GetPieceIndexFromBoneName(
                 Destructible *destructible,
@@ -41,12 +175,12 @@ void __cdecl DestructibleExplosiveDamageEvent(
                 gentity_s *self,
                 const float *point,
                 float radius,
-                entityState_s::<unnamed_type_un1> mod);
+                entityState_s::unnamed_type_un1 mod);
 void __cdecl DestructibleBulletDamageEvent(
                 gentity_s *self,
                 const float *point,
                 const float *dir,
-                entityState_s::<unnamed_type_un1> mod);
+                entityState_s::unnamed_type_un1 mod);
 bool __cdecl DamagePiece(
                 gentity_s *self,
                 unsigned __int8 index,
@@ -205,4 +339,3 @@ DestructibleDef *__cdecl Destructible_GetDDef(const Destructible *const obj);
 void __cdecl Scr_DestructibleCallback(gentity_s *self, unsigned __int16 event, int piece, float time, int damage);
 void __cdecl Scr_DestructibleCallback(gentity_s *self, unsigned __int16 event, char *notify, gentity_s *attacker);
 void __cdecl CScr_DestructibleCallback(centity_s *self, unsigned __int16 event, int piece, float time, int damage);
-Destructible_BonePose *__thiscall Destructible_BonePose::Destructible_BonePose(Destructible_BonePose *this);

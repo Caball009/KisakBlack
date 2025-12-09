@@ -1,22 +1,5 @@
 #include "phys_gjk.h"
 
-phys_mat44 *__thiscall phys_mat44::phys_mat44(
-                phys_mat44 *this,
-                const phys_vec3 *x_,
-                const phys_vec3 *y_,
-                const phys_vec3 *z_,
-                const phys_vec3 *w_)
-{
-    phys_mat44 *result; // eax
-
-    result = this;
-    this->x = *x_;
-    this->y = *y_;
-    this->z = *z_;
-    this->w = *w_;
-    return result;
-}
-
 // local variable allocation has failed, the output may be wrong!
 void    phys_full_inv_multiply_mat(
                 int a1@<ebp>,

@@ -1,5 +1,55 @@
 #pragma once
 
+struct XDollBone // sizeof=0x10
+{                                       // XREF: XDollBody/r
+    unsigned __int8 index;
+    unsigned __int8 flags;
+    // padding byte
+    // padding byte
+    unsigned int name_hash;
+    int rigidBody;
+    struct PhysPreset *physPreset;
+};
+
+struct XDollBoneOrientation // sizeof=0x20
+{                                       // XREF: XDollBody/r
+    float origin[3];
+    int boneFlags;
+    float orientation[4];
+};
+
+struct XDoll_ConstraintInfo // sizeof=0xC
+{                                       // XREF: XDollBody/r
+    int type;
+    int timer;
+    //$F8FBF74742F563EDABF51D7175B13032 ___u2;
+    union //$F8FBF74742F563EDABF51D7175B13032 // sizeof=0x4
+    {                                       // XREF: XDoll_ConstraintInfo/r
+        rigid_body_constraint *constraint;
+        rigid_body_constraint_ragdoll *ragdoll_constraint;
+        rigid_body_constraint_point *point_constraint;
+        rigid_body_constraint_hinge *hinge_constraint;
+        rigid_body_constraint_angular_actuator *actuator_constraint;
+    };
+};
+
+struct XDollBody // sizeof=0x118
+{
+    int references;
+    int entity_index;
+    int client_index;
+    int piece_index;
+    unsigned int attach_bone_hash;
+    struct PhysConstraints *constraintsDef;
+    int numBones;
+    XDollBone bones[4];
+    XDollBoneOrientation boneOrientations[4];
+    XDoll_ConstraintInfo constraintInfos[4];
+    int userBody;
+    unsigned int userBodyBoneHash;
+    int stableTime;
+};
+
 bool __cdecl XDoll_IsXDollConstraint(ConstraintType type);
 void __cdecl XDoll_SetCollides(XDollBone *bone, bool collides);
 void __cdecl XDoll_SetCollides(XDollBody *body, bool collides);
@@ -36,13 +86,11 @@ int __cdecl XDoll_CreateXDollForConstraints(
                 PhysPreset *physPreset);
 char __cdecl XDoll_Activate(const PhysConstraints *constraintsDef, int health);
 void __cdecl XDoll_UpdateHealth(int xdoll_handle, int health);
-void    XDoll_CreateConstraint(
-                PhysObjUserData *a1@<ebp>,
+void XDoll_CreateConstraint(
                 XDollBody *body,
                 const PhysConstraint *constraint,
                 XDoll_ConstraintInfo *cinfo);
-rigid_body_constraint_hinge * XDoll_CreateHingeConstraint@<eax>(
-                int a1@<ebp>,
+rigid_body_constraint_hinge * XDoll_CreateHingeConstraint(
                 environment_rigid_body *rb1,
                 environment_rigid_body *rb2,
                 const phys_vec3 *b1_anchor_loc,
@@ -51,13 +99,11 @@ rigid_body_constraint_hinge * XDoll_CreateHingeConstraint@<eax>(
                 float damp,
                 float lowStop,
                 float highStop);
-rigid_body_constraint_point * XDoll_CreatePointConstraint@<eax>(
-                int a1@<ebp>,
+rigid_body_constraint_point * XDoll_CreatePointConstraint(
                 environment_rigid_body *rb1,
                 environment_rigid_body *rb2,
                 const phys_vec3 *b1_anchor_loc);
-rigid_body_constraint_angular_actuator * XDoll_CreateActuatorConstraint@<eax>(
-                const phys_mat44 *a1@<ebp>,
+rigid_body_constraint_angular_actuator * XDoll_CreateActuatorConstraint(
                 environment_rigid_body *rb1,
                 environment_rigid_body *rb2,
                 float power);

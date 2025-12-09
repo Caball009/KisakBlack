@@ -359,3 +359,8 @@ void __thiscall environment_rigid_body::set(environment_rigid_body *this)
     this->m_userdata = 0;
 }
 
+
+unsigned int rigid_body::is_user_rigid_body()
+{
+    return this->m_flags & 0x20;
+}

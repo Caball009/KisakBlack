@@ -1,6 +1,7 @@
 #pragma once
 
 #include <universal/q_shared.h>
+#include <physics/destructible.h>
 
 struct LerpEntityStateTurret // sizeof=0x20
 {                                                                             // XREF: LerpEntityStateTypeUnion/r
@@ -149,23 +150,6 @@ struct LerpEntityStatePhysicsJitter // sizeof=0xC
         float maxDisplacement;
 };
 
-struct LerpEntityStateDestructibleHit // sizeof=0x18
-{                                                                             // XREF: LerpEntityStateTypeUnion/r
-                                                                                // DestructibleState/r ...
-        int modelState0;                                        // XREF: CG_DestructibleRewindToTime(int,Destructible *,int)+60/w
-                                                                                // CG_DestructibleHitEvent(int,int,entityState_s const *,int)+1C8/w
-        int modelState1;                                        // XREF: CG_DestructibleRewindToTime(int,Destructible *,int)+66/w
-                                                                                // CG_DestructibleHitEvent(int,int,entityState_s const *,int)+1CE/w
-        int modelState2;                                        // XREF: CG_DestructibleRewindToTime(int,Destructible *,int)+6C/w
-                                                                                // CG_DestructibleHitEvent(int,int,entityState_s const *,int)+1D4/w
-        int dummy;                                                    // XREF: CG_DestructibleRewindToTime(int,Destructible *,int)+72/w
-                                                                                // CG_DestructibleHitEvent(int,int,entityState_s const *,int)+1DA/w
-        int modelState3;                                        // XREF: CG_DestructibleRewindToTime(int,Destructible *,int)+78/w
-                                                                                // CG_DestructibleHitEvent(int,int,entityState_s const *,int)+1E0/w
-        int modelState4;                                        // XREF: CG_DestructibleRewindToTime(int,Destructible *,int)+7E/w
-                                                                                // CG_DestructibleHitEvent(int,int,entityState_s const *,int)+1E6/w
-};
-
 struct LerpEntityStateCreateDynEnt // sizeof=0xC
 {                                                                             // XREF: LerpEntityStateTypeUnion/r
         int model;
@@ -288,21 +272,21 @@ struct __declspec(align(4)) entityState_s // sizeof=0xE0
         renderOptions_s renderOptions;            // XREF: ClientDisconnect(int)+251/r
                                                                                 // ClientDisconnect(int)+270/o
         //entityState_s::<unnamed_type_un2> un2;
-        union //entityState_s::<unnamed_type_un2> // sizeof=0x10
+        union unnamed_type_un2 //entityState_s::<unnamed_type_un2> // sizeof=0x10
         {                                                                             // XREF: entityState_s/r
                 actorAnimState_t animState;
                 playerAnimState_t anim;
                 vehicleState_t vehicleState;
-        };
+        } un2;
         //entityState_s::<unnamed_type_un3> un3;
-        union //entityState_s::<unnamed_type_un3> // sizeof=0x4
+        union unnamed_type_un3 //entityState_s::<unnamed_type_un3> // sizeof=0x4
         {                                                                             // XREF: entityState_s/r
                 int item;
                 int hintString;
                 int vehicleXModel;
                 unsigned int secondBcAlias;
                 unsigned int soundTag;
-        };
+        } un3;
         unsigned int partBits[5];
         unsigned __int8 events[4];
         unsigned __int16 eventParms[4];
@@ -311,7 +295,7 @@ struct __declspec(align(4)) entityState_s // sizeof=0xE0
                                                                                 // BounceMissile+3C5/r ...
         __int16 groundEntityNum;
         //entityState_s::<unnamed_type_index> index;
-        union //entityState_s::<unnamed_type_index> // sizeof=0x2
+        union unnamed_type_index//entityState_s::<unnamed_type_index> // sizeof=0x2
         {                                                                             // XREF: entityState_s/r
                 __int16 brushmodel;
                 __int16 xmodel;
@@ -331,20 +315,20 @@ struct __declspec(align(4)) entityState_s // sizeof=0xE0
         unsigned __int8 clientNum;
         unsigned __int8 iHeadIcon;
         //entityState_s::<unnamed_type_faction> faction;
-        union //entityState_s::<unnamed_type_faction> // sizeof=0x1
+        union unnamed_type_faction//entityState_s::<unnamed_type_faction> // sizeof=0x1
         {                                                                             // XREF: entityState_s/r
                 unsigned __int8 iHeadIconTeam;
                 unsigned __int8 teamAndOwnerIndex;
         } faction;
         unsigned __int8 weaponModel;
         //entityState_s::<unnamed_type_un1> un1;
-        union //entityState_s::<unnamed_type_un1> // sizeof=0x1
+        union unnamed_type_un1//entityState_s::<unnamed_type_un1> // sizeof=0x1
         {                                                                             // XREF: entityState_s/r
                 unsigned __int8 scale;
                 unsigned __int8 eventParm2;
                 unsigned __int8 helicopterStage;
                 unsigned __int8 destructibleid;
-        };
+        } un1;
         clientLinkInfo_t clientLinkInfo;
         // padding byte
         // padding byte

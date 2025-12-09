@@ -177,13 +177,13 @@ void __cdecl nuge::get_ballistic_info(
         v6 = total_momentum;
     }
     v7 = rbodies_count;
-    v5->x = PHYS_ZERO_VEC_78.x;
+    v5->x = PHYS_ZERO_VEC.x;
     v8 = 0;
-    v5->y = PHYS_ZERO_VEC_78.y;
-    v5->z = PHYS_ZERO_VEC_78.z;
-    v6->x = PHYS_ZERO_VEC_78.x;
-    v6->y = PHYS_ZERO_VEC_78.y;
-    v6->z = PHYS_ZERO_VEC_78.z;
+    v5->y = PHYS_ZERO_VEC.y;
+    v5->z = PHYS_ZERO_VEC.z;
+    v6->x = PHYS_ZERO_VEC.x;
+    v6->y = PHYS_ZERO_VEC.y;
+    v6->z = PHYS_ZERO_VEC.z;
     *total_mass = 0.0;
     v9 = 1.0;
     if ( rbodies_count >= 4 )
@@ -312,7 +312,6 @@ void __cdecl nuge::get_ballistic_info(
 }
 
 void    nuge::apply_ballistic_target(
-                float a1@<ebp>,
                 rigid_body *const *list_rigid_body,
                 int rbodies_count,
                 const phys_vec3 *target,
@@ -365,12 +364,12 @@ void    nuge::apply_ballistic_target(
     phys_vec3 center_of_mass; // [esp+A0h] [ebp-30h] BYREF
     phys_vec3 total_momentum; // [esp+B0h] [ebp-20h]
     float delta_x; // [esp+C0h] [ebp-10h]
-    float s_; // [esp+C4h] [ebp-Ch]
-    float B; // [esp+C8h] [ebp-8h]
+    //float s_; // [esp+C4h] [ebp-Ch]
+    //float B; // [esp+C8h] [ebp-8h]
     float retaddr; // [esp+D0h] [ebp+0h]
 
-    s_ = a1;
-    B = retaddr;
+    //s_ = a1;
+    //B = retaddr;
     nuge::get_ballistic_info(list_rigid_body, rbodies_count, (phys_vec3 *)&v46, (phys_vec3 *)&center_of_mass.y, &v45);
     total_momentum.y = 1.0 / v45;
     dir_4 = center_of_mass.y * total_momentum.y;
@@ -538,7 +537,8 @@ void    nuge::apply_ballistic_target(
                 center_of_mass.y = delta_x * v46;
                 center_of_mass.z = v47 * delta_x;
                 center_of_mass.w = delta_x * total_mass;
-                rigid_body::add_force(v29, (phys_vec3 *)&center_of_mass.y);
+                //rigid_body::add_force(v29, (phys_vec3 *)&center_of_mass.y);
+                v29->add_force((phys_vec3 *)&center_of_mass.y);
                 v21 = 1.0;
                 v19 = rbodies_count;
             }
@@ -547,7 +547,6 @@ void    nuge::apply_ballistic_target(
 }
 
 void    nuge::calc_velocities(
-                float a1@<ebp>,
                 const phys_mat44 *mat0,
                 const phys_mat44 *mat1,
                 float delta_t,
@@ -627,9 +626,9 @@ void    nuge::calc_velocities(
     if ( qvel.w <= 0.00009999999747378752 )
     {
         v12 = qvel.z;
-        a_vel->x = PHYS_ZERO_VEC_78.x;
-        a_vel->y = PHYS_ZERO_VEC_78.y;
-        w = PHYS_ZERO_VEC_78.z;
+        a_vel->x = PHYS_ZERO_VEC.x;
+        a_vel->y = PHYS_ZERO_VEC.y;
+        w = PHYS_ZERO_VEC.z;
     }
     else
     {
@@ -848,10 +847,10 @@ void __cdecl nuge::calc_bound_sphere(const phys_vec3 *vert_list, int vert_count,
     {
         __debugbreak();
     }
-    x = PHYS_ZERO_VEC_78.x;
-    z = PHYS_ZERO_VEC_78.z;
+    x = PHYS_ZERO_VEC.x;
+    z = PHYS_ZERO_VEC.z;
     v4 = 0;
-    y = PHYS_ZERO_VEC_78.y;
+    y = PHYS_ZERO_VEC.y;
     if ( vert_count >= 4 )
     {
         p_z = &vert_list[1].z;

@@ -1,4 +1,6 @@
 #include "phys_gjk_collision_detection.h"
+#include <universal/com_math.h>
+#include "phys_colgeom.h"
 
 phys_vec3 *__cdecl phys_Unitize(phys_vec3 *result, const phys_vec3 *a)
 {
@@ -7,15 +9,7 @@ phys_vec3 *__cdecl phys_Unitize(phys_vec3 *result, const phys_vec3 *a)
     float na; // [esp+14h] [ebp-4h]
 
     na = Abs(&a->x);
-    if ( na <= 0.0
-        && _tlAssert(
-                 "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\old_phys_math.h",
-                 80,
-                 "na > 0.0f",
-                 "") )
-    {
-        __debugbreak();
-    }
+    iassert(na > 0.0f);
     v3 = a->y * (float)(1.0 / na);
     v4 = a->z * (float)(1.0 / na);
     result->x = a->x * (float)(1.0 / na);
@@ -32,17 +26,20 @@ void __cdecl gjk_collision_epilog(bool is_server_thread)
 
 phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal *__cdecl get_gjk_cache_info(
                 phys_heap_gjk_cache_system_avl_tree *gjk_cache,
-                const gjk_base_t *cg1,
-                const gjk_base_t *cg2)
+                gjk_base_t *cg1,
+                gjk_base_t *cg2)
 {
     unsigned int v3; // eax
     unsigned int geom_id; // [esp-8h] [ebp-84h]
 
     if ( !gjk_cache || !g_use_gjk_cache )
         return 0;
-    geom_id = gjk_base_t::get_geom_id(cg2);
-    v3 = gjk_base_t::get_geom_id(cg1);
-    return phys_heap_gjk_cache_system_avl_tree::get_gjk_cache_info(gjk_cache, v3, geom_id, 1);
+    //geom_id = gjk_base_t::get_geom_id(cg2);
+    geom_id = cg2->get_geom_id();
+    //v3 = gjk_base_t::get_geom_id(cg1);
+    v3 = cg1->get_geom_id();
+    //return phys_heap_gjk_cache_system_avl_tree::get_gjk_cache_info(gjk_cache, v3, geom_id, 1);
+    return gjk_cache->get_gjk_cache_info(v3, geom_id, 1);
 }
 
 phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal *__thiscall phys_heap_gjk_cache_system_avl_tree::get_gjk_cache_info(

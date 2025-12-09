@@ -1,6 +1,7 @@
 #pragma once
 
 #include "phys_local.h"
+#include "phys_collision.h"
 
 struct rigid_body_constraint // sizeof=0xC
 {                                                                             // XREF: rigid_body_constraint_point/r
@@ -137,57 +138,6 @@ struct    __declspec(align(16)) rigid_body_constraint_ragdoll : rigid_body_const
         // padding byte
         // padding byte
         // padding byte
-};
-
-struct    pulse_sum_normal : phys_link_list_base<pulse_sum_normal> // sizeof=0xA0
-{                                                                             // XREF: pulse_sum_wheel/r
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
-        phys_vec3 m_ud;
-        phys_vec3 m_b1_r;
-        phys_vec3 m_b2_r;
-        phys_vec3 m_b1_ap;
-        phys_vec3 m_b2_ap;
-        float m_pulse_sum_min;
-        float m_pulse_sum_max;
-        float m_pulse_sum;
-        float m_right_side;
-        float m_big_dirt;
-        float m_cfm;
-        float m_denom;
-        float m_pulse_limit_ratio;
-        unsigned int m_flags;
-        pulse_sum_normal *m_pulse_parent;
-        pulse_sum_node *m_b1;
-        pulse_sum_node *m_b2;
-        pulse_sum_cache *m_pulse_sum_cache;
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
-};
-
-struct phys_link_list_base<pulse_sum_normal> // sizeof=0x4
-{                                                                             // XREF: pulse_sum_normal/r
-        pulse_sum_normal *m_next_link;
 };
 
 struct    rigid_body_constraint_wheel : rigid_body_constraint // sizeof=0xD0
@@ -348,29 +298,29 @@ struct    __declspec(align(16)) rigid_body_constraint_custom_path : rigid_body_c
         // padding byte
 };
 
-template <typename T>
-struct phys_inplace_avl_tree_node//<rigid_body_constraint_contact> // sizeof=0xC
-{                                                                             // XREF: rigid_body_constraint_contact/r
-        //rigid_body_constraint_contact *m_left;
-        T *m_left;
-        //rigid_body_constraint_contact *m_right;
-        T *m_right;
-        int m_balance;
-};
-
 struct rigid_body_pair_key // sizeof=0x8
 {                                                                             // XREF: rigid_body_constraint_contact/r
-        struct rigid_body *m_b1;
-        struct rigid_body *m_b2;
+    rigid_body_pair_key(rigid_body *const b1,rigid_body *const b2);
+
+    struct rigid_body *m_b1;
+    struct rigid_body *m_b2;
 };
 
 struct rigid_body_constraint_contact : rigid_body_constraint // sizeof=0x2C
 {                                                                             // XREF: phys_free_list<rigid_body_constraint_contact>::T_internal/r
-        phys_simple_link_list<contact_point_info> m_list_contact_point_info_buffer_1;
-        phys_simple_link_list<contact_point_info> m_list_contact_point_info_buffer_2;
-        unsigned int m_solver_priority;
-        phys_inplace_avl_tree_node<rigid_body_constraint_contact> m_avl_tree_node;
-        rigid_body_pair_key m_avl_key;
+    struct avl_tree_accessor // sizeof=0x0
+    {
+    };
+    phys_simple_link_list<contact_point_info> m_list_contact_point_info_buffer_1;
+    phys_simple_link_list<contact_point_info> m_list_contact_point_info_buffer_2;
+    unsigned int m_solver_priority;
+    phys_inplace_avl_tree_node<rigid_body_constraint_contact> m_avl_tree_node;
+    rigid_body_pair_key m_avl_key;
+
+    void add_cpi_simple(
+        contact_point_info *cpi,
+        environment_rigid_body *b1_,
+        environment_rigid_body *b2_);
 };
 
 struct rb_inplace_partition_node // sizeof=0x38
@@ -395,6 +345,12 @@ class rigid_body
 {
 public:
         void add_force(const phys_vec3 *force);
+        void add_force(
+            const phys_vec3 *force,
+            const phys_vec3 *point,
+            float torque_mult);
+        void add_torque(const phys_vec3 *torque);
+
         void set_inertia(const phys_vec3 *inertia);
         void set_mass(float mass);
 
@@ -406,13 +362,21 @@ public:
                         const phys_vec3 *a_vel,
                         int stable_min_contact_count);
 
-        void add_force(
-                const phys_vec3 *force,
-                const phys_vec3 *point,
-                float torque_mult);
-
+        unsigned int get_flag(unsigned int f);
         void set_flag(unsigned int f, int b);
         unsigned int is_group_stable();
+
+        unsigned int is_user_rigid_body();
+
+        unsigned int is_dangerous();
+        unsigned int is_stable();
+
+        void dangerous_set_a_vel(const phys_vec3 *a_vel);
+        void dangerous_set_t_vel(const phys_vec3 *t_vel);
+
+        rigid_body& operator=(const rigid_body *__that);
+
+        void swap_last_position(rigid_body *this);
 
 
         phys_vec3 m_last_position;
@@ -454,6 +418,10 @@ public:
         float m_a_drag_coef;
         void *m_userdata;
         rb_inplace_partition_node m_partition_node;
+};
+
+struct environment_rigid_body : rigid_body // sizeof=0x160
+{                                       // XREF: physics_system/r
 };
 
 //void __thiscall rigid_body::add_force(rigid_body *this, const phys_vec3 *force);

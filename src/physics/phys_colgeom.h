@@ -22,33 +22,6 @@ struct visitor_base_t // sizeof=0x4
         virtual ~visitor_base_t() = default;
 };
 
-struct colgeom_visitor_t : visitor_base_t // sizeof=0x70
-{                                                                             // XREF: colgeom_visitor_inlined_t<200>/r
-                                                                                // static_colgeom_visitor_t/r ...
-    colgeom_visitor_t &operator=(colgeom_visitor_t *that)
-    {
-        this->m_mn = that->m_mn;
-        this->m_mx = that->m_mx;
-        this->m_p0 = that->m_p0;
-        this->m_p1 = that->m_p1;
-        this->m_delta = that->m_delta;
-        this->m_rvec = that->m_rvec;
-        this->m_radius = that->m_radius;
-        this->m_mask = that->m_mask;
-        this->m_threadInfo = that->m_threadInfo;
-    }
-
-    hybrid_vector m_mn;                                 // XREF: query_brush_model_gjk_geom(ushort,int,gjk_collision_visitor *)+8F/o
-    hybrid_vector m_mx;                                 // XREF: query_brush_model_gjk_geom(ushort,int,gjk_collision_visitor *)+8B/o
-    hybrid_vector m_p0;
-    hybrid_vector m_p1;
-    hybrid_vector m_delta;
-    hybrid_vector m_rvec;
-    float m_radius;
-    int m_mask;                                                 // XREF: query_brush_model_gjk_geom(ushort,int,gjk_collision_visitor *)+A3/w
-    TraceThreadInfo *m_threadInfo;
-};
-
 struct col_prim_t // sizeof=0x8
 {                                       // XREF: colgeom_visitor_inlined_t<200>/r
                                         // colgeom_visitor_inlined_t<500>/r
@@ -192,32 +165,11 @@ struct query_brush_model_gjk_geom_visitor : colgeom_visitor_t // sizeof=0x74
                 const float *expand_vec);
 };
 
-struct gjk_collision_visitor // sizeof=0x4
-{                                                                             // XREF: create_gjk_geom_collision_visitor/r
-                                                                                // gjk_physics_collision_visitor/r ...
-        //gjk_collision_visitor_vtbl *__vftable;
-                                                                                // XREF: DynEntCl_CreatePhysObj(DynEntityDef const *,DynEntityClient *,GfxPlacement const *)+D7/w
-                                                                                // DynEntCl_CreatePhysObj(DynEntityDef const *,DynEntityClient *,GfxPlacement const *)+DE/w ...
-        void * allocate(const int, const int, const bool);
-        bool is_query();
-        void get_local_query_aabb(float *, float *);
-        bool query_create_prolog(const void *);
-        void query_create_epilog(gjk_base_t *);
-        bool query_create_prolog_1(const float *, const float *, const void *);
-        void query_create_epilog_1(gjk_base_t *);
-};
-
-struct create_gjk_geom_collision_visitor : gjk_collision_visitor // sizeof=0x8
-{                                       // XREF: .data:create_gjk_geom_collision_visitor g_empty_collision_visitor/r
-                                        // XDoll_CreatePhysObj/r ...
-    gjk_geom_list_t *gjk_geom_list;     // XREF: DynEntCl_CreatePhysObj(DynEntityDef const *,DynEntityClient *,GfxPlacement const *)+E8/w
-                                        // FX_SpawnModelPhysics+5D6/w ...
-};
-
 const struct cached_simplex_info // sizeof=0x30
 {                                                                             // XREF: phys_gjk_cache_info/r
-                                                                                // phys_gjk_cache_info/r ...
-        phys_vec3 m_indices[3];
+    phys_vec3 m_indices[3];
+
+    cached_simplex_info& operator=(const cached_simplex_info *__that);
 };
 
 struct __declspec(align(16)) contact_manifold_mesh_point // sizeof=0x20
@@ -338,7 +290,10 @@ public:
         const phys_mat44 *get_xform();
         bool is_foot(const phys_vec3 *hit_point);
         bool is_walkable(const phys_vec3 *hit_point, const phys_vec3 *up);
+
+        int get_contents();
         void set_contents(int contents);
+
         void set_geom_id_new(unsigned int geom_id);
         void set_xform(const phys_mat44 *xform);
 
@@ -377,6 +332,7 @@ struct __declspec(align(16)) gjk_aabb_t : gjk_base_t // sizeof=0x80
         // padding byte
         // padding byte
 
+        bool is_walkable(const phys_vec3 *hit_point, const phys_vec3 *up);
 
         static gjk_aabb_t *__cdecl create(
                 const phys_vec3 *center,
@@ -752,7 +708,6 @@ void    setup_gjk_polygon_cylinder(
                 float radius_adjust,
                 gjk_polygon_cylinder_t *gjk_cylinder);
 
-void __cdecl destroy_gjk_geom(gjk_aabb_t *geom);
 gjk_aabb_t * create_aabb_gjk_geom(
                 const float *mn,
                 const float *mx,

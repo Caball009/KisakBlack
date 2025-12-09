@@ -27,7 +27,6 @@ void __cdecl FX_GetOrientation(
                 const FxSpatialFrame *frameNow,
                 int randomSeed,
                 orientation_t *orient);
-bool __cdecl Vec4IsNormalized(const float *v);
 void __cdecl FX_GetVelocityAtTime(
                 const FxElemDef *elemDef,
                 int randomSeed,

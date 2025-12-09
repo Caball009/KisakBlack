@@ -473,14 +473,6 @@ struct SprintState // sizeof=0x1C
         int sprintCooldown;
 };
 
-struct MantleState // sizeof=0x10
-{                                                                             // XREF: playerState_s/r
-        float yaw;
-        int timer;
-        int transIndex;
-        int flags;
-};
-
 enum ActionSlotType : __int32
 {                                                                             // XREF: playerState_s/r
         ACTIONSLOTTYPE_DONOTHING             = 0x0,

@@ -1,4 +1,5 @@
 #include "ik_process.h"
+#include "ik_import.h"
 
 void __cdecl IK_GeneratePreIKMatrices(IKState *ikState, bool isLocalBones)
 {
@@ -11,7 +12,7 @@ void __cdecl IK_GeneratePreIKMatrices(IKState *ikState, bool isLocalBones)
 }
 
 // local variable allocation has failed, the output may be wrong!
-void    IK_GenerateIKXformMatrices(float *a1@<ebp>, IKState *ikState, bool isLocalBones)
+void    IK_GenerateIKXformMatrices(IKState *ikState, bool isLocalBones)
 {
     _BYTE v3[76]; // [esp+18h] [ebp-1ECh] OVERLAPPED BYREF
     int v4; // [esp+64h] [ebp-1A0h]
