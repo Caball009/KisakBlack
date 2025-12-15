@@ -1,4 +1,14 @@
 #pragma once
+#include <cgame/cg_shellshock.h>
+#include "bg_actor_prone.h"
+#include <qcommon/ent.h>
+
+struct gitem_s;
+struct WeaponDef;
+struct playerState_s;
+struct entityState_s;
+struct trajectory_t;
+struct PlayerHeldWeapon;
 
 void __cdecl BG_RegisterDvars();
 char *__cdecl BG_GetEntityTypeName(int eType);
@@ -38,13 +48,11 @@ void __cdecl BG_PlayerToEntityProcessEvents_Internal(
                 unsigned int eventTime);
 char __cdecl BG_PlayerToEntityShouldAddEvent(int event);
 void __cdecl BG_PlayerToEntitySetMisc(playerState_s *ps, entityState_s *s);
-void __thiscall renderOptions_s::CopyWeaponOptions(renderOptions_s *this, const renderOptions_s *o);
 unsigned __int8 __cdecl BG_GetPlayerWeaponModel(const playerState_s *ps, unsigned int weaponIndex);
 renderOptions_s __cdecl BG_PlayerWeaponOptions(const playerState_s *ps, unsigned int weaponIndex);
 void __cdecl BG_PlayerToEntitySetTrajectory(playerState_s *ps, entityState_s *s, int snap);
 // local variable allocation has failed, the output may be wrong!
-char    BG_CheckProne@<al>(
-                cStaticModel_s *a1@<ebp>,
+char    BG_CheckProne(
                 const playerState_s *ps,
                 int passEntityNum,
                 const float *vPos,
@@ -294,3 +302,4 @@ extern const dvar_s *dive2swim;
 extern const dvar_s *dive_recharge;
 extern const dvar_s *playerPushAmount;
 extern const dvar_s *bg_freeCamClipToHeliPatch;
+extern const dvar_s *zero_idle_movement;

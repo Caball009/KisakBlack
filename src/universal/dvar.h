@@ -273,9 +273,9 @@ const dvar_s *__cdecl _Dvar_RegisterVec2(
                 const char *description);
 const dvar_s *__cdecl _Dvar_RegisterVec3(
                 const char *dvarName,
-                unsigned int x,
-                unsigned int y,
-                unsigned int z,
+                float x,
+                float y,
+                float z,
                 float min,
                 float max,
                 unsigned __int16 flags,

@@ -121,18 +121,18 @@ void __cdecl IKImport_InitVars(IKSystem *ikSystem)
                                                     "Turn on/off AI hand IK tuning. 1 = Use anim flag. 2 = Force on for all anims.");
     ikSystem->dvars[12] = _Dvar_RegisterVec3(
                                                     "ik_ai_hand_offset_vec",
-                                                    unsigned int(0.0),
-                                                    unsigned int(0.0),
-                                                    unsigned int(0.0),
+                                                    (0.0),
+                                                    (0.0),
+                                                    (0.0),
                                                     -10.0,
                                                     10.0,
                                                     0x4080u,
                                                     "Offset vector for hand tuning");
     ikSystem->dvars[13] = _Dvar_RegisterVec3(
                                                     "ik_ai_hand_rotation_vec",
-                                                    unsigned int(0.0),
-                                                    unsigned int(0.0),
-                                                    unsigned int(0.0),
+                                                    (0.0),
+                                                    (0.0),
+                                                    (0.0),
                                                     -180.0,
                                                     180.0,
                                                     0x4080u,

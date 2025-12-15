@@ -3535,3 +3535,21 @@ void __cdecl Vec3ScaleMad(float scale0, const float *dir0, float scale1, const f
     result[1] = (float)(scale0 * dir0[1]) + (float)(scale1 * dir1[1]);
     result[2] = (float)(scale0 * dir0[2]) + (float)(scale1 * dir1[2]);
 }
+
+void __cdecl Vec3Sub(const float *a, const float *b, float *diff)
+{
+    *diff = *a - *b;
+    diff[1] = a[1] - b[1];
+    diff[2] = a[2] - b[2];
+}
+
+void __cdecl Vec2NormalizeFast(float *v)
+{
+    int number; // [esp+18h] [ebp-8h]
+    float invLength; // [esp+1Ch] [ebp-4h]
+
+    *(float *)&number = *v * *v + v[1] * v[1];
+    invLength = I_rsqrt(number);
+    *v = *v * invLength;
+    v[1] = v[1] * invLength;
+}

@@ -1,4 +1,61 @@
 #include "ui_gametype_variants_mp.h"
+#include "ui_gametype_custom_mp.h"
+
+#include <cstring>
+#include <universal/q_shared.h>
+#include <bgame/bg_unlockable_items.h>
+#include <qcommon/common.h>
+#include <ui/ui_utils.h>
+#include <stdlib.h>
+#include <universal/memfile.h>
+#include <universal/com_memory.h>
+#include <clientscript/cscr_vm.h>
+#include <clientscript/scr_const.h>
+
+const dvar_t *ui_gv_rulecount;
+const dvar_t *ui_gv_reloadSpeedModifier;
+const dvar_s *custom_class_mode;
+
+GVValue gvCondOpValues[6];
+GVValue classParamValues[10];
+_CustomClassData g_customGameModeClasses[10];
+_CustomClassDescription g_customGameModeClassDescriptions[10];
+
+GVGlob gvGlob;
+
+GVConditionalLhs gvCondLhsValues[9];
+
+GVEvent gvEvents[10];
+int gvEventCount;
+
+GVAction gvActions[25];
+int gvActionCount;
+
+GVTarget gvTargets[19];
+
+GVValue teamParamValues[3];
+
+int s_popupStackSize;
+bool s_isFeederSelectionFromPopupStart;
+int gvTargetCount;
+
+menuDef_t *s_popupStack[12];
+
+const char aDm_0[] = "dm";
+
+const char *CUSTOM_CLASS_VALUES[10] =
+{
+  "CLASS_CUSTOM1",
+  "CLASS_CUSTOM2",
+  "CLASS_CUSTOM3",
+  "CLASS_CUSTOM4",
+  "CLASS_CUSTOM5",
+  "CLASS_CUSTOM6",
+  "CLASS_CUSTOM7",
+  "CLASS_CUSTOM8",
+  "CLASS_CUSTOM9",
+  "CLASS_CUSTOM10"
+};
 
 int __cdecl UI_GameVariants_GetClassParameters()
 {
@@ -7,20 +64,20 @@ int __cdecl UI_GameVariants_GetClassParameters()
     int numClasses; // [esp+8h] [ebp-4h]
 
     numClasses = 0;
-    for ( c = 0; c < 0xA; ++c )
+    for (c = 0; c < 0xA; ++c)
     {
         classParamValues[c].m_displayValue = "";
-        dword_98A592C[2 * c] = (int)"";
+        classParamValues[c].m_value = "";
     }
-    if ( UI_Gametype_IsUsingCustom() && Dvar_GetInt(custom_class_mode) )
+    if (UI_Gametype_IsUsingCustom() && Dvar_GetInt(custom_class_mode))
     {
         numClasses = 0;
-        for ( i = 0; i < 10; ++i )
+        for (i = 0; i < 10; ++i)
         {
-            if ( g_customGameModeClasses[i].isActive == 1 )
+            if (g_customGameModeClasses[i].isActive == 1)
             {
                 classParamValues[i].m_displayValue = g_customGameModeClassDescriptions[i].name;
-                dword_98A592C[2 * i] = (int)CUSTOM_CLASS_VALUES[i];
+                classParamValues[i].m_value = CUSTOM_CLASS_VALUES[i];
                 ++numClasses;
             }
         }
@@ -94,12 +151,12 @@ void __cdecl UI_GV_StartAddingConditional_f()
 
 void SetNextPopupToAddOrEditConfirm()
 {
-    char *nextPopup; // [esp+0h] [ebp-4h]
+    const char *nextPopup; // [esp+0h] [ebp-4h]
 
     nextPopup = "popup_gv_edit_selected";
     if ( Dvar_GetInt("ui_gv_iscreatingnew") )
         nextPopup = "popup_gv_add_new";
-    Dvar_SetStringByName("ui_gv_nextpopup", nextPopup);
+    Dvar_SetStringByName("ui_gv_nextpopup", (char*)nextPopup);
 }
 
 void __cdecl UI_GV_EditSelectedRule_f()
@@ -268,15 +325,15 @@ int __cdecl GetTargetIDFromFeederIndex(int feederIndex)
     int count; // [esp+Ch] [ebp-4h]
 
     ev = GetEventByDvarIndex("ui_gv_event_index");
-    if ( !ev )
+    if (!ev)
         return 0;
     mask = GetValidTargetMask(ev->m_targetMask);
     count = 0;
-    for ( i = 0; i < gvTargetCount; ++i )
+    for (i = 0; i < gvTargetCount; ++i)
     {
-        if ( (mask & (unsigned __int8)byte_98A5E08[12 * i]) != 0 )
+        if ((mask & gvTargets[i].m_targetMask) != 0)
         {
-            if ( count == feederIndex )
+            if (count == feederIndex)
                 return i;
             ++count;
         }
@@ -342,15 +399,15 @@ unsigned int __cdecl GetCondLhsIndexForFeederIndex(int feederIndex)
     int count; // [esp+Ch] [ebp-4h]
 
     ev = GetEventByDvarIndex("ui_gv_event_index");
-    if ( !ev )
+    if (!ev)
         return 0;
     mask = GetValidCondMask(ev->m_condMask);
     count = 0;
-    for ( i = 0; i < 9; ++i )
+    for (i = 0; i < 9; ++i)
     {
-        if ( (dword_98A5980[6 * i] & mask) != 0 )
+        if ((gvCondLhsValues[i].m_type & mask) != 0)
         {
-            if ( count == feederIndex )
+            if (count == feederIndex)
                 return i;
             ++count;
         }
@@ -436,7 +493,7 @@ void __cdecl UI_GV_AddNewRule_f()
     }
     else
     {
-        UI_Gametype_ShowErrorPopup("@MENU_ERROR", "@CUSTOM_MAX_RULES_REACHED");
+        UI_Gametype_ShowErrorPopup((char*)"@MENU_ERROR", (char *)"@CUSTOM_MAX_RULES_REACHED");
     }
 }
 
@@ -500,6 +557,19 @@ void __cdecl UI_GV_UpdateSelectedRule_f()
     ruleSelected = Menu_GetFeederSelection(&dc->uiDC, 0, 44, "gametype_variants");
     UI_FeederSelection_GameVariants(0, dc->uiDC.contextIndex, 44.0, ruleSelected);
 }
+
+cmd_function_s UI_GV_NavForward_f_VAR;
+cmd_function_s UI_GV_NavBackward_f_VAR;
+cmd_function_s UI_GV_UpdateSelectedRule_f_VAR;
+cmd_function_s UI_GV_StartAddingEvent_f_VAR;
+cmd_function_s UI_GV_StartAddingAction_f_VAR;
+cmd_function_s UI_GV_StartAddingTarget_f_VAR;
+cmd_function_s UI_GV_StartAddingParam_f_VAR;
+cmd_function_s UI_GV_StartAddingConditional_f_VAR;
+cmd_function_s UI_GV_EditSelectedRule_f_VAR;
+cmd_function_s UI_GV_AddNewRule_f_VAR;
+cmd_function_s UI_GV_DeleteSelected_f_VAR;
+cmd_function_s UI_GV_ResetFeeder_f_VAR;
 
 void __cdecl UI_InitGametypeVariants()
 {
@@ -627,9 +697,9 @@ int __cdecl GetValidTargetCount(unsigned __int8 targetMask)
 
     mask = GetValidTargetMask(targetMask);
     count = 0;
-    for ( i = 0; i < gvTargetCount; ++i )
+    for (i = 0; i < gvTargetCount; ++i)
     {
-        if ( (mask & (unsigned __int8)byte_98A5E08[12 * i]) != 0 )
+        if ((mask & gvTargets[i].m_targetMask) != 0)
             ++count;
     }
     return count;
@@ -676,9 +746,9 @@ int __cdecl GetValidCondLhsCount(unsigned __int8 condMask)
 
     mask = GetValidCondMask(condMask);
     count = 0;
-    for ( i = 0; i < 9; ++i )
+    for (i = 0; i < 9; ++i)
     {
-        if ( (dword_98A5980[6 * i] & mask) != 0 )
+        if ((gvCondLhsValues[i].m_type & mask) != 0)
             ++count;
     }
     return count;
@@ -1032,18 +1102,18 @@ void __cdecl UI_FeederSelection_GameVariantRules(int contextIndex, int index)
         FeederIndexFromActionIndex = GetFeederIndexFromActionIndex(rule->rules[0].actionID);
         Menu_SetFeederSelection(0, &dc->uiDC, 0, 41, FeederIndexFromActionIndex, "popup_gv_select_action");
         FeederIndexFromTargetId = GetFeederIndexFromTargetId(
-                                                                rule->rules[0].targetID,
-                                                                byte_98A5878[12 * rule->rules[0].eventID]);
+            rule->rules[0].targetID,
+            gvEvents[rule->rules[0].eventID].m_targetMask);
         Menu_SetFeederSelection(0, &dc->uiDC, 0, 43, FeederIndexFromTargetId, "popup_gv_select_target");
         ParamIndexForValue = GetParamIndexForValue(rule->rules[0].actionID, rule->rules[0].parameter.value);
         Menu_SetFeederSelection(0, &dc->uiDC, 0, 42, ParamIndexForValue, "popup_gv_select_param");
         FeederIndexForCondLhsIndex = GetFeederIndexForCondLhsIndex(
-                                                                     rule->rules[0].m_conditional.m_lhsIndex,
-                                                                     byte_98A5879[12 * rule->rules[0].eventID]);
+            rule->rules[0].m_conditional.m_lhsIndex,
+            gvEvents[rule->rules[0].eventID].m_condMask);
         Menu_SetFeederSelection(0, &dc->uiDC, 0, 35, FeederIndexForCondLhsIndex, "popup_gv_select_cond");
         Menu_SetFeederSelection(0, &dc->uiDC, 0, 36, rule->rules[0].m_conditional.m_operatorIndex, "popup_gv_select_cond");
         Menu_SetFeederSelection(0, &dc->uiDC, 0, 37, rule->rules[0].m_conditional.m_rhsIndex, "popup_gv_select_cond");
-        if ( !rule->rules[0].m_conditional.hasConditional )
+        if (!rule->rules[0].m_conditional.hasConditional)
         {
             Dvar_SetStringByName("ui_gv_condlhs", (char *)"");
             Dvar_SetStringByName("ui_gv_condop", (char *)"");
@@ -1114,11 +1184,11 @@ int __cdecl GetFeederIndexFromTargetId(int targetId, unsigned __int8 targetMask)
 
     mask = GetValidTargetMask(targetMask);
     count = 0;
-    for ( i = 0; i < gvTargetCount; ++i )
+    for (i = 0; i < gvTargetCount; ++i)
     {
-        if ( (mask & (unsigned __int8)byte_98A5E08[12 * i]) != 0 )
+        if ((mask & gvTargets[i].m_targetMask) != 0)
         {
-            if ( i == targetId )
+            if (i == targetId)
                 return count;
             ++count;
         }
@@ -1134,11 +1204,11 @@ int __cdecl GetFeederIndexForCondLhsIndex(int condLhsIndex, unsigned __int8 cond
 
     mask = GetValidCondMask(condMask);
     count = 0;
-    for ( i = 0; i < 9; ++i )
+    for (i = 0; i < 9; ++i)
     {
-        if ( (dword_98A5980[6 * i] & mask) != 0 )
+        if ((gvCondLhsValues[i].m_type & mask) != 0)
         {
-            if ( i == condLhsIndex )
+            if (i == condLhsIndex)
                 return count;
             ++count;
         }
@@ -1153,14 +1223,14 @@ void __cdecl UI_FeederSelection_GameVariantEvent(int contextIndex, int index)
     v2 = UI_FeederItemText_GameVariantEvents(index, 0);
     Dvar_SetStringByName("ui_gv_event", v2);
     Dvar_SetIntByName("ui_gv_event_index", index);
-    Dvar_SetStringByName("ui_gv_nextpopup", "popup_gv_select_action");
+    Dvar_SetStringByName("ui_gv_nextpopup", (char*)"popup_gv_select_action");
 }
 
 void __cdecl UI_FeederSelection_GameVariantAction(int localClientNum, int contextIndex, int index)
 {
     uiInfo_s *dc; // [esp+0h] [ebp-10h]
     char *actionName; // [esp+4h] [ebp-Ch]
-    char *nextPopup; // [esp+8h] [ebp-8h]
+    const char *nextPopup; // [esp+8h] [ebp-8h]
     GVAction *action; // [esp+Ch] [ebp-4h]
 
     if ( !s_isFeederSelectionFromPopupStart )
@@ -1177,7 +1247,7 @@ void __cdecl UI_FeederSelection_GameVariantAction(int localClientNum, int contex
     nextPopup = "popup_gv_select_param";
     if ( action->m_parameterType == 4 )
     {
-        Dvar_SetStringByName("ui_gv_nextpopup", "popup_gv_enter_param");
+        Dvar_SetStringByName("ui_gv_nextpopup", (char *)"popup_gv_enter_param");
     }
     else
     {
@@ -1197,7 +1267,7 @@ void __cdecl UI_FeederSelection_GameVariantAction(int localClientNum, int contex
                     nextPopup = "popup_gv_select_target";
                 break;
         }
-        Dvar_SetStringByName("ui_gv_nextpopup", nextPopup);
+        Dvar_SetStringByName("ui_gv_nextpopup", (char *)nextPopup);
     }
 }
 
@@ -1208,7 +1278,7 @@ void __cdecl UI_FeederSelection_GameVariantTarget(int contextIndex, int index)
     v2 = UI_FeederItemText_GameVariantTargets(index, 0);
     Dvar_SetStringByName("ui_gv_target", v2);
     Dvar_SetIntByName("ui_gv_target_index", index);
-    Dvar_SetStringByName("ui_gv_nextpopup", "popup_gv_select_cond");
+    Dvar_SetStringByName("ui_gv_nextpopup", (char *)"popup_gv_select_cond");
 }
 
 void __cdecl UI_FeederSelection_GameVariantCondOp(int contextIndex, int index)
@@ -1286,7 +1356,7 @@ void __cdecl UI_FeederSelection_GameVariantParam(int localClientNum, int context
     }
     Dvar_SetStringByName("ui_gv_param", paramText);
     Dvar_SetIntByName("ui_gv_param_index", index);
-    Dvar_SetStringByName("ui_gv_nextpopup", "popup_gv_select_target");
+    Dvar_SetStringByName("ui_gv_nextpopup", (char *)"popup_gv_select_target");
 }
 
 void __cdecl UI_FeederSelection_GameVariantCondLhs(int localClientNum, int contextIndex, int index)
@@ -1478,12 +1548,12 @@ void __cdecl Scr_GameVariants_AddConditional(GVRule *rule)
         lhs = &gvCondLhsValues[rule->m_conditional.m_lhsIndex];
         Scr_AddString((char *)lhs->m_scriptName, SCRIPTINSTANCE_SERVER);
         Scr_AddArrayStringIndexed(scr_const.gv_condlhs, SCRIPTINSTANCE_SERVER);
-        Scr_AddString((&dword_98A5AAC)[2 * rule->m_conditional.m_operatorIndex], SCRIPTINSTANCE_SERVER);
+        Scr_AddString((char *)gvCondOpValues[rule->m_conditional.m_operatorIndex].m_value, SCRIPTINSTANCE_SERVER);
         Scr_AddArrayStringIndexed(scr_const.gv_condop, SCRIPTINSTANCE_SERVER);
         rhsValue = (char *)lhs->m_rhs.m_values[rule->m_conditional.m_rhsIndex].m_value;
         switch ( lhs->m_rhs.m_type )
         {
-            case GVTYPE_bool:
+            case GVTYPE_BOOL:
                 v3 = !I_stricmp(rhsValue, "false") || !I_stricmp(rhsValue, "0");
                 Scr_AddBool(!v3, SCRIPTINSTANCE_SERVER);
                 break;
@@ -1556,14 +1626,14 @@ void __cdecl Scr_GameVariants_AddPerkString(char *paramValue)
     const char *pipeDelim; // [esp+8Ch] [ebp-4h]
 
     cursor = paramValue;
-    strstr((unsigned __int8 *)paramValue, "|");
+    v1 = strstr(paramValue, "|");
     for ( pipeDelim = v1; pipeDelim; pipeDelim = v2 )
     {
         I_strncpyz(specialty, cursor, pipeDelim - cursor + 1);
         Scr_AddString(specialty, SCRIPTINSTANCE_SERVER);
         Scr_AddArray(SCRIPTINSTANCE_SERVER);
         cursor = pipeDelim + 1;
-        strstr((unsigned __int8 *)pipeDelim + 1, "|");
+        v2 = strstr(pipeDelim + 1, "|");
     }
     Scr_AddString((char *)cursor, SCRIPTINSTANCE_SERVER);
 }
@@ -1574,15 +1644,15 @@ void __cdecl Scr_GameVariants_GetRule()
     int ruleNum; // [esp+4h] [ebp-4h]
 
     ruleNum = Scr_GetInt(0, SCRIPTINSTANCE_SERVER).intValue;
-    if ( ruleNum >= 0 && ruleNum <= gvGlob.ruleCount )
+    if (ruleNum >= 0 && ruleNum <= gvGlob.ruleCount)
     {
         rule = &gvGlob.rules[ruleNum];
         Scr_MakeArray(SCRIPTINSTANCE_SERVER);
-        Scr_AddString((char *)dword_98A5874[3 * rule->eventID], SCRIPTINSTANCE_SERVER);
+        Scr_AddString(gvEvents[rule->eventID].m_scriptName, SCRIPTINSTANCE_SERVER);
         Scr_AddArrayStringIndexed(scr_const.gv_event, SCRIPTINSTANCE_SERVER);
-        Scr_AddString((char *)dword_98A5BBC[5 * rule->actionID], SCRIPTINSTANCE_SERVER);
+        Scr_AddString(gvActions[rule->actionID].m_scriptName, SCRIPTINSTANCE_SERVER);
         Scr_AddArrayStringIndexed(scr_const.gv_action, SCRIPTINSTANCE_SERVER);
-        Scr_AddString((char *)dword_98A5E04[3 * rule->targetID], SCRIPTINSTANCE_SERVER);
+        Scr_AddString(gvTargets[rule->targetID].m_scriptName, SCRIPTINSTANCE_SERVER);
         Scr_AddArrayStringIndexed(scr_const.gv_target, SCRIPTINSTANCE_SERVER);
         Scr_GameVariants_AddConditional(rule);
         Scr_GameVariants_AddParams(rule);
@@ -1593,7 +1663,7 @@ void __cdecl Scr_GameVariants_GetRule()
     }
 }
 
-GVGlob *__thiscall GVGlob::GVGlob(GVGlob *this)
+GVGlob::GVGlob()
 {
     int v2; // [esp+4h] [ebp-Ch]
     GVGlob *i; // [esp+8h] [ebp-8h]
@@ -1606,11 +1676,9 @@ GVGlob *__thiscall GVGlob::GVGlob(GVGlob *this)
         i->rules[0].m_conditional.m_operatorIndex = 0;
         i->rules[0].m_conditional.m_rhsIndex = 0;
     }
-    return this;
 }
 
-GVAction *__thiscall GVAction::GVAction(
-                GVAction *this,
+GVAction::GVAction(
                 char *name,
                 char *scriptName,
                 unsigned __int8 parameterType,
@@ -1622,6 +1690,5 @@ GVAction *__thiscall GVAction::GVAction(
     this->m_parameterType = parameterType;
     this->m_parameters = parameters;
     this->m_parametersSize = parametersSize;
-    return this;
 }
 

@@ -1,5 +1,192 @@
 #pragma once
 
+#include <universal/dvar.h>
+#include <ui/ui_shared.h>
+#include <game_mp/g_save_mp.h>
+
+enum GVConditionalLhsTypeMask : __int32
+{                                       // XREF: GVConditionalLhs/r
+    GV_COND_MASK_GENERAL        = 0x1,
+    GV_COND_MASK_HIT_BY         = 0x2,
+    GV_COND_MASK_PLAYER         = 0x4,
+    GV_COND_MASK_ATTACK         = 0x8,
+    GV_COND_MASK_ATTACK_CLASS   = 0x10,
+    GV_COND_MASK_PLAYER_CLASS   = 0x20,
+    GV_COND_MASK_GENERAL_PLAYER = 0x25,
+    GV_COND_MASK_GENERAL_ATTACK = 0x19,
+    GV_COND_MASK_ALL_CLASS      = 0x30,
+};
+
+enum GVType : __int32
+{                                       // XREF: GVConditionalRhs/r
+    GVTYPE_BOOL   = 0x0,
+    GVTYPE_INT    = 0x1,
+    GVTYPE_FLOAT  = 0x2,
+    GVTYPE_STRING = 0x3,
+    GVTYPE_NUM    = 0x4,
+};
+
+struct GVParameter // sizeof=0x81
+{                                       // XREF: GVRule/r GVRule/r
+    bool hasParameter;
+    char value[128];
+};
+
+struct GVConditional // sizeof=0x4
+{                                       // XREF: GVRule/r
+    bool hasConditional;
+    unsigned __int8 m_lhsIndex;
+    unsigned __int8 m_operatorIndex;
+    unsigned __int8 m_rhsIndex;
+};
+
+struct __declspec(align(4)) GVEvent // sizeof=0xC
+{
+    char *m_name;
+    char *m_scriptName;
+    unsigned __int8 m_targetMask;
+    unsigned __int8 m_condMask;
+    // padding byte
+    // padding byte
+};
+
+struct GVRule // sizeof=0x10A
+{                                       // XREF: GVGlob/r
+    bool isValid;                       // XREF: UI_GameVariants_Reset(void)+2F/w
+    unsigned __int8 eventID;
+    unsigned __int8 actionID;
+    GVParameter parameter;
+    GVParameter secondParameter;
+    unsigned __int8 targetID;
+    GVConditional m_conditional;
+};
+
+struct GVGlob // sizeof=0x4284
+{                                       // XREF: .data:GVGlob gvGlob/r
+    GVRule rules[64];                   // XREF: UI_GameVariants_Reset(void)+2F/w
+    int ruleCount;                      // XREF: GetRuleForFeederIndex+F/r
+                                        // UI_GV_AddNewRule_f(void)+6/r ...
+
+    GVGlob();
+};
+
+struct GVValue // sizeof=0x8
+{
+    const char *m_displayValue;
+    const char *m_value;
+};
+
+struct GVAction // sizeof=0x14
+{                                       // XREF: .data:stru_98A5D98/r
+    char *m_name;
+    char *m_scriptName;
+    unsigned __int8 m_parameterType;
+    // padding byte
+    // padding byte
+    // padding byte
+    GVValue *m_parameters;
+    int m_parametersSize;
+
+    GVAction(
+        char *name,
+        char *scriptName,
+        unsigned __int8 parameterType,
+        GVValue *parameters,
+        int parametersSize);
+};
+
+struct GVConditionalRhs // sizeof=0xC
+{                                       // XREF: GVConditionalLhs/r
+    GVValue *m_values;
+    int m_valuesSize;
+    GVType m_type;
+};
+
+struct GVConditionalLhs // sizeof=0x18
+{
+    const char *m_displayName;
+    const char *m_scriptName;
+    GVConditionalLhsTypeMask m_type;
+    GVConditionalRhs m_rhs;
+};
+
+struct __declspec(align(4)) GVTarget // sizeof=0xC
+{
+    char *m_name;
+    char *m_scriptName;
+    unsigned __int8 m_targetMask;
+    // padding byte
+    // padding byte
+    // padding byte
+};
+
+struct _CustomClassData_modifierDef // sizeof=0x8
+{
+    const char *modifierName;
+    int modifierOffset;
+};
+
+struct _CustomClassData // sizeof=0x50
+{                                       // XREF: CustomClassData/r
+                                        // ?UI_Gametype_UpdateClassDataFromDvars_f@@YAXXZ/r
+    int isActive;
+    unsigned __int8 primary;
+    unsigned __int8 primaryattachment;
+    unsigned __int8 primaryattachmenttop;
+    unsigned __int8 primaryattachmentbottom;
+    unsigned __int8 primaryattachmenttrigger;
+    unsigned __int8 primaryattachmentmuzzle;
+    unsigned __int8 primarycamo;
+    unsigned __int8 primaryreticle;
+    unsigned __int8 primaryreticlecolor;
+    unsigned __int8 primarylens;
+    unsigned __int8 primaryemblem;
+    unsigned __int8 primarytag;
+    unsigned __int8 secondary;
+    unsigned __int8 secondaryattachment;
+    unsigned __int8 secondaryattachmenttop;
+    unsigned __int8 secondaryattachmentbottom;
+    unsigned __int8 secondaryattachmenttrigger;
+    unsigned __int8 secondaryattachmentmuzzle;
+    unsigned __int8 secondarycamo;
+    unsigned __int8 secondaryreticle;
+    unsigned __int8 secondaryreticlecolor;
+    unsigned __int8 secondarylens;
+    unsigned __int8 secondaryemblem;
+    unsigned __int8 secondarytag;
+    unsigned __int8 specialty1;
+    unsigned __int8 specialty2;
+    unsigned __int8 specialty3;
+    unsigned __int8 classbonus;
+    unsigned __int8 head;
+    unsigned __int8 body;
+    unsigned __int8 primarygrenade;
+    unsigned __int8 specialgrenade;
+    unsigned __int8 equipment;
+    unsigned __int8 facepaintpattern;
+    unsigned __int8 facepaintcolor;
+    unsigned __int8 killstreak1;
+    unsigned __int8 killstreak2;
+    unsigned __int8 killstreak3;
+    unsigned __int8 deathstreak;
+    // padding byte
+    int team;
+    int character;
+    int health;
+    int healthRegeneration;
+    int healthVampirism;
+    int movementSpeed;
+    int movementSprintSpeed;
+    int damage;
+    int damageExplosive;
+};
+
+struct _CustomClassDescription // sizeof=0x10
+{                                       // XREF: CustomClassDescription/r
+                                        // ?UI_Gametype_UpdateClassDataFromDvars_f@@YAXXZ/r
+    char name[16];
+};
+
 int __cdecl UI_GameVariants_GetClassParameters();
 void __cdecl UI_GV_StartAddingEvent_f();
 void __cdecl UI_GV_StartEditingFeeder(int localClientNum, int feederId, int feederCount);
@@ -94,11 +281,6 @@ void __cdecl Scr_GameVariants_AddConditional(GVRule *rule);
 void __cdecl Scr_GameVariants_AddParams(GVRule *rule);
 void __cdecl Scr_GameVariants_AddPerkString(char *paramValue);
 void __cdecl Scr_GameVariants_GetRule();
-GVGlob *__thiscall GVGlob::GVGlob(GVGlob *this);
-GVAction *__thiscall GVAction::GVAction(
-                GVAction *this,
-                char *name,
-                char *scriptName,
-                unsigned __int8 parameterType,
-                GVValue *parameters,
-                int parametersSize);
+
+extern const dvar_t *ui_gv_rulecount;
+extern const dvar_t *ui_gv_reloadSpeedModifier;

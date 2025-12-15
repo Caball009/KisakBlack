@@ -1,4 +1,52 @@
 #include "bg_weapons.h"
+#include "bg_local.h"
+#include "bg_public.h"
+#include <universal/com_loadutils.h>
+#include <universal/surfaceflags.h>
+#include <qcommon/common.h>
+#include <qcommon/cm_trace.h>
+#include "bg_weapons_def.h"
+#include "bg_weapons_ammo.h"
+#include "bg_misc.h"
+#include "bg_pmove.h"
+#include "bg_mantle.h"
+#include "bg_perks.h"
+#include <game_mp/g_main_mp.h>
+#include <cgame/cg_compass.h>
+#include "bg_dtp.h"
+#include "bg_weapons_load_obj.h"
+#include <ui_mp/ui_gametype_variants_mp.h>
+#include <client/splitscreen.h>
+#include <universal/com_math_anglevectors.h>
+#include <cgame/cg_drawtools.h>
+#include <universal/com_files.h>
+
+static const float vehicleGunnerADSLerpTimeMS = 300.0f;
+static const float vehicleADSLerpTimeMS = 500.0f;
+static const float trace_dist = 1000.0f;
+
+const char *impactTypeNames[15 + 1] =
+{
+  "bad allocation",
+  "bullet_small",
+  "bullet_large",
+  "bullet_ap",
+  "bullet_xtreme",
+  "shotgun",
+  "grenade_bounce",
+  "grenade_explode",
+  "rifle_grenade",
+  "rocket_explode",
+  "rocket_explode_xtreme",
+  "projectile_dud",
+  "mortar_shell",
+  "tank_shell",
+  "bolt",
+  "blade"
+};
+
+bool penetrationDepthTableLoaded;
+float penetrationDepthTable[4][31];
 
 void __cdecl BG_LoadPenetrationDepthTable()
 {
@@ -8,7 +56,7 @@ void __cdecl BG_LoadPenetrationDepthTable()
     if ( !penetrationDepthTableLoaded )
     {
         buffer = Com_LoadInfoString(
-                             "info/bullet_penetration_mp",
+                             (char*)"info/bullet_penetration_mp",
                              "bullet penetration table",
                              "BULLET_PEN_TABLE",
                              loadBuffer);
@@ -46,14 +94,14 @@ void __cdecl BG_ParsePenetrationDepthTable(const char *penetrateType, float *dep
         if ( Com_sprintf(&dest[256 * iTypeIndex], 0x100u, "%s_%s", penetrateType, v3) < 0 )
         {
             v4 = Com_SurfaceTypeToName(iTypeIndex);
-            Com_Error(ERR_DROP, &byte_C6F93C, penetrateType, v4);
+            Com_Error(ERR_DROP, "Bullet penetration table param name [%s_%s] is to long.", penetrateType, v4);
         }
         pFieldList[iTypeIndex].szName = &dest[256 * iTypeIndex];
         pFieldList[iTypeIndex].iOffset = 4 * iTypeIndex;
         pFieldList[iTypeIndex].iFieldType = 7;
     }
     if ( !ParseConfigStringToStruct((unsigned __int8 *)depthTable, pFieldList, 31, buffer, 0, 0, BG_StringCopy) )
-        Com_Error(ERR_DROP, &byte_C6F90C, penetrateType);
+        Com_Error(ERR_DROP, "Error parsing bullet penetration table [%s].", penetrateType);
 }
 
 char __cdecl BG_AdvanceTrace(BulletFireParams *bp, BulletTraceResults *br, float dist)
@@ -77,11 +125,10 @@ char __cdecl BG_AdvanceTrace(BulletFireParams *bp, BulletTraceResults *br, float
     bp->ignoreEntIndex = Trace_GetEntityHitId(&br->trace);
     if ( bp->ignoreEntIndex == 1022 && dist > 0.0 )
     {
-        LODWORD(dot) = COERCE_UNSIGNED_INT(
-                                         (float)((float)(br->trace.normal.vec.v[0] * bp->dir[0])
-                                                     + (float)(br->trace.normal.vec.v[1] * bp->dir[1]))
-                                     + (float)(br->trace.normal.vec.v[2] * bp->dir[2]))
-                                 ^ _mask__NegFloat_;
+        dot = -(
+                                       (float)((float)(br->trace.normal.vec.v[0] * bp->dir[0])
+                                     + (float)(br->trace.normal.vec.v[1] * bp->dir[1]))
+                                     + (float)(br->trace.normal.vec.v[2] * bp->dir[2]));
         if ( dot < 0.125 )
         {
             bp->start[0] = (float)((float)(dist / 0.125) * bp->dir[0]) + br->hitPos[0];
@@ -163,7 +210,10 @@ const char *__cdecl BG_GetImpactTypeName(int impactTypeIndex)
     if ( impactTypeIndex <= 0 || impactTypeIndex >= 16 )
         return "default";
     else
-        return (&bad_alloc_Message_9)[impactTypeIndex];
+    {
+        //return (&bad_alloc_Message_9)[impactTypeIndex];
+        return impactTypeNames[impactTypeIndex];
+    }
 }
 
 unsigned int __cdecl BG_GetViewmodelWeaponIndex(const playerState_s *ps)
@@ -390,14 +440,24 @@ void __cdecl BG_GetSpreadForWeapon(
         }
         *maxSpread = v4;
     }
-    if ( weapDef->fireType == WEAPON_FIRETYPE_STACKED && ps->stackFireCount > 1 )
+    //if ( weapDef->fireType == WEAPON_FIRETYPE_STACKED && ps->stackFireCount > 1 )
+    //{
+    //    HIDWORD(v7) = ps->stackFireCount;
+    //    stackFireAccuracyDecay = weapDef->stackFireAccuracyDecay;
+    //    __libm_sse2_pow(v6, v7);
+    //    *(float *)&stackFireAccuracyDecay = stackFireAccuracyDecay;
+    //    *minSpread = *minSpread * *(float *)&stackFireAccuracyDecay;
+    //    *maxSpread = *maxSpread * *(float *)&stackFireAccuracyDecay;
+    //}
+    if (weapDef->fireType == WEAPON_FIRETYPE_STACKED && ps->stackFireCount > 1)
     {
-        HIDWORD(v7) = ps->stackFireCount;
-        stackFireAccuracyDecay = weapDef->stackFireAccuracyDecay;
-        __libm_sse2_pow(v6, v7);
-        *(float *)&stackFireAccuracyDecay = stackFireAccuracyDecay;
-        *minSpread = *minSpread * *(float *)&stackFireAccuracyDecay;
-        *maxSpread = *maxSpread * *(float *)&stackFireAccuracyDecay;
+        float decay = powf(
+            weapDef->stackFireAccuracyDecay,
+            (float)ps->stackFireCount
+        );
+
+        *minSpread *= decay;
+        *maxSpread *= decay;
     }
     if ( ps->spreadOverrideState == 1 )
         *maxSpread = (float)ps->spreadOverride;
@@ -419,9 +479,11 @@ void __cdecl PM_UpdateAimDownSightFlag(pmove_t *pm, pml_t *pml)
         __debugbreak();
     ps->pm_flags &= ~0x10u;
     adsAllowed = PM_IsAdsAllowed(pm, pml);
-    adsRequested = bitarray<51>::testBit(&pm->cmd.button_bits, 0xBu);
-    if ( bitarray<51>::testBit(&pm->cmd.button_bits, 1u)
-        && (!BG_UsingSniperScope(ps) || !bitarray<51>::testBit(&pm->cmd.button_bits, 0xDu)) )
+    //adsRequested = bitarray<51>::testBit(&pm->cmd.button_bits, 0xBu);
+    adsRequested = pm->cmd.button_bits.testBit(0xBu);
+    //if ( bitarray<51>::testBit(&pm->cmd.button_bits, 1u)
+    if ( pm->cmd.button_bits.testBit(1u)
+        && (!BG_UsingSniperScope(ps) || !pm->cmd.button_bits.testBit(0xDu)) )
     {
         PM_ExitAimDownSight(ps);
         adsAllowed = 0;
@@ -442,7 +504,8 @@ void __cdecl PM_UpdateAimDownSightFlag(pmove_t *pm, pml_t *pml)
                 __debugbreak();
             }
         }
-        else if ( !bitarray<51>::testBit(&pm->oldcmd.button_bits, 0xBu) || !pm->cmd.forwardmove && !pm->cmd.rightmove )
+        //else if ( !bitarray<51>::testBit(&pm->oldcmd.button_bits, 0xBu) || !pm->cmd.forwardmove && !pm->cmd.rightmove )
+        else if ( !pm->oldcmd.button_bits.testBit(0xBu) || !pm->cmd.forwardmove && !pm->cmd.rightmove )
         {
             ps->pm_flags |= 0x10u;
             ps->pm_flags |= 0x200u;
@@ -495,7 +558,7 @@ bool __cdecl PM_IsAdsAllowed(pmove_t *pm, pml_t *pml)
 LABEL_17:
             if ( (ps->otherFlags & 4) != 0 )
             {
-                weapIndex = (*(&off_DFF524 + 8 * pm->handler))(ps, pm->localClientNum);
+                weapIndex = pmoveHandlers[pm->handler].getPlayerWeapon(ps, pm->localClientNum);
                 weapDef = BG_GetWeaponDef(weapIndex);
                 if ( weapDef->aimDownSight )
                 {
@@ -561,7 +624,7 @@ void __cdecl PM_UpdateScopeZoom(pmove_t *pm)
         __debugbreak();
     if ( !ps->adsZoomLatchState
         && pm->cmd.serverTime - ps->adsZoomLatchTime > 40
-        && bitarray<51>::testBit(&pm->cmd.button_bits, 2u)
+        && pm->cmd.button_bits.testBit(2u)
         && BG_UsingSniperScope(pm->ps)
         && BG_ADSFullyUp(pm->ps) )
     {
@@ -571,7 +634,7 @@ void __cdecl PM_UpdateScopeZoom(pmove_t *pm)
         PM_AddEvent(ps, 0xBEu);
     }
     else if ( pm->cmd.serverTime - ps->adsZoomLatchTime > 40
-                 && !bitarray<51>::testBit(&pm->cmd.button_bits, 2u)
+                 && !pm->cmd.button_bits.testBit(2u)
                  && BG_UsingSniperScope(pm->ps) )
     {
         if ( BG_ADSFullyUp(pm->ps) )
@@ -595,11 +658,11 @@ void __cdecl PM_UpdateSpinLerp(pmove_t *pm, pml_t *pml)
     ps = pm->ps;
     if ( !pm->ps && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_weapons.cpp", 830, 0, "%s", "ps") )
         __debugbreak();
-    weapIndex = (*(&off_DFF524 + 8 * pm->handler))(ps, pm->localClientNum);
+    weapIndex = pmoveHandlers[pm->handler].getPlayerWeapon(ps, pm->localClientNum);
     weapDef = BG_GetWeaponDef(weapIndex);
     if ( weapDef->fireType == WEAPON_FIRETYPE_MINIGUN )
     {
-        if ( bitarray<51>::testBit(&pm->cmd.button_bits, 0xBu) || bitarray<51>::testBit(&pm->cmd.button_bits, 0) )
+        if ( pm->cmd.button_bits.testBit(0xBu) || pm->cmd.button_bits.testBit(0) )
         {
             ps->eFlags2 |= 0x400000u;
             lerpRate = 1.0 / (float)weapDef->iSpinUpTime;
@@ -641,7 +704,7 @@ void __cdecl PM_UpdateAimDownSightLerp(pmove_t *pm, pml_t *pml)
     ps = pm->ps;
     if ( !pm->ps && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_weapons.cpp", 865, 0, "%s", "ps") )
         __debugbreak();
-    weapIndex = (*(&off_DFF524 + 8 * pm->handler))(ps, pm->localClientNum);
+    weapIndex = pmoveHandlers[pm->handler].getPlayerWeapon(ps, pm->localClientNum);
     weapVariantDef = BG_GetWeaponVariantDef(weapIndex);
     weapDef = BG_GetWeaponDef(weapIndex);
     if ( (ps->eFlags2 & 0x40000) != 0 && ps->fWeaponPosFrac > 0.0
@@ -703,15 +766,23 @@ void __cdecl PM_UpdateAimDownSightLerp(pmove_t *pm, pml_t *pml)
                     lerpRate = 1.0 / vehicleGunnerADSLerpTimeMS;
                 else
                     lerpRate = 1.0 / vehicleADSLerpTimeMS;
-                if ( !adsRequested )
-                    LODWORD(lerpRate) ^= _mask__NegFloat_;
+                if (!adsRequested)
+                {
+                    //LODWORD(lerpRate) ^= _mask__NegFloat_;
+                    lerpRate = -lerpRate;
+                }
             }
             else
             {
-                if ( adsRequested )
+                if (adsRequested)
+                {
                     lerpRate = weapVariantDef->fOOPosAnimLength[0];
+                }
                 else
-                    LODWORD(lerpRate) = LODWORD(weapVariantDef->fOOPosAnimLength[1]) ^ _mask__NegFloat_;
+                {
+                    //LODWORD(lerpRate) = LODWORD(weapVariantDef->fOOPosAnimLength[1]) ^ _mask__NegFloat_;
+                    lerpRate = -weapVariantDef->fOOPosAnimLength[1];
+                }
                 if ( (ps->perks[0] & 0x4000) != 0
                     && weapDef->playerAnimType != BG_GetPlayerAnimTypeIndex(1)
                     && weapDef->playerAnimType != BG_GetPlayerAnimTypeIndex(2) )
@@ -1397,7 +1468,7 @@ void __cdecl PM_UpdateHoldBreath(pmove_t *pm, pml_t *pml)
         if ( ps->fWeaponPosFrac == 1.0
             && weapDef->overlayReticle
             && weapDef->weapClass != WEAPCLASS_ITEM
-            && bitarray<51>::testBit(&pm->cmd.button_bits, 0xDu) )
+            && pm->cmd.button_bits.testBit(0xDu) )
         {
             if ( !ps->holdBreathTimer )
                 PM_StartHoldBreath(ps);
@@ -1574,7 +1645,7 @@ void __cdecl PM_Weapon_FinishWeaponChange(pmove_t *pm, int previousWeaponState)
     }
     BG_GetWeaponDef(ps->weapon);
     if ( Mantle_IsWeaponInactive(ps)
-        || door_breach_weapondrop->current.enabled && ((unsigned int)&cls.rankedServers[711].game[35] & ps->pm_flags) != 0
+        || door_breach_weapondrop->current.enabled && (ps->pm_flags & 0x1000000) != 0
         || (ps->weapFlags & 0x20000) != 0
         || (ps->pm_flags & 8) != 0
         || !BG_PlayerHasWeapon(ps, pm->cmd.weapon)
@@ -1806,7 +1877,7 @@ unsigned __int16 __cdecl BG_GetValidPrimaryWeaponForAltMode(
     if ( lastWeaponAltModeSwitch >= BG_GetNumWeapons() )
         lastWeaponAltModeSwitch = 0;
     if ( !BG_PlayerHasWeapon(ps, lastWeaponAltModeSwitch) )
-        LOWORD(lastWeaponAltModeSwitch) = 0;
+        lastWeaponAltModeSwitch = 0;
     return lastWeaponAltModeSwitch;
 }
 
@@ -1855,7 +1926,7 @@ void __cdecl PM_Weapon_FinishReloadStart(pmove_t *pm, int delayedAction)
         PM_Weapon_ReloadDelayedAction(ps);
     if ( !ps->weaponTime )
     {
-        if ( weapDef->bSegmentedReload && bitarray<51>::testBit(&pm->cmd.button_bits, 0) )
+        if ( weapDef->bSegmentedReload && pm->cmd.button_bits.testBit(0) )
             ps->weaponstate = 13;
         if ( ps->weaponstate == 13 && BG_GetAmmoInClipForWeaponDef(ps, weapVarDef) || !PM_Weapon_AllowReload(ps) )
         {
@@ -2205,7 +2276,7 @@ void __cdecl PM_Weapon_FinishReload(pmove_t *pm, int delayedAction)
     {
         if ( !*weaponTime )
         {
-            if ( weapDef->bSegmentedReload && bitarray<51>::testBit(&pm->cmd.button_bits, 0) )
+            if ( weapDef->bSegmentedReload && pm->cmd.button_bits.testBit(0) )
                 *weaponState = 11;
             BG_PlayerWeaponSetNeedsRechamber(ps, ps->weapon, 0);
             if ( !weapDef->bSegmentedReload )
@@ -2312,7 +2383,7 @@ void __cdecl PM_Weapon_CheckForReload(pmove_t *pm)
         reloadRequested = 0;
         if ( (ps->pm_flags & 0x800) == 0 )
         {
-            reloadRequested = bitarray<51>::testBit(&pm->cmd.button_bits, 4u);
+            reloadRequested = pm->cmd.button_bits.testBit(4u);
             if ( (ps->weapFlags & 1) != 0 )
             {
                 ps->weapFlags &= ~1u;
@@ -2326,9 +2397,11 @@ void __cdecl PM_Weapon_CheckForReload(pmove_t *pm)
         }
         if ( weapDef->bSegmentedReload
             && (*weaponState == 12 || *weaponState == 10)
-            && bitarray<51>::testBit(&pm->cmd.button_bits, 0)
-            && !bitarray<51>::testBit(&pm->oldcmd.button_bits, 0) )
+            && pm->cmd.button_bits.testBit(0)
+            && !pm->oldcmd.button_bits.testBit(0) )
         {
+            static const float MY_RELOADSTART_INTERUPT_IGNORE_FRAC = 0.4f;
+
             if ( *weaponState == 12 && weapDef->iReloadStartTime )
             {
                 if ( (float)((float)(weapDef->iReloadStartTime - *weaponTime) / (float)weapDef->iReloadStartTime) > MY_RELOADSTART_INTERUPT_IGNORE_FRAC )
@@ -2532,8 +2605,8 @@ void __cdecl UpdatePendingTriggerPull(pmove_t *pm)
     if ( !pm->ps && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_weapons.cpp", 2643, 0, "%s", "ps") )
         __debugbreak();
     if ( BG_GetWeaponDef(ps->weapon)->fireType >= (unsigned int)WEAPON_FIRETYPE_BURSTFIRE2
-        && bitarray<51>::testBit(&pm->cmd.button_bits, 0)
-        && !bitarray<51>::testBit(&pm->oldcmd.button_bits, 0) )
+        && pm->cmd.button_bits.testBit(0)
+        && !pm->oldcmd.button_bits.testBit(0) )
     {
         ps->weapFlags |= 0x400u;
     }
@@ -2558,9 +2631,9 @@ void __cdecl CheckStackedFire(pmove_t *pm)
         ammoInClip = BG_GetAmmoInClipForWeaponDef(ps, weapVarDef);
         if ( ps->fWeaponPosFrac >= 1.0 )
         {
-            if ( bitarray<51>::testBit(&pm->cmd.button_bits, 0xDu) )
+            if ( pm->cmd.button_bits.testBit(0xDu) )
             {
-                if ( !bitarray<51>::testBit(&pm->oldcmd.button_bits, 0xDu) )
+                if ( !pm->oldcmd.button_bits.testBit(0xDu) )
                 {
                     PM_AddEvent(ps, 0xC0u);
                     if ( ++ps->stackFireCount > weapDef->stackFire || ps->stackFireCount > ammoInClip )
@@ -2726,9 +2799,9 @@ int __cdecl PM_Weapon_WeaponTimeAdjust(pmove_t *pm, pml_t *pml)
             v4 = (ps->weapFlags & 0x400) == 0 && ShotLimitReached(ps, weapDef);
             v3 = (weapDef->weapType == WEAPTYPE_GRENADE || weapDef->weapType == WEAPTYPE_MINE) && weapDef->holdButtonToThrow;
             if ( ps->bRunLeftGun )
-                holdingFireBtn = bitarray<51>::testBit(&pm->cmd.button_bits, 0x18u);
+                holdingFireBtn = pm->cmd.button_bits.testBit(0x18u);
             else
-                holdingFireBtn = bitarray<51>::testBit(&pm->cmd.button_bits, 0);
+                holdingFireBtn = pm->cmd.button_bits.testBit(0);
             if ( (*weaponState < 20 || *weaponState > 25)
                 && (v4 || v3)
                 && holdingFireBtn
@@ -2828,8 +2901,7 @@ void __cdecl PM_Weapon_CheckForChangeWeapon(pmove_t *pm)
          && ps->weaponstate != 19
          && !ps->weaponDelay) )
     {
-        if ( Mantle_IsWeaponInactive(ps)
-            || door_breach_weapondrop->current.enabled && ((unsigned int)&cls.rankedServers[711].game[35] & ps->pm_flags) != 0 )
+        if (Mantle_IsWeaponInactive(ps) || door_breach_weapondrop->current.enabled && (ps->pm_flags & 0x1000000) != 0)
         {
             if ( ps->weapon )
                 PM_BeginWeaponChange(pm, 0, 1);
@@ -3086,8 +3158,8 @@ int __cdecl PM_Weapon_ShouldBeFiring(pmove_t *pm, int delayedAction, bool testOn
         __debugbreak();
     weapDef = BG_GetWeaponDef(ps->weapon);
     WeaponFireButton = PM_GetWeaponFireButton(ps->weapon);
-    shouldStartFiring = bitarray<51>::testBit(&pm->cmd.button_bits, WeaponFireButton);
-    if ( weapDef->bDualWield && bitarray<51>::testBit(&pm->cmd.button_bits, 0x18u) && ps->bRunLeftGun )
+    shouldStartFiring = pm->cmd.button_bits.testBit(WeaponFireButton);
+    if ( weapDef->bDualWield && pm->cmd.button_bits.testBit(0x18u) && ps->bRunLeftGun )
     {
         shouldStartFiring = 1;
     }
@@ -3137,11 +3209,11 @@ void __cdecl PM_Weapon_FireWeapon(pmove_t *pm, int delayedAction)
     ps = pm->ps;
     weapDef = BG_GetWeaponDef(ps->weapon);
     weaponShotCount = BG_GetWeaponShotCount(ps, ps->bRunLeftGun);
-    if ( ps->waterlevel < 3
+    if (ps->waterlevel < 3
         || !player_disableWeaponsInWater->current.enabled
-        || ps->weaponstate == 17 && ps->weaponstate == 18 && ps->weaponstate == 19 )
+        || ps->weaponstate == 17 && ps->weaponstate == 18 && ps->weaponstate == 19)
     {
-        if ( weapDef->weapType != WEAPTYPE_MINE )
+        if (weapDef->weapType != WEAPTYPE_MINE)
             goto LABEL_62;
         start[0] = ps->origin[0];
         start[1] = ps->origin[1];
@@ -3151,80 +3223,80 @@ void __cdecl PM_Weapon_FireWeapon(pmove_t *pm, int delayedAction)
         end[2] = ps->origin[2];
         start[2] = start[2] + 10.0;
         end[2] = end[2] - 50.0;
-        surface = CM_TracePointDown(start, end, 2097, (int)&bg_vehicleInfos[11].rotorTailStartFx[20], hit, 0, 0);
-        if ( (_UNKNOWN **)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & surface) == &off_600000
-            || (_UNKNOWN *)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & surface) == &loc_800000
-            || (int (*)())((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & surface) == sub_A00000
-            || ((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & surface) == 0xE00000
-            || (unsigned __int8 *)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & surface) == &cls.rankedServers[6289].xnkid.ab[7]
-            || (char *)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & surface) == &cls.rankedServers[9077].city[30] )
+        surface = CM_TracePointDown(start, end, 2097, 0x3F00000, hit, 0, 0);
+        if ((surface & 0x3F00000) == 0x600000
+            || (surface & 0x3F00000) == 0x800000
+            || (surface & 0x3F00000) == 0xA00000
+            || (surface & 0x3F00000) == 0xE00000
+            || (surface & 0x3F00000) == 0x1200000
+            || (surface & 0x3F00000) == 0x1300000)
         {
-LABEL_62:
-            if ( weapDef->weapType == WEAPTYPE_GRENADE && !PM_WeaponAllowPlant(pm) )
+        LABEL_62:
+            if (weapDef->weapType == WEAPTYPE_GRENADE && !PM_WeaponAllowPlant(pm))
             {
                 ps->weaponTime = 500;
                 PM_AddEvent(ps, 0xB9u);
                 return;
             }
-            if ( (!weapDef->overheatWeapon || !BG_PlayerWeaponOverheating(ps, ps->weapon))
-                && (weapDef->unlimitedAmmo || PM_Weapon_CheckFiringAmmo(pm)) )
+            if ((!weapDef->overheatWeapon || !BG_PlayerWeaponOverheating(ps, ps->weapon))
+                && (weapDef->unlimitedAmmo || PM_Weapon_CheckFiringAmmo(pm)))
             {
                 PM_Weapon_StartFiring(pm, delayedAction);
-                if ( (!ps->weaponDelay || ps->bRunLeftGun) && (!ps->weaponDelayLeft || !ps->bRunLeftGun) )
+                if ((!ps->weaponDelay || ps->bRunLeftGun) && (!ps->weaponDelayLeft || !ps->bRunLeftGun))
                 {
                     ps->weapFlags &= ~0x400u;
-                    if ( !weapDef->requireLockonToFire )
+                    if (!weapDef->requireLockonToFire)
                         goto LABEL_61;
-                    if ( (ps->weapLockFlags & 2) == 0 )
+                    if ((ps->weapLockFlags & 2) == 0)
                     {
                         PM_AddEvent(ps, 0x66u);
                         return;
                     }
-                    if ( (ps->weapLockFlags & 0x10) != 0 )
+                    if ((ps->weapLockFlags & 0x10) != 0)
                     {
                         PM_AddEvent(ps, 0x64u);
                         return;
                     }
-                    if ( (ps->weapLockFlags & 0x20) != 0 )
+                    if ((ps->weapLockFlags & 0x20) != 0)
                     {
                         PM_AddEvent(ps, 0x65u);
                     }
                     else
                     {
-LABEL_61:
-                        if ( PM_WeaponAmmoAvailable(ps) && !weapDef->fuelTankWeapon )
+                    LABEL_61:
+                        if (PM_WeaponAmmoAvailable(ps) && !weapDef->fuelTankWeapon)
                         {
-                            if ( (ps->eFlags & 0x300) == 0 && ps->bRunLeftGun && weapDef->bDualWield )
+                            if ((ps->eFlags & 0x300) == 0 && ps->bRunLeftGun && weapDef->bDualWield)
                             {
                                 ActiveCount = CL_LocalClient_GetActiveCount();
                                 PM_WeaponUseAmmo(ps, weapDef->dualWieldWeaponIndex, ActiveCount);
                             }
-                            else if ( (ps->eFlags & 0x300) == 0 )
+                            else if ((ps->eFlags & 0x300) == 0)
                             {
                                 v3 = CL_LocalClient_GetActiveCount();
                                 PM_WeaponUseAmmo(ps, ps->weapon, v3);
                             }
                         }
-                        if ( weapDef->weapType == WEAPTYPE_GRENADE || weapDef->weapType == WEAPTYPE_MINE )
+                        if (weapDef->weapType == WEAPTYPE_GRENADE || weapDef->weapType == WEAPTYPE_MINE)
                             ps->weaponTime = weapDef->iFireTime;
-                        if ( bitarray<51>::testBit(&pm->cmd.button_bits, 0x26u) )
+                        if (pm->cmd.button_bits.testBit(0x26u))
                         {
                             PM_Weapon_Jam(ps);
                         }
                         else
                         {
-                            if ( ps->weaponstate < 30 || ps->weaponstate > 32 )
+                            if (ps->weaponstate < 30 || ps->weaponstate > 32)
                                 PM_Weapon_SetFPSFireAnim(ps);
-                            if ( weapDef->guidedMissileType == MISSILE_GUIDANCE_TVGUIDED )
+                            if (weapDef->guidedMissileType == MISSILE_GUIDANCE_TVGUIDED)
                                 ps->weapFlags |= 0x8000u;
-                            if ( PM_WeaponClipEmpty(ps) )
+                            if (PM_WeaponClipEmpty(ps))
                             {
-                                if ( ps->bRunLeftGun )
+                                if (ps->bRunLeftGun)
                                     BG_AddPredictableEventToPlayerstate(0x20u, *weaponShotCount, ps);
                                 else
                                     BG_AddPredictableEventToPlayerstate(0x1Eu, *weaponShotCount, ps);
                             }
-                            else if ( ps->bRunLeftGun )
+                            else if (ps->bRunLeftGun)
                             {
                                 BG_AddPredictableEventToPlayerstate(0x1Fu, *weaponShotCount, ps);
                             }
@@ -3565,10 +3637,10 @@ char __cdecl PM_WeaponAllowPlant(pmove_t *pm)
     end[1] = (float)(trace_dist * dir[1]) + start[1];
     end[2] = (float)(trace_dist * dir[2]) + start[2];
     DrawPlantDebug(start, end);
-    surface = CM_TracePointDown(start, end, 2097, (int)&bg_vehicleInfos[11].rotorTailStartFx[20], hit, 0, 0);
-    if ( (char *)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & surface) != &cls.rankedServers[11866].game[59] )
+    surface = CM_TracePointDown(start, end, 2097, 0x3F00000, hit, 0, 0);
+    if ((surface & 0x3F00000) != 0x1400000)
         return 1;
-    if ( !bg_disableWeaponPlantingInWater->current.enabled )
+    if (!bg_disableWeaponPlantingInWater->current.enabled)
         return 1;
     start[0] = hit[0];
     start[1] = hit[1];
@@ -3578,28 +3650,19 @@ char __cdecl PM_WeaponAllowPlant(pmove_t *pm)
     end[2] = hit[2];
     end[2] = hit[2] - bg_plantInWaterDepth->current.value;
     hit_fraction = 1.0f;
-    surface = CM_TracePointDown(start, end, 2065, (int)&bg_vehicleInfos[11].rotorTailStartFx[20], hit, &hit_fraction, 0);
-    if ( hit_fraction != 1.0 || ((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & surface) != 0 )
+    surface = CM_TracePointDown(start, end, 2065, 0x3F00000, hit, &hit_fraction, 0);
+    if (hit_fraction != 1.0 || (surface & 0x3F00000) != 0)
         return 1;
-    if ( !PM_Weapon_IsHoldingGrenade(pm) )
+    if (!PM_Weapon_IsHoldingGrenade(pm))
         PM_StartWeaponAnim(ps, 24, 0);
     return 0;
-}
-
-void __cdecl Vec2NormalizeFast(float *v)
-{
-    float invLength; // [esp+1Ch] [ebp-4h]
-
-    invLength = I_rsqrt(COERCE_INT((float)(*v * *v) + (float)(v[1] * v[1])));
-    *v = *v * invLength;
-    v[1] = v[1] * invLength;
 }
 
 void __cdecl DrawPlantDebug(float *start, float *end)
 {
     float color[4]; // [esp+0h] [ebp-10h] BYREF
 
-    if ( *(bgs_t **)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) == &level_bgs )
+    if (bgs == &level_bgs)
     {
         color[0] = 0.0f;
         color[1] = 0.0f;
@@ -3632,7 +3695,7 @@ bool __cdecl PM_Weapon_IsHoldingGrenade(pmove_t *pm)
     if ( weapDef->holdButtonToThrow )
         return 0;
     WeaponFireButton = PM_GetWeaponFireButton(ps->weapon);
-    return bitarray<51>::testBit(&pm->cmd.button_bits, WeaponFireButton);
+    return pm->cmd.button_bits.testBit(WeaponFireButton);
 }
 
 void __cdecl PM_Weapon_MeleeEnd(playerState_s *ps)
@@ -3719,8 +3782,8 @@ void __cdecl PM_Weapon_CheckForMelee(pmove_t *pm, pml_t *pml, int delayedAction)
              || ps->weaponstate == 11
              || ps->weaponstate == 15
              || ps->weaponstate == 16)
-            && bitarray<51>::testBit(&pm->cmd.button_bits, 2u)
-            && !bitarray<51>::testBit(&pm->oldcmd.button_bits, 2u)
+            && pm->cmd.button_bits.testBit(2u)
+            && !pm->oldcmd.button_bits.testBit(2u)
             && (ps->fWeaponPosFrac <= 0.0 || primaryWeapDef->overlayReticle == WEAPOVERLAYRETICLE_NONE) )
         {
             if ( **((_BYTE **)weapVariantDef->szXAnims + 7) )
@@ -3872,30 +3935,30 @@ void __cdecl PM_Weapon_OffHandStart(pmove_t *pm)
     }
     weapDef = BG_GetWeaponDef(ps->offHandIndex);
     if ( weapDef->holdButtonToThrow
-        || !bitarray<51>::testBit(&pm->oldcmd.button_bits, 0xEu) && !bitarray<51>::testBit(&pm->oldcmd.button_bits, 0xFu)
-        || !bitarray<51>::testBit(&pm->cmd.button_bits, 0xEu) && !bitarray<51>::testBit(&pm->cmd.button_bits, 0xFu) )
+        || !pm->oldcmd.button_bits.testBit(0xEu) && !pm->oldcmd.button_bits.testBit(0xFu)
+        || !pm->cmd.button_bits.testBit(0xEu) && !pm->cmd.button_bits.testBit(0xFu) )
     {
         goto LABEL_27;
     }
-    if ( weapDef->offhandHoldIsCancelable && bitarray<51>::testBit(&pm->cmd.button_bits, 0x31u) )
+    if ( weapDef->offhandHoldIsCancelable && pm->cmd.button_bits.testBit(0x31u) )
     {
         PM_Weapon_OffHandEnd(ps);
         return;
     }
-    if ( weapDef->offhandClass == OFFHAND_CLASS_SMOKE_GRENADE && bitarray<51>::testBit(&pm->cmd.button_bits, 0x1Eu)
-        || weapDef->offhandClass == OFFHAND_CLASS_SMOKE_GRENADE && bitarray<51>::testBit(&pm->cmd.button_bits, 0x1Fu)
-        || weapDef->offhandClass == OFFHAND_CLASS_SMOKE_GRENADE && bitarray<51>::testBit(&pm->cmd.button_bits, 0x20u)
-        || weapDef->offhandClass == OFFHAND_CLASS_SMOKE_GRENADE && bitarray<51>::testBit(&pm->cmd.button_bits, 0x21u) )
+    if (   weapDef->offhandClass == OFFHAND_CLASS_SMOKE_GRENADE && pm->cmd.button_bits.testBit(0x1Eu)
+        || weapDef->offhandClass == OFFHAND_CLASS_SMOKE_GRENADE && pm->cmd.button_bits.testBit(0x1Fu)
+        || weapDef->offhandClass == OFFHAND_CLASS_SMOKE_GRENADE && pm->cmd.button_bits.testBit(0x20u)
+        || weapDef->offhandClass == OFFHAND_CLASS_SMOKE_GRENADE && pm->cmd.button_bits.testBit(0x21u) )
     {
 LABEL_27:
         ps->smokeColorIndex = 55;
-        if ( bitarray<51>::testBit(&pm->cmd.button_bits, 0x1Eu) )
+        if ( pm->cmd.button_bits.testBit(0x1Eu) )
             ps->smokeColorIndex = 49;
-        if ( bitarray<51>::testBit(&pm->cmd.button_bits, 0x1Fu) )
+        if ( pm->cmd.button_bits.testBit(0x1Fu) )
             ps->smokeColorIndex = 50;
-        if ( bitarray<51>::testBit(&pm->cmd.button_bits, 0x20u) )
+        if ( pm->cmd.button_bits.testBit(0x20u) )
             ps->smokeColorIndex = 52;
-        if ( bitarray<51>::testBit(&pm->cmd.button_bits, 0x21u) )
+        if ( pm->cmd.button_bits.testBit(0x21u) )
             ps->smokeColorIndex = 51;
         if ( ps->smokeColorIndex != 55 && weapDef->offhandClass == OFFHAND_CLASS_SMOKE_GRENADE )
             Cbuf_AddText(pm->localClientNum, "-smoke\n");
@@ -4054,9 +4117,9 @@ void __cdecl PM_Weapon_CheckForOffHand(pmove_t *pm)
                 }
             }
         }
-        if ( !bitarray<51>::testBit(&pm->cmd.button_bits, 0xEu) || bitarray<51>::testBit(&pm->oldcmd.button_bits, 0xEu) )
+        if ( !pm->cmd.button_bits.testBit(0xEu) || pm->oldcmd.button_bits.testBit(0xEu) )
         {
-            if ( !bitarray<51>::testBit(&pm->cmd.button_bits, 0xFu) || bitarray<51>::testBit(&pm->oldcmd.button_bits, 0xFu) )
+            if ( !pm->cmd.button_bits.testBit(0xFu) || pm->oldcmd.button_bits.testBit(0xFu) )
                 return;
             offhandSlot = OFFHAND_SLOT_TACTICAL_GRENADE;
             FirstAvailableOffhand = BG_GetFirstAvailableOffhand(ps, 2);
@@ -4088,7 +4151,7 @@ void __cdecl PM_Weapon_CheckForOffHand(pmove_t *pm)
             BG_AddPredictableEventToPlayerstate(0x2Bu, offHandIndex, ps);
             ps->offHandIndex = offHandIndex;
             weapDef = BG_GetWeaponDef(ps->offHandIndex);
-            v6 = bitarray<51>::testBit(&pm->cmd.button_bits, 0xEu);
+            v6 = pm->cmd.button_bits.testBit(0xEu);
             if ( !v6 || weapDef->offhandClass == OFFHAND_CLASS_FRAG_GRENADE )
             {
                 if ( weapDef->weapType != WEAPTYPE_GRENADE && weapDef->weapType != WEAPTYPE_MINE )
@@ -4280,7 +4343,7 @@ void __cdecl PM_Weapon_CheckForDetonation(pmove_t *pm)
             && (ps->weaponstate < 20 || ps->weaponstate > 25)
             && (ps->weaponstate < 40 || ps->weaponstate > 42) )
         {
-            if ( bitarray<51>::testBit(&pm->cmd.button_bits, 0) )
+            if ( pm->cmd.button_bits.testBit(0) )
             {
                 ps->weaponstate = 26;
                 ps->weaponTime = weapDef->iDetonateTime;
@@ -4311,10 +4374,10 @@ void __cdecl PM_Weapon_CheckForGrenadeThrowCancel(pmove_t *pm)
         }
         if ( weapDef->holdButtonToThrow )
         {
-            if ( bitarray<51>::testBit(&pm->cmd.button_bits, 0xEu) || bitarray<51>::testBit(&pm->cmd.button_bits, 0xFu) )
+            if ( pm->cmd.button_bits.testBit(0xEu) || pm->cmd.button_bits.testBit(0xFu) )
                 return;
         }
-        else if ( !weapDef->offhandHoldIsCancelable || !bitarray<51>::testBit(&pm->cmd.button_bits, 0x31u) )
+        else if ( !weapDef->offhandHoldIsCancelable || !pm->cmd.button_bits.testBit(0x31u) )
         {
             return;
         }
@@ -4351,15 +4414,15 @@ LABEL_23:
                 || ps->weaponstate == 18
                 || ps->weaponstate == 19)
              && weapDefb->holdButtonToThrow)
-            && !bitarray<51>::testBit(&pm->cmd.button_bits, 0)
-            && (!weapDefb->offhandHoldIsCancelable || bitarray<51>::testBit(&pm->cmd.button_bits, 0x31u)) )
+            && !pm->cmd.button_bits.testBit(0)
+            && (!weapDefb->offhandHoldIsCancelable || pm->cmd.button_bits.testBit(0x31u)) )
         {
             PM_Weapon_Idle(ps);
             PM_StartWeaponAnim(ps, 1, 0);
         }
         return;
     }
-    if ( bitarray<51>::testBit(&pm->cmd.button_bits, 0x31u) )
+    if ( pm->cmd.button_bits.testBit(0x31u) )
         PM_Weapon_OffHandEnd(ps);
 }
 
@@ -4383,7 +4446,7 @@ void __cdecl PM_Weapon_CheckForNightVision(pmove_t *pm)
     if ( !pm->ps && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_weapons.cpp", 4538, 0, "%s", "ps") )
         __debugbreak();
     BG_GetWeaponDef(ps->weapon);
-    if ( !bitarray<51>::testBit(&pm->oldcmd.button_bits, 0x12u) && bitarray<51>::testBit(&pm->cmd.button_bits, 0x12u) )
+    if ( !pm->oldcmd.button_bits.testBit(0x12u) && pm->cmd.button_bits.testBit(0x12u) )
     {
         if ( (ps->weapFlags & 0x40) != 0 )
         {
@@ -4777,7 +4840,7 @@ void __cdecl PM_Weapon_CheckForSlide(pmove_t *pm)
         && (ps->weaponstate < 20 || ps->weaponstate > 25)
         && (ps->weaponstate < 40 || ps->weaponstate > 42)
         && ps->weaponstate != 43
-        && ((unsigned int)&loc_800000 & ps->pm_flags) != 0
+        && (ps->pm_flags & 0x800000) != 0
         && ps->slideTime == pm->cmd.serverTime )
     {
         Slide_State_In(ps);
@@ -4951,7 +5014,7 @@ void __cdecl BG_WeaponFireRecoil(const playerState_s *ps, float *recoilSpeed, fl
 {
     float adsGunKickReducedKickPercent; // xmm0_4
     float v4; // [esp+0h] [ebp-24h]
-    const WeaponDef *WeaponDef; // [esp+4h] [ebp-20h]
+    const WeaponDef *weapDef; // [esp+4h] [ebp-20h]
     const WeaponDef *weapDefDW; // [esp+8h] [ebp-1Ch]
     float fReducePercent; // [esp+Ch] [ebp-18h]
     float fYawKick; // [esp+10h] [ebp-14h]
@@ -4962,174 +5025,130 @@ void __cdecl BG_WeaponFireRecoil(const playerState_s *ps, float *recoilSpeed, fl
     float fPitchKickb; // [esp+14h] [ebp-10h]
     int weapIndex; // [esp+18h] [ebp-Ch]
     float fPosLerp; // [esp+1Ch] [ebp-8h]
-    const WeaponDef *weapDef; // [esp+20h] [ebp-4h]
+    const WeaponDef *weapDef2; // [esp+20h] [ebp-4h]
 
     weapIndex = BG_GetViewmodelWeaponIndex(ps);
-    weapDef = BG_GetWeaponDef(weapIndex);
+    weapDef2 = BG_GetWeaponDef(weapIndex);
     fPosLerp = ps->fWeaponPosFrac;
     fReducePercent = 1.0f;
-    if ( ps->weaponRestrictKickTime > 0 )
+    if (ps->weaponRestrictKickTime > 0)
     {
-        if ( fPosLerp == 1.0 )
-            adsGunKickReducedKickPercent = weapDef->adsGunKickReducedKickPercent;
+        if (fPosLerp == 1.0)
+            adsGunKickReducedKickPercent = weapDef2->adsGunKickReducedKickPercent;
         else
-            adsGunKickReducedKickPercent = weapDef->hipGunKickReducedKickPercent;
+            adsGunKickReducedKickPercent = weapDef2->hipGunKickReducedKickPercent;
         fReducePercent = adsGunKickReducedKickPercent * 0.0099999998;
     }
-    if ( fPosLerp != 1.0 )
+    if (fPosLerp != 1.0)
     {
-        if ( weapDef->bDualWield )
+        if (weapDef2->bDualWield)
         {
-            weapDefDW = BG_GetWeaponDef(weapDef->dualWieldWeaponIndex);
-            if ( (ps->weaponstate == 6 || ps->weaponstate == 31) && (ps->weaponstateLeft == 6 || ps->weaponstateLeft == 31) )
+            weapDefDW = BG_GetWeaponDef(weapDef2->dualWieldWeaponIndex);
+            if ((ps->weaponstate == 6 || ps->weaponstate == 31) && (ps->weaponstateLeft == 6 || ps->weaponstateLeft == 31))
             {
-                fPitchKick = ((double (*)(void))*(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer
-                                                                                                                                + _tls_index)
-                                                                                                                            + 8)
-                                                                                                    + 176))()
-                                     * (weapDef->fHipViewKickPitchMax
-                                        + weapDefDW->fHipViewKickPitchMax
-                                        - (weapDefDW->fHipViewKickPitchMin
-                                         + weapDef->fHipViewKickPitchMin))
-                                     + weapDef->fHipViewKickPitchMin
-                                     + weapDefDW->fHipViewKickPitchMin;
-                fYawKick = ((double (*)(void))*(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer
-                                                                                                                            + _tls_index)
-                                                                                                                        + 8)
-                                                                                                + 176))()
-                                 * (weapDef->fHipViewKickYawMax
-                                    + weapDefDW->fHipViewKickYawMax
-                                    - (weapDef->fHipViewKickYawMin
-                                     + weapDefDW->fHipViewKickYawMin))
-                                 + weapDef->fHipViewKickYawMin
-                                 + weapDefDW->fHipViewKickYawMin;
+                fPitchKick = bgs->Random()
+                    * (weapDef2->fHipViewKickPitchMax
+                        + weapDefDW->fHipViewKickPitchMax
+                        - (weapDefDW->fHipViewKickPitchMin
+                            + weapDef2->fHipViewKickPitchMin))
+                    + weapDef2->fHipViewKickPitchMin
+                    + weapDefDW->fHipViewKickPitchMin;
+                fYawKick = bgs->Random()
+                    * (weapDef2->fHipViewKickYawMax
+                        + weapDefDW->fHipViewKickYawMax
+                        - (weapDef2->fHipViewKickYawMin
+                            + weapDefDW->fHipViewKickYawMin))
+                    + weapDef2->fHipViewKickYawMin
+                    + weapDefDW->fHipViewKickYawMin;
                 goto LABEL_18;
             }
-            if ( ps->weaponstateLeft == 6 || ps->weaponstateLeft == 31 )
+            if (ps->weaponstateLeft == 6 || ps->weaponstateLeft == 31)
             {
-                fPitchKick = ((double (*)(void))*(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer
-                                                                                                                                + _tls_index)
-                                                                                                                            + 8)
-                                                                                                    + 176))()
-                                     * (weapDefDW->fHipViewKickPitchMax - weapDefDW->fHipViewKickPitchMin)
-                                     + weapDefDW->fHipViewKickPitchMin;
-                fYawKick = ((double (*)(void))*(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer
-                                                                                                                            + _tls_index)
-                                                                                                                        + 8)
-                                                                                                + 176))()
-                                 * (weapDefDW->fHipViewKickYawMax - weapDefDW->fHipViewKickYawMin)
-                                 + weapDefDW->fHipViewKickYawMin;
+                fPitchKick = bgs->Random()
+                    * (weapDefDW->fHipViewKickPitchMax - weapDefDW->fHipViewKickPitchMin)
+                    + weapDefDW->fHipViewKickPitchMin;
+                fYawKick = bgs->Random()
+                    * (weapDefDW->fHipViewKickYawMax - weapDefDW->fHipViewKickYawMin)
+                    + weapDefDW->fHipViewKickYawMin;
                 goto LABEL_18;
             }
         }
-        fPitchKick = ((double (*)(void))*(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer
-                                                                                                                        + _tls_index)
-                                                                                                                    + 8)
-                                                                                            + 176))()
-                             * (weapDef->fHipViewKickPitchMax - weapDef->fHipViewKickPitchMin)
-                             + weapDef->fHipViewKickPitchMin;
-        fYawKick = ((double (*)(void))*(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer
-                                                                                                                    + _tls_index)
-                                                                                                                + 8)
-                                                                                        + 176))()
-                         * (weapDef->fHipViewKickYawMax - weapDef->fHipViewKickYawMin)
-                         + weapDef->fHipViewKickYawMin;
+        fPitchKick = bgs->Random()
+            * (weapDef2->fHipViewKickPitchMax - weapDef2->fHipViewKickPitchMin)
+            + weapDef2->fHipViewKickPitchMin;
+        fYawKick = bgs->Random()
+            * (weapDef2->fHipViewKickYawMax - weapDef2->fHipViewKickYawMin)
+            + weapDef2->fHipViewKickYawMin;
         goto LABEL_18;
     }
-    v4 = weapDef->fAdsViewKickPitchMax - weapDef->fAdsViewKickPitchMin;
-    fPitchKick = ((double (*)(void))*(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer
-                                                                                                                    + _tls_index)
-                                                                                                                + 8)
-                                                                                        + 176))()
-                         * v4
-                         + weapDef->fAdsViewKickPitchMin;
-    fYawKick = ((double (*)(void))*(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer
-                                                                                                                + _tls_index)
-                                                                                                            + 8)
-                                                                                    + 176))()
-                     * (weapDef->fAdsViewKickYawMax - weapDef->fAdsViewKickYawMin)
-                     + weapDef->fAdsViewKickYawMin;
+    v4 = weapDef2->fAdsViewKickPitchMax - weapDef2->fAdsViewKickPitchMin;
+    fPitchKick = bgs->Random() * v4
+        + weapDef2->fAdsViewKickPitchMin;
+    fYawKick = bgs->Random()
+        * (weapDef2->fAdsViewKickYawMax - weapDef2->fAdsViewKickYawMin)
+        + weapDef2->fAdsViewKickYawMin;
 LABEL_18:
     fPitchKicka = fPitchKick * fReducePercent;
     fYawKicka = fYawKick * fReducePercent;
-    if ( weapDef->weapType == WEAPTYPE_GAS && *kickAVel == 0.0 )
+    if (weapDef2->weapType == WEAPTYPE_GAS && *kickAVel == 0.0)
+    { 
         *kickAVel = *kickAVel - 0.001;
+    }
     else
-        *(unsigned int *)kickAVel = LODWORD(fPitchKicka) ^ _mask__NegFloat_;
+    {
+        //*(_DWORD *)kickAVel = LODWORD(fPitchKicka) ^ _mask__NegFloat_;
+        *kickAVel = -fPitchKicka;
+    }
     kickAVel[1] = fYawKicka;
     kickAVel[2] = -0.5 * kickAVel[1];
-    if ( fPosLerp <= 0.0 )
+    if (fPosLerp <= 0.0)
     {
-        if ( weapDef->bDualWield )
+        if (weapDef2->bDualWield)
         {
-            WeaponDef = BG_GetWeaponDef(weapDef->dualWieldWeaponIndex);
-            if ( (ps->weaponstate == 6 || ps->weaponstate == 31) && (ps->weaponstateLeft == 6 || ps->weaponstateLeft == 31) )
+            weapDef = BG_GetWeaponDef(weapDef2->dualWieldWeaponIndex);
+            if ((ps->weaponstate == 6 || ps->weaponstate == 31) && (ps->weaponstateLeft == 6 || ps->weaponstateLeft == 31))
             {
-                fPitchKickb = ((double (*)(void))*(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer
-                                                                                                                                 + _tls_index)
-                                                                                                                             + 8)
-                                                                                                     + 176))()
-                                        * (weapDef->fHipGunKickPitchMax
-                                         + WeaponDef->fHipGunKickPitchMax
-                                         - (WeaponDef->fHipGunKickPitchMin
-                                            + weapDef->fHipGunKickPitchMin))
-                                        + weapDef->fHipGunKickPitchMin
-                                        + WeaponDef->fHipGunKickPitchMin;
-                fYawKickb = ((double (*)(void))*(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer
-                                                                                                                             + _tls_index)
-                                                                                                                         + 8)
-                                                                                                 + 176))()
-                                    * (weapDef->fHipGunKickYawMax
-                                     + WeaponDef->fHipGunKickYawMax
-                                     - (weapDef->fHipGunKickYawMin
-                                        + WeaponDef->fHipGunKickYawMin))
-                                    + weapDef->fHipGunKickYawMin
-                                    + WeaponDef->fHipGunKickYawMin;
+                fPitchKickb = bgs->Random()
+                    * (weapDef2->fHipGunKickPitchMax
+                        + weapDef->fHipGunKickPitchMax
+                        - (weapDef->fHipGunKickPitchMin
+                            + weapDef2->fHipGunKickPitchMin))
+                    + weapDef2->fHipGunKickPitchMin
+                    + weapDef->fHipGunKickPitchMin;
+                fYawKickb = bgs->Random()
+                    * (weapDef2->fHipGunKickYawMax
+                        + weapDef->fHipGunKickYawMax
+                        - (weapDef2->fHipGunKickYawMin
+                            + weapDef->fHipGunKickYawMin))
+                    + weapDef2->fHipGunKickYawMin
+                    + weapDef->fHipGunKickYawMin;
                 goto LABEL_34;
             }
-            if ( ps->weaponstateLeft == 6 || ps->weaponstateLeft == 31 )
+            if (ps->weaponstateLeft == 6 || ps->weaponstateLeft == 31)
             {
-                fPitchKickb = ((double (*)(void))*(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer
-                                                                                                                                 + _tls_index)
-                                                                                                                             + 8)
-                                                                                                     + 176))()
-                                        * (WeaponDef->fHipGunKickPitchMax - WeaponDef->fHipGunKickPitchMin)
-                                        + WeaponDef->fHipGunKickPitchMin;
-                fYawKickb = ((double (*)(void))*(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer
-                                                                                                                             + _tls_index)
-                                                                                                                         + 8)
-                                                                                                 + 176))()
-                                    * (WeaponDef->fHipGunKickYawMax - WeaponDef->fHipGunKickYawMin)
-                                    + WeaponDef->fHipGunKickYawMin;
+                fPitchKickb = bgs->Random()
+                    * (weapDef->fHipGunKickPitchMax - weapDef->fHipGunKickPitchMin)
+                    + weapDef->fHipGunKickPitchMin;
+                fYawKickb = bgs->Random()
+                    * (weapDef->fHipGunKickYawMax - weapDef->fHipGunKickYawMin)
+                    + weapDef->fHipGunKickYawMin;
                 goto LABEL_34;
             }
         }
-        fPitchKickb = ((double (*)(void))*(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer
-                                                                                                                         + _tls_index)
-                                                                                                                     + 8)
-                                                                                             + 176))()
-                                * (weapDef->fHipGunKickPitchMax - weapDef->fHipGunKickPitchMin)
-                                + weapDef->fHipGunKickPitchMin;
-        fYawKickb = ((double (*)(void))*(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer
-                                                                                                                     + _tls_index)
-                                                                                                                 + 8)
-                                                                                         + 176))()
-                            * (weapDef->fHipGunKickYawMax - weapDef->fHipGunKickYawMin)
-                            + weapDef->fHipGunKickYawMin;
+        fPitchKickb = bgs->Random()
+            * (weapDef2->fHipGunKickPitchMax - weapDef2->fHipGunKickPitchMin)
+            + weapDef2->fHipGunKickPitchMin;
+        fYawKickb = bgs->Random()
+            * (weapDef2->fHipGunKickYawMax - weapDef2->fHipGunKickYawMin)
+            + weapDef2->fHipGunKickYawMin;
         goto LABEL_34;
     }
-    fPitchKickb = ((double (*)(void))*(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer
-                                                                                                                     + _tls_index)
-                                                                                                                 + 8)
-                                                                                         + 176))()
-                            * (weapDef->fAdsGunKickPitchMax - weapDef->fAdsGunKickPitchMin)
-                            + weapDef->fAdsGunKickPitchMin;
-    fYawKickb = ((double (*)(void))*(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer
-                                                                                                                 + _tls_index)
-                                                                                                             + 8)
-                                                                                     + 176))()
-                        * (weapDef->fAdsGunKickYawMax - weapDef->fAdsGunKickYawMin)
-                        + weapDef->fAdsGunKickYawMin;
+    fPitchKickb = bgs->Random()
+        * (weapDef2->fAdsGunKickPitchMax - weapDef2->fAdsGunKickPitchMin)
+        + weapDef2->fAdsGunKickPitchMin;
+    fYawKickb = bgs->Random()
+        * (weapDef2->fAdsGunKickYawMax - weapDef2->fAdsGunKickYawMin)
+        + weapDef2->fAdsGunKickYawMin;
 LABEL_34:
     *recoilSpeed = *recoilSpeed + (float)(fPitchKickb * fReducePercent);
     recoilSpeed[1] = recoilSpeed[1] + (float)(fYawKickb * fReducePercent);
@@ -5190,54 +5209,50 @@ bool __cdecl BG_ThrowingBackGrenade(const playerState_s *ps)
     return ps->throwBackGrenadeOwner != 1023;
 }
 
+static const float ofsPowZ = 5.0f;
+// (aislop)
 void __cdecl BG_CalcVehicleTurretWeaponPosOffset(float positionFrac, const WeaponDef *weapDef, float *outOffset)
 {
-    long double v3; // [esp+0h] [ebp-54h]
-    long double v4; // [esp+8h] [ebp-4Ch]
-    float offsetADS; // [esp+30h] [ebp-24h]
-    float offsetADS_4; // [esp+34h] [ebp-20h]
-    float offsetADS_8; // [esp+38h] [ebp-1Ch]
-    float v8; // [esp+3Ch] [ebp-18h]
-    float offset; // [esp+40h] [ebp-14h]
-    float offset_4; // [esp+44h] [ebp-10h]
-    float offset_8; // [esp+48h] [ebp-Ch]
-    float adjustedFrac; // [esp+50h] [ebp-4h]
+    float v8 = sin(positionFrac * 3.1415927f - 1.5707964f);
+    float adjustedFrac = (v8 + 1.0f) / 2.0f;
 
-    v8 = sin((float)((float)(positionFrac * 3.1415927) - 1.5707964));
-    adjustedFrac = (float)(v8 + 1.0) / 2.0;
-    offset = weapDef->vProneOfs[0];
-    offset_4 = weapDef->vProneOfs[1];
-    offset_8 = weapDef->vProneOfs[2];
-    offsetADS = weapDef->vDuckedOfs[0];
-    offsetADS_4 = weapDef->vDuckedOfs[1];
-    offsetADS_8 = weapDef->vDuckedOfs[2];
-    if ( vehCameraTurretOffset->current.value != 0.0
-        || vehCameraTurretOffset->current.vector[1] != 0.0
-        || vehCameraTurretOffset->current.vector[2] != 0.0 )
+    // Default prone offsets
+    float offsetX = weapDef->vProneOfs[0];
+    float offsetY = weapDef->vProneOfs[1];
+    float offsetZ = weapDef->vProneOfs[2];
+
+    // Default ADS offsets
+    float offsetADS_X = weapDef->vDuckedOfs[0];
+    float offsetADS_Y = weapDef->vDuckedOfs[1];
+    float offsetADS_Z = weapDef->vDuckedOfs[2];
+
+    // Override with vehCameraTurretOffset if non-zero
+    if (vehCameraTurretOffset->current.value != 0.0f ||
+        vehCameraTurretOffset->current.vector[1] != 0.0f ||
+        vehCameraTurretOffset->current.vector[2] != 0.0f)
     {
-        HIDWORD(v4) = &vehCameraTurretOffset->current;
-        offset = vehCameraTurretOffset->current.value;
-        offset_4 = vehCameraTurretOffset->current.vector[1];
-        offset_8 = vehCameraTurretOffset->current.vector[2];
+        offsetX = vehCameraTurretOffset->current.value;
+        offsetY = vehCameraTurretOffset->current.vector[1];
+        offsetZ = vehCameraTurretOffset->current.vector[2];
     }
-    if ( vehCameraTurretOffsetADS->current.value != 0.0
-        || vehCameraTurretOffsetADS->current.vector[1] != 0.0
-        || vehCameraTurretOffsetADS->current.vector[2] != 0.0 )
+
+    if (vehCameraTurretOffsetADS->current.value != 0.0f ||
+        vehCameraTurretOffsetADS->current.vector[1] != 0.0f ||
+        vehCameraTurretOffsetADS->current.vector[2] != 0.0f)
     {
-        LODWORD(v4) = &vehCameraTurretOffsetADS->current;
-        offsetADS = vehCameraTurretOffsetADS->current.value;
-        offsetADS_4 = vehCameraTurretOffsetADS->current.vector[1];
-        offsetADS_8 = vehCameraTurretOffsetADS->current.vector[2];
+        offsetADS_X = vehCameraTurretOffsetADS->current.value;
+        offsetADS_Y = vehCameraTurretOffsetADS->current.vector[1];
+        offsetADS_Z = vehCameraTurretOffsetADS->current.vector[2];
     }
-    *outOffset = (float)(adjustedFrac * (float)(offsetADS - offset)) + offset;
-    outOffset[1] = (float)(adjustedFrac * (float)(offsetADS_4 - offset_4)) + offset_4;
-    outOffset[2] = (float)(adjustedFrac * (float)(offsetADS_8 - offset_8)) + offset_8;
-    if ( (float)(offsetADS_8 - offset_8) >= 0.0 )
-        *((float *)&v3 + 1) = 1.0 / ofsPowZ;
-    else
-        *((float *)&v3 + 1) = ofsPowZ;
-    __libm_sse2_pow(v3, v4);
-    outOffset[2] = (float)((float)(offsetADS_8 - offset_8) * adjustedFrac) + offset_8;
+
+    // Linear interpolation
+    outOffset[0] = adjustedFrac * (offsetADS_X - offsetX) + offsetX;
+    outOffset[1] = adjustedFrac * (offsetADS_Y - offsetY) + offsetY;
+    outOffset[2] = adjustedFrac * (offsetADS_Z - offsetZ) + offsetZ;
+
+    // Apply Z offset scaling with power
+    float ofs = (offsetADS_Z - offsetZ >= 0.0f) ? (1.0f / ofsPowZ) : ofsPowZ;
+    outOffset[2] = powf(offsetADS_Z - offsetZ, ofs) * adjustedFrac + offsetZ;
 }
 
 WeaponVariantDef *__cdecl BG_LoadWeaponVariantDef(char *name)
@@ -5258,12 +5273,12 @@ WeaponVariantDef *__cdecl BG_LoadWeaponVariantDef_LoadObj(char *name)
 
     if ( !*name )
         return 0;
-    weapVariantDef = BG_LoadWeaponVariantDefInternal("mp", name);
+    weapVariantDef = (WeaponVariantDef*)BG_LoadWeaponVariantDefInternal("mp", name); // KISAKTODO: bad cast
     if ( weapVariantDef )
         return weapVariantDef;
-    weapVariantDefa = BG_LoadWeaponVariantDefInternal("mp", "defaultweapon_mp");
+    weapVariantDefa = (WeaponVariantDef*)BG_LoadWeaponVariantDefInternal("mp", (char*)"defaultweapon_mp");
     if ( !weapVariantDefa )
-        Com_Error(ERR_DROP, &byte_C70164);
+        Com_Error(ERR_DROP, "BG_LoadWeaponVariantDef: Could not find default weapon");
     SetConfigString((char **)weapVariantDefa, name);
     return weapVariantDefa;
 }
@@ -5272,7 +5287,7 @@ WeaponVariantDef *__cdecl BG_LoadWeaponVariantDef_FastFile(const char *name)
 {
     if ( !*name )
         return 0;
-    return DB_FindXAssetHeader(ASSET_TYPE_WEAPON, name, 1, -1).weapon;
+    return DB_FindXAssetHeader(ASSET_TYPE_WEAPON, (char*)name, 1, -1).weapon;
 }
 
 void __cdecl BG_AssertOffhandIndexOrNone(unsigned int offHandIndex)

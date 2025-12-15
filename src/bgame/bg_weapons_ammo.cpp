@@ -1,4 +1,22 @@
 #include "bg_weapons_ammo.h"
+#include "bg_weapons.h"
+#include <string.h>
+#include "bg_weapons_def.h"
+#include <qcommon/common.h>
+#include "bg_weapons_load_obj.h"
+#include "bg_local.h"
+#include "bg_mantle.h"
+#include "bg_misc.h"
+#include "bg_pmove.h"
+
+unsigned int bg_numWeapClips;
+unsigned int bg_numAmmoTypes;
+unsigned int bg_numSharedAmmoCaps;
+
+WeaponVariantDef *bg_weapClips[2048];
+WeaponVariantDef *bg_weapAmmoTypes[2048];
+WeaponDef *bg_sharedAmmoCaps[2048];
+
 
 void __cdecl BG_SetupWeaponDefAmmoIndexes(unsigned int weapIndex, WeaponDef *weapDef, WeaponVariantDef *weapVarDef)
 {
@@ -101,7 +119,7 @@ void __cdecl BG_SetupWeaponDefSharedAmmoIndexes(unsigned int weapIndex, WeaponDe
                     v5 = BG_WeaponName(otherWeapIndex);
                     v4 = weapDef->iSharedAmmoCap;
                     v3 = BG_WeaponName(weapIndex);
-                    Com_Error(ERR_DROP, &byte_C70340, weapDef->szSharedAmmoCapName, v3, v4, v5, iSharedAmmoCap);
+                    Com_Error(ERR_DROP, "Shared ammo cap mismatch for \"%s\" shared ammo cap: %s set to %i but \"%s\" already set it to %i", weapDef->szSharedAmmoCapName, v3, v4, v5, iSharedAmmoCap);
                 }
             }
             if ( !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_weapons_ammo.cpp", 121, 0, "unreachable") )

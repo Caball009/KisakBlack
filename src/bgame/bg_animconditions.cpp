@@ -10,6 +10,7 @@
 
 #include <cmath>
 #include "bg_pmove.h"
+#include "bg_perks.h"
 
 void __cdecl BG_LocalEvalPlayerAnimType(pmove_t *pm)
 {

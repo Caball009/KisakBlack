@@ -93,6 +93,18 @@ struct EmblemSet // sizeof=0x2C
     __int16 *backgroundLookup;
 };
 
+struct BGDefaultEmblem // sizeof=0x18C
+{                                       // XREF: .data:s_defaultEmblems/r
+    int minlevel;                       // XREF: BG_EmblemsClearDefaults(void)+38/w
+                                        // BG_EmblemsSetDefaultForLevel(int,int,CompositeEmblemLayer *,int)+AF/r ...
+    int maxlevel;                       // XREF: BG_EmblemsClearDefaults(void)+25/w
+                                        // BG_EmblemsSetDefaultForLevel(int,int,CompositeEmblemLayer *,int)+C5/r ...
+    CompositeEmblemLayer layers[12];    // XREF: BG_EmblemsSetDefaultForLevel(int,int,CompositeEmblemLayer *,int)+13E/o
+                                        // BG_EmblemsGenerateDefault(int,int,CompositeEmblemLayer *,int)+B2/o
+    int layerCount;                     // XREF: BG_EmblemsSetDefaultForLevel(int,int,CompositeEmblemLayer *,int)+124/w
+                                        // BG_EmblemsGenerateDefault(int,int,CompositeEmblemLayer *,int)+7D/r
+};
+
 int __cdecl BG_EmblemsGetColorCount();
 int __cdecl BG_EmblemsGetUnlockedLayerCount(int controllerIndex);
 int __cdecl BG_EmblemsGetLayerCost(int layer);

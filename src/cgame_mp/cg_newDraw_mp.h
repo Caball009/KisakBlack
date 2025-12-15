@@ -1,5 +1,30 @@
 #pragma once
 
+#include <universal/dvar.h>
+#include "cg_local_mp.h"
+#include <client/cl_main.h>
+
+enum e_tank_hud_component : __int32
+{                                       // XREF: draw_tank_body_component/r
+                                        // draw_tank_turret_component/r
+    _tank_component_core        = 0x0,
+    _tank_component_left_tread  = 0x1,
+    _tank_component_right_tread = 0x2,
+    _tank_component_turret      = 0x3,
+    _tank_component_driver_seat = 0x4,
+    _tank_component_gunner_seat = 0x5,
+    k_tank_hud_component_count  = 0x6,
+};
+
+enum eGuidedMissileInfo : __int32
+{                                       // XREF: CG_DrawGuidedMissileInfo/r
+    GUIDED_MISSILE_VIEWPOS         = 0x0,
+    GUIDED_MISSILE_DIST_TO_TARG    = 0x1,
+    GUIDED_MISSILE_DIST_FROM_OWNER = 0x2,
+};
+
+struct Font_s;
+
 void __cdecl CG_AntiBurnInHUD_RegisterDvars();
 bool __cdecl CG_ShouldDrawHud(int localClientNum);
 double __cdecl CG_FadeHudMenu(int localClientNum, const dvar_s *fadeDvar, int displayStartTime, int duration);
@@ -94,7 +119,6 @@ void __cdecl CG_DrawWristWatch(
                 float *color);
 void __cdecl CG_DrawDemoControls(int localClientNum, const rectDef_s *rect, Material *material, float *color);
 void    CG_DrawPlayerImageSwing(
-                float a1@<ebp>,
                 int localClientNum,
                 const rectDef_s *rect,
                 const rectDef_s *parentRect,
@@ -153,7 +177,6 @@ void __cdecl CG_DrawPlayerWeaponNameBack(
                 const float *color,
                 Material *material);
 void    CG_DrawPlayerStance(
-                int a1@<ebp>,
                 int localClientNum,
                 const rectDef_s *rect,
                 const float *color,
@@ -177,7 +200,6 @@ void __cdecl CG_DrawStanceHintPrints(
                 float scale,
                 int textStyle);
 void    CG_DrawCursorhint(
-                cg_s *a1@<ebp>,
                 int localClientNum,
                 const rectDef_s *rect,
                 Font_s *font,
@@ -265,3 +287,34 @@ void __cdecl CG_DrawWarText(
                 int textStyle,
                 float text_x,
                 float text_y);
+
+extern const dvar_t *hud_fadeout_speed;
+extern const dvar_t *hud_enable;
+extern const dvar_t *hud_fade_ammodisplay;
+extern const dvar_t *hud_fade_healthbar;
+extern const dvar_t *hud_fade_compass;
+extern const dvar_t *hud_fade_stance;
+extern const dvar_t *hud_fade_offhand;
+extern const dvar_t *hud_fade_sprint;
+extern const dvar_t *hud_fade_vehiclecontrols;
+extern const dvar_t *hud_health_startpulse_injured;
+extern const dvar_t *hud_health_startpulse_critical;
+extern const dvar_t *hud_health_pulserate_injured;
+extern const dvar_t *hud_health_pulserate_critical;
+extern const dvar_t *hud_deathQuoteFadeTime;
+extern const dvar_t *hud_healthOverlay_regenPauseTime;
+extern const dvar_t *hud_healthOverlay_pulseStart;
+extern const dvar_t *hud_healthOverlay_pulseStop;
+extern const dvar_t *hud_healthOverlay_phaseOne_toAlphaAdd;
+extern const dvar_t *hud_healthOverlay_phaseOne_pulseDuration;
+extern const dvar_t *hud_healthOverlay_phaseTwo_toAlphaMultiplier;
+extern const dvar_t *hud_healthOverlay_phaseTwo_pulseDuration;
+extern const dvar_t *hud_healthOverlay_phaseThree_toAlphaMultiplier;
+extern const dvar_t *hud_healthOverlay_phaseThree_pulseDuration;
+extern const dvar_t *hud_healthOverlay_phaseEnd_fromAlpha;
+extern const dvar_t *hud_healthOverlay_phaseEnd_toAlpha;
+extern const dvar_t *hud_healthOverlay_phaseEnd_pulseDuration;
+extern const dvar_t *cg_sprintMeterFullColor;
+extern const dvar_t *cg_sprintMeterEmptyColor;
+extern const dvar_t *cg_sprintMeterDisabledColor;
+extern const dvar_t *cg_drawTalk;

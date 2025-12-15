@@ -7,6 +7,7 @@
 #include <game/g_debug.h>
 #include "bg_misc.h"
 #include "bg_weapons.h"
+#include "bg_jump.h"
 
 const dvar_s *dtp;
 const dvar_s *dtp_debug;
@@ -22,8 +23,6 @@ const dvar_s *door_breach_weapondrop;
 const dvar_s *dtp_new_trajectory;
 const dvar_s *dtp_new_trajectory_multiplier;
 const dvar_s *dtp_max_apex_duration;
-const dvar_s *AAAAAAAAAAAAA;
-const dvar_s *AAAAAAAAAAAAA;
 
 int Dtp_SurfaceRemapTable[31] =
 {

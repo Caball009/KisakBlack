@@ -19,3 +19,18 @@ bool __cdecl Dtp_CanMove(pmove_t *pm);
 int __cdecl Dtp_Update(pmove_t *pm, pml_t *pml);
 void __cdecl Dtp_Start(pmove_t *pm, pml_t *pml);
 bool __cdecl Dtp_IsDtp(const pmove_t *pm, const playerState_s *ps);
+
+extern const dvar_s *dtp;
+extern const dvar_s *dtp_debug;
+extern const dvar_s *dtp_max_slide_duration;
+extern const dvar_s *dtp_max_slide_addition;
+extern const dvar_s *dtp_startup_delay;
+extern const dvar_s *dtp_post_move_pause;
+extern const dvar_s *dtp_fall_damage_min_height;
+extern const dvar_s *dtp_fall_damage_max_height;
+extern const dvar_s *dtp_exhaustion_window;
+extern const dvar_s *dtp_min_speed;
+extern const dvar_s *door_breach_weapondrop;
+extern const dvar_s *dtp_new_trajectory;
+extern const dvar_s *dtp_new_trajectory_multiplier;
+extern const dvar_s *dtp_max_apex_duration;

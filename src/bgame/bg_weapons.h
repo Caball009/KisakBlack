@@ -183,7 +183,7 @@ enum weapProjExposion_t : __int32
     WEAPPROJEXP_NUM = 0xA,
 };
 
-enum WeapOverlayInteface_t : __int32
+enum WeapOverlayInteface_t : __int32 // no r?
 {                                                                             // XREF: WeaponDef/r
     WEAPOVERLAYINTERFACE_NONE = 0x0,
     WEAPOVERLAYINTERFACE_JAVELIN = 0x1,
@@ -877,6 +877,14 @@ struct weaponParms // sizeof=0x44
                                         // G_UpdateWeapons+7B/r ...
 };
 
+struct WeaponVariantDefHash // sizeof=0x8
+{                                       // XREF: .data:bg_weaponVariantNameHashTable/r
+                                        // ?BG_FindWeaponIndexForName@@YAHPBD@Z/r
+    int hash;                           // XREF: BG_InitDefaultWeaponDef(void)+5C/w
+                                        // BG_FindWeaponIndexForName(char const *)+52/w
+    int weaponIndex;                    // XREF: BG_InitDefaultWeaponDef(void)+3C/w
+};
+
 struct pmove_t;
 struct playerState_s;
 struct pml_t;
@@ -920,7 +928,7 @@ bool __cdecl BG_UsingSniperScope(const playerState_s *ps);
 int __cdecl PM_InteruptWeaponWithProneMove(playerState_s *ps);
 bool __cdecl BG_PlayerWeaponOverheating(const playerState_s *ps, unsigned int weapon);
 void __cdecl BG_PlayerWeaponOverheatUpdate(playerState_s *ps, unsigned int weapon, float amount);
-PlayerHeldWeapon *__cdecl BG_GetHeldWeapon(playerState_s *ps, unsigned int weaponIndex);
+struct PlayerHeldWeapon *__cdecl BG_GetHeldWeapon(playerState_s *ps, unsigned int weaponIndex);
 bool __cdecl PM_IsWeaponMinFireTimeElapsed(playerState_s *ps, bool leftGun);
 unsigned int __cdecl PM_GetWeaponIndexForHand(playerState_s *ps);
 bool __cdecl BG_IsAltSwitch(playerState_s *ps, unsigned int lastWeapon, unsigned int weapon);
@@ -1047,7 +1055,7 @@ bool __cdecl BG_PlayerWeaponsFull_Primaries(const playerState_s *ps);
 char __cdecl BG_PlayerHasCompatibleWeapon(const playerState_s *ps, unsigned int weaponIndex);
 bool __cdecl BG_ThrowingBackGrenade(const playerState_s *ps);
 void __cdecl BG_CalcVehicleTurretWeaponPosOffset(float positionFrac, const WeaponDef *weapDef, float *outOffset);
-WeaponVariantDef *__cdecl BG_LoadWeaponVariantDef(char *name);
+WeaponVariantDef *__cdecl BG_LoadWeaponVariantDef(const char *name);
 WeaponVariantDef *__cdecl BG_LoadWeaponVariantDef_LoadObj(char *name);
 WeaponVariantDef *__cdecl BG_LoadWeaponVariantDef_FastFile(const char *name);
 void __cdecl BG_AssertOffhandIndexOrNone(unsigned int offHandIndex);

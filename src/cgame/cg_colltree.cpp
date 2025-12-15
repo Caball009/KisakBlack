@@ -1,4 +1,10 @@
 #include "cg_colltree.h"
+#include <universal/assertive.h>
+#include <cstring>
+#include <qcommon/cm_load.h>
+
+CgEntCollWorld cgEntCollWorld[1];
+CgEntCollNode *cgEntCollNodes[1];
 
 void __cdecl CG_ClearEntityCollWorld(int localClientNum)
 {

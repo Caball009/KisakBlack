@@ -1,6 +1,304 @@
 #include "bg_misc.h"
 #include <universal/q_shared.h>
 #include <universal/dvar.h>
+#include "bg_jump.h"
+#include "bg_mantle.h"
+#include "bg_dtp.h"
+#include "bg_dog.h"
+#include "bg_vehicle_anim.h"
+#include "bg_perks.h"
+#include "bg_fire.h"
+#include "bg_wind.h"
+#include <game/g_items.h>
+#include "bg_weapons_def.h"
+#include <game/g_weapon.h>
+#include "bg_weapons_ammo.h"
+#include <qcommon/common.h>
+#include "bg_pmove.h"
+
+const int serverOnlyEvents[4] =
+{ 36, 23, 22, -1 };
+
+const int singleClientEvents[12] =
+{ 8, 9, 10, 205, 43, 16, 17, 43, 46, 52, 53, -1 };
+
+
+const char *bg_ShockScreenTypeNames[4] =
+{ "blurred", "flashed", "none", NULL };
+
+const char *entityTypeNames[21] =
+{
+  "General",
+  "Player",
+  "Corpse",
+  "Item",
+  "Missile",
+  "Invisible entity",
+  "Scriptmover",
+  "Sound blend",
+  "FX",
+  "Loop FX",
+  "Primary Light",
+  "MG42",
+  "Helicopter",
+  "Plane",
+  "Vehicle",
+  "Vehicle collmap",
+  "Vehicle corpse",
+  "Actor",
+  "Actor spawner",
+  "Actor corpse",
+  "Streamer Hint"
+};
+
+const char *eventnames[] =
+{
+  "EV_NONE",
+  "EV_FOLIAGE_SOUND",
+  "EV_STOP_WEAPON_SOUND",
+  "EV_STOP_SOUND_ALIAS",
+  "EV_SOUND_ALIAS",
+  "EV_SOUND_ALIAS_NOTIFY",
+  "EV_SOUND_BATTLECHAT_ALIAS",
+  "EV_STOPSOUNDS",
+  "EV_STANCE_FORCE_STAND",
+  "EV_STANCE_FORCE_CROUCH",
+  "EV_STANCE_FORCE_PRONE",
+  "EV_ITEM_PICKUP",
+  "EV_AMMO_PICKUP",
+  "EV_NOAMMO",
+  "EV_NOAMMO_LEFT",
+  "EV_EMPTYCLIP",
+  "EV_EMPTY_OFFHAND",
+  "EV_RESET_ADS",
+  "EV_RELOAD",
+  "EV_RELOAD_FROM_EMPTY",
+  "EV_RELOAD_START",
+  "EV_RELOAD_END",
+  "EV_RELOAD_START_NOTIFY",
+  "EV_RELOAD_ADDAMMO",
+  "EV_RAISE_WEAPON",
+  "EV_FIRST_RAISE_WEAPON",
+  "EV_PUTAWAY_WEAPON",
+  "EV_WEAPON_ALT",
+  "EV_PULLBACK_WEAPON",
+  "EV_FIRE_WEAPON",
+  "EV_FIRE_WEAPON_LASTSHOT",
+  "EV_FIRE_WEAPON_LEFT",
+  "EV_FIRE_WEAPON_LASTSHOT_LEFT",
+  "EV_RECHAMBER_WEAPON",
+  "EV_EJECT_BRASS",
+  "EV_MELEE_SWIPE",
+  "EV_FIRE_MELEE",
+  "EV_WEAPON_DEPLOYING",
+  "EV_WEAPON_FINISH_DEPLOYING",
+  "EV_WEAPON_BREAKING_DOWN",
+  "EV_WEAPON_FINISH_BREAKING_DOWN",
+  "EV_PREP_OFFHAND",
+  "EV_USE_OFFHAND",
+  "EV_SWITCH_OFFHAND",
+  "EV_MELEE_HIT",
+  "EV_MELEE_MISS",
+  "EV_MELEE_BLOOD",
+  "EV_FIRE_WEAPON_MG42",
+  "EV_FIRE_WEAPON_MG42A",
+  "EV_FIRE_QUADBARREL_1",
+  "EV_FIRE_QUADBARREL_2",
+  "EV_BULLET_HIT",
+  "EV_BULLET_HIT_CLIENT_SMALL",
+  "EV_BULLET_HIT_CLIENT_LARGE",
+  "EV_DESTRUCTIBLE_BULLET_HIT",
+  "EV_DESTRUCTIBLE_EXPLOSION_HIT",
+  "EV_GRENADE_BOUNCE",
+  "EV_GRENADE_EXPLODE",
+  "EV_ROCKET_EXPLODE",
+  "EV_ROCKET_EXPLODE_NOMARKS",
+  "EV_FLASHBANG_EXPLODE",
+  "EV_CUSTOM_EXPLODE",
+  "EV_CUSTOM_EXPLODE_NOMARKS",
+  "EV_CHANGE_TO_DUD",
+  "EV_DUD_EXPLODE",
+  "EV_DUD_IMPACT",
+  "EV_FIRE_EXPLODE",
+  "EV_TIMED_FX",
+  "EV_MOLOTOV_FLOAT",
+  "EV_FAKE_FIRE",
+  "EV_PLAY_FX",
+  "EV_PLAY_FX_ON_TAG",
+  "EV_PHYS_EXPLOSION_SPHERE",
+  "EV_PHYS_EXPLOSION_CYLINDER",
+  "EV_PHYS_EXPLOSION_JOLT",
+  "EV_PHYS_LAUNCH",
+  "EV_CREATE_DYNENT",
+  "EV_CREATE_ROPE",
+  "EV_BLOOD_IMPACTS",
+  "EV_DETACH_ENTITY",
+  "EV_DELETE_ROPE",
+  "EV_ROPE_COLLIDE",
+  "EV_ROPE_SETFLAG",
+  "EV_ROPE_SETPARAM",
+  "EV_ROPE_ADDANCHOR",
+  "EV_ROPE_REMOVEANCHOR",
+  "EV_ROPE_MOVEANCHOR",
+  "EV_SETWETNESS",
+  "EV_EARTHQUAKE",
+  "EV_GRENADE_DROP",
+  "EV_GRENADE_SUICIDE",
+  "EV_DETONATE",
+  "EV_NIGHTVISION_WEAR",
+  "EV_NIGHTVISION_REMOVE",
+  "EV_OBITUARY",
+  "EV_REVIVE_OBITUARY",
+  "EV_DIRECTIONAL_HIT_INDICATOR",
+  "EV_ANIMATE_UI",
+  "EV_NO_FRAG_GRENADE_HINT",
+  "EV_NO_SPECIAL_GRENADE_HINT",
+  "EV_TARGET_TOO_CLOSE_HINT",
+  "EV_TARGET_NOT_ENOUGH_CLEARANCE",
+  "EV_LOCKON_REQUIRED_HINT",
+  "EV_FOOTSTEP_SPRINT",
+  "EV_FOOTSTEP_RUN",
+  "EV_FOOTSTEP_WALK",
+  "EV_FOOTSTEP_CROUCHRUN",
+  "EV_FOOTSTEP_CROUCHWALK",
+  "EV_FOOTSTEP_PRONE",
+  "EV_MANTLE",
+  "EV_JUMP",
+  "EV_LANDING_DEFAULT",
+  "EV_LANDING_BARK",
+  "EV_LANDING_BRICK",
+  "EV_LANDING_CARPET",
+  "EV_LANDING_CLOTH",
+  "EV_LANDING_CONCRETE",
+  "EV_LANDING_DIRT",
+  "EV_LANDING_FLESH",
+  "EV_LANDING_FOLIAGE",
+  "EV_LANDING_GLASS",
+  "EV_LANDING_GRASS",
+  "EV_LANDING_GRAVEL",
+  "EV_LANDING_ICE",
+  "EV_LANDING_METAL",
+  "EV_LANDING_MUD",
+  "EV_LANDING_PAPER",
+  "EV_LANDING_PLASTER",
+  "EV_LANDING_ROCK",
+  "EV_LANDING_SAND",
+  "EV_LANDING_SNOW",
+  "EV_LANDING_WATER",
+  "EV_LANDING_WOOD",
+  "EV_LANDING_ASPHALT",
+  "EV_LANDING_CERAMIC",
+  "EV_LANDING_PLASTIC",
+  "EV_LANDING_RUBBER",
+  "EV_LANDING_CUSHION",
+  "EV_LANDING_FRUIT",
+  "EV_LANDING_PAINTEDMETAL",
+  "EV_LANDING_PLAYER",
+  "EV_LANDING_TALLGRASS",
+  "EV_LANDING_PAIN_DEFAULT",
+  "EV_LANDING_PAIN_BARK",
+  "EV_LANDING_PAIN_BRICK",
+  "EV_LANDING_PAIN_CARPET",
+  "EV_LANDING_PAIN_CLOTH",
+  "EV_LANDING_PAIN_CONCRETE",
+  "EV_LANDING_PAIN_DIRT",
+  "EV_LANDING_PAIN_FLESH",
+  "EV_LANDING_PAIN_FOLIAGE",
+  "EV_LANDING_PAIN_GLASS",
+  "EV_LANDING_PAIN_GRASS",
+  "EV_LANDING_PAIN_GRAVEL",
+  "EV_LANDING_PAIN_ICE",
+  "EV_LANDING_PAIN_METAL",
+  "EV_LANDING_PAIN_MUD",
+  "EV_LANDING_PAIN_PAPER",
+  "EV_LANDING_PAIN_PLASTER",
+  "EV_LANDING_PAIN_ROCK",
+  "EV_LANDING_PAIN_SAND",
+  "EV_LANDING_PAIN_SNOW",
+  "EV_LANDING_PAIN_WATER",
+  "EV_LANDING_PAIN_WOOD",
+  "EV_LANDING_PAIN_ASPHALT",
+  "EV_LANDING_PAIN_CERAMIC",
+  "EV_LANDING_PAIN_PLASTIC",
+  "EV_LANDING_PAIN_RUBBER",
+  "EV_LANDING_PAIN_CUSHION",
+  "EV_LANDING_PAIN_FRUIT",
+  "EV_LANDING_PAIN_PAINTEDMETAL",
+  "EV_LANDING_PAIN_PLAYER",
+  "EV_LANDING_PAIN_TALLGRASS",
+  "EV_FIRE_VEHICLE_TURRET",
+  "EV_FIRE_GUNNER_1",
+  "EV_FIRE_GUNNER_2",
+  "EV_FIRE_GUNNER_3",
+  "EV_FIRE_GUNNER_4",
+  "EV_FIRE_GUNNER_1A",
+  "EV_FIRE_GUNNER_2A",
+  "EV_FIRE_GUNNER_3A",
+  "EV_FIRE_GUNNER_4A",
+  "EV_START_CAMERA_TWEEN",
+  "EV_DESTRUCTIBLE_DISABLE_PIECES",
+  "EV_FOOTPRINT",
+  "EV_CANNOTPLANT",
+  "EV_DTP_LAUNCH",
+  "EV_DTP_LAND",
+  "EV_SLIDE_START",
+  "EV_SLIDE_STOP",
+  "EV_SCOPE_ZOOM",
+  "EV_JAM_WEAPON",
+  "EV_STACKFIRE",
+  "EV_BOLT_IMPACT",
+  "EV_BOLT_IMPALE",
+  "EV_PLAY_WEAPON_DEATH_EFFECTS",
+  "EV_PLAY_WEAPON_DAMAGE_EFFECTS",
+  "EV_FACE_EVENT",
+  "EV_SETLOCALWIND",
+  "EV_FLOAT_LONGER",
+  "EV_FORCE_BUOYANCY",
+  "EV_DISABLE_DEPTH_BUOYANCY_ADJUSTMENTS",
+  "EV_SCALE_BUOYANCY",
+  "EV_ALLOWPITCH",
+  "EV_GIB",
+  "EV_STANCE_INVALID",
+  "bg_shock_screenType",
+  "bg_shock_screenBlurBlendTime",
+  "bg_shock_screenBlurBlendFadeTime",
+  "bg_shock_screenFlashWhiteFadeTime",
+  "bg_shock_screenFlashShotFadeTime",
+  "bg_shock_viewKickPeriod",
+  "bg_shock_viewKickRadius",
+  "bg_shock_viewKickFadeTime",
+  "bg_shock_soundLoop",
+  "bg_shock_soundLoopSilent",
+  "bg_shock_soundEnd",
+  "bg_shock_soundEndAbort",
+  "bg_shock_sound",
+  "bg_shock_soundFadeInTime",
+  "bg_shock_soundFadeOutTime",
+  "bg_shock_soundLoopFadeTime",
+  "bg_shock_soundLoopEndDelay",
+  "bg_shock_soundRoomType",
+  "bg_shock_soundDryLevel",
+  "bg_shock_soundWetLevel",
+  "bg_shock_soundModEndDelay",
+  "bg_shock_soundSnapshot",
+  "bg_shock_lookControl",
+  "bg_shock_lookControl_maxpitchspeed",
+  "bg_shock_lookControl_maxyawspeed",
+  "bg_shock_lookControl_mousesensitivityscale",
+  "bg_shock_lookControl_fadeTime",
+  "bg_shock_movement",
+  "bg_shock_animation",
+  "bg_shock_visionset_name",
+  "bg_shock_visionset_inTime",
+  "bg_shock_visionset_outTime",
+  "blurred",
+  "flashed",
+  "none",
+  NULL
+};
+
+
+
 
 const dvar_s *bg_viewKickScale;
 const dvar_s *bg_viewKickMax;
@@ -218,6 +516,7 @@ const dvar_s *dive2swim;
 const dvar_s *dive_recharge;
 const dvar_s *playerPushAmount;
 const dvar_s *bg_freeCamClipToHeliPatch;
+const dvar_s *zero_idle_movement;
 
 
 void __cdecl BG_RegisterDvars()
@@ -254,32 +553,32 @@ void __cdecl BG_RegisterDvars()
                                                          "Maximum angle that the player can look down");
     player_lean_shift = _Dvar_RegisterVec2(
                                                 "player_lean_shift",
-                                                unsigned int(5.0),
-                                                unsigned int(2.5),
+                                                (5.0),
+                                                (2.5),
                                                 0.0,
                                                 20.0,
                                                 0x80u,
                                                 "Amount to shift the player 3rd person model when leaning(x:left, y:right)");
     player_lean_shift_crouch = _Dvar_RegisterVec2(
                                                              "player_lean_shift_crouch",
-                                                             unsigned int(12.5),
-                                                             unsigned int(2.5),
+                                                             (12.5),
+                                                             (2.5),
                                                              0.0,
                                                              20.0,
                                                              0x80u,
                                                              "Amount to shift the player 3rd person model when crouch leaning(x:left, y:right)");
     player_lean_rotate = _Dvar_RegisterVec2(
                                                  "player_lean_rotate",
-                                                 unsigned int(1.25),
-                                                 unsigned int(1.25),
+                                                 (1.25),
+                                                 (1.25),
                                                  0.0,
                                                  3.0,
                                                  0x80u,
                                                  "Amount to rotate the player 3rd person model when leaning(x:left, y:right)");
     player_lean_rotate_crouch = _Dvar_RegisterVec2(
                                                                 "player_lean_rotate_crouch",
-                                                                unsigned int(1.0),
-                                                                unsigned int(1.0),
+                                                                (1.0),
+                                                                (1.0),
                                                                 0.0,
                                                                 3.0,
                                                                 0x80u,
@@ -406,64 +705,64 @@ void __cdecl BG_RegisterDvars()
                                                             "The base speed-based view bob amplitude");
     bg_viewBobAmplitudeSprinting = _Dvar_RegisterVec2(
                                                                      "bg_viewBobAmplitudeSprinting",
-                                                                     unsigned int(0.02),
-                                                                     unsigned int(0.014),
+                                                                     (0.02),
+                                                                     (0.014),
                                                                      0.0,
                                                                      1.0,
                                                                      0x180u,
                                                                      "The multiplier to apply to the player's speed to get the bob amplitude while sprinting");
     bg_viewBobAmplitudeDtp = _Dvar_RegisterVec2(
                                                          "bg_viewBobAmplitudeDtp",
-                                                         unsigned int(0.0020000001),
-                                                         unsigned int(0.0020000001),
+                                                         (0.0020000001),
+                                                         (0.0020000001),
                                                          0.0,
                                                          1.0,
                                                          0x180u,
                                                          "The multiplier to apply to the player's speed to get the bob amplitude while diving to prone");
     bg_viewBobAmplitudeSwimming = _Dvar_RegisterVec2(
                                                                     "bg_viewBobAmplitudeSwimming",
-                                                                    unsigned int(3.0),
-                                                                    unsigned int(2.0),
+                                                                    (3.0),
+                                                                    (2.0),
                                                                     0.0,
                                                                     8.0,
                                                                     0x4080u,
                                                                     "The multiplier to apply to the player's speed to get the bob amplitude while swimming");
     bg_viewBobAmplitudeStanding = _Dvar_RegisterVec2(
                                                                     "bg_viewBobAmplitudeStanding",
-                                                                    unsigned int(0.0070000002),
-                                                                    unsigned int(0.0070000002),
+                                                                    (0.0070000002),
+                                                                    (0.0070000002),
                                                                     0.0,
                                                                     1.0,
                                                                     0x4080u,
                                                                     "The multiplier to apply to the player's speed to get the bob amplitude while standing");
     bg_viewBobAmplitudeStandingAds = _Dvar_RegisterVec2(
                                                                          "bg_viewBobAmplitudeStandingAds",
-                                                                         unsigned int(0.0070000002),
-                                                                         unsigned int(0.0070000002),
+                                                                         (0.0070000002),
+                                                                         (0.0070000002),
                                                                          0.0,
                                                                          1.0,
                                                                          0x1180u,
                                                                          "The multiplier to apply to the player's speed to get the view bob amplitude while standing and ADS");
     bg_viewBobAmplitudeDucked = _Dvar_RegisterVec2(
                                                                 "bg_viewBobAmplitudeDucked",
-                                                                unsigned int(0.0074999998),
-                                                                unsigned int(0.0074999998),
+                                                                (0.0074999998),
+                                                                (0.0074999998),
                                                                 0.0,
                                                                 1.0,
                                                                 0x180u,
                                                                 "The multiplier to apply to the player's speed to get the bob amplitude while ducking");
     bg_viewBobAmplitudeDuckedAds = _Dvar_RegisterVec2(
                                                                      "bg_viewBobAmplitudeDuckedAds",
-                                                                     unsigned int(0.0074999998),
-                                                                     unsigned int(0.0074999998),
+                                                                     (0.0074999998),
+                                                                     (0.0074999998),
                                                                      0.0,
                                                                      1.0,
                                                                      0x180u,
                                                                      "The multiplier to apply to the player's speed to get the view bob amplitude while ducking ADS");
     bg_viewBobAmplitudeProne = _Dvar_RegisterVec2(
                                                              "bg_viewBobAmplitudeProne",
-                                                             unsigned int(0.079999998),
-                                                             unsigned int(0.039999999),
+                                                             (0.079999998),
+                                                             (0.039999999),
                                                              0.0,
                                                              1.0,
                                                              0x180u,
@@ -499,48 +798,48 @@ void __cdecl BG_RegisterDvars()
                                                                 "The base speed-based weapon bob amplitude");
     bg_weaponBobAmplitudeSprinting = _Dvar_RegisterVec2(
                                                                          "bg_weaponBobAmplitudeSprinting",
-                                                                         unsigned int(0.02),
-                                                                         unsigned int(0.014),
+                                                                         (0.02),
+                                                                         (0.014),
                                                                          0.0,
                                                                          1.0,
                                                                          0x180u,
                                                                          "The multiplier to apply to the player's speed to get the weapon bob amplitude while sprinting");
     bg_weaponBobAmplitudeDtp = _Dvar_RegisterVec2(
                                                              "bg_weaponBobAmplitudeDtp",
-                                                             unsigned int(0.0020000001),
-                                                             unsigned int(0.0020000001),
+                                                             (0.0020000001),
+                                                             (0.0020000001),
                                                              0.0,
                                                              1.0,
                                                              0x180u,
                                                              "The multiplier to apply to the player's speed to get the weapon bob amplitude while diving to prone");
     bg_weaponBobAmplitudeSwimming = _Dvar_RegisterVec2(
                                                                         "bg_weaponBobAmplitudeSwimming",
-                                                                        unsigned int(4.0),
-                                                                        unsigned int(4.0),
+                                                                        (4.0),
+                                                                        (4.0),
                                                                         0.0,
                                                                         8.0,
                                                                         0x4080u,
                                                                         "The multiplier to apply to the player's speed to get the weapon bob amplitude while swimming");
     bg_weaponBobAmplitudeStanding = _Dvar_RegisterVec2(
                                                                         "bg_weaponBobAmplitudeStanding",
-                                                                        unsigned int(0.055),
-                                                                        unsigned int(0.025),
+                                                                        (0.055),
+                                                                        (0.025),
                                                                         0.0,
                                                                         1.0,
                                                                         0x4080u,
                                                                         "The multiplier to apply to the player's speed to get the weapon bob amplitude while standing");
     bg_weaponBobAmplitudeDucked = _Dvar_RegisterVec2(
                                                                     "bg_weaponBobAmplitudeDucked",
-                                                                    unsigned int(0.045000002),
-                                                                    unsigned int(0.025),
+                                                                    (0.045000002),
+                                                                    (0.025),
                                                                     0.0,
                                                                     1.0,
                                                                     0x180u,
                                                                     "The multiplier to apply to the player's speed to get the weapon bob amplitude while ducking");
     bg_weaponBobAmplitudeProne = _Dvar_RegisterVec2(
                                                                  "bg_weaponBobAmplitudeProne",
-                                                                 unsigned int(0.02),
-                                                                 unsigned int(0.0049999999),
+                                                                 (0.02),
+                                                                 (0.0049999999),
                                                                  0.0,
                                                                  1.0,
                                                                  0x180u,
@@ -1266,27 +1565,27 @@ void __cdecl BG_RegisterDvars()
     player_topDownCamMode = _Dvar_RegisterInt("player_topDownCamMode", 0, 0, 4, 0x1000u, "Enabled the top down cam.");
     player_topDownCamOffset = _Dvar_RegisterVec3(
                                                             "player_topDownCamOffset",
-                                                            unsigned int(0.0),
-                                                            unsigned int(0.0),
-                                                            unsigned int(500.0),
+                                                            (0.0),
+                                                            (0.0),
+                                                            (500.0),
                                                             -3000.0,
                                                             3000.0,
                                                             0x1000u,
                                                             "Sets the camera position relative to the player for the top down cam");
     player_topDownCamAngles = _Dvar_RegisterVec3(
                                                             "player_topDownCamAngles",
-                                                            unsigned int(75.0),
-                                                            unsigned int(0.0),
-                                                            unsigned int(0.0),
+                                                            (75.0),
+                                                            (0.0),
+                                                            (0.0),
                                                             -180.0,
                                                             180.0,
                                                             0x1000u,
                                                             "Sets the pitch for the top down cam");
     player_topDownCamCenterPos = _Dvar_RegisterVec3(
                                                                  "player_topDownCamCenterPos",
-                                                                 unsigned int(-7926.0),
-                                                                 unsigned int(-2838.0),
-                                                                 unsigned int(-88.0),
+                                                                 (-7926.0),
+                                                                 (-2838.0),
+                                                                 (-88.0),
                                                                  -20000.0,
                                                                  20000.0,
                                                                  0x1000u,
@@ -1300,8 +1599,8 @@ void __cdecl BG_RegisterDvars()
                                                              "Distance the virtual mouse cursor is from the player.");
     player_topDownCursorPos = _Dvar_RegisterVec2(
                                                             "player_topDownCursorPos",
-                                                            unsigned int(0.0),
-                                                            unsigned int(0.0),
+                                                            (0.0),
+                                                            (0.0),
                                                             -3.4028235e38,
                                                             3.4028235e38,
                                                             0x1000u,
@@ -1332,63 +1631,63 @@ void __cdecl BG_RegisterDvars()
                                              "Render debug lines that show where mountable weapons are trying to be placed");
     player_AimBlend_Back_Low = _Dvar_RegisterVec3(
                                                              "player_AimBlend_Back_Low",
-                                                             unsigned int(0.0),
-                                                             unsigned int(0.30000001),
-                                                             unsigned int(0.5),
+                                                             (0.0),
+                                                             (0.30000001),
+                                                             (0.5),
                                                              -1.0,
                                                              1.0,
                                                              0,
                                                              "3rd person player view aim blend - lower back");
     player_AimBlend_Back_Mid = _Dvar_RegisterVec3(
                                                              "player_AimBlend_Back_Mid",
-                                                             unsigned int(0.1),
-                                                             unsigned int(0.2),
-                                                             unsigned int(0.5),
+                                                             (0.1),
+                                                             (0.2),
+                                                             (0.5),
                                                              -1.0,
                                                              1.0,
                                                              0,
                                                              "3rd person player view aim blend - mid back");
     player_AimBlend_Back_Up = _Dvar_RegisterVec3(
                                                             "player_AimBlend_Back_Up",
-                                                            unsigned int(0.5),
-                                                            unsigned int(0.1),
-                                                            unsigned int(-0.60000002),
+                                                            (0.5),
+                                                            (0.1),
+                                                            (-0.60000002),
                                                             -1.0,
                                                             1.0,
                                                             0,
                                                             "3rd person player view aim blend - upper back");
     player_AimBlend_Pelvis = _Dvar_RegisterVec3(
                                                          "player_AimBlend_Pelvis",
-                                                         unsigned int(0.40000001),
-                                                         unsigned int(0.40000001),
-                                                         unsigned int(0.0),
+                                                         (0.40000001),
+                                                         (0.40000001),
+                                                         (0.0),
                                                          -1.0,
                                                          1.0,
                                                          0,
                                                          "3rd person player view aim blend - pelvis");
     player_AimBlend_Neck = _Dvar_RegisterVec3(
                                                      "player_AimBlend_Neck",
-                                                     unsigned int(0.30000001),
-                                                     unsigned int(0.30000001),
-                                                     unsigned int(0.0),
+                                                     (0.30000001),
+                                                     (0.30000001),
+                                                     (0.0),
                                                      -1.0,
                                                      1.0,
                                                      0,
                                                      "3rd person player view aim blend - neck");
     player_AimBlend_Head = _Dvar_RegisterVec3(
                                                      "player_AimBlend_Head",
-                                                     unsigned int(0.0),
-                                                     unsigned int(0.0),
-                                                     unsigned int(0.0),
+                                                     (0.0),
+                                                     (0.0),
+                                                     (0.0),
                                                      -1.0,
                                                      1.0,
                                                      0,
                                                      "3rd person player view aim blend - head");
     player_AimBlend_Shoulder = _Dvar_RegisterVec3(
                                                              "player_AimBlend_Shoulder",
-                                                             unsigned int(1.0),
-                                                             unsigned int(1.0),
-                                                             unsigned int(1.0),
+                                                             (1.0),
+                                                             (1.0),
+                                                             (1.0),
                                                              -1.0,
                                                              1.0,
                                                              0,
@@ -1420,18 +1719,18 @@ void __cdecl BG_RegisterDvars()
                                                                         "Assigns the player seat based on the entry location, NOT first in first available position");
     vehCameraTurretOffset = _Dvar_RegisterVec3(
                                                         "vehCameraTurretOffset",
-                                                        unsigned int(0.0),
-                                                        unsigned int(0.0),
-                                                        unsigned int(0.0),
+                                                        (0.0),
+                                                        (0.0),
+                                                        (0.0),
                                                         -300.0,
                                                         300.0,
                                                         0x80u,
                                                         "Vehicle turret camera offset");
     vehCameraTurretOffsetADS = _Dvar_RegisterVec3(
                                                              "vehCameraTurretOffsetADS",
-                                                             unsigned int(0.0),
-                                                             unsigned int(0.0),
-                                                             unsigned int(0.0),
+                                                             (0.0),
+                                                             (0.0),
+                                                             (0.0),
                                                              -300.0,
                                                              300.0,
                                                              0x80u,
@@ -1594,7 +1893,7 @@ void __cdecl BG_RegisterDvars()
 char *__cdecl BG_GetEntityTypeName(int eType)
 {
     if ( eType < 21 )
-        return entityTypeNames[eType];
+        return (char*)entityTypeNames[eType];
     if ( (unsigned int)(eType - 21) >= 0xCE
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_misc.cpp",
@@ -1677,23 +1976,23 @@ bool __cdecl BG_CanItemBeGrabbed(const entityState_s *ent, const playerState_s *
         return 0;
     if ( ent->un3.item < 1 || ent->un3.item >= 2048 )
     {
-        v4 = va(&byte_C67F30, ent->un3.item, ent->eType);
+        v4 = va("BG_CanItemBeGrabbed: index out of range (index is %i, eType is %i)", ent->un3.item, ent->eType);
         Com_Error(ERR_DROP, v4);
     }
     if ( ent->clientNum == ps->clientNum )
         return 0;
     weapIdx = ent->un3.item % 2048;
     BG_GetWeaponDef(weapIdx);
-    if ( bg_itemlist[2048 * (ent->un3.item / 2048) + weapIdx] != 1
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_misc.cpp",
-                    1319,
-                    0,
-                    "%s",
-                    "bg_itemlist[ ITEM_WEAPMODEL( ent->un3.item ) * MAX_WEAPONS + weapIdx].giType == IT_WEAPON") )
-    {
-        __debugbreak();
-    }
+    //if ( bg_itemlist[2048 * (ent->un3.item / 2048) + weapIdx] != IT_WEAPON
+    //    && !Assert_MyHandler(
+    //                "C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_misc.cpp",
+    //                1319,
+    //                0,
+    //                "%s",
+    //                "bg_itemlist[ ITEM_WEAPMODEL( ent->un3.item ) * MAX_WEAPONS + weapIdx].giType == IT_WEAPON") )
+    //{
+    //    __debugbreak();
+    //}
     if ( WeaponEntCanBeGrabbed(ent, ps, touched, weapIdx) )
         return 1;
     weapVariantDef = BG_GetWeaponVariantDef(weapIdx);
@@ -1721,7 +2020,7 @@ char __cdecl WeaponEntCanBeGrabbed(
             return 1;
         if ( (BG_PlayerHasWeapon(ps, weapIdx) || BG_PlayerHasCompatibleWeapon(ps, weapIdx)) && haveRoomForAmmo )
             return 1;
-        if ( ((unsigned int)&loc_800000 & weaponEntState->lerp.eFlags2) != 0 && (ps->perks[1] & 0x200) != 0 )
+        if ((weaponEntState->lerp.eFlags2 & 0x800000) != 0 && (ps->perks[1] & 0x200) != 0)
             return 1;
     }
     else if ( !BG_PlayerHasWeapon(ps, weapIdx) )
@@ -1805,22 +2104,24 @@ bool __cdecl BG_PlayerHasRoomForEntAllAmmoTypes(const entityState_s *ent, const 
         __debugbreak();
     if ( ent->un3.item < 1 || ent->un3.item >= 2048 )
     {
-        v2 = va(&byte_C67FB0, ent->un3.item, ent->eType);
+        v2 = va("BG_PlayerHasRoomForAllAmmoTypesOfEnt: index out of range (index is %i, eType is %i)", ent->un3.item, ent->eType);
         Com_Error(ERR_DROP, v2);
     }
     weapIdx = ent->un3.item % 2048;
     if ( !weapIdx )
         return 0;
-    if ( bg_itemlist[2048 * (ent->un3.item / 2048) + weapIdx] != 1
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_misc.cpp",
-                    1348,
-                    0,
-                    "%s",
-                    "bg_itemlist[ ITEM_WEAPMODEL( ent->un3.item ) * MAX_WEAPONS + weapIdx].giType == IT_WEAPON") )
-    {
-        __debugbreak();
-    }
+
+    //if ( bg_itemlist[2048 * (ent->un3.item / 2048) + weapIdx] != IT_WEAPON
+    //    && !Assert_MyHandler(
+    //                "C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_misc.cpp",
+    //                1348,
+    //                0,
+    //                "%s",
+    //                "bg_itemlist[ ITEM_WEAPMODEL( ent->un3.item ) * MAX_WEAPONS + weapIdx].giType == IT_WEAPON") )
+    //{
+    //    __debugbreak();
+    //}
+
     if ( !BG_GetMaxPickupableAmmo(ps, weapIdx) )
         return 0;
     weapVariantDef = BG_GetWeaponVariantDef(weapIdx);
@@ -1923,12 +2224,19 @@ void __cdecl BG_EvaluateTrajectory(const trajectory_t *tr, int atTime, float *re
             }
             if ( tr->trDuration )
             {
-                v3 = (float)((float)((float)((float)(atTime - tr->trTime) / (float)tr->trDuration) * 3.1415927) * 2.0);
-                __libm_sse2_sin(v4);
-                *(float *)&v3 = v3;
-                *result = (float)(*(float *)&v3 * tr->trDelta[0]) + tr->trBase[0];
-                result[1] = (float)(*(float *)&v3 * tr->trDelta[1]) + tr->trBase[1];
-                result[2] = (float)(*(float *)&v3 * tr->trDelta[2]) + tr->trBase[2];
+                //v3 = (float)((float)((float)((float)(atTime - tr->trTime) / (float)tr->trDuration) * 3.1415927) * 2.0);
+                //__libm_sse2_sin(v4);
+                //*(float *)&v3 = v3;
+                //*result = (float)(*(float *)&v3 * tr->trDelta[0]) + tr->trBase[0];
+                //result[1] = (float)(*(float *)&v3 * tr->trDelta[1]) + tr->trBase[1];
+                //result[2] = (float)(*(float *)&v3 * tr->trDelta[2]) + tr->trBase[2];
+                float frac = (float)(atTime - tr->trTime) / (float)tr->trDuration;
+                float angle = frac * 3.1415927f * 2.0f; // full cycle
+                float sinAngle = sinf(angle);           // fixed SSE call
+
+                result[0] = sinAngle * tr->trDelta[0] + tr->trBase[0];
+                result[1] = sinAngle * tr->trDelta[1] + tr->trBase[1];
+                result[2] = sinAngle * tr->trDelta[2] + tr->trBase[2];
             }
             else
             {
@@ -2004,7 +2312,8 @@ void __cdecl BG_EvaluateTrajectory(const trajectory_t *tr, int atTime, float *re
                 Vec3NormalizeTo(tr->trDelta, result);
                 v6 = (float)(v16 * tr->trDelta[1]) + tr->trBase[1];
                 v7 = (float)(v16 * tr->trDelta[2]) + tr->trBase[2];
-                v5 = (float)((float)(COERCE_FLOAT(LODWORD(v10) ^ _mask__NegFloat_) * 0.5) * v16) * v16;
+                //v5 = (float)((float)(COERCE_FLOAT(LODWORD(v10) ^ _mask__NegFloat_) * 0.5) * v16) * v16;
+                v5 = (float)((float)(-v10 * 0.5f) * v16) * v16;
                 *result = (float)(v5 * *result) + (float)((float)(v16 * tr->trDelta[0]) + tr->trBase[0]);
                 result[1] = (float)(v5 * result[1]) + v6;
                 result[2] = (float)(v5 * result[2]) + v7;
@@ -2017,7 +2326,7 @@ void __cdecl BG_EvaluateTrajectory(const trajectory_t *tr, int atTime, float *re
             }
             break;
         default:
-            Com_Error(ERR_DROP, &byte_C68008, tr->trType);
+            Com_Error(ERR_DROP, "BG_EvaluateTrajectory: unknown trType: %i", tr->trType);
             break;
     }
     if ( ((LODWORD(tr->trBase[0]) & 0x7F800000) == 0x7F800000
@@ -2079,6 +2388,9 @@ void __cdecl BG_EvaluateTrajectoryDelta(const trajectory_t *tr, int atTime, floa
     {
         __debugbreak();
     }
+    float frac;
+    float angle;
+    float cosAngle;
     switch ( tr->trType )
     {
         case 0u:
@@ -2105,13 +2417,13 @@ void __cdecl BG_EvaluateTrajectoryDelta(const trajectory_t *tr, int atTime, floa
             result[2] = tr->trDelta[2];
             goto LABEL_27;
         case 5u:
-            v3 = (float)((float)((float)((float)(atTime - tr->trTime) / (float)tr->trDuration) * 3.1415927) * 2.0);
-            LODWORD(v4) = tr->trType;
-            __libm_sse2_cos(v4);
-            *(float *)&v3 = v3;
-            *result = (float)(*(float *)&v3 * 0.5) * tr->trDelta[0];
-            result[1] = (float)(*(float *)&v3 * 0.5) * tr->trDelta[1];
-            result[2] = (float)(*(float *)&v3 * 0.5) * tr->trDelta[2];
+            frac = (float)(atTime - tr->trTime) / (float)tr->trDuration;
+            angle = frac * 3.1415927f * 2.0f; // full cycle
+            cosAngle = cosf(angle);           // fixed SSE call
+
+            result[0] = cosAngle * 0.5f * tr->trDelta[0];
+            result[1] = cosAngle * 0.5f * tr->trDelta[1];
+            result[2] = cosAngle * 0.5f * tr->trDelta[2];
             goto LABEL_27;
         case 6u:
             deltaTime = (float)(atTime - tr->trTime) * 0.001;
@@ -2182,7 +2494,7 @@ LABEL_27:
             }
             return;
         default:
-            Com_Error(ERR_DROP, &byte_C6813C, tr->trType);
+            Com_Error(ERR_DROP, "BG_EvaluateTrajectoryDelta: unknown trType: %i", tr->trType);
             goto LABEL_27;
     }
 }
@@ -2210,6 +2522,98 @@ bool __cdecl BG_ValidateOriginValue(float val, char bits, float mapCenterValue)
     return (int)val <= (int)(float)((float)maxVal + mapCenterValue)
             && (int)val >= (int)(float)(mapCenterValue - (float)maxVal);
 }
+
+// (aislop)
+template<typename EventType, typename EventParmType>
+void BG_AddEvent(
+    unsigned int newEvent,
+    unsigned int eventParm,
+    __int16 *eventSequence,
+    EventType *events,
+    EventParmType *eventParms,
+    unsigned int eventTime,
+    char addType)
+{
+    if (!newEvent)
+        return;
+
+    if (newEvent >= 0x100 &&
+        !Assert_MyHandler(
+            "C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_misc.cpp",
+            1708, 0,
+            "newEvent doesn't index 256\n\t%i not in [0, %i)",
+            newEvent, 256))
+    {
+        __debugbreak();
+    }
+
+    if (eventParm > 0x7FF &&
+        !Assert_MyHandler(
+            "C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_misc.cpp",
+            1709, 0, "%s", "eventParm <= EVENT_PARM_MAX"))
+    {
+        __debugbreak();
+    }
+
+    if (eventParm != static_cast<EventParmType>(eventParm) &&
+        !Assert_MyHandler(
+            "C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_misc.cpp",
+            1710, 0, "%s",
+            "eventParm == static_cast<EventParm>(eventParm)"))
+    {
+        __debugbreak();
+    }
+
+    if (!events && !Assert_MyHandler(
+        "C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_misc.cpp",
+        1711, 0, "%s", "events"))
+        __debugbreak();
+
+    if (!eventParms && !Assert_MyHandler(
+        "C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_misc.cpp",
+        1712, 0, "%s", "eventParms"))
+        __debugbreak();
+
+    if (!eventSequence && !Assert_MyHandler(
+        "C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_misc.cpp",
+        1713, 0, "%s", "eventSequence"))
+        __debugbreak();
+
+    if (Dvar_GetBool("showevents"))
+        Com_Printf(
+            17,
+            "AddEvent [%c] | %8d | %4d | %30s | %d\n",
+            addType,
+            eventTime,
+            *eventSequence,
+            eventnames[newEvent],
+            eventParm);
+
+    int sequence = *eventSequence & 3;
+    events[sequence] = static_cast<EventType>(newEvent);
+    eventParms[sequence] = static_cast<EventParmType>(eventParm);
+
+    if (newEvent != events[sequence] &&
+        !Assert_MyHandler(
+            "C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_misc.cpp",
+            1725, 0, "%s",
+            "newEvent == (EventType)events[sequence]"))
+    {
+        __debugbreak();
+    }
+
+    if (eventParm != eventParms[sequence] &&
+        !Assert_MyHandler(
+            "C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_misc.cpp",
+            1726, 0, "%s",
+            "eventParm == (EventParmType)eventParms[sequence]"))
+    {
+        __debugbreak();
+    }
+
+    *eventSequence = static_cast<__int16>(*eventSequence + 1);
+}
+
 
 void __cdecl BG_AddPredictableEventToPlayerstate(unsigned int newEvent, unsigned int eventParm, playerState_s *ps)
 {
@@ -2298,13 +2702,13 @@ void __cdecl BG_PlayerToEntitySetPitchAngles(playerState_s *ps, entityState_s *s
         {
             fLerpFrac = 1.0f;
         }
-        s->un2.animState.fAimUpDown = AngleNormalize180(ps->fTorsoPitch) * fLerpFrac;
-        s->un2.animState.fAimLeftRight = AngleNormalize180(ps->fWaistPitch) * fLerpFrac;
+        s->animState.fAimUpDown = AngleNormalize180(ps->fTorsoPitch) * fLerpFrac;
+        s->animState.fAimLeftRight = AngleNormalize180(ps->fWaistPitch) * fLerpFrac;
     }
     else
     {
-        s->un2.animState.fAimUpDown = 0.0f;
-        s->un2.animState.fAimLeftRight = 0.0f;
+        s->animState.fAimUpDown = 0.0f;
+        s->animState.fAimLeftRight = 0.0f;
     }
 }
 
@@ -2315,13 +2719,13 @@ void __cdecl BG_PlayerStateToEntityState(playerState_s *ps, entityState_s *s, in
     BG_PlayerToEntitySetMisc(ps, s);
     BG_PlayerToEntitySetPitchAngles(ps, s);
     BG_PlayerToEntityProcessEvents(ps, s, handler);
-    if ( *(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) )
-        *(_QWORD *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8)
-                            + 1480 * ps->clientNum
-                            + 1416) = ps->moveType;
+
+    if (bgs)
+        bgs->clientinfo[ps->clientNum].moveType = ps->moveType;
+
     s->loopSoundId = ps->loopSoundId;
     AssignToSmallerType<short>(&s->loopSoundFade, ps->loopSoundFade);
-    if ( (ps->eFlags & 0x4000) != 0 )
+    if ((ps->eFlags & 0x4000) != 0)
     {
         s->otherEntityNum = ps->viewlocked_entNum;
         s->lerp.u.player.vehicleAnimBoneIndex = ps->vehicleAnimBoneIndex;
@@ -2411,7 +2815,7 @@ void __cdecl BG_PlayerToEntityProcessEvents_Internal(
     {
         event = events[i & 3];
         eventParm = eventParms[i & 3];
-        playerEvent = (void (__cdecl *)(int, int))dword_DFF514[8 * handler];
+        playerEvent = pmoveHandlers[handler].playerEvent;
         if ( playerEvent )
             playerEvent(s->number, event);
         if ( BG_PlayerToEntityShouldAddEvent(event) )
@@ -2442,8 +2846,8 @@ void __cdecl BG_PlayerToEntitySetMisc(playerState_s *ps, entityState_s *s)
 {
     renderOptions_s o; // [esp+30h] [ebp-4h] BYREF
 
-    s->un2.animState.state = ps->legsAnim;
-    s->un2.anim.torsoAnim = ps->torsoAnim;
+    s->animState.state = ps->legsAnim;
+    s->anim.torsoAnim = ps->torsoAnim;
     s->lerp.u.turret.gunAngles[0] = ps->leanf;
     if ( (ps->eFlags & 0x300) != 0 )
         s->otherEntityNum = ps->viewlocked_entNum;
@@ -2475,7 +2879,8 @@ void __cdecl BG_PlayerToEntitySetMisc(playerState_s *ps, entityState_s *s)
     s->lastStandPrevWeapon = ps->lastStandPrevWeapon;
     s->weaponModel = BG_GetPlayerWeaponModel(ps, ps->weapon);
     o.i = BG_PlayerWeaponOptions(ps, ps->weapon).i;
-    renderOptions_s::CopyWeaponOptions(&s->renderOptions, &o);
+    //renderOptions_s::CopyWeaponOptions(&s->renderOptions, &o);
+    s->renderOptions.CopyWeaponOptions(&o);
     s->renderOptions.i = ((unsigned __int8)HIBYTE(ps->renderOptions.i) >> 2 << 26) | s->renderOptions.i & 0x3FFFFFF;
     s->lerp.u.actor.proneInfo.fBodyPitch = ps->offHandIndex;
     s->lerp.u.player.offhandWeaponModel = BG_GetPlayerWeaponModel(ps, ps->offHandIndex);
@@ -2484,17 +2889,6 @@ void __cdecl BG_PlayerToEntitySetMisc(playerState_s *ps, entityState_s *s)
     s->groundEntityNum = ps->groundEntityNum;
     s->lerp.u.player.stowedWeapon = ps->stowedWeapon;
     s->lerp.u.player.stowedWeaponCamo = ps->stowedWeaponCamo;
-}
-
-void __thiscall renderOptions_s::CopyWeaponOptions(renderOptions_s *this, const renderOptions_s *o)
-{
-    this->i = o->i & 0x3F | this->i & 0xFFFFFFC0;
-    this->i = (((o->i >> 6) & 0xF) << 6) | this->i & 0xFFFFFC3F;
-    this->i = ((unsigned __int8)HIBYTE(LOWORD(o->i)) >> 2 << 10) | this->i & 0xFFFF03FF;
-    this->i = ((HIWORD(o->i) & 7) << 16) | this->i & 0xFFF8FFFF;
-    this->i = (((o->i & 0x80000) != 0) << 19) | this->i & 0xFFF7FFFF;
-    this->i = (((o->i & 0x100000) != 0) << 20) | this->i & 0xFFEFFFFF;
-    this->i = (((o->i >> 21) & 0x1F) << 21) | this->i & 0xFC1FFFFF;
 }
 
 unsigned __int8 __cdecl BG_GetPlayerWeaponModel(const playerState_s *ps, unsigned int weaponIndex)
@@ -2518,9 +2912,9 @@ renderOptions_s __cdecl BG_PlayerWeaponOptions(const playerState_s *ps, unsigned
         __debugbreak();
     heldWeapon = BG_GetHeldWeaponConst(ps, weaponIndex);
     if ( heldWeapon )
-        return (renderOptions_s)heldWeapon->options.i;
+        return heldWeapon->options;
     else
-        return 0;
+        return (renderOptions_s)0;
 }
 
 void __cdecl BG_PlayerToEntitySetTrajectory(playerState_s *ps, entityState_s *s, int snap)
@@ -2600,9 +2994,8 @@ void __cdecl BG_PlayerToEntitySetTrajectory(playerState_s *ps, entityState_s *s,
     }
 }
 
-// local variable allocation has failed, the output may be wrong!
-char    BG_CheckProne@<al>(
-                cStaticModel_s *a1@<ebp>,
+static const float PRONE_WAIST_DIST = 12.0f;
+char    BG_CheckProne(
                 const playerState_s *ps,
                 int passEntityNum,
                 const float *vPos,

@@ -1,5 +1,12 @@
 #pragma once
 
+#include <universal/dvar.h>
+#include <qcommon/cmd.h>
+#include <cgame_mp/cg_local_mp.h>
+#include <gfx_d3d/r_font.h>
+#include <bgame/bg_weapons_def.h>
+#include <client/screen_placement.h>
+
 void __cdecl CG_AmmoCounterRegisterDvars();
 void __cdecl CG_DrawAmmoCounterSingle(int localClientNum, rectDef_s *rect, float *color, bool last);
 unsigned int __cdecl GetWeaponIndex(const cg_s *cgameGlob);
@@ -163,3 +170,18 @@ void __cdecl CG_DrawPlayerWeaponLowAmmoWarning(
                 float text_y,
                 int textAlignMode,
                 Material *material);
+
+extern const dvar_t *ammoCounterHide;
+extern const dvar_t *actionSlotsHide;
+extern const dvar_t *lowAmmoWarningColor1;
+extern const dvar_t *lowAmmoWarningColor2;
+extern const dvar_t *lowAmmoWarningPulseFreq;
+extern const dvar_t *lowAmmoWarningPulseMax;
+extern const dvar_t *lowAmmoWarningPulseMin;
+extern const dvar_t *lowAmmoWarningNoReloadColor1;
+extern const dvar_t *lowAmmoWarningNoReloadColor2;
+extern const dvar_t *lowAmmoWarningNoAmmoColor1;
+extern const dvar_t *lowAmmoWarningNoAmmoColor2;
+extern const dvar_t *cg_fuelHudVersion;
+extern const dvar_t *ui_right_ammo_width;
+extern const dvar_t *ui_ammo_stock_width;

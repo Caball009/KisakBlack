@@ -5,6 +5,8 @@
 #include <qcommon/common.h>
 #include "bg_weapons_def.h"
 #include <universal/com_math_anglevectors.h>
+#include "bg_pmove.h"
+#include <cgame/cg_drawtools.h>
 
 
 const dvar_t *mantle_enable;

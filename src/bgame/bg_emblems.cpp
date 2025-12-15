@@ -5,18 +5,25 @@
 #include <qcommon/common.h>
 #include <live/live_counter.h>
 #include <ui/ui_main.h>
+#include <client/cl_compositing.h>
+#include <universal/com_encode.h>
+#include <game_mp/g_main_mp.h>
 
 const dvar_s *allEmblemsUnlocked;
 const dvar_s *allEmblemsPurchased;
 const dvar_s *bg_overridePlayerEmblemColor;
 const dvar_s *bg_overridePlayerEmblemIcon;
 
+Material *s_missingEmblemMaterial;
 EmblemSet *s_emblemSet;
+BGDefaultEmblem s_defaultEmblems[24];
 
 BackgroundPurchasedCount s_backgroundPurchasedCount[1];
 ResultCache s_resultCache[4];
 unsigned int s_flushCount;
 unsigned int s_useCount;
+
+const char *bg_iconNames[1024];
 
 int __cdecl BG_EmblemsGetColorCount()
 {
@@ -965,6 +972,7 @@ void __cdecl BG_EmblemsReadMsg(msg_t *msg, __int16 *background, CompositeEmblemL
 
 char *__cdecl BG_EmblemsWriteString(__int16 background, CompositeEmblemLayer *layers, int layerCount)
 {
+    static char result[256];
     unsigned __int8 msgbuf[132]; // [esp+0h] [ebp-B8h] BYREF
     msg_t msg; // [esp+88h] [ebp-30h] BYREF
 
@@ -1003,7 +1011,7 @@ void __cdecl BG_EmblemsInit()
 
     if ( !G_ExitAfterToolComplete() )
     {
-        s_emblemSet = DB_FindXAssetHeader(ASSET_TYPE_EMBLEMSET, "emblemset", 1, -1).emblemSet;
+        s_emblemSet = DB_FindXAssetHeader(ASSET_TYPE_EMBLEMSET, (char*)"emblemset", 1, -1).emblemSet;
         memset((unsigned __int8 *)s_resultCache, 0, sizeof(s_resultCache));
         allEmblemsUnlocked = _Dvar_RegisterBool("allEmblemsUnlocked", 0, 0x80u, "Unlock all emblem icons and layers");
         allEmblemsPurchased = _Dvar_RegisterBool(

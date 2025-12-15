@@ -23,6 +23,13 @@ struct FM_ACTIVECELL_DATA // sizeof=0x1C
     int weaponUsed;
 };
 
+struct _fm_burntree_data // sizeof=0x1C
+{                                       // XREF: FM_BURNTREE_DATA/r
+    int min[3];
+    int max[3];
+    int volume;
+};
+
 void __cdecl BG_Flame_RegisterDvars();
 void __cdecl BG_InitFire();
 void __cdecl BG_ShutdownFire();

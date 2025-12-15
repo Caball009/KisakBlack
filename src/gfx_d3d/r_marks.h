@@ -1,5 +1,139 @@
 #pragma once
 
+enum MarkFragmentsAgainstEnum : __int32
+{                                       // XREF: MarkInfo/r
+                                        // ?R_MarkFragments_Begin@@YAXPAUMarkInfo@@W4MarkFragmentsAgainstEnum@@QBMQAY02$$CBMM2PAUMaterial@@@Z/r ...
+    MARK_FRAGMENTS_AGAINST_BRUSHES = 0x0,
+    MARK_FRAGMENTS_AGAINST_MODELS  = 0x1,
+};
+
+struct FxMarkAlphaFade // sizeof=0x8
+{                                       // XREF: FxMark/r
+                                        // FX_CreateImpactMarkInternal/r
+    int ageLimitMsec;                   // XREF: FX_CreateImpactMarkInternal+107/w
+                                        // FX_CreateImpactMarkInternal+114/r ...
+    int fadeStartAgeMsec;               // XREF: FX_CreateImpactMarkInternal+119/w
+                                        // FX_CreateImpactMarkInternal+125/w
+};
+
+struct GfxMarkContext // sizeof=0x6
+{                                       // XREF: FxTriGroup/r FxMark/r ...
+    unsigned __int8 lmapIndex;          // XREF: R_MarkFragments_StaticModels+B3/w
+    unsigned __int8 primaryLightIndex;  // XREF: R_MarkFragments_SceneDObjs+B5/w
+                                        // R_MarkFragments_StaticModels+103/w
+    unsigned __int8 reflectionProbeIndex;
+                                        // XREF: std::_Insertion_sort1<FxMarkTri *,bool (*)(FxMarkTri const &,FxMarkTri const &),FxMarkTri>(FxMarkTri *,FxMarkTri *,bool (*)(FxMarkTri const &,FxMarkTri const &),FxMarkTri *)+4E/w
+                                        // std::_Insertion_sort1<FxMarkTri *,bool (*)(FxMarkTri const &,FxMarkTri const &),FxMarkTri>(FxMarkTri *,FxMarkTri *,bool (*)(FxMarkTri const &,FxMarkTri const &),FxMarkTri *)+91/r ...
+    unsigned __int8 modelTypeAndSurf;   // XREF: R_MarkFragments_WorldBrushes:loc_A53EA6/w
+                                        // R_MarkFragments_EntBrushes+64/w ...
+    unsigned __int16 modelIndex;        // XREF: R_MarkFragments_WorldBrushes+5C/w
+                                        // R_MarkFragments_EntBrushes+6F/w ...
+};
+
+struct FxMarkTri // sizeof=0xC
+{                                       // XREF: ??$_Insertion_sort1@PAUFxMarkTri@@P6A_NABU1@0@ZU1@@std@@YAXPAUFxMarkTri@@0P6A_NABU1@1@Z0@Z/r
+                                        // ??$_Adjust_heap@PAUFxMarkTri@@HU1@P6A_NABU1@0@Z@std@@YAXPAUFxMarkTri@@HHU1@P6A_NABU1@2@Z@Z/r ...
+    unsigned __int16 indices[3];        // XREF: std::_Insertion_sort1<FxMarkTri *,bool (*)(FxMarkTri const &,FxMarkTri const &),FxMarkTri>(FxMarkTri *,FxMarkTri *,bool (*)(FxMarkTri const &,FxMarkTri const &),FxMarkTri *)+42/w
+                                        // std::_Insertion_sort1<FxMarkTri *,bool (*)(FxMarkTri const &,FxMarkTri const &),FxMarkTri>(FxMarkTri *,FxMarkTri *,bool (*)(FxMarkTri const &,FxMarkTri const &),FxMarkTri *)+48/w ...
+    GfxMarkContext context;             // XREF: std::_Insertion_sort1<FxMarkTri *,bool (*)(FxMarkTri const &,FxMarkTri const &),FxMarkTri>(FxMarkTri *,FxMarkTri *,bool (*)(FxMarkTri const &,FxMarkTri const &),FxMarkTri *)+4E/w
+                                        // std::_Insertion_sort1<FxMarkTri *,bool (*)(FxMarkTri const &,FxMarkTri const &),FxMarkTri>(FxMarkTri *,FxMarkTri *,bool (*)(FxMarkTri const &,FxMarkTri const &),FxMarkTri *)+91/r ...
+};
+
+struct __declspec(align(4)) MarkInfoCollidedDObj // sizeof=0xC
+{                                       // XREF: MarkInfo/r
+    DObj *dObj;
+    cpose_t *pose;
+    unsigned __int16 entnum;
+    // padding byte
+    // padding byte
+};
+
+struct MarkGenContext // sizeof=0x14
+{
+    int localClientNum;
+    Material *material;
+    float radius;
+    const unsigned __int8 *nativeColor;
+    const FxMarkAlphaFade *markAlpha;
+};
+
+struct MarkClipPlaneSet // sizeof=0xB4
+{                                       // XREF: MarkInfo/r
+                                        // R_MarkFragments_EntBrushes/r ...
+    float planes[11][4];
+    int planeCount;
+};
+
+struct FxMarkPoint // sizeof=0x20
+{                                       // XREF: .data:g_fxMarkPoints/r
+                                        // FxPointGroup/r
+    float xyz[3];
+    float lmapCoord[2];
+    float normal[3];
+};
+
+struct __declspec(align(4)) MarkInfoCollidedBModel // sizeof=0xC
+{                                       // XREF: MarkInfo/r
+    GfxBrushModel *brushModel;
+    cpose_t *pose;
+    unsigned __int16 entnum;
+    // padding byte
+    // padding byte
+};
+
+struct FxWorldMarkPoint // sizeof=0x18
+{                                       // XREF: R_MarkFragments_BrushSurface/r
+    float xyz[3];
+    float vertWeights[3];
+};
+
+struct FxModelMarkPoint // sizeof=0x18
+{                                       // XREF: R_MarkModelCoreCallback_1_+12D/o
+                                        // R_MarkModelCoreCallback_0_+128/o ...
+    float xyz[3];                       // XREF: R_MarkModelCoreCallback_1_+126/o
+                                        // R_MarkModelCoreCallback_0_+121/o
+    float vertWeights[3];               // XREF: R_MarkModelCoreCallback_1_+BC/o
+                                        // R_MarkModelCoreCallback_0_+B7/o
+};
+
+struct __declspec(align(4)) MarkInfo // sizeof=0x4AC
+{                                       // XREF: FX_ImpactMark_Generate/r
+    float origin[3];
+    float localOrigin[3];
+    float localTexCoordAxis[3];
+    float localHitNormal[3];
+    float axis[3][3];
+    float radius;
+    Material *material;
+    int maxTris;
+    FxMarkTri *tris;
+    int maxPoints;
+    FxMarkPoint *points;
+    float mins[3];
+    float maxs[3];
+    MarkClipPlaneSet clipPlanes;
+    float viewOffset[3];
+    bool markHasLightmap;
+    bool markHasReflection;
+    // padding byte
+    // padding byte
+    MarkFragmentsAgainstEnum markAgainst;
+    unsigned __int16 smodelsCollided[32];
+    int smodelCollidedCount;
+    MarkInfoCollidedDObj sceneDObjsCollided[32];
+    int sceneDObjCollidedCount;
+    MarkInfoCollidedBModel sceneBModelsCollided[32];
+    int sceneBModelCollidedCount;
+    int usedTriCount;
+    int usedPointCount;
+    void (__cdecl *callback)(void *, int, FxMarkTri *, int, FxMarkPoint *, const float *, const float *, const float *, const bool);
+    void *callbackContext;
+    bool isSeeThruDecal;                // XREF: FX_ImpactMark_Generate+B4/w
+    // padding byte
+    // padding byte
+    // padding byte
+};
+
 void    R_BoxSurfaces(
                 const float *mins,
                 const float *maxs,
@@ -59,8 +193,7 @@ void __cdecl R_AABBTreeSurfacesTwoLists_r(
                 GfxSurface ***surfLists,
                 unsigned int surfListSize,
                 unsigned int *surfCounts);
-int    R_BoxStaticModels@<eax>(
-                int a1@<ebp>,
+int    R_BoxStaticModels(
                 const float *mins,
                 const float *maxs,
                 int (__cdecl *allowSModel)(int),
@@ -179,8 +312,7 @@ char __cdecl R_MarkFragments_AnimatedXModel(
                 int boneCount,
                 GfxMarkContext *markContext);
 // local variable allocation has failed, the output may be wrong!
-char    R_MarkFragments_AnimatedXModel_VertList@<al>(
-                int a1@<ebp>,
+char    R_MarkFragments_AnimatedXModel_VertList(
                 MarkInfo *markInfo,
                 unsigned int vertListIndex,
                 const DObjAnimMat *poseBone,

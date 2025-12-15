@@ -1,4 +1,30 @@
 #include "cg_ammocounter.h"
+#include <cgame_mp/cg_main_mp.h>
+#include <bgame/bg_mantle.h>
+#include <client_mp/cl_cgame_mp.h>
+#include <bgame/bg_misc.h>
+#include <bgame/bg_weapons_ammo.h>
+#include <cgame_mp/cg_newDraw_mp.h>
+#include "cg_weapons.h"
+#include <qcommon/common.h>
+
+const dvar_t *ammoCounterHide;
+const dvar_t *actionSlotsHide;
+const dvar_t *lowAmmoWarningColor1;
+const dvar_t *lowAmmoWarningColor2;
+const dvar_t *lowAmmoWarningPulseFreq;
+const dvar_t *lowAmmoWarningPulseMax;
+const dvar_t *lowAmmoWarningPulseMin;
+const dvar_t *lowAmmoWarningNoReloadColor1;
+const dvar_t *lowAmmoWarningNoReloadColor2;
+const dvar_t *lowAmmoWarningNoAmmoColor1;
+const dvar_t *lowAmmoWarningNoAmmoColor2;
+const dvar_t *cg_fuelHudVersion;
+const dvar_t *ui_right_ammo_width;
+const dvar_t *ui_ammo_stock_width;
+
+static const float colorLowAmmo[4] =
+{ 1.0, 0.3f, 0.3f, 1.0 };
 
 void __cdecl CG_AmmoCounterRegisterDvars()
 {
@@ -201,7 +227,7 @@ void __cdecl CG_DrawPlayerWeaponAmmoStock(
                         colorMod,
                         textStyle);
                     v8 = UI_TextWidth(str, 6, font, scale);
-                    Dvar_SetIntIfChanged(ui_ammo_stock_width, v8);
+                    Dvar_SetIntIfChanged((dvar_s*)ui_ammo_stock_width, v8);
                 }
             }
         }

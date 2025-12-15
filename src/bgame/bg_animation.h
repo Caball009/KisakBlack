@@ -417,3 +417,4 @@ void __cdecl BG_SetupAnimNoteTypes(animScriptData_t *scriptData);
 
 
 extern thread_local struct bgs_t *bgs; // tls+8
+extern bgs_t level_bgs;

@@ -6,6 +6,7 @@
 #include <gfx_d3d/r_vertexstream2.h>
 #include <game_mp/g_main_mp.h>
 #include <gfx_d3d/r_marks.h>
+#include <gfx_d3d/r_init.h>
 
 const dvar_t *fire_audio_repeat_duration;
 const dvar_t *fire_audio_random_max_duration;
@@ -21,7 +22,8 @@ const FxEffectDef *g_FM_fx_flamethrower_effect[3];
 const FxEffectDef *g_FM_fx_wall_effect[1];
 
 FM_ACTIVECELL_DATA g_FM_ActiveCells[256];
-MemTrackInst TRACKINST_g_FM_BurnData;
+//MemTrackInst TRACKINST_g_FM_BurnData;
+_fm_burntree_data g_FM_BurnData[4096];
 int g_FM_BurnDataActiveCount;
 
 void __cdecl BG_Flame_RegisterDvars()

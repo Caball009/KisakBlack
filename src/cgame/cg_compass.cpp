@@ -1,4 +1,95 @@
 #include "cg_compass.h"
+#include <qcommon/common.h>
+#include <cgame_mp/cg_newDraw_mp.h>
+#include <client_mp/cl_cgame_mp.h>
+#include <gfx_d3d/r_font.h>
+#include <cgame_mp/cg_main_mp.h>
+#include "cg_drawtools.h"
+#include <gfx_d3d/r_rendercmds.h>
+#include <ui/ui_atoms.h>
+
+const dvar_t *compass;
+const dvar_t *compassSize;
+const dvar_t *compassMaxRange;
+const dvar_t *compassMinRange;
+const dvar_t *compassMinRadius;
+const dvar_t *compassSoundPingFadeTime;
+const dvar_t *compassClampIcons;
+const dvar_t *compassFriendlyWidth;
+const dvar_t *compassFriendlyHeight;
+const dvar_t *compassPlayerWidth;
+const dvar_t *compassPlayerHeight;
+const dvar_t *compassCoords;
+const dvar_t *compassECoordCutoff;
+const dvar_t *compassRotation;
+const dvar_t *compassTickertapeStretch;
+const dvar_t *compassRadarPingFadeTime;
+const dvar_t *compassRadarUpdateTime;
+const dvar_t *compassRadarUpdateFastTime;
+const dvar_t *compassSatelliteStaticImageFadeTime;
+const dvar_t *compassSatellitePingFadeTime;
+const dvar_t *compassStaticImageUpdateTime;
+const dvar_t *compassSatelliteScanTime;
+const dvar_t *compassRadarLineThickness;
+const dvar_t *compassLocalRadarUpdateTime;
+const dvar_t *compassLocalRadarRadius;
+const dvar_t *compassObjectiveWidth;
+const dvar_t *compassObjectiveHeight;
+const dvar_t *compassObjectiveArrowWidth;
+const dvar_t *compassObjectiveArrowHeight;
+const dvar_t *compassObjectiveArrowOffset;
+const dvar_t *compassObjectiveArrowRotateDist;
+const dvar_t *compassObjectiveMaxRange;
+const dvar_t *compassObjectiveMinAlpha;
+const dvar_t *compassObjectiveNumRings;
+const dvar_t *compassObjectiveRingTime;
+const dvar_t *compassObjectiveRingSize;
+const dvar_t *compassObjectiveTextScale;
+const dvar_t *compassObjectiveTextHeight;
+const dvar_t *compassObjectiveDrawLines;
+const dvar_t *compassObjectiveIconWidth;
+const dvar_t *compassObjectiveIconHeight;
+const dvar_t *compassObjectiveIconWidthZombie;
+const dvar_t *compassObjectiveIconHeightZombie;
+const dvar_t *compassObjectiveNearbyDist;
+const dvar_t *compassObjectiveMinDistRange;
+const dvar_t *compassObjectiveDetailDist;
+const dvar_t *compassObjectiveMinHeight;
+const dvar_t *compassObjectiveMaxHeight;
+const dvar_t *compassPartialType;
+const dvar_t *compassSpectatorsSeeEnemies;
+const dvar_t *compassEnemyFootstepMaxRange;
+const dvar_t *compassEnemyFootstepMaxZ;
+const dvar_t *compassEnemyFootstepMinSpeed;
+const dvar_t *compassEnemyFootstepEnabled;
+const dvar_t *compassShowEnemies;
+const dvar_t *compassForcePlayerIcon;
+const dvar_t *compassGridEnabled;
+const dvar_t *compassGridRows;
+const dvar_t *compassGridCols;
+const dvar_t *compassGridAlign;
+const dvar_t *compassScaleDuration;
+const dvar_t *compassScaleDiff;
+const dvar_t *compassScaleTimer;
+const dvar_t *compassScaleReset;
+const dvar_t *typeWriterCod7LetterFXTime;
+const dvar_t *popInLetterFXTime;
+const dvar_t *redactionDisplayTime;
+const dvar_t *redactionFadeDuration;
+const dvar_t *redactionStartStrokeTime;
+const dvar_t *redactionStrokeTime;
+const dvar_t *compassDebug;
+const dvar_t *forceFullScreenMap;
+const dvar_t *cg_showZombieMap;
+const dvar_t *cg_hudMapRadarLineThickness;
+const dvar_t *cg_hudMapFriendlyWidth;
+const dvar_t *cg_hudMapFriendlyHeight;
+const dvar_t *cg_hudMapPlayerWidth;
+const dvar_t *cg_hudMapPlayerHeight;
+const dvar_t *cg_hudMapBorderWidth;
+const dvar_t *cg_showZombieControls;
+
+bool gridPointStatus[9][9];
 
 void __cdecl CG_CompassRegisterDvars()
 {
@@ -67,9 +158,9 @@ void __cdecl CG_CompassRegisterDvars()
                                                     "The size of the player's icon on the compass");
     compassCoords = _Dvar_RegisterVec3(
                                         "compassCoords",
-                                        COERCE_UNSIGNED_INT(740.0),
-                                        COERCE_UNSIGNED_INT(3590.0),
-                                        COERCE_UNSIGNED_INT(400.0),
+                                        (740.0),
+                                        (3590.0),
+                                        (400.0),
                                         0.0,
                                         3.4028235e38,
                                         1u,
@@ -537,7 +628,8 @@ bool __cdecl CG_WorldPosToCompass(
                                                         / cgameGlob->compassMapWorldSize[0])
                                         - 0.5)
                         * mapRect->w;
-        outTemp_4 = (float)((float)((float)((float)(COERCE_FLOAT(LODWORD(cgameGlob->compassNorth[1]) ^ _mask__NegFloat_)
+        //outTemp_4 = (float)((float)((float)((float)(COERCE_FLOAT(LODWORD(cgameGlob->compassNorth[1]) ^ _mask__NegFloat_)
+        outTemp_4 = (float)((float)((float)((float)( -cgameGlob->compassNorth[1]
                                                                                             * posDelta_4)
                                                                             - (float)(cgameGlob->compassNorth[0] * posDelta0))
                                                             / cgameGlob->compassMapWorldSize[1])
@@ -563,8 +655,8 @@ bool __cdecl CG_WorldPosToCompass(
         posDelta_0 = pixPerInch * (float)(*in - *playerWorldPos);
         posDelta4 = pixPerInch * (float)(in[1] - playerWorldPos[1]);
         outTemp = (float)(north[1] * posDelta_0) - (float)(*north * posDelta4);
-        outTemp_4 = (float)(COERCE_FLOAT(*((unsigned int *)north + 1) ^ _mask__NegFloat_) * posDelta4)
-                            - (float)(*north * posDelta_0);
+        //outTemp_4 = (float)(COERCE_FLOAT(*((unsigned int *)north + 1) ^ _mask__NegFloat_) * posDelta4) - (float)(*north * posDelta_0);
+        outTemp_4 = (float)(-north[1] * posDelta4) - (float)(*north * posDelta_0);
     }
     clipped = 0;
     if ( outClipped && mapRect->w >= 0.0 && mapRect->h >= 0.0 )
@@ -573,9 +665,11 @@ bool __cdecl CG_WorldPosToCompass(
         outClipped[1] = outTemp_4;
         if ( *outClipped <= (float)(mapRect->w * 0.5) )
         {
-            if ( (float)(COERCE_FLOAT(LODWORD(mapRect->w) ^ _mask__NegFloat_) * 0.5) > *outClipped )
+            //if ( (float)(COERCE_FLOAT(LODWORD(mapRect->w) ^ _mask__NegFloat_) * 0.5) > *outClipped )
+            if ( ((-mapRect->w) * 0.5) > *outClipped)
             {
-                scalea = COERCE_FLOAT(COERCE_UNSIGNED_INT(mapRect->w * 0.5) ^ _mask__NegFloat_) / *outClipped;
+                //scalea = COERCE_FLOAT(COERCE_UNSIGNED_INT(mapRect->w * 0.5) ^ _mask__NegFloat_) / *outClipped;
+                scalea = -(mapRect->w * 0.5f) / *outClipped;
                 *outClipped = scalea * *outClipped;
                 outClipped[1] = scalea * outClipped[1];
                 clipped = 1;
@@ -590,9 +684,11 @@ bool __cdecl CG_WorldPosToCompass(
         }
         if ( outClipped[1] <= (float)(mapRect->h * 0.5) )
         {
-            if ( (float)(COERCE_FLOAT(LODWORD(mapRect->h) ^ _mask__NegFloat_) * 0.5) > outClipped[1] )
+            //if ( (float)(COERCE_FLOAT(LODWORD(mapRect->h) ^ _mask__NegFloat_) * 0.5) > outClipped[1] )
+            if ( ((-mapRect->h) * 0.5) > outClipped[1] )
             {
-                scalec = COERCE_FLOAT(COERCE_UNSIGNED_INT(mapRect->h * 0.5) ^ _mask__NegFloat_) / outClipped[1];
+                //scalec = COERCE_FLOAT(COERCE_UNSIGNED_INT(mapRect->h * 0.5) ^ _mask__NegFloat_) / outClipped[1];
+                scalec = -(mapRect->h * 0.5) / outClipped[1];
                 *outClipped = scalec * *outClipped;
                 outClipped[1] = scalec * outClipped[1];
                 clipped = 1;
@@ -669,7 +765,8 @@ char __cdecl CG_TextClippedToCompass(
                                                      / cgameGlob->compassMapWorldSize[0])
                                      - 0.5)
                      * mapRect->w;
-        inTemp_4 = (float)((float)((float)((float)(COERCE_FLOAT(LODWORD(cgameGlob->compassNorth[1]) ^ _mask__NegFloat_)
+        //inTemp_4 = (float)((float)((float)((float)(COERCE_FLOAT(LODWORD(cgameGlob->compassNorth[1]) ^ _mask__NegFloat_)
+        inTemp_4 = (float)((float)((float)((float)( -cgameGlob->compassNorth[1]
                                                                                          * posDelta_4a)
                                                                          - (float)(cgameGlob->compassNorth[0] * posDeltaa))
                                                          / cgameGlob->compassMapWorldSize[1])
@@ -695,17 +792,19 @@ char __cdecl CG_TextClippedToCompass(
         posDelta = pixPerInch * (float)(*in - *playerWorldPos);
         posDelta_4 = pixPerInch * (float)(in[1] - playerWorldPos[1]);
         inTemp = (float)(north[1] * posDelta) - (float)(*north * posDelta_4);
-        inTemp_4 = (float)(COERCE_FLOAT(*((unsigned int *)north + 1) ^ _mask__NegFloat_) * posDelta_4)
-                         - (float)(*north * posDelta);
+        //inTemp_4 = (float)(COERCE_FLOAT(*((unsigned int *)north + 1) ^ _mask__NegFloat_) * posDelta_4) - (float)(*north * posDelta);
+        inTemp_4 = (float)(-north[1] * posDelta_4) - (float)(*north * posDelta);
     }
     clipped = 0;
     if ( w != 0.0 && h != 0.0 && mapRect->w >= 0.0 && mapRect->h >= 0.0 )
     {
         clipped = (float)(inTemp - (float)(w * 0.5)) > (float)(mapRect->w * 0.5)
-                     || (float)(COERCE_FLOAT(LODWORD(mapRect->w) ^ _mask__NegFloat_) * 0.5) > (float)((float)(w * 0.5) + inTemp);
+                     //|| (float)(COERCE_FLOAT(LODWORD(mapRect->w) ^ _mask__NegFloat_) * 0.5) > (float)((float)(w * 0.5) + inTemp);
+                     || (float)(-(mapRect->w) * 0.5) > (float)((float)(w * 0.5) + inTemp);
         if ( (float)(inTemp_4 - (float)(h * 0.5)) <= (float)(mapRect->h * 0.5) )
         {
-            if ( (float)(COERCE_FLOAT(LODWORD(mapRect->h) ^ _mask__NegFloat_) * 0.5) > (float)((float)(h * 0.5) + inTemp_4) )
+            //if ( (float)(COERCE_FLOAT(LODWORD(mapRect->h) ^ _mask__NegFloat_) * 0.5) > (float)((float)(h * 0.5) + inTemp_4) )
+            if ( (float)(-(mapRect->h) * 0.5) > (float)((float)(h * 0.5) + inTemp_4) )
                 return 1;
         }
         else

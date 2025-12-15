@@ -2330,9 +2330,9 @@ const dvar_s *__cdecl _Dvar_RegisterVec2(
 
 const dvar_s *__cdecl _Dvar_RegisterVec3(
                 const char *dvarName,
-                unsigned int x,
-                unsigned int y,
-                unsigned int z,
+                float x,
+                float y,
+                float z,
                 float min,
                 float max,
                 unsigned __int16 flags,
@@ -2344,12 +2344,16 @@ const dvar_s *__cdecl _Dvar_RegisterVec3(
     int dvarDomain_12; // [esp+Ch] [ebp-1Ch]
     unsigned int dvarValue_12; // [esp+1Ch] [ebp-Ch]
 
-    *(float *)&dvarDomain_4 = max;
-    v10.value.min = min;
-    *(_QWORD *)&v10.value.max = dvarDomain_4;
-    *((unsigned int *)&v10.vector + 3) = dvarDomain_12;
-    v9.integer64 = __PAIR64__(y, x);
-    *((_QWORD *)&v9.string + 1) = __PAIR64__(dvarValue_12, z);
+    //*(float *)&dvarDomain_4 = max;
+    //v10.value.min = min;
+    //*(_QWORD *)&v10.value.max = dvarDomain_4;
+    //*((unsigned int *)&v10.vector + 3) = dvarDomain_12;
+    //v9.integer64 = __PAIR64__(y, x);
+    //*((_QWORD *)&v9.string + 1) = __PAIR64__(dvarValue_12, z);
+
+    v9.vector[0] = x;
+    v9.vector[1] = y;
+    v9.vector[2] = z;
     return Dvar_RegisterVariant(dvarName, DVAR_TYPE_FLOAT_3, flags, v9, v10, description);
 }
 

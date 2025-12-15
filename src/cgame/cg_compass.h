@@ -1,4 +1,14 @@
 #pragma once
+#include <cgame_mp/cg_local_mp.h>
+#include <universal/dvar.h>
+#include <qcommon/cmd.h>
+
+enum CompassType : __int32
+{                                       // XREF: ?CG_CompassDrawFriendlies@@YAXHW4CompassType@@PBUrectDef_s@@1QAM@Z/r
+                                        // ?CG_CompassDrawArtilleryIcon@@YAXHW4CompassType@@PBUrectDef_s@@1QAM@Z/r ...
+    COMPASS_TYPE_PARTIAL = 0x0,
+    COMPASS_TYPE_FULL    = 0x1,
+};
 
 void __cdecl CG_CompassRegisterDvars();
 char __cdecl CG_IsSelectingLocation(int localClientNum);
@@ -156,7 +166,7 @@ void __cdecl CG_CompassDrawPlayerSelectedLocations(
                 float *color);
 void __cdecl CG_CompassDrawPlayer(
                 int localClientNum,
-                jpeg_decompress_struct *compassType,
+                void *compassType,
                 const rectDef_s *parentRect,
                 rectDef_s *rect,
                 Material *material,
@@ -170,7 +180,6 @@ void __cdecl CG_CompassDrawBorder(
                 float *color);
 void __cdecl CG_CompassUpYawVector(const cg_s *cgameGlob, float *result);
 void    CG_CompassDrawTickertape(
-                float a1@<ebp>,
                 int localClientNum,
                 CompassType compassType,
                 const rectDef_s *parentRect,
@@ -228,3 +237,84 @@ char __cdecl CalcCompassPointerSizeObjective(
                 const objective_t *objective,
                 const rectDef_s *mapRect);
 bool __cdecl CG_IsShowingZombieMap();
+
+extern const dvar_t *compass;
+extern const dvar_t *compassSize;
+extern const dvar_t *compassMaxRange;
+extern const dvar_t *compassMinRange;
+extern const dvar_t *compassMinRadius;
+extern const dvar_t *compassSoundPingFadeTime;
+extern const dvar_t *compassClampIcons;
+extern const dvar_t *compassFriendlyWidth;
+extern const dvar_t *compassFriendlyHeight;
+extern const dvar_t *compassPlayerWidth;
+extern const dvar_t *compassPlayerHeight;
+extern const dvar_t *compassCoords;
+extern const dvar_t *compassECoordCutoff;
+extern const dvar_t *compassRotation;
+extern const dvar_t *compassTickertapeStretch;
+extern const dvar_t *compassRadarPingFadeTime;
+extern const dvar_t *compassRadarUpdateTime;
+extern const dvar_t *compassRadarUpdateFastTime;
+extern const dvar_t *compassSatelliteStaticImageFadeTime;
+extern const dvar_t *compassSatellitePingFadeTime;
+extern const dvar_t *compassStaticImageUpdateTime;
+extern const dvar_t *compassSatelliteScanTime;
+extern const dvar_t *compassRadarLineThickness;
+extern const dvar_t *compassLocalRadarUpdateTime;
+extern const dvar_t *compassLocalRadarRadius;
+extern const dvar_t *compassObjectiveWidth;
+extern const dvar_t *compassObjectiveHeight;
+extern const dvar_t *compassObjectiveArrowWidth;
+extern const dvar_t *compassObjectiveArrowHeight;
+extern const dvar_t *compassObjectiveArrowOffset;
+extern const dvar_t *compassObjectiveArrowRotateDist;
+extern const dvar_t *compassObjectiveMaxRange;
+extern const dvar_t *compassObjectiveMinAlpha;
+extern const dvar_t *compassObjectiveNumRings;
+extern const dvar_t *compassObjectiveRingTime;
+extern const dvar_t *compassObjectiveRingSize;
+extern const dvar_t *compassObjectiveTextScale;
+extern const dvar_t *compassObjectiveTextHeight;
+extern const dvar_t *compassObjectiveDrawLines;
+extern const dvar_t *compassObjectiveIconWidth;
+extern const dvar_t *compassObjectiveIconHeight;
+extern const dvar_t *compassObjectiveIconWidthZombie;
+extern const dvar_t *compassObjectiveIconHeightZombie;
+extern const dvar_t *compassObjectiveNearbyDist;
+extern const dvar_t *compassObjectiveMinDistRange;
+extern const dvar_t *compassObjectiveDetailDist;
+extern const dvar_t *compassObjectiveMinHeight;
+extern const dvar_t *compassObjectiveMaxHeight;
+extern const dvar_t *compassPartialType;
+extern const dvar_t *compassSpectatorsSeeEnemies;
+extern const dvar_t *compassEnemyFootstepMaxRange;
+extern const dvar_t *compassEnemyFootstepMaxZ;
+extern const dvar_t *compassEnemyFootstepMinSpeed;
+extern const dvar_t *compassEnemyFootstepEnabled;
+extern const dvar_t *compassShowEnemies;
+extern const dvar_t *compassForcePlayerIcon;
+extern const dvar_t *compassGridEnabled;
+extern const dvar_t *compassGridRows;
+extern const dvar_t *compassGridCols;
+extern const dvar_t *compassGridAlign;
+extern const dvar_t *compassScaleDuration;
+extern const dvar_t *compassScaleDiff;
+extern const dvar_t *compassScaleTimer;
+extern const dvar_t *compassScaleReset;
+extern const dvar_t *typeWriterCod7LetterFXTime;
+extern const dvar_t *popInLetterFXTime;
+extern const dvar_t *redactionDisplayTime;
+extern const dvar_t *redactionFadeDuration;
+extern const dvar_t *redactionStartStrokeTime;
+extern const dvar_t *redactionStrokeTime;
+extern const dvar_t *compassDebug;
+extern const dvar_t *forceFullScreenMap;
+extern const dvar_t *cg_showZombieMap;
+extern const dvar_t *cg_hudMapRadarLineThickness;
+extern const dvar_t *cg_hudMapFriendlyWidth;
+extern const dvar_t *cg_hudMapFriendlyHeight;
+extern const dvar_t *cg_hudMapPlayerWidth;
+extern const dvar_t *cg_hudMapPlayerHeight;
+extern const dvar_t *cg_hudMapBorderWidth;
+extern const dvar_t *cg_showZombieControls;

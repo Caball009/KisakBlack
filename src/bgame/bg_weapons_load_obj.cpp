@@ -1,4 +1,1061 @@
 #include "bg_weapons_load_obj.h"
+#include "bg_weapons.h"
+#include "bg_animation.h"
+#include <universal/com_loadutils.h>
+#include <qcommon/common.h>
+#include <universal/q_parse.h>
+#include <universal/com_memory.h>
+#include <universal/com_files.h>
+#include "bg_weapons_attachment.h"
+#include "bg_weapons_util.h"
+#include <clientscript/cscr_stringlist.h>
+#include <universal/surfaceflags.h>
+#include <game/g_weapon_load_obj.h>
+#include "bg_weapons_def.h"
+
+const char *szWeapOverlayReticleNames[2] =
+{ "none", "crosshair" };
+
+const char *penetrateTypeNames[4] =
+{ "none", "small", "medium", "large" };
+
+const char *impactTypeNames_0[16] =
+{
+  "none",
+  "bullet_small",
+  "bullet_large",
+  "bullet_ap",
+  "bullet_xtreme",
+  "shotgun",
+  "grenade_bounce",
+  "grenade_explode",
+  "rifle_grenade",
+  "rocket_explode",
+  "rocket_explode_xtreme",
+  "projectile_dud",
+  "mortar_shell",
+  "tank_shell",
+  "bolt",
+  "blade"
+};
+
+const char *szWeapStanceNames[3] =
+{ "stand", "duck", "prone" };
+
+const char *szProjectileExplosionNames[10] =
+{
+  "grenade",
+  "rocket",
+  "flashbang",
+  "none",
+  "dud",
+  "smoke",
+  "heavy explosive",
+  "fire",
+  "napalmblob",
+  "bolt"
+};
+
+const char *offhandClassNames[5] =
+{ "None", "Frag Grenade", "Smoke Grenade", "Flash Grenade", "Gear" };
+
+const char *offhandSlotNames[5] =
+{ "None", "Lethal grenade", "Tactical grenade", "Equipment", "Specific use" };
+
+const char *activeReticleNames[3] =
+{ "None", "Pip-On-A-Stick", "Bouncing diamond" };
+
+const char *guidedMissileNames[7] =
+{
+  "None",
+  "Sidewinder",
+  "Hellfire",
+  "Javelin",
+  "Ballistic",
+  "WireGuided",
+  "TVGuided"
+};
+
+const char *stickinessNames[6] =
+{
+  "Don't stick",
+  "Stick to all",
+  "Stick to all, except ai and clients",
+  "Stick to ground",
+  "Stick to ground, maintain yaw",
+  "Stick to flesh"
+};
+
+const char *rotateTypeNames[3] =
+{
+  "Rotate both axis, grenade style",
+  "Rotate one axis, blade style",
+  "Rotate like a cylinder"
+};
+
+const char *overlayInterfaceNames[3] =
+{ "None", "Javelin", "Turret Scope" };
+
+const char *szWeapFireTypeNames[7] =
+{
+  "Full Auto",
+  "Single Shot",
+  "2-Round Burst",
+  "3-Round Burst",
+  "4-Round Burst",
+  "Stacked Fire",
+  "Minigun"
+};
+
+const char *szWeapClipTypeNames[6] =
+{ "bottom", "top", "left", "dp28", "ptrs", "lmg" };
+
+const char *ammoCounterClipNames[7] =
+{
+  "None",
+  "Magazine",
+  "ShortMagazine",
+  "Shotgun",
+  "Rocket",
+  "Beltfed",
+  "AltWeapon"
+};
+
+const char *weapIconRatioNames[3] =
+{ "1:1", "2:1", "4:1" };
+
+WeaponFullDef bg_defaultWeaponFullDefs;
+SurfaceTypeSoundList surfaceTypeSoundLists[16];
+
+char *s_weaponGripAnimSubstrings[64];
+
+char *g_playerAnimTypeNames[32];
+unsigned int g_playerAnimTypeNamesCount;
+
+int g_playerAnimTypeIndex_revivee;
+int g_playerAnimTypeIndex_sniper;
+int g_playerAnimTypeIndex_sniper_rearclip;
+int g_playerAnimTypeIndex_briefcase;
+
+int surfaceTypeSoundListCount;
+int s_numWeaponGripAnimSubstrings;
+
+unsigned int bg_nextParseFlameTableIndex;
+
+flameTable *bg_flameTables[8];
+
+cspField_t flameTableFields[] =
+{
+  { "flameVar_streamChunkGravityStart", 0, 7 },
+  { "flameVar_streamChunkGravityEnd", 4, 7 },
+  { "flameVar_streamChunkMaxSize", 8, 7 },
+  { "flameVar_streamChunkStartSize", 12, 7 },
+  { "flameVar_streamChunkEndSize", 16, 7 },
+  { "flameVar_streamChunkStartSizeRand", 20, 7 },
+  { "flameVar_streamChunkEndSizeRand", 24, 7 },
+  { "flameVar_streamChunkDistScalar", 28, 7 },
+  { "flameVar_streamChunkDistSwayScale", 32, 7 },
+  { "flameVar_streamChunkDistSwayVelMax", 36, 7 },
+  { "flameVar_streamChunkSpeed", 40, 7 },
+  { "flameVar_streamChunkDecel", 44, 7 },
+  { "flameVar_streamChunkVelocityAddScale", 48, 7 },
+  { "flameVar_streamChunkDuration", 52, 7 },
+  { "flameVar_streamChunkDurationScaleMaxVel", 56, 7 },
+  { "flameVar_streamChunkDurationVelScalar", 60, 7 },
+  { "flameVar_streamChunkSizeSpeedScale", 64, 7 },
+  { "flameVar_streamChunkSizeAgeScale", 68, 7 },
+  { "flameVar_streamChunkSpawnFireIntervalStart", 72, 7 },
+  { "flameVar_streamChunkSpawnFireIntervalEnd", 76, 7 },
+  { "flameVar_streamChunkSpawnFireMinLifeFrac", 80, 7 },
+  { "flameVar_streamChunkSpawnFireMaxLifeFrac", 84, 7 },
+  { "flameVar_streamChunkFireMinLifeFrac", 88, 7 },
+  { "flameVar_streamChunkFireMinLifeFracStart", 92, 7 },
+  { "flameVar_streamChunkFireMinLifeFracEnd", 96, 7 },
+  { "flameVar_streamChunkDripsMinLifeFrac", 100, 7 },
+  { "flameVar_streamChunkDripsMinLifeFracStart", 104, 7 },
+  { "flameVar_streamChunkDripsMinLifeFracEnd", 108, 7 },
+  { "flameVar_streamChunkRotationRange", 112, 7 },
+  { "flameVar_streamSizeRandSinWave", 116, 7 },
+  { "flameVar_streamSizeRandCosWave", 120, 7 },
+  { "flameVar_streamDripsChunkInterval", 124, 7 },
+  { "flameVar_streamDripsChunkMinFrac", 128, 7 },
+  { "flameVar_streamDripsChunkRandFrac", 132, 7 },
+  { "flameVar_streamSmokeChunkInterval", 136, 7 },
+  { "flameVar_streamSmokeChunkMinFrac", 140, 7 },
+  { "flameVar_streamSmokeChunkRandFrac", 144, 7 },
+  { "flameVar_streamChunkCullDistSizeFrac", 148, 7 },
+  { "flameVar_streamChunkCullMinLife", 152, 7 },
+  { "flameVar_streamChunkCullMaxLife", 156, 7 },
+  { "flameVar_streamFuelSizeStart", 160, 7 },
+  { "flameVar_streamFuelSizeEnd", 164, 7 },
+  { "flameVar_streamFuelLength", 168, 7 },
+  { "flameVar_streamFuelNumSegments", 172, 7 },
+  { "flameVar_streamFuelAnimLoopTime", 176, 7 },
+  { "flameVar_streamFlameSizeStart", 180, 7 },
+  { "flameVar_streamFlameSizeEnd", 184, 7 },
+  { "flameVar_streamFlameLength", 188, 7 },
+  { "flameVar_streamFlameNumSegments", 192, 7 },
+  { "flameVar_streamFlameAnimLoopTime", 196, 7 },
+  { "flameVar_streamPrimaryLightRadius", 200, 7 },
+  { "flameVar_streamPrimaryLightRadiusFlutter", 204, 7 },
+  { "flameVar_streamPrimaryLightR", 208, 7 },
+  { "flameVar_streamPrimaryLightG", 212, 7 },
+  { "flameVar_streamPrimaryLightB", 216, 7 },
+  { "flameVar_streamPrimaryLightFlutterR", 220, 7 },
+  { "flameVar_streamPrimaryLightFlutterG", 224, 7 },
+  { "flameVar_streamPrimaryLightFlutterB", 228, 7 },
+  { "flameVar_fireLife", 232, 7 },
+  { "flameVar_fireLifeRand", 236, 7 },
+  { "flameVar_fireSpeedScale", 240, 7 },
+  { "flameVar_fireSpeedScaleRand", 244, 7 },
+  { "flameVar_fireVelocityAddZ", 248, 7 },
+  { "flameVar_fireVelocityAddZRand", 252, 7 },
+  { "flameVar_fireVelocityAddSideways", 256, 7 },
+  { "flameVar_fireGravity", 260, 7 },
+  { "flameVar_fireGravityEnd", 264, 7 },
+  { "flameVar_fireMaxRotVel", 268, 7 },
+  { "flameVar_fireFriction", 272, 7 },
+  { "flameVar_fireEndSizeAdd", 276, 7 },
+  { "flameVar_fireStartSizeScale", 280, 7 },
+  { "flameVar_fireEndSizeScale", 284, 7 },
+  { "flameVar_dripsLife", 288, 7 },
+  { "flameVar_dripsLifeRand", 292, 7 },
+  { "flameVar_dripsSpeedScale", 296, 7 },
+  { "flameVar_dripsSpeedScaleRand", 300, 7 },
+  { "flameVar_dripsVelocityAddZ", 304, 7 },
+  { "flameVar_dripsVelocityAddZRand", 308, 7 },
+  { "flameVar_dripsVelocityAddSideways", 312, 7 },
+  { "flameVar_dripsGravity", 316, 7 },
+  { "flameVar_dripsGravityEnd", 320, 7 },
+  { "flameVar_dripsMaxRotVel", 324, 7 },
+  { "flameVar_dripsFriction", 328, 7 },
+  { "flameVar_dripsEndSizeAdd", 332, 7 },
+  { "flameVar_dripsStartSizeScale", 336, 7 },
+  { "flameVar_dripsEndSizeScale", 340, 7 },
+  { "flameVar_smokeLife", 344, 7 },
+  { "flameVar_smokeLifeRand", 348, 7 },
+  { "flameVar_smokeSpeedScale", 352, 7 },
+  { "flameVar_smokeVelocityAddZ", 356, 7 },
+  { "flameVar_smokeGravity", 360, 7 },
+  { "flameVar_smokeGravityEnd", 364, 7 },
+  { "flameVar_smokeMaxRotation", 368, 7 },
+  { "flameVar_smokeMaxRotVel", 372, 7 },
+  { "flameVar_smokeFriction", 376, 7 },
+  { "flameVar_smokeEndSizeAdd", 380, 7 },
+  { "flameVar_smokeStartSizeAdd", 384, 7 },
+  { "flameVar_smokeOriginSizeOfsZScale", 388, 7 },
+  { "flameVar_smokeOriginOfsZ", 392, 7 },
+  { "flameVar_smokeFadein", 396, 7 },
+  { "flameVar_smokeFadeout", 400, 7 },
+  { "flameVar_smokeMaxAlpha", 404, 7 },
+  { "flameVar_smokeBrightness", 408, 7 },
+  { "flameVar_smokeOriginOffset", 412, 7 },
+  { "flameVar_collisionSpeedScale", 416, 7 },
+  { "flameVar_collisionVolumeScale", 420, 7 },
+  { "name", 424, 0 },
+  { "fire", 428, 11 },
+  { "smoke", 432, 11 },
+  { "heat", 436, 11 },
+  { "drips", 440, 11 },
+  { "streamFuel", 444, 11 },
+  { "streamFuel2", 448, 11 },
+  { "streamFlame", 452, 11 },
+  { "streamFlame2", 456, 11 },
+  { "flameOffLoopSound", 460, 0 },
+  { "flameIgniteSound", 464, 0 },
+  { "flameOnLoopSound", 468, 0 },
+  { "flameCooldownSound", 472, 0 }
+};
+
+cspField_t weaponDefFields[748] =
+{
+  { "displayName", 12, 0 },
+  { "AIOverlayDescription", 228, 0 },
+  { "modeName", 240, 0 },
+  { "playerAnimType", 252, 24 },
+  { "gunModel", 2284, 10 },
+  { "gunModel2", 2288, 10 },
+  { "gunModel3", 2292, 10 },
+  { "gunModel4", 2296, 10 },
+  { "gunModel5", 2300, 10 },
+  { "gunModel6", 2304, 10 },
+  { "gunModel7", 2308, 10 },
+  { "gunModel8", 2312, 10 },
+  { "gunModel9", 2316, 10 },
+  { "gunModel10", 2320, 10 },
+  { "gunModel11", 2324, 10 },
+  { "gunModel12", 2328, 10 },
+  { "gunModel13", 2332, 10 },
+  { "gunModel14", 2336, 10 },
+  { "gunModel15", 2340, 10 },
+  { "gunModel16", 2344, 10 },
+  { "handModel", 236, 10 },
+  { "hideTags", 2612, 40 },
+  { "notetrackSoundMap", 2676, 42 },
+  { "idleAnim", 2352, 0 },
+  { "idleAnimLeft", 2588, 0 },
+  { "emptyIdleAnim", 2356, 0 },
+  { "emptyIdleAnim", 2592, 0 },
+  { "fireAnim", 2360, 0 },
+  { "fireAnimLeft", 2580, 0 },
+  { "holdFireAnim", 2364, 0 },
+  { "lastShotAnim", 2368, 0 },
+  { "lastShotAnimLeft", 2584, 0 },
+  { "detonateAnim", 2504, 0 },
+  { "rechamberAnim", 2372, 0 },
+  { "meleeAnim", 2376, 0 },
+  { "meleeChargeAnim", 2380, 0 },
+  { "reloadAnim", 2384, 0 },
+  { "reloadAnimRight", 2388, 0 },
+  { "reloadAnimLeft", 2600, 0 },
+  { "reloadEmptyAnim", 2392, 0 },
+  { "reloadEmptyAnimLeft", 2596, 0 },
+  { "reloadStartAnim", 2396, 0 },
+  { "reloadEndAnim", 2400, 0 },
+  { "reloadQuickAnim", 2404, 0 },
+  { "reloadQuickEmptyAnim", 2408, 0 },
+  { "raiseAnim", 2412, 0 },
+  { "dropAnim", 2420, 0 },
+  { "firstRaiseAnim", 2416, 0 },
+  { "altRaiseAnim", 2424, 0 },
+  { "altDropAnim", 2428, 0 },
+  { "quickRaiseAnim", 2432, 0 },
+  { "quickDropAnim", 2436, 0 },
+  { "emptyRaiseAnim", 2440, 0 },
+  { "emptyDropAnim", 2444, 0 },
+  { "sprintInAnim", 2448, 0 },
+  { "sprintLoopAnim", 2452, 0 },
+  { "sprintOutAnim", 2456, 0 },
+  { "sprintInEmptyAnim", 2460, 0 },
+  { "sprintLoopEmptyAnim", 2464, 0 },
+  { "sprintOutEmptyAnim", 2468, 0 },
+  { "lowReadyInAnim", 2472, 0 },
+  { "lowReadyLoopAnim", 2476, 0 },
+  { "lowReadyOutAnim", 2480, 0 },
+  { "contFireInAnim", 2484, 0 },
+  { "contFireLoopAnim", 2488, 0 },
+  { "contFireOutAnim", 2492, 0 },
+  { "deployAnim", 2496, 0 },
+  { "breakdownAnim", 2500, 0 },
+  { "nightVisionWearAnim", 2508, 0 },
+  { "nightVisionRemoveAnim", 2512, 0 },
+  { "adsFireAnim", 2516, 0 },
+  { "adsLastShotAnim", 2520, 0 },
+  { "adsRechamberAnim", 2524, 0 },
+  { "adsUpAnim", 2604, 0 },
+  { "adsDownAnim", 2608, 0 },
+  { "deployAnim", 2496, 0 },
+  { "breakdownAnim", 2500, 0 },
+  { "dtp_in", 2528, 0 },
+  { "dtp_loop", 2532, 0 },
+  { "dtp_out", 2536, 0 },
+  { "dtp_empty_in", 2540, 0 },
+  { "dtp_empty_loop", 2544, 0 },
+  { "dtp_empty_out", 2548, 0 },
+  { "slide_in", 2552, 0 },
+  { "mantleAnim", 2556, 0 },
+  { "sprintCameraAnim", 2560, 0 },
+  { "dtpInCameraAnim", 2564, 0 },
+  { "dtpLoopCameraAnim", 2568, 0 },
+  { "dtpOutCameraAnim", 2572, 0 },
+  { "mantleCameraAnim", 2576, 0 },
+  { "script", 2176, 0 },
+  { "weaponType", 256, 15 },
+  { "weaponClass", 260, 16 },
+  { "penetrateType", 264, 18 },
+  { "impactType", 268, 19 },
+  { "inventoryType", 272, 31 },
+  { "fireType", 276, 32 },
+  { "clipType", 280, 33 },
+  { "offhandClass", 332, 22 },
+  { "offhandSlot", 336, 23 },
+  { "viewFlashEffect", 344, 9 },
+  { "worldFlashEffect", 348, 9 },
+  { "pickupSound", 352, 0 },
+  { "pickupSoundPlayer", 356, 0 },
+  { "ammoPickupSound", 360, 0 },
+  { "ammoPickupSoundPlayer", 364, 0 },
+  { "projectileSound", 368, 0 },
+  { "pullbackSound", 372, 0 },
+  { "pullbackSoundPlayer", 376, 0 },
+  { "fireSound", 380, 0 },
+  { "crackSound", 428, 0 },
+  { "whizbySound", 432, 0 },
+  { "fireSoundPlayer", 384, 0 },
+  { "loopFireSound", 388, 0 },
+  { "loopFireSoundPlayer", 392, 0 },
+  { "loopFireEndSound", 396, 0 },
+  { "loopFireEndSoundPlayer", 400, 0 },
+  { "stopFireSound", 404, 0 },
+  { "stopFireSoundPlayer", 408, 0 },
+  { "lastShotSound", 412, 0 },
+  { "lastShotSoundPlayer", 416, 0 },
+  { "emptyFireSound", 420, 0 },
+  { "emptyFireSoundPlayer", 424, 0 },
+  { "meleeSwipeSound", 436, 0 },
+  { "meleeSwipeSoundPlayer", 440, 0 },
+  { "meleeHitSound", 444, 0 },
+  { "meleeMissSound", 448, 0 },
+  { "rechamberSound", 452, 0 },
+  { "rechamberSoundPlayer", 456, 0 },
+  { "reloadSound", 460, 0 },
+  { "reloadSoundPlayer", 464, 0 },
+  { "reloadEmptySound", 468, 0 },
+  { "reloadEmptySoundPlayer", 472, 0 },
+  { "reloadStartSound", 476, 0 },
+  { "reloadStartSoundPlayer", 480, 0 },
+  { "reloadEndSound", 484, 0 },
+  { "reloadEndSoundPlayer", 488, 0 },
+  { "rotateLoopSound", 492, 0 },
+  { "rotateLoopSoundPlayer", 496, 0 },
+  { "deploySound", 500, 0 },
+  { "deploySoundPlayer", 504, 0 },
+  { "finishDeploySound", 508, 0 },
+  { "finishDeploySoundPlayer", 512, 0 },
+  { "breakdownSound", 516, 0 },
+  { "breakdownSoundPlayer", 520, 0 },
+  { "finishBreakdownSound", 524, 0 },
+  { "finishBreakdownSoundPlayer", 528, 0 },
+  { "detonateSound", 532, 0 },
+  { "detonateSoundPlayer", 536, 0 },
+  { "nightVisionWearSound", 540, 0 },
+  { "nightVisionWearSoundPlayer", 544, 0 },
+  { "nightVisionRemoveSound", 548, 0 },
+  { "nightVisionRemoveSoundPlayer", 552, 0 },
+  { "raiseSound", 564, 0 },
+  { "raiseSoundPlayer", 568, 0 },
+  { "firstRaiseSound", 572, 0 },
+  { "firstRaiseSoundPlayer", 576, 0 },
+  { "altSwitchSound", 556, 0 },
+  { "altSwitchSoundPlayer", 560, 0 },
+  { "putawaySound", 580, 0 },
+  { "putawaySoundPlayer", 584, 0 },
+  { "overheatSound", 588, 0 },
+  { "overheatSoundPlayer", 592, 0 },
+  { "adsZoomSound", 596, 0 },
+  { "bounceSound", 600, 27 },
+  { "standMountedWeapdef", 604, 0 },
+  { "crouchMountedWeapdef", 608, 0 },
+  { "proneMountedWeapdef", 612, 0 },
+  { "viewShellEjectEffect", 628, 9 },
+  { "worldShellEjectEffect", 632, 9 },
+  { "viewLastShotEjectEffect", 636, 9 },
+  { "worldLastShotEjectEffect", 640, 9 },
+  { "reticleCenter", 644, 11 },
+  { "reticleSide", 648, 11 },
+  { "reticleCenterSize", 652, 4 },
+  { "reticleSideSize", 656, 4 },
+  { "reticleMinOfs", 660, 4 },
+  { "activeReticleType", 664, 25 },
+  { "standMoveF", 668, 7 },
+  { "standMoveR", 672, 7 },
+  { "standMoveU", 676, 7 },
+  { "standRotP", 680, 7 },
+  { "standRotY", 684, 7 },
+  { "standRotR", 688, 7 },
+  { "duckedOfsF", 692, 7 },
+  { "duckedOfsR", 696, 7 },
+  { "duckedOfsU", 700, 7 },
+  { "duckedMoveF", 704, 7 },
+  { "duckedMoveR", 708, 7 },
+  { "duckedMoveU", 712, 7 },
+  { "duckedSprintOfsF", 716, 7 },
+  { "duckedSprintOfsR", 720, 7 },
+  { "duckedSprintOfsU", 724, 7 },
+  { "duckedSprintRotP", 728, 7 },
+  { "duckedSprintRotY", 732, 7 },
+  { "duckedSprintRotR", 736, 7 },
+  { "duckedSprintBobH", 740, 7 },
+  { "duckedSprintBobV", 744, 7 },
+  { "duckedSprintScale", 748, 7 },
+  { "sprintOfsF", 752, 7 },
+  { "sprintOfsR", 756, 7 },
+  { "sprintOfsU", 760, 7 },
+  { "sprintRotP", 764, 7 },
+  { "sprintRotY", 768, 7 },
+  { "sprintRotR", 772, 7 },
+  { "sprintBobH", 776, 7 },
+  { "sprintBobV", 780, 7 },
+  { "sprintScale", 784, 7 },
+  { "lowReadyOfsF", 788, 7 },
+  { "lowReadyOfsR", 792, 7 },
+  { "lowReadyOfsU", 796, 7 },
+  { "lowReadyRotP", 800, 7 },
+  { "lowReadyRotY", 804, 7 },
+  { "lowReadyRotR", 808, 7 },
+  { "dtpOfsF", 812, 7 },
+  { "dtpOfsR", 816, 7 },
+  { "dtpOfsU", 820, 7 },
+  { "dtpRotP", 824, 7 },
+  { "dtpRotY", 828, 7 },
+  { "dtpRotR", 832, 7 },
+  { "dtpBobH", 836, 7 },
+  { "dtpBobV", 840, 7 },
+  { "dtpScale", 844, 7 },
+  { "mantleOfsF", 848, 7 },
+  { "mantleOfsR", 852, 7 },
+  { "mantleOfsU", 856, 7 },
+  { "mantleRotP", 860, 7 },
+  { "mantleRotY", 864, 7 },
+  { "mantleRotR", 868, 7 },
+  { "slideOfsF", 872, 7 },
+  { "slideOfsR", 876, 7 },
+  { "slideOfsU", 880, 7 },
+  { "slideRotP", 884, 7 },
+  { "slideRotY", 888, 7 },
+  { "slideRotR", 892, 7 },
+  { "duckedRotP", 896, 7 },
+  { "duckedRotY", 900, 7 },
+  { "duckedRotR", 904, 7 },
+  { "proneOfsF", 908, 7 },
+  { "proneOfsR", 912, 7 },
+  { "proneOfsU", 916, 7 },
+  { "proneMoveF", 920, 7 },
+  { "proneMoveR", 924, 7 },
+  { "proneMoveU", 928, 7 },
+  { "proneRotP", 932, 7 },
+  { "proneRotY", 936, 7 },
+  { "proneRotR", 940, 7 },
+  { "strafeMoveF", 944, 7 },
+  { "strafeMoveR", 948, 7 },
+  { "strafeMoveU", 952, 7 },
+  { "strafeRotP", 956, 7 },
+  { "strafeRotY", 960, 7 },
+  { "strafeRotR", 964, 7 },
+  { "posMoveRate", 968, 7 },
+  { "posProneMoveRate", 972, 7 },
+  { "standMoveMinSpeed", 976, 7 },
+  { "duckedMoveMinSpeed", 980, 7 },
+  { "proneMoveMinSpeed", 984, 7 },
+  { "posRotRate", 988, 7 },
+  { "posProneRotRate", 992, 7 },
+  { "standRotMinSpeed", 996, 7 },
+  { "duckedRotMinSpeed", 1000, 7 },
+  { "proneRotMinSpeed", 1004, 7 },
+  { "worldModel", 2756, 10 },
+  { "worldModel2", 2760, 10 },
+  { "worldModel3", 2764, 10 },
+  { "worldModel4", 2768, 10 },
+  { "worldModel5", 2772, 10 },
+  { "worldModel6", 2776, 10 },
+  { "worldModel7", 2780, 10 },
+  { "worldModel8", 2784, 10 },
+  { "worldModel9", 2788, 10 },
+  { "worldModel10", 2792, 10 },
+  { "worldModel11", 2796, 10 },
+  { "worldModel12", 2800, 10 },
+  { "worldModel13", 2804, 10 },
+  { "worldModel14", 2808, 10 },
+  { "worldModel15", 2812, 10 },
+  { "worldModel16", 2816, 10 },
+  { "worldClipModel", 1012, 10 },
+  { "rocketModel", 1016, 10 },
+  { "mountedModel", 1020, 10 },
+  { "AdditionalMeleeModel", 1024, 10 },
+  { "hudIcon", 1028, 11 },
+  { "hudIconRatio", 1032, 35 },
+  { "indicatorIcon", 1036, 11 },
+  { "indicatorIconRatio", 1040, 39 },
+  { "ammoCounterIcon", 1044, 11 },
+  { "ammoCounterIconRatio", 1048, 36 },
+  { "ammoCounterClip", 1052, 34 },
+  { "startAmmo", 1056, 4 },
+  { "ammoName", 64, 0 },
+  { "clipName", 72, 0 },
+  { "maxAmmo", 1064, 4 },
+  { "clipSize", 32, 4 },
+  { "shotCount", 1068, 4 },
+  { "sharedAmmoCapName", 1072, 0 },
+  { "sharedAmmoCap", 1080, 4 },
+  { "unlimitedAmmo", 1084, 5 },
+  { "ammoCountClipRelative", 1085, 5 },
+  { "sharedAmmo", 1584, 5 },
+  { "jamFireTime", 292, 8 },
+  { "overheatWeapon", 308, 4 },
+  { "overheatRate", 312, 7 },
+  { "cooldownRate", 316, 7 },
+  { "overheatEndVal", 320, 7 },
+  { "coolWhileFiring", 324, 4 },
+  { "fuelTankWeapon", 325, 4 },
+  { "tankLifeTime", 328, 8 },
+  { "damage", 1088, 4 },
+  { "damageDuration", 1092, 7 },
+  { "damageInterval", 1096, 7 },
+  { "playerDamage", 1100, 4 },
+  { "meleeDamage", 1104, 4 },
+  { "minDamage", 2180, 4 },
+  { "minPlayerDamage", 2184, 4 },
+  { "maxDamageRange", 2188, 7 },
+  { "minDamageRange", 2192, 7 },
+  { "destabilizationRateTime", 2196, 7 },
+  { "destabilizationCurvatureMax", 2200, 7 },
+  { "destabilizeDistance", 2204, 4 },
+  { "fireDelay", 1116, 8 },
+  { "meleeDelay", 1120, 8 },
+  { "meleeChargeDelay", 1124, 8 },
+  { "spinUpTime", 1132, 8 },
+  { "spinDownTime", 1136, 8 },
+  { "spinRate", 1140, 7 },
+  { "spinLoopSound", 1144, 0 },
+  { "spinLoopSoundPlayer", 1148, 0 },
+  { "startSpinSound", 1152, 0 },
+  { "startSpinSoundPlayer", 1156, 0 },
+  { "stopSpinSound", 1160, 0 },
+  { "stopSpinSoundPlayer", 1164, 0 },
+  { "fireTime", 1168, 8 },
+  { "lastFireTime", 1172, 8 },
+  { "rechamberTime", 1176, 8 },
+  { "rechamberBoltTime", 1180, 8 },
+  { "holdFireTime", 1184, 8 },
+  { "detonateTime", 1188, 8 },
+  { "detonateDelay", 1128, 8 },
+  { "meleeTime", 1192, 8 },
+  { "meleeChargeTime", 1196, 8 },
+  { "reloadTime", 36, 8 },
+  { "reloadShowRocketTime", 1208, 8 },
+  { "reloadEmptyTime", 40, 8 },
+  { "reloadAddTime", 1216, 8 },
+  { "reloadEmptyAddTime", 1220, 8 },
+  { "reloadQuickAddTime", 1224, 8 },
+  { "reloadQuickEmptyAddTime", 1228, 8 },
+  { "reloadStartTime", 1232, 8 },
+  { "reloadStartAddTime", 1236, 8 },
+  { "reloadEndTime", 1240, 8 },
+  { "reloadQuickTime", 44, 8 },
+  { "reloadQuickEmptyTime", 48, 8 },
+  { "dropTime", 1244, 8 },
+  { "raiseTime", 1248, 8 },
+  { "altDropTime", 1252, 8 },
+  { "altRaiseTime", 60, 8 },
+  { "quickDropTime", 1256, 8 },
+  { "quickRaiseTime", 1260, 8 },
+  { "firstRaiseTime", 1264, 8 },
+  { "emptyRaiseTime", 1268, 8 },
+  { "emptyDropTime", 1272, 8 },
+  { "sprintInTime", 1276, 8 },
+  { "sprintLoopTime", 1280, 8 },
+  { "sprintOutTime", 1284, 8 },
+  { "lowReadyInTime", 1288, 8 },
+  { "lowReadyLoopTime", 1292, 8 },
+  { "lowReadyOutTime", 1296, 8 },
+  { "contFireInTime", 1300, 8 },
+  { "contFireLoopTime", 1304, 8 },
+  { "contFireOutTime", 1308, 8 },
+  { "dtpInTime", 1312, 8 },
+  { "dtpLoopTime", 1316, 8 },
+  { "dtpOutTime", 1320, 8 },
+  { "slideInTime", 1324, 8 },
+  { "deployTime", 1328, 8 },
+  { "breakdownTime", 1332, 8 },
+  { "tracerFrequency", 296, 4 },
+  { "tracerWidth", 300, 7 },
+  { "tracerLength", 304, 7 },
+  { "nightVisionWearTime", 1336, 8 },
+  { "nightVisionWearTimeFadeOutEnd", 1340, 8 },
+  { "nightVisionWearTimePowerUp", 1344, 8 },
+  { "nightVisionRemoveTime", 1348, 8 },
+  { "nightVisionRemoveTimePowerDown", 1352, 8 },
+  { "nightVisionRemoveTimeFadeInStart", 1356, 8 },
+  { "fuseTime", 1360, 8 },
+  { "aifuseTime", 1364, 8 },
+  { "lockOnRadius", 1368, 4 },
+  { "lockOnSpeed", 1372, 4 },
+  { "requireLockonToFire", 1376, 5 },
+  { "noAdsWhenMagEmpty", 1377, 5 },
+  { "avoidDropCleanup", 1378, 5 },
+  { "stackFire", 1380, 4 },
+  { "stackFireSpread", 1384, 7 },
+  { "stackFireAccuracyDecay", 1388, 7 },
+  { "stackSound", 1392, 0 },
+  { "autoAimRange", 1396, 7 },
+  { "aimAssistRange", 1400, 7 },
+  { "aimAssistRangeAds", 80, 7 },
+  { "mountableWeapon", 1404, 5 },
+  { "aimPadding", 1408, 7 },
+  { "enemyCrosshairRange", 1412, 7 },
+  { "crosshairColorChange", 1416, 5 },
+  { "moveSpeedScale", 1420, 7 },
+  { "adsMoveSpeedScale", 1424, 7 },
+  { "sprintDurationScale", 1428, 7 },
+  { "idleCrouchFactor", 1524, 7 },
+  { "idleProneFactor", 1528, 7 },
+  { "gunMaxPitch", 1532, 7 },
+  { "gunMaxYaw", 1536, 7 },
+  { "swayMaxAngle", 1540, 7 },
+  { "swayLerpSpeed", 1544, 7 },
+  { "swayPitchScale", 1548, 7 },
+  { "swayYawScale", 1552, 7 },
+  { "swayHorizScale", 1556, 7 },
+  { "swayVertScale", 1560, 7 },
+  { "swayShellShockScale", 1564, 7 },
+  { "adsSwayMaxAngle", 1568, 7 },
+  { "adsSwayLerpSpeed", 1572, 7 },
+  { "adsSwayPitchScale", 1576, 7 },
+  { "adsSwayYawScale", 1580, 7 },
+  { "adsSwayHorizScale", 84, 7 },
+  { "adsSwayVertScale", 88, 7 },
+  { "meleeChargeRange", 1836, 7 },
+  { "rifleBullet", 1585, 5 },
+  { "armorPiercing", 1586, 5 },
+  { "boltAction", 1587, 5 },
+  { "useAltTagFlash", 1588, 5 },
+  { "useAntiLagRewind", 1589, 5 },
+  { "isCarriedKillstreakWeapon", 1590, 5 },
+  { "aimDownSight", 1591, 5 },
+  { "rechamberWhileAds", 1592, 5 },
+  { "reloadWhileAds", 1593, 5 },
+  { "adsViewErrorMin", 1596, 7 },
+  { "adsViewErrorMax", 1600, 7 },
+  { "clipOnly", 1605, 5 },
+  { "canUseInVehicle", 1606, 5 },
+  { "noDropsOrRaises", 1607, 5 },
+  { "cookOffHold", 1604, 5 },
+  { "adsFire", 1608, 5 },
+  { "cancelAutoHolsterWhenEmpty", 1609, 5 },
+  { "suppressAmmoReserveDisplay", 1610, 5 },
+  { "laserSightDuringNightvision", 1611, 5 },
+  { "bayonet", 1613, 5 },
+  { "dualWield", 1614, 5 },
+  { "hideThirdPerson", 1612, 5 },
+  { "explodeOnGround", 1615, 5 },
+  { "throwBack", 1616, 5 },
+  { "retrievable", 1617, 5 },
+  { "dieOnRespawn", 1618, 5 },
+  { "noThirdPersonDropsOrRaises", 1619, 5 },
+  { "continuousFire", 1620, 5 },
+  { "fullMetalJacket", 134, 5 },
+  { "hollowPoint", 135, 5 },
+  { "useAsMelee", 1840, 5 },
+  { "rapidFire", 136, 5 },
+  { "noPing", 1621, 5 },
+  { "forceBounce", 1622, 5 },
+  { "useDroppedModelAsStowed", 1623, 5 },
+  { "noQuickDropWhenEmpty", 1624, 5 },
+  { "keepCrosshairWhenADS", 1625, 5 },
+  { "useOnlyAltWeaoponHideTagsInAltMode", 1626, 5 },
+  { "killIcon", 1628, 11 },
+  { "killIconRatio", 1632, 37 },
+  { "flipKillIcon", 1636, 5 },
+  { "dpadIcon", 148, 11 },
+  { "dpadIconRatio", 152, 38 },
+  { "noPartialReload", 1637, 5 },
+  { "segmentedReload", 1638, 5 },
+  { "noADSAutoReload", 1639, 5 },
+  { "reloadAmmoAdd", 1640, 4 },
+  { "reloadStartAdd", 1644, 4 },
+  { "altWeapon", 20, 0 },
+  { "DualWieldWeapon", 1652, 0 },
+  { "grenadeWeapon", 1648, 0 },
+  { "dropAmmoMin", 1660, 4 },
+  { "dropAmmoMax", 1664, 4 },
+  { "dropClipAmmoMin", 1668, 4 },
+  { "dropClipAmmoMax", 1672, 4 },
+  { "blocksProne", 1676, 5 },
+  { "silenced", 132, 5 },
+  { "dualMag", 133, 5 },
+  { "isRollingGrenade", 1680, 6 },
+  { "showIndicator", 1677, 5 },
+  { "explosionRadius", 1684, 4 },
+  { "explosionRadiusMin", 1688, 4 },
+  { "indicatorRadius", 1692, 4 },
+  { "explosionInnerDamage", 1696, 4 },
+  { "explosionOuterDamage", 1700, 4 },
+  { "damageConeAngle", 1704, 7 },
+  { "projectileSpeed", 1708, 4 },
+  { "projectileSpeedRelativeUp", 1716, 4 },
+  { "projectileSpeedUp", 1712, 4 },
+  { "projectileSpeedForward", 1720, 4 },
+  { "projectileActivateDist", 1724, 4 },
+  { "projectileLifetime", 1728, 7 },
+  { "timeToAccelerate", 1732, 7 },
+  { "projectileCurvature", 1736, 7 },
+  { "projectileModel", 1740, 10 },
+  { "projExplosionType", 1744, 21 },
+  { "projExplosionEffect", 1748, 9 },
+  { "projExplosionEffectForceNormalUp", 1752, 5 },
+  { "projExplosionEffect2", 1756, 9 },
+  { "projExplosionEffect2ForceNormalUp", 1760, 5 },
+  { "projExplosionEffect3", 1764, 9 },
+  { "projExplosionEffect3ForceNormalUp", 1768, 5 },
+  { "projExplosionEffect4", 1772, 9 },
+  { "projExplosionEffect4ForceNormalUp", 1776, 5 },
+  { "projExplosionEffect5", 1780, 9 },
+  { "projExplosionEffect5ForceNormalUp", 1784, 5 },
+  { "projExplosionSound", 1792, 0 },
+  { "projDudEffect", 1788, 9 },
+  { "projDudSound", 1796, 0 },
+  { "projImpactExplode", 1808, 5 },
+  { "bulletImpactExplode", 1809, 5 },
+  { "mortarShellSound", 1800, 0 },
+  { "tankShellSound", 1804, 0 },
+  { "stickiness", 1812, 28 },
+  { "rotateType", 1816, 29 },
+  { "hasDetonator", 1821, 5 },
+  { "plantable", 1820, 5 },
+  { "timedDetonation", 1822, 5 },
+  { "noCrumpleMissile", 1823, 5 },
+  { "rotate", 1824, 5 },
+  { "keepRolling", 1825, 5 },
+  { "holdButtonToThrow", 1826, 5 },
+  { "offhandHoldIsCancelable", 1827, 5 },
+  { "freezeMovementWhenFiring", 1828, 5 },
+  { "lowAmmoWarningThreshold", 1832, 7 },
+  { "explosionTag", 1112, 41 },
+  { "isCameraSensor", 1841, 5 },
+  { "isAcousticSensor", 1842, 5 },
+  { "parallelDefaultBounce", 2820, 7 },
+  { "parallelAsphaltBounce", 2908, 7 },
+  { "parallelBarkBounce", 2824, 7 },
+  { "parallelBrickBounce", 2828, 7 },
+  { "parallelCarpetBounce", 2832, 7 },
+  { "parallelCeramicBounce", 2912, 7 },
+  { "parallelClothBounce", 2836, 7 },
+  { "parallelConcreteBounce", 2840, 7 },
+  { "parallelCushionBounce", 2924, 7 },
+  { "parallelDirtBounce", 2844, 7 },
+  { "parallelFleshBounce", 2848, 7 },
+  { "parallelFoliageBounce", 2852, 7 },
+  { "parallelFruitBounce", 2928, 7 },
+  { "parallelGlassBounce", 2856, 7 },
+  { "parallelGrassBounce", 2860, 7 },
+  { "parallelGravelBounce", 2864, 7 },
+  { "parallelIceBounce", 2868, 7 },
+  { "parallelMetalBounce", 2872, 7 },
+  { "parallelMudBounce", 2876, 7 },
+  { "parallelPaintedMetalBounce", 2932, 7 },
+  { "parallelPaperBounce", 2880, 7 },
+  { "parallelPlasterBounce", 2884, 7 },
+  { "parallelPlasticBounce", 2916, 7 },
+  { "parallelRockBounce", 2888, 7 },
+  { "parallelRubberBounce", 2920, 7 },
+  { "parallelSandBounce", 2892, 7 },
+  { "parallelSnowBounce", 2896, 7 },
+  { "parallelWaterBounce", 2900, 7 },
+  { "parallelWoodBounce", 2904, 7 },
+  { "perpendicularDefaultBounce", 2944, 7 },
+  { "perpendicularAsphaltBounce", 3032, 7 },
+  { "perpendicularBarkBounce", 2948, 7 },
+  { "perpendicularBrickBounce", 2952, 7 },
+  { "perpendicularCarpetBounce", 2956, 7 },
+  { "perpendicularCeramicBounce", 3036, 7 },
+  { "perpendicularClothBounce", 2960, 7 },
+  { "perpendicularConcreteBounce", 2964, 7 },
+  { "perpendicularCushionBounce", 3048, 7 },
+  { "perpendicularDirtBounce", 2968, 7 },
+  { "perpendicularFleshBounce", 2972, 7 },
+  { "perpendicularFoliageBounce", 2976, 7 },
+  { "perpendicularFruitBounce", 3052, 7 },
+  { "perpendicularGlassBounce", 2980, 7 },
+  { "perpendicularGrassBounce", 2984, 7 },
+  { "perpendicularGravelBounce", 2988, 7 },
+  { "perpendicularIceBounce", 2992, 7 },
+  { "perpendicularMetalBounce", 2996, 7 },
+  { "perpendicularMudBounce", 3000, 7 },
+  { "perpendicularPaintedMetalBounce", 3056, 7 },
+  { "perpendicularPaperBounce", 3004, 7 },
+  { "perpendicularPlasterBounce", 3008, 7 },
+  { "perpendicularPlasticBounce", 3040, 7 },
+  { "perpendicularRockBounce", 3012, 7 },
+  { "perpendicularRubberBounce", 3044, 7 },
+  { "perpendicularSandBounce", 3016, 7 },
+  { "perpendicularSnowBounce", 3020, 7 },
+  { "perpendicularWaterBounce", 3024, 7 },
+  { "perpendicularWoodBounce", 3028, 7 },
+  { "projTrailEffect", 1852, 9 },
+  { "projectileRed", 1856, 7 },
+  { "projectileGreen", 1860, 7 },
+  { "projectileBlue", 1864, 7 },
+  { "guidedMissileType", 1868, 26 },
+  { "maxSteeringAccel", 1872, 7 },
+  { "projIgnitionDelay", 1876, 4 },
+  { "projIgnitionEffect", 1880, 9 },
+  { "projIgnitionSound", 1884, 0 },
+  { "tagFx_preparationEffect", 2268, 9 },
+  { "tagFlash_preparationEffect", 2272, 9 },
+  { "adsTransInTime", 52, 8 },
+  { "adsTransOutTime", 56, 8 },
+  { "adsIdleAmount", 1508, 7 },
+  { "adsIdleSpeed", 1516, 7 },
+  { "adsZoomFov1", 100, 7 },
+  { "adsZoomFov2", 104, 7 },
+  { "adsZoomFov3", 108, 7 },
+  { "adsZoomInFrac", 112, 7 },
+  { "adsZoomOutFrac", 116, 7 },
+  { "adsOverlayShader", 140, 12 },
+  { "adsOverlayShaderLowRes", 144, 12 },
+  { "adsOverlayReticle", 1432, 17 },
+  { "adsOverlayInterface", 1436, 30 },
+  { "adsOverlayWidth", 1440, 7 },
+  { "adsOverlayHeight", 1444, 7 },
+  { "adsOverlayAlphaScale", 120, 7 },
+  { "adsBobFactor", 1448, 7 },
+  { "adsViewBobMult", 1452, 7 },
+  { "adsAimPitch", 1888, 7 },
+  { "adsCrosshairInFrac", 1892, 7 },
+  { "adsCrosshairOutFrac", 1896, 7 },
+  { "adsReloadTransTime", 2080, 8 },
+  { "adsGunKickReducedKickBullets", 1900, 4 },
+  { "adsGunKickReducedKickPercent", 1904, 7 },
+  { "adsGunKickPitchMin", 1908, 7 },
+  { "adsGunKickPitchMax", 1912, 7 },
+  { "adsGunKickYawMin", 1916, 7 },
+  { "adsGunKickYawMax", 1920, 7 },
+  { "adsGunKickAccel", 1924, 7 },
+  { "adsGunKickSpeedMax", 1928, 7 },
+  { "adsGunKickSpeedDecay", 1932, 7 },
+  { "adsGunKickStaticDecay", 1936, 7 },
+  { "adsViewKickPitchMin", 1940, 7 },
+  { "adsViewKickPitchMax", 1944, 7 },
+  { "adsViewKickYawMin", 1948, 7 },
+  { "adsViewKickYawMax", 1952, 7 },
+  { "adsViewKickCenterSpeed", 92, 7 },
+  { "adsSpread", 1964, 7 },
+  { "guidedMissileType", 1868, 26 },
+  { "hipSpreadStandMin", 1456, 7 },
+  { "hipSpreadDuckedMin", 1460, 7 },
+  { "hipSpreadProneMin", 1464, 7 },
+  { "hipSpreadMax", 1468, 7 },
+  { "hipSpreadDuckedMax", 1472, 7 },
+  { "hipSpreadProneMax", 1476, 7 },
+  { "hipSpreadDecayRate", 1480, 7 },
+  { "hipSpreadFireAdd", 1484, 7 },
+  { "hipSpreadTurnAdd", 1488, 7 },
+  { "hipSpreadMoveAdd", 1492, 7 },
+  { "hipSpreadDuckedDecay", 1496, 7 },
+  { "hipSpreadProneDecay", 1500, 7 },
+  { "hipReticleSidePos", 1504, 7 },
+  { "hipIdleAmount", 1512, 7 },
+  { "hipIdleSpeed", 1520, 7 },
+  { "hipGunKickReducedKickBullets", 1968, 4 },
+  { "hipGunKickReducedKickPercent", 1972, 7 },
+  { "hipGunKickPitchMin", 1976, 7 },
+  { "hipGunKickPitchMax", 1980, 7 },
+  { "hipGunKickYawMin", 1984, 7 },
+  { "hipGunKickYawMax", 1988, 7 },
+  { "hipGunKickAccel", 1992, 7 },
+  { "hipGunKickSpeedMax", 1996, 7 },
+  { "hipGunKickSpeedDecay", 2000, 7 },
+  { "hipGunKickStaticDecay", 2004, 7 },
+  { "hipViewKickPitchMin", 2008, 7 },
+  { "hipViewKickPitchMax", 2012, 7 },
+  { "hipViewKickYawMin", 2016, 7 },
+  { "hipViewKickYawMax", 2020, 7 },
+  { "hipViewKickCenterSpeed", 96, 7 },
+  { "leftArc", 2084, 7 },
+  { "rightArc", 2088, 7 },
+  { "topArc", 2092, 7 },
+  { "bottomArc", 2096, 7 },
+  { "accuracy", 2100, 7 },
+  { "aiSpread", 2104, 7 },
+  { "playerSpread", 2108, 7 },
+  { "maxVertTurnSpeed", 2120, 7 },
+  { "maxHorTurnSpeed", 2124, 7 },
+  { "minVertTurnSpeed", 2112, 7 },
+  { "minHorTurnSpeed", 2116, 7 },
+  { "pitchConvergenceTime", 2128, 7 },
+  { "yawConvergenceTime", 2132, 7 },
+  { "suppressionTime", 2136, 7 },
+  { "maxRange", 2140, 7 },
+  { "animHorRotateInc", 2144, 7 },
+  { "playerPositionDist", 2148, 7 },
+  { "stance", 340, 20 },
+  { "useHintString", 2152, 0 },
+  { "dropHintString", 2156, 0 },
+  { "horizViewJitter", 2168, 7 },
+  { "vertViewJitter", 2172, 7 },
+  { "fightDist", 2032, 7 },
+  { "maxDist", 2036, 7 },
+  { "aiVsAiAccuracyGraph", 2040, 0 },
+  { "aiVsPlayerAccuracyGraph", 2044, 0 },
+  { "locNone", 3068, 7 },
+  { "locHelmet", 3072, 7 },
+  { "locHead", 3076, 7 },
+  { "locNeck", 3080, 7 },
+  { "locTorsoUpper", 3084, 7 },
+  { "locTorsoLower", 3088, 7 },
+  { "locRightArmUpper", 3092, 7 },
+  { "locRightArmLower", 3100, 7 },
+  { "locRightHand", 3108, 7 },
+  { "locLeftArmUpper", 3096, 7 },
+  { "locLeftArmLower", 3104, 7 },
+  { "locLeftHand", 3112, 7 },
+  { "locRightLegUpper", 3116, 7 },
+  { "locRightLegLower", 3124, 7 },
+  { "locRightFoot", 3132, 7 },
+  { "locLeftLegUpper", 3120, 7 },
+  { "locLeftLegLower", 3128, 7 },
+  { "locLeftFoot", 3136, 7 },
+  { "locGun", 3140, 7 },
+  { "fireRumble", 2212, 0 },
+  { "meleeImpactRumble", 2216, 0 },
+  { "reloadRumble", 2220, 0 },
+  { "adsDofStart", 2224, 7 },
+  { "adsDofEnd", 2228, 7 },
+  { "scanSpeed", 2240, 7 },
+  { "scanAccel", 2244, 7 },
+  { "scanPauseTime", 2248, 8 },
+  { "flameTableFirstPerson", 2252, 0 },
+  { "flameTableThirdPerson", 2256, 0 },
+  { "ikLeftHandOffsetF", 156, 7 },
+  { "ikLeftHandOffsetR", 160, 7 },
+  { "ikLeftHandOffsetU", 164, 7 },
+  { "ikLeftHandRotationP", 168, 7 },
+  { "ikLeftHandRotationY", 172, 7 },
+  { "ikLeftHandRotationR", 176, 7 },
+  { "ikLeftHandProneOffsetF", 180, 7 },
+  { "ikLeftHandProneOffsetR", 184, 7 },
+  { "ikLeftHandProneOffsetU", 188, 7 },
+  { "ikLeftHandProneRotationP", 192, 7 },
+  { "ikLeftHandProneRotationY", 196, 7 },
+  { "ikLeftHandProneRotationR", 200, 7 },
+  { "ikLeftHandUiViewerOffsetF", 204, 7 },
+  { "ikLeftHandUiViewerOffsetR", 208, 7 },
+  { "ikLeftHandUiViewerOffsetU", 212, 7 },
+  { "ikLeftHandUiViewerRotationP", 216, 7 },
+  { "ikLeftHandUiViewerRotationY", 220, 7 },
+  { "ikLeftHandUiViewerRotationR", 224, 7 },
+  { "parentWeaponName", 288, 0 },
+  { "doGibbing", 2276, 5 },
+  { "maxGibDistance", 2280, 7 }
+};
+
+
+
+const char *szWeapTypeNames[8] =
+{
+  "bullet",
+  "grenade",
+  "projectile",
+  "binoculars",
+  "gas",
+  "bomb",
+  "mine",
+  "melee"
+};
+
+const char *szWeapClassNames[13] =
+{
+  "rifle",
+  "mg",
+  "smg",
+  "spread",
+  "pistol",
+  "grenade",
+  "rocketlauncher",
+  "turret",
+  "non-player",
+  "gas",
+  "item",
+  "melee",
+  "Killstreak Alt Stored Weapon"
+};
+
+const char *szWeapInventoryTypeNames[5] =
+{ "primary", "offhand", "item", "altmode", "melee" };
+
+
+
+
 
 char *__cdecl BG_GetPlayerAnimTypeName(int index)
 {
@@ -99,7 +1156,7 @@ void __cdecl BG_LoadPlayerAnimTypes()
     g_playerAnimTypeIndex_revivee = -1;
     buf = Com_LoadRawTextFile("mp/playeranimtypes.txt");
     if ( !buf )
-        Com_Error(ERR_DROP, &byte_C754E4, "mp/playeranimtypes.txt");
+        Com_Error(ERR_DROP, "Couldn't load file '%s'", "mp/playeranimtypes.txt");
     text_p = buf;
     Com_BeginParseSession("BG_AnimParseAnimScript");
     while ( 1 )
@@ -108,7 +1165,7 @@ void __cdecl BG_LoadPlayerAnimTypes()
         if ( !token || !*token )
             break;
         if ( g_playerAnimTypeNamesCount >= 0x20 )
-            Com_Error(ERR_DROP, &byte_C754BC);
+            Com_Error(ERR_DROP, "Player anim type array size exceeded");
         g_playerAnimTypeNames[g_playerAnimTypeNamesCount] = (char *)Hunk_Alloc(
                                                                                                                                     strlen(token) + 1,
                                                                                                                                     "BG_LoadPlayerAnimTypes",
@@ -278,7 +1335,7 @@ void __cdecl InitFlameTable(flameTable *fTable)
     while ( iField < 119 )
     {
         if ( !pField->iFieldType )
-            *(unsigned int *)((char *)&fTable->flameVar_streamChunkGravityStart + pField->iOffset) = "";
+            *(unsigned int *)((char *)&fTable->flameVar_streamChunkGravityStart + pField->iOffset) = (unsigned int)"";
         ++iField;
         ++pField;
     }
@@ -367,7 +1424,7 @@ void __cdecl BG_LoadWeaponMergeSupport()
         BG_LoadWeaponAttachmentTable();
         buf = Com_LoadRawTextFile("weapon_gripanims.csv");
         if ( !buf )
-            Com_Error(ERR_DROP, &byte_C754E4, "weapon_gripanims.csv");
+            Com_Error(ERR_DROP, "Couldn't load file '%s'", "weapon_gripanims.csv");
         text_p = buf;
         Com_BeginParseSession("BG_LoadWeaponMergeSupport");
         while ( 1 )
@@ -376,7 +1433,7 @@ void __cdecl BG_LoadWeaponMergeSupport()
             if ( !token || !*token )
                 break;
             if ( (unsigned int)s_numWeaponGripAnimSubstrings >= 0x40 )
-                Com_Error(ERR_DROP, &byte_C757BC);
+                Com_Error(ERR_DROP, "Weapon grip anim substrings table size exceeded");
             s_weaponGripAnimSubstrings[s_numWeaponGripAnimSubstrings] = (char *)Hunk_Alloc(
                                                                                                                                                         strlen(token) + 1,
                                                                                                                                                         "BG_LoadWeaponMergeSupport",
@@ -555,7 +1612,7 @@ int __cdecl BG_MergeWeaponDefHidetags(char **value, char *mergedValue, int size)
             }
             if ( j == v4 )
             {
-                strncpy((unsigned __int8 *)&s0[64 * v4], (unsigned __int8 *)s1, 0x40u);
+                strncpy(&s0[64 * v4], s1, 0x40u);
                 v6[3 * v4] = 0;
                 v6[3 * v4 + 1] = 0;
                 v6[3 * v4 + 2] = 0;
@@ -656,13 +1713,13 @@ int __cdecl BG_MergeWeaponDefAnimations(const char *fieldName, char **value, cha
         if ( !leftGrip )
             goto LABEL_15;
 LABEL_16:
-        strncpy((unsigned __int8 *)mergedValue, (unsigned __int8 *)value[1], size);
+        strncpy(mergedValue, value[1], size);
         return 1;
     }
     if ( !leftGrip )
         goto LABEL_16;
 LABEL_15:
-    strncpy((unsigned __int8 *)mergedValue, (unsigned __int8 *)value[2], size);
+    strncpy(mergedValue, value[2], size);
     return 1;
 }
 
@@ -736,7 +1793,7 @@ char __cdecl BG_LoadWeaponVariantDefFile(WeaponFullDef *weapFullDef, const char 
     if ( (int)FS_FOpenFileByMode(dest, 0, FS_READ) <= 0 )
     {
         for ( i = 0; i < 6; ++i )
-            sources[i] = &v15[64 * i];
+            sources[i] = (char*)&v15[64 * i];
         if ( !BG_SplitWeaponDefNames(name, sources, &componentAll, outputName) )
             return 0;
         if ( componentAll.numComponents - 1 > 6
@@ -763,7 +1820,7 @@ char __cdecl BG_LoadWeaponVariantDefFile(WeaponFullDef *weapFullDef, const char 
             }
         }
         SetConfigString(ppszConfigString, outputName);
-        sourceName = v15;
+        sourceName = (char*)v15;
         pszBuffer = szBuffer;
         v5 = v16;
         v8 = &v14;
@@ -849,74 +1906,74 @@ int __cdecl BG_ParseWeaponDefSpecificFieldType(WeaponFullDef *pStruct, const cha
         case 15:
             arrayIndex = Weapon_GetStringArrayIndex(pValue, szWeapTypeNames, 8);
             if ( arrayIndex < 0 )
-                Com_Error(ERR_DROP, &byte_C75EF4, pValue, weapVariantDef->szInternalName);
-            weapDef->weapType = arrayIndex;
+                Com_Error(ERR_DROP, "Unknown weapon type \"%s\" in '%s\"", pValue, weapVariantDef->szInternalName);
+            weapDef->weapType = (weapType_t)arrayIndex;
             goto LABEL_104;
         case 16:
             arrayIndex = Weapon_GetStringArrayIndex(pValue, szWeapClassNames, 13);
             if ( arrayIndex < 0 )
-                Com_Error(ERR_DROP, &byte_C75ED0, pValue, weapVariantDef->szInternalName);
-            weapDef->weapClass = arrayIndex;
+                Com_Error(ERR_DROP, "Unknown weapon class \"%s\" in '%s\"", pValue, weapVariantDef->szInternalName);
+            weapDef->weapClass = (weapClass_t)arrayIndex;
             goto LABEL_104;
         case 17:
             arrayIndex = Weapon_GetStringArrayIndex(pValue, szWeapOverlayReticleNames, 2);
             if ( arrayIndex < 0 )
-                Com_Error(ERR_DROP, &byte_C75EA0, pValue, weapVariantDef->szInternalName);
-            weapDef->overlayReticle = arrayIndex;
+                Com_Error(ERR_DROP, "Unknown weapon overlay reticle \"%s\" in '%s\"", pValue, weapVariantDef->szInternalName);
+            weapDef->overlayReticle = (weapOverlayReticle_t)arrayIndex;
             goto LABEL_104;
         case 18:
             arrayIndex = Weapon_GetStringArrayIndex(pValue, penetrateTypeNames, 4);
             if ( arrayIndex < 0 )
-                Com_Error(ERR_DROP, &byte_C75DF8, pValue, weapVariantDef->szInternalName);
-            weapDef->penetrateType = arrayIndex;
+                Com_Error(ERR_DROP, "Unknown penetration type \"%s\" in '%s\"", pValue, weapVariantDef->szInternalName);
+            weapDef->penetrateType = (PenetrateType)arrayIndex;
             goto LABEL_104;
         case 19:
             arrayIndex = Weapon_GetStringArrayIndex(pValue, impactTypeNames_0, 16);
             if ( arrayIndex < 0 )
-                Com_Error(ERR_DROP, &byte_C75DD4, pValue, weapVariantDef->szInternalName);
-            weapDef->impactType = arrayIndex;
+                Com_Error(ERR_DROP, "Unknown impact type \"%s\" in '%s\"", pValue, weapVariantDef->szInternalName);
+            weapDef->impactType = (ImpactType)arrayIndex;
             goto LABEL_104;
         case 20:
             arrayIndex = Weapon_GetStringArrayIndex(pValue, szWeapStanceNames, 3);
             if ( arrayIndex < 0 )
-                Com_Error(ERR_DROP, &byte_C75DAC, pValue, weapVariantDef->szInternalName);
-            weapDef->stance = arrayIndex;
+                Com_Error(ERR_DROP, "Unknown weapon stance \"%s\" in '%s\"", pValue, weapVariantDef->szInternalName);
+            weapDef->stance = (weapStance_t)arrayIndex;
             goto LABEL_104;
         case 21:
             arrayIndex = Weapon_GetStringArrayIndex(pValue, szProjectileExplosionNames, 10);
             if ( arrayIndex < 0 )
-                Com_Error(ERR_DROP, &byte_C75D80, pValue, weapVariantDef->szInternalName);
-            weapDef->projExplosion = arrayIndex;
+                Com_Error(ERR_DROP, "Unknown projectile explosion \"%s\" in '%s\"", pValue, weapVariantDef->szInternalName);
+            weapDef->projExplosion = (weapProjExposion_t)arrayIndex;
             goto LABEL_104;
         case 22:
             arrayIndex = Weapon_GetStringArrayIndex(pValue, offhandClassNames, 5);
             if ( arrayIndex < 0 )
-                Com_Error(ERR_DROP, &byte_C75D58, pValue, weapVariantDef->szInternalName);
-            weapDef->offhandClass = arrayIndex;
+                Com_Error(ERR_DROP, "Unknown offhand class \"%s\" in '%s\"", pValue, weapVariantDef->szInternalName);
+            weapDef->offhandClass = (OffhandClass)arrayIndex;
             goto LABEL_104;
         case 23:
             arrayIndex = Weapon_GetStringArrayIndex(pValue, offhandSlotNames, 5);
             if ( arrayIndex < 0 )
-                Com_Error(ERR_DROP, &byte_C75D34, pValue, weapVariantDef->szInternalName);
-            weapDef->offhandSlot = arrayIndex;
+                Com_Error(ERR_DROP, "Unknown offhand slot \"%s\" in '%s\"", pValue, weapVariantDef->szInternalName);
+            weapDef->offhandSlot = (OffhandSlot)arrayIndex;
             goto LABEL_104;
         case 24:
             arrayIndex = Weapon_GetStringArrayIndex(pValue, (const char **)g_playerAnimTypeNames, g_playerAnimTypeNamesCount);
             if ( arrayIndex < 0 )
-                Com_Error(ERR_DROP, &byte_C75D0C, pValue, weapVariantDef->szInternalName);
+                Com_Error(ERR_DROP, "Unknown player anim type \"%s\" in '%s\"", pValue, weapVariantDef->szInternalName);
             weapDef->playerAnimType = arrayIndex;
             goto LABEL_104;
         case 25:
             arrayIndex = Weapon_GetStringArrayIndex(pValue, activeReticleNames, 3);
             if ( arrayIndex < 0 )
-                Com_Error(ERR_DROP, &byte_C75CE0, pValue, weapVariantDef->szInternalName);
-            weapDef->activeReticleType = arrayIndex;
+                Com_Error(ERR_DROP, "Unknown active reticle type \"%s\" in '%s\"", pValue, weapVariantDef->szInternalName);
+            weapDef->activeReticleType = (activeReticleType_t)arrayIndex;
             goto LABEL_104;
         case 26:
             arrayIndex = Weapon_GetStringArrayIndex(pValue, guidedMissileNames, 7);
             if ( arrayIndex < 0 )
-                Com_Error(ERR_DROP, &byte_C75CB4, pValue, weapVariantDef->szInternalName);
-            weapDef->guidedMissileType = arrayIndex;
+                Com_Error(ERR_DROP, "Unknown guided missile type \"%s\" in '%s\"", pValue, weapVariantDef->szInternalName);
+            weapDef->guidedMissileType = (guidedMissileType_t)arrayIndex;
             goto LABEL_104;
         case 27:
             weapDef->bounceSound = (const char **)BG_RegisterSurfaceTypeSounds(pValue);
@@ -924,74 +1981,74 @@ int __cdecl BG_ParseWeaponDefSpecificFieldType(WeaponFullDef *pStruct, const cha
         case 28:
             arrayIndex = Weapon_GetStringArrayIndex(pValue, stickinessNames, 6);
             if ( arrayIndex < 0 )
-                Com_Error(ERR_DROP, &byte_C75C88, pValue, weapVariantDef->szInternalName);
-            weapDef->stickiness = arrayIndex;
+                Com_Error(ERR_DROP, "Unknown weapon stickiness type \"%s\" in '%s\"", pValue, weapVariantDef->szInternalName);
+            weapDef->stickiness = (WeapStickinessType)arrayIndex;
             goto LABEL_104;
         case 29:
             arrayIndex = Weapon_GetStringArrayIndex(pValue, rotateTypeNames, 3);
             if ( arrayIndex < 0 )
-                Com_Error(ERR_DROP, &byte_C75C5C, pValue, weapVariantDef->szInternalName);
-            weapDef->rotateType = arrayIndex;
+                Com_Error(ERR_DROP, "Unknown weapon rotate type \"%s\" in '%s\"", pValue, weapVariantDef->szInternalName);
+            weapDef->rotateType = (WeapRotateType)arrayIndex;
             goto LABEL_104;
         case 30:
             arrayIndex = Weapon_GetStringArrayIndex(pValue, overlayInterfaceNames, 3);
             if ( arrayIndex < 0 )
-                Com_Error(ERR_DROP, &byte_C75C28, pValue, weapVariantDef->szInternalName);
-            weapDef->overlayInterface = arrayIndex;
+                Com_Error(ERR_DROP, "Unknown weapon overlay interface \"%s\" in '%s\"", pValue, weapVariantDef->szInternalName);
+            weapDef->overlayInterface = (WeapOverlayInteface_t)arrayIndex;
             goto LABEL_104;
         case 31:
             arrayIndex = Weapon_GetStringArrayIndex(pValue, szWeapInventoryTypeNames, 5);
             if ( arrayIndex < 0 )
-                Com_Error(ERR_DROP, &byte_C75E70, pValue, weapVariantDef->szInternalName);
-            weapDef->inventoryType = arrayIndex;
+                Com_Error(ERR_DROP, "Unknown weapon inventory type \"%s\" in '%s\"", pValue, weapVariantDef->szInternalName);
+            weapDef->inventoryType = (weapInventoryType_t)arrayIndex;
             goto LABEL_104;
         case 32:
             arrayIndex = Weapon_GetStringArrayIndex(pValue, szWeapFireTypeNames, 7);
             if ( arrayIndex < 0 )
-                Com_Error(ERR_DROP, &byte_C75E48, pValue, weapVariantDef->szInternalName);
-            weapDef->fireType = arrayIndex;
+                Com_Error(ERR_DROP, "Unknown weapon fire type \"%s\" in '%s\"", pValue, weapVariantDef->szInternalName);
+            weapDef->fireType = (weapFireType_t)arrayIndex;
             goto LABEL_104;
         case 33:
             arrayIndex = Weapon_GetStringArrayIndex(pValue, szWeapClipTypeNames, 6);
             if ( arrayIndex < 0 )
-                Com_Error(ERR_DROP, &byte_C75E20, pValue, weapVariantDef->szInternalName);
-            weapDef->clipType = arrayIndex;
+                Com_Error(ERR_DROP, "Unknown weapon clip type \"%s\" in '%s\"", pValue, weapVariantDef->szInternalName);
+            weapDef->clipType = (weapClipType_t)arrayIndex;
             goto LABEL_104;
         case 34:
             arrayIndex = Weapon_GetStringArrayIndex(pValue, ammoCounterClipNames, 7);
             if ( arrayIndex < 0 )
-                Com_Error(ERR_DROP, &byte_C75BF8, pValue, weapVariantDef->szInternalName);
-            weapDef->ammoCounterClip = arrayIndex;
+                Com_Error(ERR_DROP, "Unknown weapon ammo counter clip \"%s\" in '%s\"", pValue, weapVariantDef->szInternalName);
+            weapDef->ammoCounterClip = (ammoCounterClipType_t)arrayIndex;
             goto LABEL_104;
         case 35:
             arrayIndex = Weapon_GetStringArrayIndex(pValue, weapIconRatioNames, 3);
             if ( arrayIndex < 0 )
-                Com_Error(ERR_DROP, &byte_C75BD0, pValue, weapVariantDef->szInternalName);
-            weapDef->hudIconRatio = arrayIndex;
+                Com_Error(ERR_DROP, "Unknown weapon hud icon ratio \"%s\" in '%s\"", pValue, weapVariantDef->szInternalName);
+            weapDef->hudIconRatio = (weaponIconRatioType_t)arrayIndex;
             goto LABEL_104;
         case 36:
             arrayIndex = Weapon_GetStringArrayIndex(pValue, weapIconRatioNames, 3);
             if ( arrayIndex < 0 )
-                Com_Error(ERR_DROP, &byte_C75BD0, pValue, weapVariantDef->szInternalName);
-            weapDef->ammoCounterIconRatio = arrayIndex;
+                Com_Error(ERR_DROP, "Unknown weapon ammo counter icon ratio \"%s\" in '%s\"", pValue, weapVariantDef->szInternalName);
+            weapDef->ammoCounterIconRatio = (weaponIconRatioType_t)arrayIndex;
             goto LABEL_104;
         case 37:
             arrayIndex = Weapon_GetStringArrayIndex(pValue, weapIconRatioNames, 3);
             if ( arrayIndex < 0 )
-                Com_Error(ERR_DROP, &byte_C75BD0, pValue, weapVariantDef->szInternalName);
-            weapDef->killIconRatio = arrayIndex;
+                Com_Error(ERR_DROP, "Unknown weapon kill icon ratio \"%s\" in '%s\"", pValue, weapVariantDef->szInternalName);
+            weapDef->killIconRatio = (weaponIconRatioType_t)arrayIndex;
             goto LABEL_104;
         case 38:
             arrayIndex = Weapon_GetStringArrayIndex(pValue, weapIconRatioNames, 3);
             if ( arrayIndex < 0 )
-                Com_Error(ERR_DROP, &byte_C75BD0, pValue, weapVariantDef->szInternalName);
-            weapVariantDef->dpadIconRatio = arrayIndex;
+                Com_Error(ERR_DROP, "Unknown weapon dpad icon ratio \"%s\" in '%s\"", pValue, weapVariantDef->szInternalName);
+            weapVariantDef->dpadIconRatio = (weaponIconRatioType_t)arrayIndex;
             goto LABEL_104;
         case 39:
             arrayIndex = Weapon_GetStringArrayIndex(pValue, weapIconRatioNames, 3);
             if ( arrayIndex < 0 )
-                Com_Error(ERR_DROP, &byte_C75BD0, pValue, weapVariantDef->szInternalName);
-            weapDef->indicatorIconRatio = arrayIndex;
+                Com_Error(ERR_DROP, "Unknown weapon indicator icon ratio \"%s\" in '%s\"", pValue, weapVariantDef->szInternalName);
+            weapDef->indicatorIconRatio = (weaponIconRatioType_t)arrayIndex;
             goto LABEL_104;
         case 40:
             numHideTags = 0;
@@ -1002,7 +2059,7 @@ int __cdecl BG_ParseWeaponDefSpecificFieldType(WeaponFullDef *pStruct, const cha
                 if ( !pos )
                     break;
                 if ( numHideTags >= 32 )
-                    Com_Error(ERR_DROP, &byte_C75BA4, token, numHideTags, 32);
+                    Com_Error(ERR_DROP, "maximum hide tags (%s) exceeded: %i > %i", token, numHideTags, 32);
                 StringOfSize = SL_GetStringOfSize(SCRIPTINSTANCE_SERVER, (char *)token, 0, strlen(token) + 1, 10);
                 weapVariantDef->hideTags[numHideTags] = StringOfSize;
                 weapVariantDef->hideTags[numHideTags] = SL_ConvertToLowercase(
@@ -1033,7 +2090,7 @@ int __cdecl BG_ParseWeaponDefSpecificFieldType(WeaponFullDef *pStruct, const cha
                 if ( !pos )
                     break;
                 if ( numNoteTrackMappings >= 20 )
-                    Com_Error(ERR_DROP, &byte_C75B60, 20, token);
+                    Com_Error(ERR_DROP, "Max notetrack-to-sound mappings (%i) exceeded with entry \"%s\".", 20, token);
                 if ( keyName[0] )
                 {
                     LowercaseString = SL_GetLowercaseString(keyName, 0, SCRIPTINSTANCE_SERVER);
@@ -1046,7 +2103,7 @@ int __cdecl BG_ParseWeaponDefSpecificFieldType(WeaponFullDef *pStruct, const cha
                 {
                     v11 = strlen(token);
                     if ( v11 >= 63 )
-                        Com_Error(ERR_DROP, &byte_C75B1C, token, v11, 63);
+                        Com_Error(ERR_DROP, "Noetrack-to-sopund: keyname \"%s\" is too long (length %i/%i).", token, v11, 63);
                     v10 = token;
                     v9 = keyName;
                     do
@@ -1067,7 +2124,7 @@ LABEL_104:
             result = 1;
             break;
         default:
-            Com_Error(ERR_DROP, &byte_C75A9C, iFieldType, weapVariantDef->szInternalName);
+            Com_Error(ERR_DROP, "Bad field type %i in %s", iFieldType, weapVariantDef->szInternalName);
             result = 0;
             break;
     }
@@ -1109,117 +2166,119 @@ char **__cdecl BG_RegisterSurfaceTypeSounds(const char *surfaceSoundBase)
     char *v5; // [esp+8h] [ebp-144h]
     const char *v6; // [esp+Ch] [ebp-140h]
     char v7; // [esp+23h] [ebp-129h]
-    _BYTE *v8; // [esp+28h] [ebp-124h]
+    char *v8; // [esp+28h] [ebp-124h]
     char *v9; // [esp+2Ch] [ebp-120h]
-    unsigned __int8 *result; // [esp+40h] [ebp-10Ch]
+    char **result; // [esp+40h] [ebp-10Ch]
     char aliasName[256]; // [esp+44h] [ebp-108h] BYREF
     int i; // [esp+148h] [ebp-4h]
 
-    if ( !surfaceSoundBase
+    if (!surfaceSoundBase
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_weapons_load_obj.cpp",
-                    1584,
-                    0,
-                    "%s",
-                    "surfaceSoundBase") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_weapons_load_obj.cpp",
+            1584,
+            0,
+            "%s",
+            "surfaceSoundBase"))
     {
         __debugbreak();
     }
-    if ( !*surfaceSoundBase )
+    if (!*surfaceSoundBase)
         return 0;
-    for ( i = 0; i < surfaceTypeSoundListCount; ++i )
+    for (i = 0; i < surfaceTypeSoundListCount; ++i)
     {
-        if ( !I_strcmp(surfaceTypeSoundLists[i].surfaceSoundBase, surfaceSoundBase) )
-            return (char **)dword_E8605C[2 * i];
+        if (!I_strcmp(surfaceTypeSoundLists[i].surfaceSoundBase, surfaceSoundBase))
+            return surfaceTypeSoundLists[i].soundAliasList;
     }
-    if ( surfaceTypeSoundListCount == 16 )
-        Com_Error(ERR_DROP, &byte_C75F5C, 16);
-    result = Hunk_AllocLow(0x7Cu, "BG_RegisterSurfaceTypeSounds", 17);
-    for ( i = 0; i < 31; ++i )
+    if (surfaceTypeSoundListCount == 16)
+        Com_Error(ERR_DROP, "Exceeded MAX_SURFACE_TYPE_SOUND_LISTS (%d)", 16);
+    result = (char **)Hunk_AllocLow(0x7Cu, "BG_RegisterSurfaceTypeSounds", 17);
+    for (i = 0; i < 31; ++i)
     {
         v2 = Com_SurfaceTypeToName(i);
         Com_sprintf(aliasName, 0x100u, "%s_%s", surfaceSoundBase, v2);
         v3 = Hunk_AllocLow(&aliasName[strlen(aliasName) + 1] - &aliasName[1] + 1, "BG_RegisterSurfaceTypeSounds", 17);
-        *(unsigned int *)&result[4 * i] = v3;
+        result[i] = (char *)v3;
         v9 = aliasName;
-        v8 = *(_BYTE **)&result[4 * i];
+        v8 = result[i];
         do
         {
             v7 = *v9;
             *v8++ = *v9++;
-        }
-        while ( v7 );
+        } while (v7);
     }
     surfaceTypeSoundLists[surfaceTypeSoundListCount].surfaceSoundBase = (char *)Hunk_AllocLow(
-                                                                                                                                                                strlen(surfaceSoundBase) + 1,
-                                                                                                                                                                "BG_RegisterSurfaceTypeSounds",
-                                                                                                                                                                17);
+        strlen(surfaceSoundBase) + 1,
+        "BG_RegisterSurfaceTypeSounds",
+        17);
     v6 = surfaceSoundBase;
     v5 = surfaceTypeSoundLists[surfaceTypeSoundListCount].surfaceSoundBase;
     do
     {
         v4 = *v6;
         *v5++ = *v6++;
-    }
-    while ( v4 );
-    dword_E8605C[2 * surfaceTypeSoundListCount++] = (int)result;
-    return (char **)result;
+    } while (v4);
+    surfaceTypeSoundLists[surfaceTypeSoundListCount++].soundAliasList = result;
+    return result;
 }
 
-WeaponVariantDef *__cdecl BG_LoadWeaponVariantDefInternal(const char *folder, char *name)
+WeaponFullDef *__cdecl BG_LoadWeaponVariantDefInternal(const char *folder, char *name)
 {
-    unsigned __int8 *weapFullDef; // [esp+8h] [ebp-Ch]
+    WeaponFullDef *weapFullDef; // [esp+8h] [ebp-Ch]
     WeaponDef *weapDef; // [esp+10h] [ebp-4h]
 
-    weapFullDef = Hunk_AllocLow(0xC48u, "BG_LoadWeaponVariantDefInternal", 10);
-    InitWeaponDef((WeaponFullDef *)weapFullDef);
-    weapDef = (WeaponDef *)(weapFullDef + 228);
-    if ( !BG_LoadWeaponVariantDefFile((WeaponFullDef *)weapFullDef, folder, name) )
+    weapFullDef = (WeaponFullDef *)Hunk_AllocLow(0xC48u, "BG_LoadWeaponVariantDefInternal", 10);
+    InitWeaponDef(weapFullDef);
+    weapDef = &weapFullDef->weapDef;
+    if (!BG_LoadWeaponVariantDefFile(weapFullDef, folder, name))
         return 0;
-    *((unsigned int *)weapFullDef + 565) = 0;
-    *((unsigned int *)weapFullDef + 566) = 0;
+    weapFullDef->weapDef.flameTableFirstPersonPtr = 0;
+    weapFullDef->weapDef.flameTableThirdPersonPtr = 0;
     bg_nextParseFlameTableIndex = 0;
-    if ( **((_BYTE **)weapFullDef + 563) )
-        *((unsigned int *)weapFullDef + 565) = BG_GetFlameTable(folder, *((char **)weapFullDef + 563));
-    if ( **((_BYTE **)weapFullDef + 564) )
-        *((unsigned int *)weapFullDef + 566) = BG_GetFlameTable(folder, *((char **)weapFullDef + 564));
-    if ( I_stricmp(name, "defaultweapon_mp") )
+    if (*weapFullDef->weapDef.flameTableFirstPerson)
+        weapFullDef->weapDef.flameTableFirstPersonPtr = BG_GetFlameTable(
+            folder,
+            (char *)weapFullDef->weapDef.flameTableFirstPerson);
+    if (*weapFullDef->weapDef.flameTableThirdPerson)
+        weapFullDef->weapDef.flameTableThirdPersonPtr = BG_GetFlameTable(
+            folder,
+            (char *)weapFullDef->weapDef.flameTableThirdPerson);
+    if (I_stricmp(name, "defaultweapon_mp"))
     {
-        if ( !*((unsigned int *)weapFullDef + 159) )
-            *((unsigned int *)weapFullDef + 159) = *((unsigned int *)weapFullDef + 157);
-        if ( !*((unsigned int *)weapFullDef + 160) )
-            *((unsigned int *)weapFullDef + 160) = *((unsigned int *)weapFullDef + 158);
-        if ( !*((unsigned int *)weapFullDef + 141) )
-            *((unsigned int *)weapFullDef + 141) = "wpn_default_raise";
-        if ( !*((unsigned int *)weapFullDef + 145) )
-            *((unsigned int *)weapFullDef + 145) = "wpn_default_putaway";
-        if ( !*((unsigned int *)weapFullDef + 88) )
-            *((unsigned int *)weapFullDef + 88) = "wpn_default_pickup";
-        if ( !*((unsigned int *)weapFullDef + 90) )
-            *((unsigned int *)weapFullDef + 90) = "wpn_default_ammo_pickup";
-        if ( !*((unsigned int *)weapFullDef + 105) )
-            *((unsigned int *)weapFullDef + 105) = "wpn_default_no_ammo";
+        if (!weapFullDef->weapDef.viewLastShotEjectEffect)
+            weapFullDef->weapDef.viewLastShotEjectEffect = weapFullDef->weapDef.viewShellEjectEffect;
+        if (!weapFullDef->weapDef.worldLastShotEjectEffect)
+            weapFullDef->weapDef.worldLastShotEjectEffect = weapFullDef->weapDef.worldShellEjectEffect;
+        if (!weapFullDef->weapDef.raiseSound)
+            weapFullDef->weapDef.raiseSound = "wpn_default_raise";
+        if (!weapFullDef->weapDef.putawaySound)
+            weapFullDef->weapDef.putawaySound = "wpn_default_putaway";
+        if (!weapFullDef->weapDef.pickupSound)
+            weapFullDef->weapDef.pickupSound = "wpn_default_pickup";
+        if (!weapFullDef->weapDef.ammoPickupSound)
+            weapFullDef->weapDef.ammoPickupSound = "wpn_default_ammo_pickup";
+        if (!weapFullDef->weapDef.emptyFireSound)
+            weapFullDef->weapDef.emptyFireSound = "wpn_default_no_ammo";
     }
-    BG_SetupTransitionTimes((WeaponVariantDef *)weapFullDef);
+    BG_SetupTransitionTimes(&weapFullDef->weapVariantDef);
     BG_CheckWeaponDamageRanges(weapDef);
-    if ( *((float *)weapFullDef + 353) > 15000.0 )
+    if (weapFullDef->weapDef.enemyCrosshairRange > 15000.0)
         Com_Error(ERR_DROP, "Enemy crosshair ranges should be less than %f ", 15000.0);
-    if ( *((unsigned int *)weapFullDef + 64) == 2 )
-        BG_CheckProjectileValues((WeaponFullDef *)weapFullDef);
-    if ( !G_ParseWeaponAccurayGraphs(weapDef) )
+    if (weapFullDef->weapDef.weapType == WEAPTYPE_PROJECTILE)
+        BG_CheckProjectileValues(weapFullDef);
+    if (!G_ParseWeaponAccurayGraphs(weapDef))
         return 0;
-    if ( weapFullDef[1584] )
+    if (weapFullDef->weapDef.sharedAmmo)
     {
-        I_strlwr(*((char **)weapFullDef + 16));
-        I_strlwr(*((char **)weapFullDef + 18));
+        I_strlwr((char *)weapFullDef->weapVariantDef.szAmmoName);
+        I_strlwr((char *)weapFullDef->weapVariantDef.szClipName);
     }
     else
     {
-        *((unsigned int *)weapFullDef + 16) = "";
-        *((unsigned int *)weapFullDef + 18) = "";
+        weapFullDef->weapVariantDef.szAmmoName = "";
+        weapFullDef->weapVariantDef.szClipName = "";
     }
-    //BLOPS_NULLSUB();
-    return (WeaponVariantDef *)weapFullDef;
+    //BG_EvalVehicleName();
+    return weapFullDef;
 }
 
 void __cdecl BG_SetupTransitionTimes(WeaponVariantDef *weapVariantDef)
@@ -1367,6 +2426,6 @@ WeaponFullDef *__cdecl BG_LoadDefaultWeaponVariantDef_LoadObj()
 
 WeaponVariantDef *__cdecl BG_LoadDefaultWeaponVariantDef_FastFile()
 {
-    return DB_FindXAssetHeader(ASSET_TYPE_WEAPON, "none", 1, -1).weapon;
+    return DB_FindXAssetHeader(ASSET_TYPE_WEAPON, (char*)"none", 1, -1).weapon;
 }
 

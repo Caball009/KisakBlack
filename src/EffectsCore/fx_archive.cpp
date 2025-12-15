@@ -55,21 +55,6 @@ FxElemVisuals __cdecl FX_GetElemVisuals(const FxElemDef *elemDef, int randomSeed
                                                                                                                              * LOWORD(fx_randomTable[randomSeed + 21])) >> 16];
 }
 
-void __cdecl MemFile_WriteCString(MemoryFile *memFile, char *string)
-{
-    if ( !string
-        && !Assert_MyHandler(
-                    "c:\\projects_pc\\cod\\codsrc\\src\\effectscore\\../universal/memfile.h",
-                    144,
-                    0,
-                    "%s",
-                    "string") )
-    {
-        __debugbreak();
-    }
-    MemFile_WriteData(memFile, strlen(string) + 1, (unsigned __int8 *)string);
-}
-
 FxPool<FxElem,FxElemContainer> *__cdecl FX_PoolFromHandle_Generic<FxElem,FxElemContainer,2048>(
                 FxPool<FxElem,FxElemContainer> *poolArray,
                 unsigned __int16 handle)

@@ -1,4 +1,6 @@
 #include "dl_main.h"
+#include "common.h"
+#include <string.h>
 
 int __cdecl DL_VPrintf(const char *fmt, char *argptr)
 {

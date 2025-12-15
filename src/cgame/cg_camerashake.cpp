@@ -1,4 +1,7 @@
 #include "cg_camerashake.h"
+#include <demo/demo_playback.h>
+
+CameraShakeSet s_cameraShakeSet[1];
 
 void __cdecl CG_StartShakeCamera(int localClientNum, float p, int duration, float *src, float radius)
 {
@@ -209,44 +212,44 @@ void __cdecl CG_ShakeCamera(int localClientNum)
         scale = cgameGlob->rumbleScale;
         rumbleScale = scale;
     }
-    if ( scale > 0.0 )
+   //if ( scale > 0.0 )
+   //{
+   //    if ( scale > 1.0 )
+   //        scale = 1.0f;
+   //    v1 = (float)((float)(25.132742 * sx) + camShakeSet->phase);
+   //    __libm_sse2_sin(v4);
+   //    *(float *)&v1 = v1;
+   //    cgameGlob->refdefViewAngles[0] = cgameGlob->refdefViewAngles[0]
+   //                                                                 + (float)((float)((float)(*(float *)&v1 * rumbleScale) * 18.0) * scale);
+   //    *((float *)&v5 + 1) = (float)(47.12389 * sx) + camShakeSet->phase;
+   //    v2 = *((float *)&v5 + 1);
+   //    __libm_sse2_sin(v5);
+   //    *(float *)&v2 = v2;
+   //    cgameGlob->refdefViewAngles[1] = cgameGlob->refdefViewAngles[1]
+   //                                                                 + (float)((float)((float)(*(float *)&v2 * rumbleScale) * 16.0) * scale);
+   //    *(float *)&v6 = (float)(37.699112 * sx) + camShakeSet->phase;
+   //    v3 = *(float *)&v6;
+   //    __libm_sse2_sin(v6);
+   //    *(float *)&v3 = v3;
+   //    cgameGlob->refdefViewAngles[2] = cgameGlob->refdefViewAngles[2]
+   //                                                                 + (float)((float)((float)(*(float *)&v3 * rumbleScale) * 10.0) * scale);
+   //}
+    if (scale > 0.0f)
     {
-        if ( scale > 1.0 )
+        if (scale > 1.0f)
             scale = 1.0f;
-        v1 = (float)((float)(25.132742 * sx) + camShakeSet->phase);
-        __libm_sse2_sin(v4);
-        *(float *)&v1 = v1;
-        cgameGlob->refdefViewAngles[0] = cgameGlob->refdefViewAngles[0]
-                                                                     + (float)((float)((float)(*(float *)&v1 * rumbleScale) * 18.0) * scale);
-        *((float *)&v5 + 1) = (float)(47.12389 * sx) + camShakeSet->phase;
-        v2 = *((float *)&v5 + 1);
-        __libm_sse2_sin(v5);
-        *(float *)&v2 = v2;
-        cgameGlob->refdefViewAngles[1] = cgameGlob->refdefViewAngles[1]
-                                                                     + (float)((float)((float)(*(float *)&v2 * rumbleScale) * 16.0) * scale);
-        *(float *)&v6 = (float)(37.699112 * sx) + camShakeSet->phase;
-        v3 = *(float *)&v6;
-        __libm_sse2_sin(v6);
-        *(float *)&v3 = v3;
-        cgameGlob->refdefViewAngles[2] = cgameGlob->refdefViewAngles[2]
-                                                                     + (float)((float)((float)(*(float *)&v3 * rumbleScale) * 10.0) * scale);
+
+        float angleX = 25.132742f * sx + camShakeSet->phase;
+        float angleY = 47.12389f * sx + camShakeSet->phase;
+        float angleZ = 37.699112f * sx + camShakeSet->phase;
+
+        cgameGlob->refdefViewAngles[0] += sinf(angleX) * rumbleScale * 18.0f * scale;
+        cgameGlob->refdefViewAngles[1] += sinf(angleY) * rumbleScale * 16.0f * scale;
+        cgameGlob->refdefViewAngles[2] += sinf(angleZ) * rumbleScale * 10.0f * scale;
     }
     else
     {
         camShakeSet->phase = crandom() * 3.1415927;
-    }
-}
-
-void __cdecl MemFile_WriteData(MemoryFile *memFile, unsigned int byteCount, unsigned __int8 *p)
-{
-    if ( (int)(byteCount + memFile->cacheBufferUsed) < 32760 )
-    {
-        memcpy(&memFile->cacheBuffer[memFile->cacheBufferUsed], p, byteCount);
-        memFile->cacheBufferUsed += byteCount;
-    }
-    else
-    {
-        MemFile_WriteDataInternal(memFile, byteCount, p);
     }
 }
 

@@ -1,5 +1,19 @@
 #pragma once
 
+struct adjacencyWinding_t // sizeof=0x34
+{                                       // XREF: Xmodel_ParsePhysicsBrush/r
+    int numsides;                       // XREF: Xmodel_ParsePhysicsBrush+7D3/r
+                                        // Xmodel_ParsePhysicsBrush+80F/r ...
+    int sides[12];
+};
+
+struct SimplePlaneIntersection // sizeof=0x18
+{                                       // XREF: Xmodel_ParsePhysicsBrush/r
+    float xyz[3];                       // XREF: Xmodel_ParsePhysicsBrush+5E6/r
+                                        // Xmodel_ParsePhysicsBrush+5F6/r ...
+    int planeIndex[3];
+};
+
 adjacencyWinding_t *__cdecl BuildBrushdAdjacencyWindingForSide(
                 const char *name,
                 float *sideNormal,

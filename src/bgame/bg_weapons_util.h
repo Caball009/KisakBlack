@@ -1,5 +1,7 @@
 #pragma once
 
+struct WeaponComponentList;
+
 void __cdecl BG_WeaponComponentListSort(const char *originalName, WeaponComponentList *componentList, char *outputName);
 void __cdecl BG_WeaponNameToComponentList(const char *name, WeaponComponentList *componentList);
 void __cdecl BG_WeaponComponentListIdentify(WeaponComponentList *componentList);

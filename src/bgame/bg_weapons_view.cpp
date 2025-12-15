@@ -1,4 +1,13 @@
 #include "bg_weapons_view.h"
+#include "bg_local.h"
+#include "bg_public.h"
+#include "bg_misc.h"
+#include "bg_weapons.h"
+#include "bg_weapons_def.h"
+#include <cgame/cg_weapons.h>
+#include "bg_mantle.h"
+#include "bg_perks.h"
+#include <universal/com_math_anglevectors.h>
 
 double __cdecl BG_GetBobCycle(const playerState_s *ps)
 {
@@ -9,44 +18,34 @@ double __cdecl BG_GetBobCycle(const playerState_s *ps)
 
 double __cdecl BG_CalculateWeaponMovement_VerticalBobFactor(const playerState_s *ps, float cycle, float speed)
 {
-    long double v4; // [esp+0h] [ebp-10h]
-    float v5; // [esp+0h] [ebp-10h]
-    float amplitude; // [esp+8h] [ebp-8h]
-    const WeaponDef *weapDef; // [esp+Ch] [ebp-4h]
+    float amplitude;
+    const WeaponDef *weapDef = BG_GetWeaponDef(ps->weapon);
 
-    weapDef = BG_GetWeaponDef(ps->weapon);
-    if ( ps->waterlevel < 3 )
+    if (ps->waterlevel < 3)
     {
-        if ( (ps->pm_flags & 0x400000) != 0 )
-        {
-            amplitude = (float)(speed * bg_weaponBobAmplitudeDtp->current.vector[1]) * weapDef->vDtpBob[1];
-        }
-        else if ( ps->viewHeightTarget == 11 )
-        {
+        if (ps->pm_flags & 0x400000)
+            amplitude = speed * bg_weaponBobAmplitudeDtp->current.vector[1] * weapDef->vDtpBob[1];
+        else if (ps->viewHeightTarget == 11)
             amplitude = speed * bg_weaponBobAmplitudeProne->current.vector[1];
-        }
-        else if ( ps->viewHeightTarget == 40 )
-        {
-            amplitude = (float)((float)(1.0 - ps->fWeaponPosFrac) * speed) * bg_weaponBobAmplitudeDucked->current.vector[1];
-        }
-        else if ( (ps->pm_flags & 0x8000) != 0 )
-        {
-            amplitude = (float)(speed * bg_weaponBobAmplitudeSprinting->current.vector[1]) * weapDef->vSprintBob[1];
-        }
+        else if (ps->viewHeightTarget == 40)
+            amplitude = (1.0f - ps->fWeaponPosFrac) * speed * bg_weaponBobAmplitudeDucked->current.vector[1];
+        else if (ps->pm_flags & 0x8000)
+            amplitude = speed * bg_weaponBobAmplitudeSprinting->current.vector[1] * weapDef->vSprintBob[1];
         else
-        {
-            amplitude = (float)((float)(1.0 - ps->fWeaponPosFrac) * speed) * bg_weaponBobAmplitudeStanding->current.vector[1];
-        }
+            amplitude = (1.0f - ps->fWeaponPosFrac) * speed * bg_weaponBobAmplitudeStanding->current.vector[1];
     }
     else
     {
         amplitude = bg_weaponBobAmplitudeSwimming->current.vector[1];
     }
-    if ( amplitude > bg_weaponBobMax->current.value )
+
+    if (amplitude > bg_weaponBobMax->current.value)
         amplitude = bg_weaponBobMax->current.value;
-    __libm_sse2_sin(v4);
-    v5 = sin(cycle * 4.0 + 1.5707964);
-    return (v5 * 0.2 + (float)(cycle * 2.0)) * 0.75 * amplitude;
+
+    float sinA = sinf(cycle * 4.0f);
+    float sinB = sinf(cycle * 4.0f + 1.5707964f);
+
+    return (sinA + sinB * 0.2f) * 0.75f * amplitude;
 }
 
 double __cdecl BG_CalculateWeaponMovement_HorizontalBobFactor(const playerState_s *ps, float cycle, float speed)
@@ -358,9 +357,9 @@ void __cdecl BG_CalculateWeaponMovement_Base_Internal_Movement(
 {
     float v4; // [esp+18h] [ebp-58h]
     bool v5; // [esp+1Ch] [ebp-54h]
-    float *vStrafeRot; // [esp+20h] [ebp-50h]
+    const float *vStrafeRot; // [esp+20h] [ebp-50h]
     float v7; // [esp+24h] [ebp-4Ch]
-    float *vStrafeMove; // [esp+28h] [ebp-48h]
+    const float *vStrafeMove; // [esp+28h] [ebp-48h]
     float v9; // [esp+30h] [ebp-40h]
     float v10; // [esp+38h] [ebp-38h]
     float angleWeight; // [esp+3Ch] [ebp-34h]
@@ -669,9 +668,11 @@ int __cdecl BG_CalculateWeaponMovement_GunRecoil_SingleAngle(
         *fOffset = (float)(*speed * fTimeStep) + *fOffset;
         if ( *fOffset <= fOfsCap )
         {
-            if ( COERCE_FLOAT(LODWORD(fOfsCap) ^ _mask__NegFloat_) > *fOffset )
+            //if ( COERCE_FLOAT(LODWORD(fOfsCap) ^ _mask__NegFloat_) > *fOffset )
+            if ( -fOfsCap > *fOffset )
             {
-                *(unsigned int *)fOffset = LODWORD(fOfsCap) ^ _mask__NegFloat_;
+                //*(unsigned int *)fOffset = LODWORD(fOfsCap) ^ _mask__NegFloat_;
+                *fOffset = -fOfsCap;
                 if ( *speed < 0.0 )
                     *speed = 0.0f;
             }
@@ -706,8 +707,12 @@ int __cdecl BG_CalculateWeaponMovement_GunRecoil_SingleAngle(
         }
         if ( *speed <= fGunKickSpeedMax )
         {
-            if ( COERCE_FLOAT(LODWORD(fGunKickSpeedMax) ^ _mask__NegFloat_) > *speed )
-                *(unsigned int *)speed = LODWORD(fGunKickSpeedMax) ^ _mask__NegFloat_;
+            //if ( COERCE_FLOAT(LODWORD(fGunKickSpeedMax) ^ _mask__NegFloat_) > *speed )
+            //    *(unsigned int *)speed = LODWORD(fGunKickSpeedMax) ^ _mask__NegFloat_;
+            if (-fGunKickSpeedMax > *speed)
+            {
+                *speed = -fGunKickSpeedMax;
+            }
         }
         else
         {
@@ -809,19 +814,35 @@ void __cdecl BG_CalculateWeaponMovement_Sway(weaponState_t *ws)
             v4 = deltaViewAngles[0];
         else
             v4 = swayMaxAngle;
-        if ( (float)(COERCE_FLOAT(LODWORD(swayMaxAngle) ^ _mask__NegFloat_) - deltaViewAngles[0]) < 0.0 )
+        //if ( (float)(COERCE_FLOAT(LODWORD(swayMaxAngle) ^ _mask__NegFloat_) - deltaViewAngles[0]) < 0.0 )
+        if (-swayMaxAngle - deltaViewAngles[0] < 0.0f)
+        {
             v2 = v4;
+        }
         else
-            LODWORD(v2) = LODWORD(swayMaxAngle) ^ _mask__NegFloat_;
+        {
+            //LODWORD(v2) = LODWORD(swayMaxAngle) ^ _mask__NegFloat_;
+            //LODWORD(v2) = LODWORD(swayMaxAngle) ^ _mask__NegFloat_;
+            v2 = -swayMaxAngle;
+        }
         deltaViewAngles[0] = v2;
+
         if ( (float)(deltaViewAngles[1] - swayMaxAngle) < 0.0 )
             v3 = deltaViewAngles[1];
         else
             v3 = swayMaxAngle;
-        if ( (float)(COERCE_FLOAT(LODWORD(swayMaxAngle) ^ _mask__NegFloat_) - deltaViewAngles[1]) < 0.0 )
+
+        //if ((float)(COERCE_FLOAT(LODWORD(swayMaxAngle) ^ _mask__NegFloat_) - deltaViewAngles[1]) < 0.0)
+        if ((-swayMaxAngle - deltaViewAngles[1]) < 0.0)
+        {
             v1 = v3;
+        }
         else
-            LODWORD(v1) = LODWORD(swayMaxAngle) ^ _mask__NegFloat_;
+        {
+            //LODWORD(v1) = LODWORD(swayMaxAngle) ^ _mask__NegFloat_;
+            v1 = -swayMaxAngle;
+        }
+
         deltaViewAngles[1] = v1;
         deltaOffset_8 = deltaViewAngles[0] * swayVertScalea;
         ws->swayOrigin[1] = DiffTrack(v1 * swayHorizScalea, ws->swayOrigin[1], swayLerpSpeed, ws->frametime);
@@ -900,30 +921,25 @@ void __cdecl BG_SetWeaponMovementAngles(weaponState_t *ws, float *angles)
 
 void __cdecl BG_ComputeAndApplyWeaponMovement_IdleAngles(weaponState_t *ws, float *angles)
 {
-    double v2; // xmm0_8
-    double v3; // xmm0_8
-    double v4; // xmm0_8
-    long double v5; // [esp+0h] [ebp-2Ch]
-    long double v6; // [esp+0h] [ebp-2Ch]
-    long double v7; // [esp+0h] [ebp-2Ch]
-    float fTargScale; // [esp+Ch] [ebp-20h]
-    float fTargScalea; // [esp+Ch] [ebp-20h]
-    float fTargFactor; // [esp+14h] [ebp-18h]
-    float idleSpeed; // [esp+1Ch] [ebp-10h]
-    int weapIndex; // [esp+20h] [ebp-Ch]
-    const WeaponDef *weapDef; // [esp+24h] [ebp-8h]
-    const playerState_s *ps; // [esp+28h] [ebp-4h]
+    const playerState_s *ps = ws->ps;
 
-    ps = ws->ps;
-    weapIndex = BG_GetViewmodelWeaponIndex(ws->ps);
-    weapDef = BG_GetWeaponDef(weapIndex);
-    if ( weapDef->aimDownSight )
+    int weapIndex = BG_GetViewmodelWeaponIndex(ps);
+    const WeaponDef *weapDef = BG_GetWeaponDef(weapIndex);
+
+    float fTargScale;
+    float idleSpeed;
+
+    if (weapDef->aimDownSight)
     {
-        fTargScale = (float)((float)(weapDef->fAdsIdleAmount - weapDef->fHipIdleAmount) * ps->fWeaponPosFrac)
-                             + weapDef->fHipIdleAmount;
-        idleSpeed = (float)((float)(weapDef->adsIdleSpeed - weapDef->hipIdleSpeed) * ps->fWeaponPosFrac)
-                            + weapDef->hipIdleSpeed;
-        if ( zero_idle_movement->current.enabled )
+        fTargScale =
+            (weapDef->fAdsIdleAmount - weapDef->fHipIdleAmount) * ps->fWeaponPosFrac +
+            weapDef->fHipIdleAmount;
+
+        idleSpeed =
+            (weapDef->adsIdleSpeed - weapDef->hipIdleSpeed) * ps->fWeaponPosFrac +
+            weapDef->hipIdleSpeed;
+
+        if (zero_idle_movement->current.enabled)
         {
             fTargScale = 0.0f;
             idleSpeed = 0.0f;
@@ -934,51 +950,34 @@ void __cdecl BG_ComputeAndApplyWeaponMovement_IdleAngles(weaponState_t *ws, floa
         fTargScale = weapDef->fHipIdleAmount;
         idleSpeed = weapDef->hipIdleSpeed;
     }
-    if ( (ps->eFlags & 8) != 0 )
-    {
+
+    float fTargFactor;
+    if (ps->eFlags & 8)
         fTargFactor = weapDef->fIdleProneFactor;
-    }
-    else if ( (ps->eFlags & 4) != 0 )
-    {
+    else if (ps->eFlags & 4)
         fTargFactor = weapDef->fIdleCrouchFactor;
-    }
     else
-    {
         fTargFactor = 1.0f;
-    }
-    if ( fTargFactor != ws->fLastIdleFactor )
-    {
-        if ( fTargFactor <= ws->fLastIdleFactor )
-        {
-            ws->fLastIdleFactor = ws->fLastIdleFactor - (float)(ws->frametime * 0.5);
-            if ( fTargFactor > ws->fLastIdleFactor )
-                ws->fLastIdleFactor = fTargFactor;
-        }
-        else
-        {
-            ws->fLastIdleFactor = (float)(ws->frametime * 0.5) + ws->fLastIdleFactor;
-            if ( ws->fLastIdleFactor > fTargFactor )
-                ws->fLastIdleFactor = fTargFactor;
-        }
-    }
-    fTargScalea = fTargScale * ws->fLastIdleFactor;
-    if ( weapDef->overlayReticle )
-        fTargScalea = (float)(1.0 - ps->fWeaponPosFrac) * fTargScalea;
-    *ws->weapIdleTime += (int)(float)((float)(ws->frametime * 1000.0) * idleSpeed);
-    v2 = (float)((float)*ws->weapIdleTime * 0.00050000002);
-    __libm_sse2_sin(v5);
-    *(float *)&v2 = v2;
-    angles[2] = (float)((float)(fTargScalea * *(float *)&v2) * 0.0099999998) + angles[2];
-    *((float *)&v6 + 1) = (float)*ws->weapIdleTime * 0.00069999998;
-    v3 = *((float *)&v6 + 1);
-    __libm_sse2_sin(v6);
-    *(float *)&v3 = v3;
-    angles[1] = (float)((float)(fTargScalea * *(float *)&v3) * 0.0099999998) + angles[1];
-    *(float *)&v7 = (float)*ws->weapIdleTime * 0.001;
-    v4 = *(float *)&v7;
-    __libm_sse2_sin(v7);
-    *(float *)&v4 = v4;
-    *angles = (float)((float)(fTargScalea * *(float *)&v4) * 0.0099999998) + *angles;
+
+    const float factorSpeed = ws->frametime * 0.5f;
+    if (fTargFactor > ws->fLastIdleFactor)
+        ws->fLastIdleFactor = min(ws->fLastIdleFactor + factorSpeed, fTargFactor);
+    else
+        ws->fLastIdleFactor = max(ws->fLastIdleFactor - factorSpeed, fTargFactor);
+
+    fTargScale *= ws->fLastIdleFactor;
+
+    if (weapDef->overlayReticle)
+        fTargScale *= (1.0f - ps->fWeaponPosFrac);
+
+    *ws->weapIdleTime += (int)(ws->frametime * 1000.0f * idleSpeed);
+
+    const int idleTime = *ws->weapIdleTime;
+    const float scale = fTargScale * 0.01f;
+
+    angles[2] += scale * sinf(idleTime * 0.0005f);
+    angles[1] += scale * sinf(idleTime * 0.0007f);
+    angles[0] += scale * sinf(idleTime * 0.0010f);
 }
 
 void __cdecl BG_ComputeAndApplyWeaponMovement_DamageKickAngles(weaponState_t *ws, float *angles)
@@ -1159,46 +1158,51 @@ void __cdecl BG_ApplyWeaponMovement_BobOrigin(weaponState_t *ws, float *origin)
 
 double __cdecl BG_CalculateViewMovement_VerticalBobFactor(const playerState_s *ps, float cycle, float speed)
 {
-    long double v4; // [esp+0h] [ebp-14h]
-    float v5; // [esp+0h] [ebp-14h]
-    float amplitude; // [esp+10h] [ebp-4h]
+    float amplitude;
 
-    if ( ps->waterlevel < 3 )
+    if (ps->waterlevel < 3)
     {
-        if ( (ps->pm_flags & 0x400000) != 0 )
+        if (ps->pm_flags & 0x400000)
         {
             amplitude = speed * bg_viewBobAmplitudeDtp->current.vector[1];
         }
-        else if ( ps->viewHeightTarget == 11 )
+        else if (ps->viewHeightTarget == 11)
         {
             amplitude = speed * bg_viewBobAmplitudeProne->current.vector[1];
         }
-        else if ( ps->viewHeightTarget == 40 )
+        else if (ps->viewHeightTarget == 40)
         {
-            amplitude = (float)((float)((float)(1.0 - ps->fWeaponPosFrac) * bg_viewBobAmplitudeDucked->current.vector[1])
-                                                + (float)(bg_viewBobAmplitudeDuckedAds->current.vector[1] * ps->fWeaponPosFrac))
-                                * speed;
+            const float frac = ps->fWeaponPosFrac;
+            amplitude =
+                ((1.0f - frac) * bg_viewBobAmplitudeDucked->current.vector[1] +
+                    frac * bg_viewBobAmplitudeDuckedAds->current.vector[1]) *
+                speed;
         }
-        else if ( (ps->pm_flags & 0x8000) != 0 )
+        else if (ps->pm_flags & 0x8000)
         {
             amplitude = speed * bg_viewBobAmplitudeSprinting->current.vector[1];
         }
         else
         {
-            amplitude = (float)((float)((float)(1.0 - ps->fWeaponPosFrac) * bg_viewBobAmplitudeStanding->current.vector[1])
-                                                + (float)(bg_viewBobAmplitudeStandingAds->current.vector[1] * ps->fWeaponPosFrac))
-                                * speed;
+            const float frac = ps->fWeaponPosFrac;
+            amplitude =
+                ((1.0f - frac) * bg_viewBobAmplitudeStanding->current.vector[1] +
+                    frac * bg_viewBobAmplitudeStandingAds->current.vector[1]) *
+                speed;
         }
     }
     else
     {
         amplitude = bg_viewBobAmplitudeSwimming->current.vector[1];
     }
-    if ( amplitude > bg_viewBobMax->current.value )
+
+    if (amplitude > bg_viewBobMax->current.value)
         amplitude = bg_viewBobMax->current.value;
-    __libm_sse2_sin(v4);
-    v5 = sin(cycle * 4.0 + 1.5707964);
-    return (v5 * 0.2 + (float)(cycle * 2.0)) * 0.75 * amplitude;
+
+    const float sinA = sinf(cycle * 4.0f);
+    const float sinB = sinf(cycle * 4.0f + 1.5707964f);
+
+    return (sinA + sinB * 0.2f) * 0.75f * amplitude;
 }
 
 double __cdecl BG_CalculateViewMovement_HorizontalBobFactor(const playerState_s *ps, float cycle, float speed)
@@ -1299,84 +1303,74 @@ void __cdecl BG_CalculateViewMovement_DamageKick(viewState_t *vs, float *angles)
 
 void __cdecl BG_CalculateViewMovement_IdleAngles(viewState_t *vs, float *angles)
 {
-    double v2; // xmm0_8
-    double v3; // xmm0_8
-    long double v4; // [esp+0h] [ebp-28h]
-    long double v5; // [esp+0h] [ebp-28h]
-    float fTargScale; // [esp+8h] [ebp-20h]
-    float fTargScalea; // [esp+8h] [ebp-20h]
-    float fTargFactor; // [esp+10h] [ebp-18h]
-    float idleSpeed; // [esp+18h] [ebp-10h]
-    int weapIndex; // [esp+1Ch] [ebp-Ch]
-    const WeaponDef *weapDef; // [esp+20h] [ebp-8h]
-    playerState_s *ps; // [esp+24h] [ebp-4h]
+    playerState_s *ps = vs->ps;
 
-    ps = vs->ps;
-    weapIndex = BG_GetViewmodelWeaponIndex(vs->ps);
-    weapDef = BG_GetWeaponDef(weapIndex);
-    if ( weapDef->overlayReticle && ps->fWeaponPosFrac != 0.0 )
+    int weapIndex = BG_GetViewmodelWeaponIndex(ps);
+    const WeaponDef *weapDef = BG_GetWeaponDef(weapIndex);
+
+    if (!weapDef->overlayReticle || ps->fWeaponPosFrac == 0.0f)
+        return;
+
+    float fTargScale;
+    float idleSpeed;
+
+    if (BG_IsAimDownSightWeapon(weapIndex))
     {
-        if ( BG_IsAimDownSightWeapon(weapIndex) )
+        fTargScale =
+            (weapDef->fAdsIdleAmount - weapDef->fHipIdleAmount) *
+            ps->fWeaponPosFrac +
+            weapDef->fHipIdleAmount;
+
+        idleSpeed =
+            (weapDef->adsIdleSpeed - weapDef->hipIdleSpeed) *
+            ps->fWeaponPosFrac +
+            weapDef->hipIdleSpeed;
+
+        if (zero_idle_movement->current.enabled)
         {
-            fTargScale = (float)((float)(weapDef->fAdsIdleAmount - weapDef->fHipIdleAmount) * ps->fWeaponPosFrac)
-                                 + weapDef->fHipIdleAmount;
-            idleSpeed = (float)((float)(weapDef->adsIdleSpeed - weapDef->hipIdleSpeed) * ps->fWeaponPosFrac)
-                                + weapDef->hipIdleSpeed;
-            if ( zero_idle_movement->current.enabled )
-            {
-                fTargScale = 0.0f;
-                idleSpeed = 0.0f;
-            }
+            fTargScale = 0.0f;
+            idleSpeed = 0.0f;
         }
-        else if ( weapDef->fHipIdleAmount == 0.0 )
-        {
-            fTargScale = 80.0f;
-            idleSpeed = 1.0f;
-        }
-        else
-        {
-            fTargScale = weapDef->fHipIdleAmount;
-            idleSpeed = weapDef->hipIdleSpeed;
-        }
-        if ( (ps->eFlags & 8) == 0 || (ps->pm_flags & 0x400000) != 0 )
-        {
-            if ( (ps->eFlags & 4) != 0 )
-                fTargFactor = weapDef->fIdleCrouchFactor;
-            else
-                fTargFactor = 1.0f;
-        }
-        else
-        {
-            fTargFactor = weapDef->fIdleProneFactor;
-        }
-        if ( weapDef->overlayReticle && ps->fWeaponPosFrac != 0.0 && fTargFactor != vs->fLastIdleFactor )
-        {
-            if ( fTargFactor <= vs->fLastIdleFactor )
-            {
-                vs->fLastIdleFactor = vs->fLastIdleFactor - (float)(vs->frametime * 0.5);
-                if ( fTargFactor > vs->fLastIdleFactor )
-                    vs->fLastIdleFactor = fTargFactor;
-            }
-            else
-            {
-                vs->fLastIdleFactor = (float)(vs->frametime * 0.5) + vs->fLastIdleFactor;
-                if ( vs->fLastIdleFactor > fTargFactor )
-                    vs->fLastIdleFactor = fTargFactor;
-            }
-        }
-        fTargScalea = (float)((float)(fTargScale * vs->fLastIdleFactor) * ps->fWeaponPosFrac) * ps->holdBreathScale;
-        *vs->weapIdleTime += (int)(float)((float)((float)(ps->holdBreathScale * vs->frametime) * 1000.0) * idleSpeed);
-        *((float *)&v4 + 1) = (float)*vs->weapIdleTime * 0.00069999998;
-        v2 = *((float *)&v4 + 1);
-        __libm_sse2_sin(v4);
-        *(float *)&v2 = v2;
-        angles[1] = (float)((float)(fTargScalea * *(float *)&v2) * 0.0099999998) + angles[1];
-        *(float *)&v5 = (float)*vs->weapIdleTime * 0.001;
-        v3 = *(float *)&v5;
-        __libm_sse2_sin(v5);
-        *(float *)&v3 = v3;
-        *angles = (float)((float)(fTargScalea * *(float *)&v3) * 0.0099999998) + *angles;
     }
+    else if (weapDef->fHipIdleAmount != 0.0f)
+    {
+        fTargScale = weapDef->fHipIdleAmount;
+        idleSpeed = weapDef->hipIdleSpeed;
+    }
+    else
+    {
+        fTargScale = 80.0f;
+        idleSpeed = 1.0f;
+    }
+
+    float fTargFactor;
+    if ((ps->eFlags & 8) && !(ps->pm_flags & 0x400000))
+        fTargFactor = weapDef->fIdleProneFactor;
+    else if (ps->eFlags & 4)
+        fTargFactor = weapDef->fIdleCrouchFactor;
+    else
+        fTargFactor = 1.0f;
+
+    const float factorSpeed = vs->frametime * 0.5f;
+    if (fTargFactor > vs->fLastIdleFactor)
+        vs->fLastIdleFactor = min(vs->fLastIdleFactor + factorSpeed, fTargFactor);
+    else
+        vs->fLastIdleFactor = max(vs->fLastIdleFactor - factorSpeed, fTargFactor);
+
+    fTargScale *= vs->fLastIdleFactor;
+    fTargScale *= ps->fWeaponPosFrac;
+    fTargScale *= ps->holdBreathScale;
+
+    *vs->weapIdleTime += (int)(
+        ps->holdBreathScale *
+        vs->frametime *
+        1000.0f *
+        idleSpeed);
+
+    const int idleTime = *vs->weapIdleTime;
+
+    angles[1] += fTargScale * sinf(idleTime * 0.0007f) * 0.01f;
+    angles[0] += fTargScale * sinf(idleTime * 0.0010f) * 0.01f;
 }
 
 void __cdecl BG_CalculateViewMovement_BobAngles(viewState_t *vs, float *angles)

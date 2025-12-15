@@ -1,4 +1,8 @@
 #include "brush_edges.h"
+#include <universal/assertive.h>
+#include <cstring>
+#include <qcommon/common.h>
+#include <physics/phys_local.h>
 
 adjacencyWinding_t *__cdecl BuildBrushdAdjacencyWindingForSide(
                 const char *name,
@@ -36,7 +40,7 @@ adjacencyWinding_t *__cdecl BuildBrushdAdjacencyWindingForSide(
         return 0;
     if ( NumberOfUniquePoints((const SimplePlaneIntersection **)xyz, ptsCount) < 3 )
         return 0;
-    ptsCount = ReduceToACycle(basePlaneIndex, (const SimplePlaneIntersection **)xyz, ptsCount);
+    ptsCount = ReduceToACycle(basePlaneIndex, (SimplePlaneIntersection **)xyz, ptsCount);
     if ( ptsCount < 3 )
         return 0;
     cycleIndex = 0;
@@ -200,37 +204,34 @@ double __cdecl RepresentativeTriangleFromWinding(
                 int *i1,
                 int *i2)
 {
-    int j; // [esp+14h] [ebp-38h]
-    float areaBest; // [esp+18h] [ebp-34h]
-    float vb[3]; // [esp+20h] [ebp-2Ch] BYREF
-    int k; // [esp+2Ch] [ebp-20h]
-    float vc[3]; // [esp+30h] [ebp-1Ch] BYREF
-    float va[3]; // [esp+3Ch] [ebp-10h] BYREF
-    int i; // [esp+48h] [ebp-4h]
+float v7; // [esp+0h] [ebp-40h]
+    float v8; // [esp+4h] [ebp-3Ch]
+    int j; // [esp+8h] [ebp-38h]
+    float areaBest; // [esp+Ch] [ebp-34h]
+    float vb[3]; // [esp+14h] [ebp-2Ch] BYREF
+    int k; // [esp+20h] [ebp-20h]
+    float vc[3]; // [esp+24h] [ebp-1Ch] BYREF
+    float va[3]; // [esp+30h] [ebp-10h] BYREF
+    int i; // [esp+3Ch] [ebp-4h]
 
     *i0 = 0;
     *i1 = 1;
     *i2 = 2;
-    areaBest = 0.0f;
-    for ( k = 2; k < pointCount; ++k )
+    areaBest = 0.0;
+    for (k = 2; k < pointCount; ++k)
     {
-        for ( j = 1; j < k; ++j )
+        for (j = 1; j < k; ++j)
         {
-            vb[0] = (float)(*xyz)[3 * k] - (float)(*xyz)[3 * j];
-            vb[1] = (float)(*xyz)[3 * k + 1] - (float)(*xyz)[3 * j + 1];
-            vb[2] = (float)(*xyz)[3 * k + 2] - (float)(*xyz)[3 * j + 2];
-            for ( i = 0; i < j; ++i )
+            Vec3Sub(&(*xyz)[3 * k], &(*xyz)[3 * j], vb);
+            for (i = 0; i < j; ++i)
             {
-                va[0] = (float)(*xyz)[3 * i] - (float)(*xyz)[3 * j];
-                va[1] = (float)(*xyz)[3 * i + 1] - (float)(*xyz)[3 * j + 1];
-                va[2] = (float)(*xyz)[3 * i + 2] - (float)(*xyz)[3 * j + 2];
+                Vec3Sub(&(*xyz)[3 * i], &(*xyz)[3 * j], va);
                 Vec3Cross(va, vb, vc);
-                if ( fabs((float)((float)(vc[0] * *normal) + (float)(vc[1] * normal[1])) + (float)(vc[2] * normal[2])) > areaBest )
+                v8 = Vec3Dot(vc, normal);
+                v7 = I_fabs(v8);
+                if (areaBest < v7)
                 {
-                    LODWORD(areaBest) = COERCE_UNSIGNED_INT(
-                                                                (float)((float)(vc[0] * *normal) + (float)(vc[1] * normal[1]))
-                                                            + (float)(vc[2] * normal[2]))
-                                                        & _mask__AbsFloat_;
+                    areaBest = v7;
                     *i0 = i;
                     *i1 = j;
                     *i2 = k;

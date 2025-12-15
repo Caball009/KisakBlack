@@ -1,5 +1,11 @@
 #pragma once
 
+enum proneCheckType_t : __int32
+{                                       // XREF: ?BG_CheckProne@@YA_NPBUplayerState_s@@HQBMMMMPAM2_N33EW4proneCheckType_t@@M@Z/r
+    PCT_CLIENT = 0x0,
+    PCT_ACTOR  = 0x1,
+};
+
 struct actor_prone_info_s // sizeof=0x18
 {                                                                             // XREF: actor_s/r
                                                                                 // actor_prone_info_t/r ...

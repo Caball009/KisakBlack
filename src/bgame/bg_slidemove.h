@@ -1,4 +1,6 @@
 #pragma once
+#include <physics/phys_local.h>
+#include <physics/phys_colgeom.h>
 
 void __cdecl Phys_Vec3ToNitrousVec(float *inVector, phys_vec3 *outVector);
 gjk_polygon_cylinder_t *__cdecl create_gjkcc_gjk_geom(
@@ -7,7 +9,6 @@ gjk_polygon_cylinder_t *__cdecl create_gjkcc_gjk_geom(
                 int stype,
                 gjk_collision_visitor *allocator);
 gjkcc_info *__cdecl create_gjkcc_info(unsigned int gjkcc_id, bool is_server_thread, const float *origin);
-phys_mat44 *__thiscall phys_mat44::operator=(phys_mat44 *this, const phys_mat44 *__that);
 void __thiscall gjkcc_info::update_cg(gjkcc_info *this, float *mins, float *maxs, bool force);
 void __cdecl destroy_gjkcc_info(char *gcci_);
 void __thiscall phys_heap_gjk_cache_system_avl_tree::shutdown(phys_heap_gjk_cache_system_avl_tree *this);

@@ -71,7 +71,6 @@ void __cdecl CG_UpdateDestructibleKillCam(int localClientNum);
 void __cdecl CG_UpdateDestructibleKillCamDof(float distance, GfxDepthOfField *dof);
 void __cdecl CG_UpdateArtilleryKillCam(int localClientNum);
 void __cdecl CG_UpdateDogKillCam(int localClientNum);
-void __cdecl Vec3Sub(const float *a, const float *b, float *diff);
 bool __cdecl CG_KillCamEntityEnabled(int localClientNum);
 void __cdecl CG_InitView(int localClientNum);
 void __cdecl LerpKillCamView(int localClientNum);

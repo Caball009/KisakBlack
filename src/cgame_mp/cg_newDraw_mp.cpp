@@ -1,4 +1,47 @@
 #include "cg_newDraw_mp.h"
+#include <client_mp/cl_main_mp.h>
+#include <cgame/cg_drawtools.h>
+#include <bgame/bg_weapons_ammo.h>
+#include <bgame/bg_weapons_def.h>
+#include <cgame/cg_ammocounter.h>
+#include <bgame/bg_mantle.h>
+#include <client_mp/cl_cgame_mp.h>
+#include "cg_main_mp.h"
+
+const char *cg_drawTalkNames[5] =
+{ "NONE", "ALL", "FRIENDLY", "ENEMY", NULL };
+
+
+const dvar_t *hud_fadeout_speed;
+const dvar_t *hud_enable;
+const dvar_t *hud_fade_ammodisplay;
+const dvar_t *hud_fade_healthbar;
+const dvar_t *hud_fade_compass;
+const dvar_t *hud_fade_stance;
+const dvar_t *hud_fade_offhand;
+const dvar_t *hud_fade_sprint;
+const dvar_t *hud_fade_vehiclecontrols;
+const dvar_t *hud_health_startpulse_injured;
+const dvar_t *hud_health_startpulse_critical;
+const dvar_t *hud_health_pulserate_injured;
+const dvar_t *hud_health_pulserate_critical;
+const dvar_t *hud_deathQuoteFadeTime;
+const dvar_t *hud_healthOverlay_regenPauseTime;
+const dvar_t *hud_healthOverlay_pulseStart;
+const dvar_t *hud_healthOverlay_pulseStop;
+const dvar_t *hud_healthOverlay_phaseOne_toAlphaAdd;
+const dvar_t *hud_healthOverlay_phaseOne_pulseDuration;
+const dvar_t *hud_healthOverlay_phaseTwo_toAlphaMultiplier;
+const dvar_t *hud_healthOverlay_phaseTwo_pulseDuration;
+const dvar_t *hud_healthOverlay_phaseThree_toAlphaMultiplier;
+const dvar_t *hud_healthOverlay_phaseThree_pulseDuration;
+const dvar_t *hud_healthOverlay_phaseEnd_fromAlpha;
+const dvar_t *hud_healthOverlay_phaseEnd_toAlpha;
+const dvar_t *hud_healthOverlay_phaseEnd_pulseDuration;
+const dvar_t *cg_sprintMeterFullColor;
+const dvar_t *cg_sprintMeterEmptyColor;
+const dvar_t *cg_sprintMeterDisabledColor;
+const dvar_t *cg_drawTalk;
 
 void __cdecl CG_AntiBurnInHUD_RegisterDvars()
 {
@@ -175,30 +218,30 @@ void __cdecl CG_AntiBurnInHUD_RegisterDvars()
                                                                                              "Time in milliseconds to fade out the health overlay after it is done flashing");
     cg_sprintMeterFullColor = _Dvar_RegisterVec4(
                                                             "cg_sprintMeterFullColor",
-                                                            COERCE_UNSIGNED_INT(0.80000001),
-                                                            COERCE_UNSIGNED_INT(0.80000001),
-                                                            COERCE_UNSIGNED_INT(0.80000001),
-                                                            COERCE_UNSIGNED_INT(0.80000001),
+                                                            (0.80000001),
+                                                            (0.80000001),
+                                                            (0.80000001),
+                                                            (0.80000001),
                                                             0.0,
                                                             1.0,
                                                             1u,
                                                             "The color of the sprint meter when the sprint meter is full");
     cg_sprintMeterEmptyColor = _Dvar_RegisterVec4(
                                                              "cg_sprintMeterEmptyColor",
-                                                             COERCE_UNSIGNED_INT(0.69999999),
-                                                             COERCE_UNSIGNED_INT(0.5),
-                                                             COERCE_UNSIGNED_INT(0.2),
-                                                             COERCE_UNSIGNED_INT(0.80000001),
+                                                             (0.69999999),
+                                                             (0.5),
+                                                             (0.2),
+                                                             (0.80000001),
                                                              0.0,
                                                              1.0,
                                                              1u,
                                                              "The color of the sprint meter when the sprint meter is empty");
     cg_sprintMeterDisabledColor = _Dvar_RegisterVec4(
                                                                     "cg_sprintMeterDisabledColor",
-                                                                    COERCE_UNSIGNED_INT(0.80000001),
-                                                                    COERCE_UNSIGNED_INT(0.1),
-                                                                    COERCE_UNSIGNED_INT(0.1),
-                                                                    COERCE_UNSIGNED_INT(0.2),
+                                                                    (0.80000001),
+                                                                    (0.1),
+                                                                    (0.1),
+                                                                    (0.2),
                                                                     0.0,
                                                                     1.0,
                                                                     1u,
@@ -242,7 +285,7 @@ bool __cdecl CG_CheckPlayerForLowAmmoSpecific(const cg_s *cgameGlob, unsigned in
 {
     int maxAmmo; // [esp+4h] [ebp-10h]
     int curAmmo; // [esp+8h] [ebp-Ch]
-    playerState_s *ps; // [esp+Ch] [ebp-8h]
+    const playerState_s *ps; // [esp+Ch] [ebp-8h]
 
     ps = &cgameGlob->predictedPlayerState;
     if ( !weapIndex )
@@ -1923,7 +1966,7 @@ void __cdecl draw_tank_turret_component(
                             h = rect->h;
                             ScrPlace_ApplyRect(&scrPlaceView[localClientNum], &x, &y, &w, &h, rect->horzAlign, rect->vertAlign);
                             xy[0][0] = w * 0.5;
-                            LODWORD(xy[0][1]) = COERCE_UNSIGNED_INT(h * 0.75) ^ _mask__NegFloat_;
+                            LODWORD(xy[0][1]) = (h * 0.75) ^ _mask__NegFloat_;
                             *(_QWORD *)&xy[1][0] = __PAIR64__(LODWORD(xy[0][1]), w * 0.5) ^ (unsigned int)_mask__NegFloat_;
                             xy[2][0] = xy[1][0];
                             xy[2][1] = h * 0.25;

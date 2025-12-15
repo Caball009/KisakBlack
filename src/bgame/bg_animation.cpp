@@ -25,7 +25,7 @@
 #include <xanim/dobj_utils.h>
 #include <universal/com_memory.h>
 #include <universal/com_loadutils.h>
-#include <string.h>
+#include <qcommon/ent.h>
 
 animStringItem_t defineStr[23][16];
 char defineStrings[10000];

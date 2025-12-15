@@ -1764,13 +1764,6 @@ void __cdecl CG_UpdateDogKillCam(int localClientNum)
     CG_CalcFov(localClientNum, cg_dogKillCamFov->current.value);
 }
 
-void __cdecl Vec3Sub(const float *a, const float *b, float *diff)
-{
-    *diff = *a - *b;
-    diff[1] = a[1] - b[1];
-    diff[2] = a[2] - b[2];
-}
-
 bool __cdecl CG_KillCamEntityEnabled(int localClientNum)
 {
     cg_s *cgameGlob; // [esp+0h] [ebp-4h]

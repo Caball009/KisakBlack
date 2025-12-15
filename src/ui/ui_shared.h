@@ -54,6 +54,17 @@ enum itemGroup_t : __int32
     ITEMGROUP_COUNT              = 0x18,
     ITEMGROUP_INVALID            = 0xFFFFFFFF,
 };
+inline itemGroup_t &operator++(itemGroup_t &t)
+{
+    t = static_cast<itemGroup_t>((static_cast<int>(t) + 1));
+    return t;
+}
+inline itemGroup_t operator++(itemGroup_t &t, int)
+{
+    itemGroup_t old = t;
+    t = static_cast<itemGroup_t>((static_cast<int>(t) + 1));
+    return old;
+}
 
 struct Material;
 struct Font_s;

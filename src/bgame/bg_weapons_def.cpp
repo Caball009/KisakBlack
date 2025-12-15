@@ -1,4 +1,26 @@
 #include "bg_weapons_def.h"
+#include "bg_weapons.h"
+
+#include <universal/assertive.h>
+#include <universal/com_files.h>
+#include "bg_weapons_load_obj.h"
+#include <clientscript/cscr_stringlist.h>
+#include <universal/com_stringtable_obj.h>
+#include "bg_weapons_ammo.h"
+#include <game/g_items.h>
+#include <qcommon/common.h>
+#include <ui/ui_shared.h>
+#include <game_mp/g_main_mp.h>
+#include "bg_unlockable_items.h"
+
+unsigned int bg_firstWeaponTableIndex;
+unsigned int bg_lastParsedWeaponIndex;
+unsigned int bg_lastWeaponTableIndex;
+WeaponVariantDef *bg_weaponVariantDefs[2048];
+WeaponVariantDefHash bg_weaponVariantNameHashTable[2048];
+bool bg_weaponVariantNameHashTableSorted;
+
+gitem_s bg_itemlist[2048];
 
 unsigned int __cdecl BG_GetNumWeapons()
 {
@@ -129,7 +151,7 @@ void __cdecl BG_ClearWeaponDef()
 
     BG_InitDefaultWeaponDef();
     for ( itemIdx = 1; itemIdx < 2048; ++itemIdx )
-        bg_itemlist[itemIdx] = 0;
+        bg_itemlist[itemIdx].giType = IT_BAD;
     BG_ClearWeaponDefAmmo();
     BG_LoadPlayerAnimTypes();
     BG_InitWeaponStrings();
@@ -156,7 +178,7 @@ void __cdecl BG_SetupWeaponIndex(unsigned int weapIndex)
 
 void __cdecl BG_FillInWeaponItems(unsigned int weapIndex)
 {
-    bg_itemlist[weapIndex] = 1;
+    bg_itemlist[weapIndex].giType = IT_WEAPON;
 }
 
 void __cdecl BG_SetUpAmmoForWeapon(unsigned int weapIndex)
@@ -221,7 +243,7 @@ int __cdecl BG_WeaponVariantNameHashCompare(unsigned int *a, unsigned int *b)
     return -1;
 }
 
-int __cdecl BG_GetWeaponIndexForName(char *name, void (__cdecl *regWeap)(unsigned int))
+int __cdecl BG_GetWeaponIndexForName(const char *name, void (__cdecl *regWeap)(unsigned int))
 {
     WeaponVariantDef *weapVariantDef; // [esp+0h] [ebp-8h]
     unsigned int weapIndex; // [esp+4h] [ebp-4h]
@@ -297,11 +319,11 @@ void __cdecl BG_SetupWeaponAlts(unsigned int weapIndex, void (__cdecl *regWeap)(
     weapVariantDef->altWeaponIndex = 0;
     if ( *weapVariantDef->szAltWeaponName )
     {
-        altWeaponIndex = BG_GetWeaponIndexForName(weapVariantDef->szAltWeaponName, regWeap);
+        altWeaponIndex = BG_GetWeaponIndexForName((char*)weapVariantDef->szAltWeaponName, regWeap);
         if ( !altWeaponIndex )
         {
             v2 = BG_WeaponName(weapIndex);
-            Com_Error(ERR_DROP, &byte_C70A98, weapVariantDef->szAltWeaponName, v2);
+            Com_Error(ERR_DROP, "could not find altWeapon '%s' for weapon '%s'", weapVariantDef->szAltWeaponName, v2);
         }
         weapVariantDef->altWeaponIndex = altWeaponIndex;
     }
@@ -319,11 +341,11 @@ void __cdecl BG_SetupDualWieldAlts(unsigned int weapIndex, void (__cdecl *regWea
         weapDef->dualWieldWeaponIndex = 0;
         if ( *weapDef->szDualWieldWeaponName )
         {
-            altWeaponIndex = BG_GetWeaponIndexForName(weapDef->szDualWieldWeaponName, regWeap);
+            altWeaponIndex = BG_GetWeaponIndexForName((char*)weapDef->szDualWieldWeaponName, regWeap);
             if ( !altWeaponIndex )
             {
                 v2 = BG_WeaponName(weapIndex);
-                Com_Error(ERR_DROP, &byte_C70B0C, weapDef->szDualWieldWeaponName, v2);
+                Com_Error(ERR_DROP, "could not find alt Dual Wield Weapon '%s' for weapon '%s'", weapDef->szDualWieldWeaponName, v2);
             }
             weapDef->dualWieldWeaponIndex = altWeaponIndex;
         }
@@ -354,7 +376,7 @@ void __cdecl BG_SetupWeaponMountedVersions(unsigned int weaponIndex, void (__cde
         {
             standMountedWeapdef = weapDef->standMountedWeapdef;
             v2 = BG_WeaponName(weaponIndex);
-            Com_Error(ERR_DROP, &byte_C70C20, weapDef->standMountedWeapdef, v2, standMountedWeapdef);
+            Com_Error(ERR_DROP, "could not find standingWeapdef '%s' for weapon '%s' Please add the line 'weapon,sp/%s' to your level csv", weapDef->standMountedWeapdef, v2, standMountedWeapdef);
         }
         weapDef->standMountedIndex = mountedWeaponIndex;
     }
@@ -365,7 +387,7 @@ void __cdecl BG_SetupWeaponMountedVersions(unsigned int weaponIndex, void (__cde
         {
             crouchMountedWeapdef = weapDef->crouchMountedWeapdef;
             v3 = BG_WeaponName(weaponIndex);
-            Com_Error(ERR_DROP, &byte_C70BB0, weapDef->crouchMountedWeapdef, v3, crouchMountedWeapdef);
+            Com_Error(ERR_DROP, "could not find crouchingWeapdef '%s' for weapon '%s' Please add the line 'weapon,sp/%s' to your level csv", weapDef->crouchMountedWeapdef, v3, crouchMountedWeapdef);
         }
         weapDef->crouchMountedIndex = mountedWeaponIndexa;
     }
@@ -376,7 +398,7 @@ void __cdecl BG_SetupWeaponMountedVersions(unsigned int weaponIndex, void (__cde
         {
             proneMountedWeapdef = weapDef->proneMountedWeapdef;
             v4 = BG_WeaponName(weaponIndex);
-            Com_Error(ERR_DROP, &byte_C70B48, weapDef->proneMountedWeapdef, v4, proneMountedWeapdef);
+            Com_Error(ERR_DROP, "could not find proneWeapdef '%s' for weapon '%s' Please add the line 'weapon,sp/%s' to your level csv", weapDef->proneMountedWeapdef, v4, proneMountedWeapdef);
         }
         weapDef->proneMountedIndex = mountedWeaponIndexb;
     }
@@ -390,7 +412,7 @@ bool __cdecl BG_IsDefaultWeapon(const char *name)
     return !v2 && useFastFile->current.enabled && DB_IsXAssetDefault(ASSET_TYPE_WEAPON, name);
 }
 
-int __cdecl BG_GetWeaponIndexForName(char *name)
+int __cdecl BG_GetWeaponIndexForName(const char *name)
 {
     return BG_GetWeaponIndexForName(name, 0);
 }
@@ -398,7 +420,7 @@ int __cdecl BG_GetWeaponIndexForName(char *name)
 int __cdecl BG_GetWeaponTableItemIndex(int weaponIndex)
 {
     int v2; // [esp+0h] [ebp-Ch]
-    const WeaponVariantDef *WeaponVariantDef; // [esp+4h] [ebp-8h]
+    const WeaponVariantDef *weapVarDef; // [esp+4h] [ebp-8h]
     WeaponVariantDef *baseWeaponVariantDef; // [esp+8h] [ebp-4h]
 
     if ( weaponIndex >= 2048
@@ -411,11 +433,11 @@ int __cdecl BG_GetWeaponTableItemIndex(int weaponIndex)
     {
         __debugbreak();
     }
-    WeaponVariantDef = BG_GetWeaponVariantDef(weaponIndex);
-    if ( WeaponVariantDef->iVariantCount >= 0 )
+    weapVarDef = BG_GetWeaponVariantDef(weaponIndex);
+    if ( weapVarDef->iVariantCount >= 0 )
         v2 = weaponIndex;
     else
-        v2 = -WeaponVariantDef->iVariantCount;
+        v2 = -weapVarDef->iVariantCount;
     baseWeaponVariantDef = bg_weaponVariantDefs[v2];
     if ( (!baseWeaponVariantDef || !baseWeaponVariantDef->weapDef)
         && !Assert_MyHandler(

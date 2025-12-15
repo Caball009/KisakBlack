@@ -1,12 +1,39 @@
 #include "bg_weapons_util.h"
+#include "bg_weapons_load_obj.h"
+#include <qcommon/common.h>
+#include <cstring>
+
+#include <algorithm>
+
+// (aislop used to decipher std:: aids)
+struct compare_weapon_component_sort
+{
+    bool operator()(const WeaponComponent *a,
+        const WeaponComponent *b) const
+    {
+        // Primary sort: type (descending)
+        if (a->type != b->type)
+            return a->type > b->type;
+
+        // Secondary sort: attachment point (only for attachments)
+        if (a->type == WEAPON_COMPONENT_ATTACHMENT)
+            return a->attachmentPoint < b->attachmentPoint;
+
+        return false;
+    }
+};
 
 void __cdecl BG_WeaponComponentListSort(const char *originalName, WeaponComponentList *componentList, char *outputName)
 {
-    std::_Sort<WeaponComponent *,int,compare_weapon_component_sort>(
+    //std::_Sort<WeaponComponent *,int,compare_weapon_component_sort>(
+    //    componentList->components,
+    //    &componentList->components[componentList->numComponents],
+    //    44 * componentList->numComponents / 44,
+    //    0);
+    std::sort(
         componentList->components,
-        &componentList->components[componentList->numComponents],
-        44 * componentList->numComponents / 44,
-        0);
+        componentList->components + componentList->numComponents,
+        compare_weapon_component_sort());
     BG_WeaponComponentListToName(componentList, outputName, 64);
     if ( I_strcmp(originalName, outputName) )
         Com_PrintWarning(17, "Weapon %s attachments in the wrong order in name. Changing to %s\n", originalName, outputName);
@@ -73,7 +100,7 @@ void __cdecl BG_WeaponComponentListIdentify(WeaponComponentList *componentList)
     {
         if ( compIdx )
         {
-            attachment = BG_GetAttachmentIndex(componentList->components[compIdx].name);
+            attachment = (eAttachment)BG_GetAttachmentIndex(componentList->components[compIdx].name);
             if ( attachment && attachment != ATTACHMENT_COUNT )
             {
                 componentList->components[compIdx].type = WEAPON_COMPONENT_ATTACHMENT;
@@ -122,7 +149,7 @@ void __cdecl BG_WeaponComponentListRemove(
 {
     char v3; // [esp+3h] [ebp-21h]
     WeaponComponent *v4; // [esp+8h] [ebp-1Ch]
-    WeaponComponent *v5; // [esp+Ch] [ebp-18h]
+    const WeaponComponent *v5; // [esp+Ch] [ebp-18h]
     const AttachmentTableEntry *entry; // [esp+10h] [ebp-14h]
     signed int attachIdx; // [esp+14h] [ebp-10h]
     int compIdx; // [esp+18h] [ebp-Ch]
@@ -173,7 +200,7 @@ void __cdecl BG_WeaponComponentListNthAttachment(
     const AttachmentTableEntry *AttachmentTableEntry; // eax
     char v4; // [esp+3h] [ebp-1Dh]
     WeaponComponent *v5; // [esp+8h] [ebp-18h]
-    WeaponComponent *v6; // [esp+Ch] [ebp-14h]
+    const WeaponComponent *v6; // [esp+Ch] [ebp-14h]
     signed int attachIdx; // [esp+10h] [ebp-10h]
     int compIdx; // [esp+14h] [ebp-Ch]
     int count; // [esp+18h] [ebp-8h]

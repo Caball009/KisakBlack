@@ -1,4 +1,5 @@
 #pragma once
+#include "bg_local.h"
 
 void __cdecl BG_SetupWeaponDefAmmoIndexes(unsigned int weapIndex, WeaponDef *weapDef, WeaponVariantDef *weapVarDef);
 void __cdecl BG_SetupWeaponDefSharedAmmoIndexes(unsigned int weapIndex, WeaponDef *weapDef);

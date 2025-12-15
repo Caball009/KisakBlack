@@ -1,4 +1,57 @@
 #include "bg_weapons_attachment.h"
+#include <universal/assertive.h>
+#include <universal/q_shared.h>
+#include <qcommon/common.h>
+#include "bg_unlockable_items.h"
+#include <game_mp/g_main_mp.h>
+#include <universal/q_parse.h>
+
+const char *s_attachmentPointNames[5] =
+{ "none", "top", "bottom", "trigger", "muzzle" };
+
+const char *s_attachmentGroupNames[3] =
+{ "attachment", "weaponoption", "point" };
+
+const char *s_attachmentNames[24] =
+{
+  "none",
+  "reflex",
+  "elbit",
+  "acog",
+  "lps",
+  "vzoom",
+  "ir",
+  "gl",
+  "mk",
+  "silencer",
+  "grip",
+  "extclip",
+  "dualclip",
+  "saddle",
+  "fmj",
+  "hp",
+  "rf",
+  "ft",
+  "bayonet",
+  "auto",
+  "speed",
+  "upgradesight",
+  "snub",
+  "dw"
+};
+
+const char *s_weaponOptionGroupNames[6] =
+{ "camo", "reticle", "lens", "tag", "emblem", "reticle_color" };
+
+int s_numweaponTableAttachmentPoints;
+int s_weaponOptionListForGroup[6][96];
+int s_numweaponTableWeaponOptions;
+WeaponOptionTableEntry s_weaponTableWeaponOptions[96];
+int s_numweaponTableWeaponOptionsForGroup[6];
+AttachmentPointTableEntry s_weaponTableAttachmentPoints[5];
+AttachmentTableEntry s_weaponTableAttachments[24];
+int s_numWeaponTableAttachments;
+
 
 const char **__cdecl BG_GetAttachmentNames()
 {
@@ -181,7 +234,7 @@ eAttachmentPoint __cdecl BG_GetAttachmentPointIndexFromAttachment(eAttachment at
             return s_weaponTableAttachments[attachmentIndex].attachmentPointIndex;
         }
     }
-    return 5;
+    return ATTACHMENT_POINT_INVALID;
 }
 
 bool __cdecl BG_AreAttachmentsCompatible(eAttachment attachment1, eAttachment attachment2)
@@ -336,10 +389,10 @@ eWeaponOptionGroup __cdecl BG_GetWeaponOptionGroup(int weaponOption)
 
     weaponOptionArrayIndex = BG_GetWeaponOptionArrayIndex(weaponOption);
     if ( weaponOptionArrayIndex == -1 )
-        return 6;
+        return WEAPONOPTION_GROUP_INVALID;
     if ( s_weaponTableWeaponOptions[weaponOptionArrayIndex].isValid )
         return s_weaponTableWeaponOptions[weaponOptionArrayIndex].weaponOptionGroup;
-    return 6;
+    return WEAPONOPTION_GROUP_INVALID;
 }
 
 int __cdecl BG_GetWeaponOptionUnlockLvl(int weaponOption)
@@ -410,7 +463,7 @@ void __cdecl BG_LoadWeaponAttachmentTable()
         attachmentTable = 0;
         StringTable_GetAsset("mp/attachmenttable.csv", (XAssetHeader *)&attachmentTable);
         if ( !attachmentTable->columnCount || !attachmentTable->rowCount )
-            Com_Error(ERR_DROP, &byte_C70820, "mp/attachmenttable.csv");
+            Com_Error(ERR_DROP, "Couldn't load file or file is invalid '%s'", "mp/attachmenttable.csv");
         count = 0;
         while ( 1 )
         {
@@ -471,8 +524,8 @@ void __cdecl BG_LoadAttachmentRow(const StringTable *attachmentTable, int row, A
         __debugbreak();
     }
     BG_LoadWeaponAttachmentTableRow(attachmentTable, row, &entry->values);
-    entry->attachmentIndex = BG_GetAttachmentIndex(entry->values.referenceName);
-    entry->attachmentPointIndex = BG_GetAttachmentPointIndex(entry->values.pointName);
+    entry->attachmentIndex = (eAttachment)BG_GetAttachmentIndex(entry->values.referenceName);
+    entry->attachmentPointIndex = (eAttachmentPoint)BG_GetAttachmentPointIndex(entry->values.pointName);
     entry->values.referenceName = BG_GetAttachmentName(entry->attachmentIndex);
     entry->values.pointName = BG_GetAttachmentPointName(entry->attachmentPointIndex);
     compatibleAttachmentList = StringTable_GetColumnValueForRow(attachmentTable, row, 11);
@@ -486,7 +539,7 @@ void __cdecl BG_LoadAttachmentRow(const StringTable *attachmentTable, int row, A
             attachmentName = Com_ParseOnLine(&parseLocation);
             if ( !parseLocation || !attachmentName )
                 break;
-            attachmentNum = BG_GetAttachmentIndex(attachmentName->token);
+            attachmentNum = (eAttachment)BG_GetAttachmentIndex(attachmentName->token);
             if ( attachmentNum == ATTACHMENT_COUNT )
                 Com_PrintError(
                     17,
@@ -550,7 +603,7 @@ void __cdecl BG_LoadAttachmentPointRow(
         __debugbreak();
     }
     BG_LoadWeaponAttachmentTableRow(attachmentTable, row, &entry->values);
-    entry->attachmentPointIndex = BG_GetAttachmentPointIndex(entry->values.referenceName);
+    entry->attachmentPointIndex = (eAttachmentPoint)BG_GetAttachmentPointIndex(entry->values.referenceName);
     entry->isValid = 1;
     ++*count;
 }
@@ -639,7 +692,7 @@ void __cdecl BG_LoadWeaponOptionRow(
     }
     BG_LoadWeaponAttachmentTableRow(attachmentTable, row, &entry->values);
     entry->weaponOptionIndex = *count;
-    entry->weaponOptionGroup = BG_GetWeaponOptionGroup(entry->values.pointName);
+    entry->weaponOptionGroup = (eWeaponOptionGroup)BG_GetWeaponOptionGroup(entry->values.pointName);
     if ( entry->weaponOptionGroup == WEAPONOPTION_GROUP_COUNT )
         Com_PrintWarning(
             17,

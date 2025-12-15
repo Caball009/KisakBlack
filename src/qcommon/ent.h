@@ -218,23 +218,43 @@ struct renderOptions_s // sizeof=0x4
         //$9E8B35E2EA66D9A293E1BFD9EEB1088A ___u0;
                                                                                 // XREF: BG_PlayerToEntitySetMisc+176/w
                                                                                 // BG_PlayerWeaponOptions(playerState_s const *,uint):loc_426373/w ...
-        union //$9E8B35E2EA66D9A293E1BFD9EEB1088A // sizeof=0x4
-        {                                                                             // XREF: BG_PlayerToEntitySetMisc+176/w
-                                                                                        // BG_PlayerWeaponOptions(playerState_s const *,uint):loc_426373/w ...
-                unsigned int i;
-                //renderOptions_s::<unnamed_tag>::<unnamed_type_s> s;
-                struct //renderOptions_s
-                {                                                                             // XREF: $9E8B35E2EA66D9A293E1BFD9EEB1088A/r
-                        unsigned __int32 camo : 6;
-                        unsigned __int32 lens : 4;
-                        unsigned __int32 reticle : 6;
-                        unsigned __int32 reticleColor : 3;
-                        unsigned __int32 emblem : 1;
-                        unsigned __int32 tag : 1;
-                        unsigned __int32 player : 5;
-                        unsigned __int32 facepaintPattern : 6;
-                };
-        };
+    renderOptions_s()
+    {
+
+    }
+    renderOptions_s(unsigned int init)
+    {
+        this->i = init;
+    }
+
+    union //$9E8B35E2EA66D9A293E1BFD9EEB1088A // sizeof=0x4
+    {                                                                             // XREF: BG_PlayerToEntitySetMisc+176/w
+                                                                                    // BG_PlayerWeaponOptions(playerState_s const *,uint):loc_426373/w ...
+            unsigned int i;
+            //renderOptions_s::<unnamed_tag>::<unnamed_type_s> s;
+            struct //renderOptions_s
+            {                                                                             // XREF: $9E8B35E2EA66D9A293E1BFD9EEB1088A/r
+                    unsigned __int32 camo : 6;
+                    unsigned __int32 lens : 4;
+                    unsigned __int32 reticle : 6;
+                    unsigned __int32 reticleColor : 3;
+                    unsigned __int32 emblem : 1;
+                    unsigned __int32 tag : 1;
+                    unsigned __int32 player : 5;
+                    unsigned __int32 facepaintPattern : 6;
+            };
+    };
+
+    void CopyWeaponOptions(const renderOptions_s *o)
+    {
+        this->i = o->i & 0x3F | this->i & 0xFFFFFFC0;
+        this->i = (((o->i >> 6) & 0xF) << 6) | this->i & 0xFFFFFC3F;
+        this->i = ((unsigned __int8)HIBYTE(LOWORD(o->i)) >> 2 << 10) | this->i & 0xFFFF03FF;
+        this->i = ((HIWORD(o->i) & 7) << 16) | this->i & 0xFFF8FFFF;
+        this->i = (((o->i & 0x80000) != 0) << 19) | this->i & 0xFFF7FFFF;
+        this->i = (((o->i & 0x100000) != 0) << 20) | this->i & 0xFFEFFFFF;
+        this->i = (((o->i >> 21) & 0x1F) << 21) | this->i & 0xFC1FFFFF;
+    }
 };
 
 struct clientLinkInfo_t // sizeof=0x4
@@ -281,12 +301,12 @@ struct __declspec(align(4)) entityState_s // sizeof=0xE0
         renderOptions_s renderOptions;            // XREF: ClientDisconnect(int)+251/r
                                                                                 // ClientDisconnect(int)+270/o
         //entityState_s::<unnamed_type_un2> un2;
-        union unnamed_type_un2 //entityState_s::<unnamed_type_un2> // sizeof=0x10
+        union //unnamed_type_un2 //entityState_s::<unnamed_type_un2> // sizeof=0x10
         {                                                                             // XREF: entityState_s/r
-                actorAnimState_t animState;
-                playerAnimState_t anim;
-                vehicleState_t vehicleState;
-        } un2;
+            actorAnimState_t animState;
+            playerAnimState_t anim;
+            vehicleState_t vehicleState;
+        }; //un2;
         //entityState_s::<unnamed_type_un3> un3;
         union unnamed_type_un3 //entityState_s::<unnamed_type_un3> // sizeof=0x4
         {                                                                             // XREF: entityState_s/r
