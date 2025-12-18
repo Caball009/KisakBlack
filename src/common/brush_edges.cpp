@@ -833,7 +833,7 @@ LABEL_8:
                     *(&v11 + 4 * v21) = *i;
                     *(&planeIndex + 4 * v21) = v15;
                     v14[4 * v21 - 1] = v14[4 * v20 - 1] + 1;
-                    v14[4 * v21++] = &v11 + 4 * v20;
+                    v14[4 * v21++] = (unsigned int)&v11 + 4 * v20;
                     if ( v15 == v19 )
                         break;
                 }
@@ -1156,7 +1156,7 @@ int __cdecl NumberOfUniquePoints(const SimplePlaneIntersection **pts, int ptsCou
         for ( j = 0; j < v4 && !VecNCompareCustomEpsilon(pts[i]->xyz, (const float *)v3[j], 0.0099999998, 3); ++j )
             ;
         if ( j == v4 )
-            v3[v4++] = pts[i];
+            v3[v4++] = (unsigned int)pts[i];
     }
     return v4;
 }

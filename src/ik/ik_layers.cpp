@@ -353,7 +353,7 @@ void    IK_Layer_TerrainMapping(IKState *ikState)
                             footTraceEndOffsetZMoving = 24.0f;
                             footTraceEndOffsetZIdle[1] = 30.0f;
                             footTraceEndOffsetZIdle[0] = 0.0f;
-                            maxPelvisReachAdjust = FLOAT_40_0;
+                            maxPelvisReachAdjust = 40.0f;
                             minPelvisHeightNormal = 20.0f;
                             footInAirLiftReductionMaxInAir = 20.0f;
                             minPelvisHeightCrouching = -0.5f;

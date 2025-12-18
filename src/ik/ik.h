@@ -336,3 +336,8 @@ void __cdecl IK_UpdateEntity(unsigned int entityNum, unsigned __int8 *model, boo
 
 extern IKState *ikStates[2];
 extern IKSystem ikSystem;
+
+extern float ikLayerLerpTimes[22];
+extern int ikLayerRealLayers[22];
+extern int ikLegSolverLayers[21];
+extern int ikArmSolverLayers[21];

@@ -268,7 +268,7 @@ void __thiscall NitrousVehicleController::UpdateControlsStrafeMode(
     move[1] = (float)this->m_cmd.forwardmove * -1.0;
     if ( rbveh->m_vehicle_info->cameraMode == 2 && rbveh->m_vehicle_info->type != 2 )
         move[0] = 0.0f;
-    vehicleDeadZone = FLOAT_40_0;
+    vehicleDeadZone = 40.0f;
     if ( fabs(move[1]) >= 40.0 )
     {
         if ( move[1] < 0.0 )

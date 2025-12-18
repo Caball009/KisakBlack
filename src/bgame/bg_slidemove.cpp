@@ -1,12 +1,5 @@
 #include "bg_slidemove.h"
 
-void __cdecl Phys_Vec3ToNitrousVec(float *inVector, phys_vec3 *outVector)
-{
-    outVector->x = *inVector;
-    outVector->y = inVector[1];
-    outVector->z = inVector[2];
-}
-
 gjk_polygon_cylinder_t *__cdecl create_gjkcc_gjk_geom(
                 float (*mins)[3],
                 float (*maxs)[3],
@@ -480,21 +473,6 @@ void    gjkcc_prolog(int a1@<ebp>, const gjkcc_input_t *gjkcc_in, float *origin)
         gjkcc_in->proximity_data,
         gjkcc_in->proximity_mask,
         v3);
-}
-
-const phys_vec3 *__cdecl Phys_Vec3ToNitrousVec(const phys_vec3 *result, float *inVector)
-{
-    float v3; // [esp-8h] [ebp-18h]
-    float v4; // [esp-4h] [ebp-14h]
-    float outVector; // [esp+0h] [ebp-10h]
-
-    v3 = inVector[1];
-    v4 = inVector[2];
-    result->x = *inVector;
-    result->y = v3;
-    result->z = v4;
-    result->w = outVector;
-    return result;
 }
 
 void __thiscall gjkcc_info::Lock(gjkcc_info *this)

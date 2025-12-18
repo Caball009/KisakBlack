@@ -1191,6 +1191,14 @@ inline void __cdecl phys_transpose(phys_mat44 *dest, const phys_mat44 *source)
     }
 }
 
+// dumb
+inline void __cdecl Phys_Vec3ToNitrousVec(const float * const inVector, phys_vec3 *outVector)
+{
+    outVector->x = inVector[0];
+    outVector->y = inVector[1];
+    outVector->z = inVector[2];
+}
+
 // oh fuck yes, in the compiler this is slurped into every file and duplicated 68 times
 static const phys_vec3 PHYS_X_VEC = { 1.0f, 0.0f, 0.0f, 0.0f };
 static const phys_vec3 PHYS_Y_VEC = { 0.0f, 1.0f, 0.0f, 0.0f };

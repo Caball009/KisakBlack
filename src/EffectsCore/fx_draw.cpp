@@ -15,7 +15,7 @@ void __cdecl FX_GetNullReflection(FxReflectParams *params)
 void __cdecl FX_GetReflection(bool on, float height, FxReflectParams *params)
 {
     params->enabled = on;
-    params->zScale = FLOAT_N2_0;
+    params->zScale = -2.0f;
     params->zAdd = height - (float)(height * params->zScale);
 }
 

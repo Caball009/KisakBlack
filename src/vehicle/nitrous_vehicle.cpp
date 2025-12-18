@@ -1486,7 +1486,7 @@ double __thiscall NitrousVehicle::_get_stuck_accel_factor(NitrousVehicle *this, 
     if ( (float)(accel_scale - 40.0) < 0.0 )
         v4 = (float)((float)(this->m_stuck_time - 0.40000001) * 30.0) + 1.0;
     else
-        v4 = FLOAT_40_0;
+        v4 = 40.0f;
     if ( (float)(1.0 - accel_scale) < 0.0 )
         return v4;
     else

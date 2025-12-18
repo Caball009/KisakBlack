@@ -57,7 +57,7 @@ bool __cdecl IKImport_TraceBox(
 void __cdecl IKImport_DrawAxisOrigin(float (*mat44)[4], float colorScale);
 void __cdecl IKImport_DrawLine(float *start, float *end, int colorType);
 void IKImport_DebugPrint(const char *fmt, ...);
-clientInfo_t *__cdecl IKImport_GetClientInfo(IKState *ikState);
+struct clientInfo_t *__cdecl IKImport_GetClientInfo(IKState *ikState);
 void    IKImport_DrawDebugSkeleton(IKState *ikState);
 int __cdecl IKImport_GetFrameNum();
 bool __cdecl IKImport_IsMainThread();

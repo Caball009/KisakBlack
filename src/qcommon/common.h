@@ -335,3 +335,5 @@ extern const dvar_t *band_12players;
 extern const dvar_t *band_18players;
 extern const dvar_t *band_lotsplayers;
 extern const dvar_t *band_dedicated;
+
+extern int com_frameNumber;

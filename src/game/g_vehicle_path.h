@@ -129,3 +129,6 @@ void __cdecl GScr_AddFieldsForVehicleNode();
 void __cdecl GScr_GetVehicleNodeField(unsigned int entnum, unsigned int offset);
 void __cdecl GScr_GetVehicleNode();
 void __cdecl G_SpawnHeliHeightLock(SpawnVar *spawnVar);
+
+
+extern int num_heli_height_lock_patches;

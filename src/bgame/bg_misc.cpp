@@ -15,6 +15,15 @@
 #include "bg_weapons_ammo.h"
 #include <qcommon/common.h>
 #include "bg_pmove.h"
+#include <universal/com_math_anglevectors.h>
+#include <physics/phys_render.h>
+#include "bg_weapons_view.h"
+#include <universal/com_loadutils.h>
+#include <universal/com_files.h>
+#include <qcommon/threads.h>
+#include <game/g_vehicle_path.h>
+
+bool render_waist_foot_line;
 
 const int serverOnlyEvents[4] =
 { 36, 23, 22, -1 };
@@ -22,6 +31,43 @@ const int serverOnlyEvents[4] =
 const int singleClientEvents[12] =
 { 8, 9, 10, 205, 43, 16, 17, 43, 46, 52, 53, -1 };
 
+shellshock_parms_t bg_shellshockParms[16];
+
+const char *bgShockDvarNames[32] =
+{
+  "bg_shock_screenType",
+  "bg_shock_screenBlurBlendTime",
+  "bg_shock_screenBlurBlendFadeTime",
+  "bg_shock_screenFlashWhiteFadeTime",
+  "bg_shock_screenFlashShotFadeTime",
+  "bg_shock_viewKickPeriod",
+  "bg_shock_viewKickRadius",
+  "bg_shock_viewKickFadeTime",
+  "bg_shock_soundLoop",
+  "bg_shock_soundLoopSilent",
+  "bg_shock_soundEnd",
+  "bg_shock_soundEndAbort",
+  "bg_shock_sound",
+  "bg_shock_soundFadeInTime",
+  "bg_shock_soundFadeOutTime",
+  "bg_shock_soundLoopFadeTime",
+  "bg_shock_soundLoopEndDelay",
+  "bg_shock_soundRoomType",
+  "bg_shock_soundDryLevel",
+  "bg_shock_soundWetLevel",
+  "bg_shock_soundModEndDelay",
+  "bg_shock_soundSnapshot",
+  "bg_shock_lookControl",
+  "bg_shock_lookControl_maxpitchspeed",
+  "bg_shock_lookControl_maxyawspeed",
+  "bg_shock_lookControl_mousesensitivityscale",
+  "bg_shock_lookControl_fadeTime",
+  "bg_shock_movement",
+  "bg_shock_animation",
+  "bg_shock_visionset_name",
+  "bg_shock_visionset_inTime",
+  "bg_shock_visionset_outTime"
+};
 
 const char *bg_ShockScreenTypeNames[4] =
 { "blurred", "flashed", "none", NULL };
@@ -2994,6 +3040,7 @@ void __cdecl BG_PlayerToEntitySetTrajectory(playerState_s *ps, entityState_s *s,
     }
 }
 
+static const float lastStandDistScale = -0.75f;
 static const float PRONE_WAIST_DIST = 12.0f;
 char    BG_CheckProne(
                 const playerState_s *ps,
@@ -3011,369 +3058,284 @@ char    BG_CheckProne(
                 proneCheckType_t proneCheckType,
                 float prone_feet_dist)
 {
-    float angle; // [esp+4h] [ebp-160h]
-    float anglea; // [esp+4h] [ebp-160h]
-    float v18; // [esp+10h] [ebp-154h]
-    float v19; // [esp+14h] [ebp-150h]
-    _BYTE v20[12]; // [esp+18h] [ebp-14Ch] BYREF
-    phys_vec3 p1; // [esp+24h] [ebp-140h] BYREF
-    float v22; // [esp+44h] [ebp-120h]
-    float v23; // [esp+48h] [ebp-11Ch]
-    float v24; // [esp+4Ch] [ebp-118h]
-    float fWaistPitch; // [esp+50h] [ebp-114h]
-    float fTorsoPitch; // [esp+54h] [ebp-110h]
-    float vTorsoPos[3]; // [esp+58h] [ebp-10Ch] BYREF
-    float v28; // [esp+64h] [ebp-100h]
-    float vWaistPos[3]; // [esp+68h] [ebp-FCh] BYREF
-    float fWaistTraceDist; // [esp+74h] [ebp-F0h]
-    float vFeetPos[3]; // [esp+78h] [ebp-ECh] BYREF
-    float fPitchDiff; // [esp+84h] [ebp-E0h]
-    float vDelta[3]; // [esp+88h] [ebp-DCh]
-    float fFirstTraceDist; // [esp+94h] [ebp-D0h]
-    float v35; // [esp+98h] [ebp-CCh] BYREF
-    float fTraceRealHeight; // [esp+9Ch] [ebp-C8h]
-    float fTraceHeight; // [esp+A0h] [ebp-C4h]
-    float vForward[3]; // [esp+A4h] [ebp-C0h] BYREF
-    float vEnd[3]; // [esp+B0h] [ebp-B4h] BYREF
-    float vStart[3]; // [esp+BCh] [ebp-A8h] BYREF
-    float vMaxs[3]; // [esp+C8h] [ebp-9Ch] BYREF
-    float vMins[3]; // [esp+D4h] [ebp-90h]
-    int iTraceMask; // [esp+E0h] [ebp-84h]
-    void (__cdecl *traceFunc)(trace_t *, const float *, const float *, const float *, const float *, int, int, col_context_t *); // [esp+E4h] [ebp-80h]
-    bool scale; // [esp+E8h] [ebp-7Ch]
-    float fWaistDistance; // [esp+ECh] [ebp-78h] BYREF
-    col_context_t context; // [esp+F8h] [ebp-6Ch] BYREF
-    int v48; // [esp+120h] [ebp-44h] OVERLAPPED
-    int bFirstTraceHit; // [esp+124h] [ebp-40h]
-    trace_t trace; // [esp+128h] [ebp-3Ch]
-    int retaddr; // [esp+164h] [ebp+0h]
+    void *v15; // ebp
+    float v17; // [esp+14h] [ebp-150h]
+    float v18; // [esp+18h] [ebp-14Ch]
+    phys_vec3 anglea; // [esp+1Ch] [ebp-148h] BYREF
+    phys_vec3 p0; // [esp+2Ch] [ebp-138h] BYREF
+    float fWaistPitch; // [esp+48h] [ebp-11Ch]
+    float fTorsoPitch; // [esp+4Ch] [ebp-118h]
+    float vTorsoPos[3]; // [esp+50h] [ebp-114h]
+    float v24; // [esp+5Ch] [ebp-108h]
+    float vWaistPos[3]; // [esp+60h] [ebp-104h] BYREF
+    float v26; // [esp+6Ch] [ebp-F8h]
+    float v27[3]; // [esp+70h] [ebp-F4h] BYREF
+    float fPitchDiff; // [esp+7Ch] [ebp-E8h]
+    float v29[3]; // [esp+80h] [ebp-E4h] BYREF
+    float fWaistTraceDist; // [esp+8Ch] [ebp-D8h]
+    float vFeetPos; // [esp+90h] [ebp-D4h]
+    float fTraceRealHeight; // [esp+94h] [ebp-D0h]
+    float fTraceHeight; // [esp+98h] [ebp-CCh]
+    float v34[3]; // [esp+9Ch] [ebp-C8h] BYREF
+    float vEnd[3]; // [esp+A8h] [ebp-BCh] BYREF
+    float v36[3]; // [esp+B4h] [ebp-B0h] BYREF
+    float vMaxs[3]; // [esp+C0h] [ebp-A4h] BYREF
+    float vMins[3]; // [esp+CCh] [ebp-98h] BYREF
+    int iTraceMask; // [esp+D8h] [ebp-8Ch]
+    void(__cdecl * traceFunc)(trace_t *, const float *, const float *, const float *, const float *, int, int, col_context_t *); // [esp+DCh] [ebp-88h]
+    float v41; // [esp+E0h] [ebp-84h]
+    float fWaistDistance; // [esp+E4h] [ebp-80h]
+    int skip_adjustments; // [esp+E8h] [ebp-7Ch]
+    BOOL v44; // [esp+ECh] [ebp-78h]
+    col_context_t context; // [esp+F0h] [ebp-74h] BYREF
+    bool success; // [esp+11Bh] [ebp-49h]
+    int bFirstTraceHit; // [esp+11Ch] [ebp-48h]
+    trace_t trace; // [esp+120h] [ebp-44h] BYREF
 
-    trace.staticModel = a1;
-    trace.hitPartition = retaddr;
-    context.collide_entity_func = *(int (__cdecl **)(int, col_context_t *))&FLOAT_0_0;
-    v48 = 0;
     bFirstTraceHit = 0;
-    trace.normal.vec.u[0] = 0;
-    context.priorityMap = 0;
-    HIBYTE(context.locational) = 1;
-    col_context_t::col_context_t((col_context_t *)&fWaistDistance);
-    scale = ps && (ps->pm_flags & 0x400000) != 0 && !Dtp_IsSliding(ps);
-    traceFunc = (void (__cdecl *)(trace_t *, const float *, const float *, const float *, const float *, int, int, col_context_t *))scale;
-    *(float *)&iTraceMask = PRONE_WAIST_DIST;
-    if ( ps && ps->pm_type == 6 )
+    success = 1;
+    //col_context_t::col_context_t(&context);
+    v44 = ps && (ps->pm_flags & 0x400000) != 0 && !Dtp_IsSliding(ps);
+    skip_adjustments = v44;
+    fWaistDistance = PRONE_WAIST_DIST;
+    if (ps && ps->pm_type == 6)
     {
-        *(float *)&iTraceMask = *(float *)&iTraceMask * lastStandDistScale;
+        fWaistDistance = fWaistDistance * lastStandDistScale;
         prone_feet_dist = prone_feet_dist * lastStandDistScale;
     }
-    vMins[2] = 1.0f;
-    vMins[1] = *(float *)&pmoveHandlers[handler].trace;
-    if ( !LODWORD(vMins[1])
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_misc.cpp", 2104, 0, "%s", "traceFunc") )
+    v41 = 1.0f;
+    traceFunc = pmoveHandlers[handler].trace;
+    if (!traceFunc
+        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_misc.cpp", 2104, 0, "%s", "traceFunc"))
     {
         __debugbreak();
     }
-    if ( proneCheckType )
-        vMins[0] = 1.1938638e-38;
+    if (proneCheckType)
+        iTraceMask = 0x820011;
     else
-        LODWORD(vMins[0]) = &loc_810011;
-    if ( !isAlreadyProne )
+        iTraceMask = 0x810011;
+    if (!isAlreadyProne)
     {
-        vMaxs[0] = -fSize;
-        vMaxs[1] = -fSize;
-        vMaxs[2] = 0.0f;
-        vStart[0] = fSize;
-        vStart[1] = fSize;
-        vStart[2] = fHeight;
+        //LODWORD(vMins[0]) = LODWORD(fSize) ^ _mask__NegFloat_;
+        vMins[0] = -fSize;
+        //LODWORD(vMins[1]) = LODWORD(fSize) ^ _mask__NegFloat_;
+        vMins[1] = -fSize;
+        vMins[2] = 0.0f;
+        vMaxs[0] = fSize;
+        vMaxs[1] = fSize;
+        vMaxs[2] = fHeight;
+        v36[0] = *vPos;
+        v36[1] = vPos[1];
+        v36[2] = vPos[2];
         vEnd[0] = *vPos;
         vEnd[1] = vPos[1];
         vEnd[2] = vPos[2];
-        vForward[0] = *vPos;
-        vForward[1] = vPos[1];
-        vForward[2] = vPos[2];
-        vForward[2] = vForward[2] + 10.0;
-        ((void (__cdecl *)(int (__cdecl **)(int, col_context_t *), float *, float *, float *, float *, int, unsigned int, float *))LODWORD(vMins[1]))(
-            &context.collide_entity_func,
-            vEnd,
-            vMaxs,
-            vStart,
-            vForward,
-            passEntityNum,
-            LODWORD(vMins[0]),
-            &fWaistDistance);
-        if ( BYTE2(trace.hitType) )
+        vEnd[2] = vEnd[2] + 10.0;
+        traceFunc(&trace, v36, vMins, vMaxs, vEnd, passEntityNum, iTraceMask, &context);
+        if (trace.allsolid)
             return 0;
     }
-    if ( isOnGround && !groundIsWalkable )
+    if (isOnGround && !groundIsWalkable)
         return 0;
-    vMaxs[0] = -6.0f;
-    vMaxs[1] = -6.0f;
-    vMaxs[2] = -6.0f;
-    vStart[0] = 6.0f;
-    vStart[1] = 6.0f;
-    vStart[2] = 6.0f;
-    vForward[0] = 0.0f;
-    vForward[1] = fYaw - 180.0;
-    vForward[2] = 0.0f;
-    AngleVectors(vForward, &v35, 0, 0);
-    fFirstTraceDist = fHeight - 6.0;
-    vDelta[2] = (float)(fHeight - 6.0) - 6.0;
-    vEnd[0] = *vPos;
-    vEnd[1] = vPos[1];
-    vEnd[2] = vPos[2];
-    vEnd[2] = vEnd[2] + (float)(fHeight - 6.0);
-    vDelta[1] = prone_feet_dist - 6.0;
-    vForward[0] = (float)((float)(prone_feet_dist - 6.0) * v35) + vEnd[0];
-    vForward[1] = (float)((float)(prone_feet_dist - 6.0) * fTraceRealHeight) + vEnd[1];
-    vForward[2] = (float)((float)(prone_feet_dist - 6.0) * fTraceHeight) + vEnd[2];
-    ((void (__cdecl *)(int (__cdecl **)(int, col_context_t *), float *, float *, float *, float *, int, unsigned int, float *))LODWORD(vMins[1]))(
-        &context.collide_entity_func,
-        vEnd,
-        vMaxs,
-        vStart,
-        vForward,
-        passEntityNum,
-        LODWORD(vMins[0]),
-        &fWaistDistance);
-    if ( trace.normal.vec.v[1] >= 1.0 )
+    vMins[0] = -6.0f;
+    vMins[1] = -6.0f;
+    vMins[2] = -6.0f;
+    vMaxs[0] = 6.0f;
+    vMaxs[1] = 6.0f;
+    vMaxs[2] = 6.0f;
+    vEnd[0] = 0.0f;
+    vEnd[1] = fYaw - 180.0;
+    vEnd[2] = 0.0f;
+    AngleVectors(vEnd, v34, 0, 0);
+    fTraceHeight = fHeight - 6.0;
+    fTraceRealHeight = (float)(fHeight - 6.0) - 6.0;
+    v36[0] = *vPos;
+    v36[1] = vPos[1];
+    v36[2] = vPos[2];
+    v36[2] = v36[2] + (float)(fHeight - 6.0);
+    vFeetPos = prone_feet_dist - 6.0;
+    vEnd[0] = (float)((float)(prone_feet_dist - 6.0) * v34[0]) + v36[0];
+    vEnd[1] = (float)((float)(prone_feet_dist - 6.0) * v34[1]) + v36[1];
+    vEnd[2] = (float)((float)(prone_feet_dist - 6.0) * v34[2]) + v36[2];
+    traceFunc(&trace, v36, vMins, vMaxs, vEnd, passEntityNum, iTraceMask, &context);
+    if (trace.fraction >= 1.0)
     {
-        vDelta[0] = prone_feet_dist;
+        fWaistTraceDist = prone_feet_dist;
     }
     else
     {
-        if ( !isOnGround )
+        if (!isOnGround)
             return 0;
-        context.priorityMap = (unsigned __int8 *)1;
-        vDelta[0] = (float)((float)(prone_feet_dist - 6.0) * trace.normal.vec.v[1]) + 6.0;
-        if ( (float)(fSize + 2.0) > vDelta[0] )
+        bFirstTraceHit = 1;
+        fWaistTraceDist = (float)((float)(prone_feet_dist - 6.0) * trace.fraction) + 6.0;
+        if ((float)(fSize + 2.0) > fWaistTraceDist)
             return 0;
-        if ( (float)((float)(fFirstTraceDist * 0.69999999) + *(float *)&iTraceMask) > vDelta[0] )
+        if ((float)((float)(fTraceHeight * 0.69999999) + fWaistDistance) > fWaistTraceDist)
         {
-            context.priorityMap = 0;
-            vForward[2] = vForward[2] + 22.0;
-            vFeetPos[1] = vForward[0] - vEnd[0];
-            vFeetPos[2] = vForward[1] - vEnd[1];
-            fPitchDiff = vForward[2] - vEnd[2];
-            vFeetPos[0] = Vec3NormalizeTo(&vFeetPos[1], &v35);
-            ((void (__cdecl *)(int (__cdecl **)(int, col_context_t *), float *, float *, float *, float *, int, unsigned int, float *))LODWORD(vMins[1]))(
-                &context.collide_entity_func,
-                vEnd,
-                vMaxs,
-                vStart,
-                vForward,
-                passEntityNum,
-                LODWORD(vMins[0]),
-                &fWaistDistance);
-            if ( trace.normal.vec.v[1] >= 1.0 )
+            bFirstTraceHit = 0;
+            vEnd[2] = vEnd[2] + 22.0;
+            v29[0] = vEnd[0] - v36[0];
+            v29[1] = vEnd[1] - v36[1];
+            v29[2] = vEnd[2] - v36[2];
+            fPitchDiff = Vec3NormalizeTo(v29, v34);
+            traceFunc(&trace, v36, vMins, vMaxs, vEnd, passEntityNum, iTraceMask, &context);
+            if (trace.fraction >= 1.0)
             {
-                vDelta[0] = prone_feet_dist;
+                fWaistTraceDist = prone_feet_dist;
             }
             else
             {
-                context.priorityMap = (unsigned __int8 *)1;
-                vDelta[0] = (float)(trace.normal.vec.v[1] * vFeetPos[0]) + 6.0;
-                if ( (float)((float)(fFirstTraceDist * 0.69999999) + *(float *)&iTraceMask) > vDelta[0] )
+                bFirstTraceHit = 1;
+                fWaistTraceDist = (float)(trace.fraction * fPitchDiff) + 6.0;
+                if ((float)((float)(fTraceHeight * 0.69999999) + fWaistDistance) > fWaistTraceDist)
                     return 0;
             }
         }
     }
-    Vec3Lerp(vEnd, vForward, trace.normal.vec.v[1], &vWaistPos[1]);
-    vEnd[0] = (float)(*(float *)&iTraceMask * v35) + *vPos;
-    vEnd[1] = (float)(*(float *)&iTraceMask * fTraceRealHeight) + vPos[1];
-    vEnd[2] = (float)(*(float *)&iTraceMask * fTraceHeight) + vPos[2];
-    vEnd[2] = vEnd[2] + fFirstTraceDist;
-    vForward[0] = vEnd[0];
-    vForward[1] = vEnd[1];
-    vForward[2] = vEnd[2] - (float)((float)((float)(fSize * 2.5) + fFirstTraceDist) - 6.0);
-    ((void (__cdecl *)(int (__cdecl **)(int, col_context_t *), float *, float *, float *, float *, int, unsigned int, float *))LODWORD(vMins[1]))(
-        &context.collide_entity_func,
-        vEnd,
-        vMaxs,
-        vStart,
-        vForward,
-        passEntityNum,
-        LODWORD(vMins[0]),
-        &fWaistDistance);
-    if ( trace.normal.vec.v[1] == 1.0 )
+    Vec3Lerp(v36, vEnd, trace.fraction, v27);
+    v36[0] = (float)(fWaistDistance * v34[0]) + *vPos;
+    v36[1] = (float)(fWaistDistance * v34[1]) + vPos[1];
+    v36[2] = (float)(fWaistDistance * v34[2]) + vPos[2];
+    v36[2] = v36[2] + fTraceHeight;
+    vEnd[0] = v36[0];
+    vEnd[1] = v36[1];
+    vEnd[2] = v36[2] - (float)((float)((float)(fSize * 2.5) + fTraceHeight) - 6.0);
+    traceFunc(&trace, v36, vMins, vMaxs, vEnd, passEntityNum, iTraceMask, &context);
+    if (trace.fraction == 1.0)
         goto fail;
-    if ( !LOBYTE(trace.hitId) )
+    if (!trace.walkable)
         return 0;
-    vWaistPos[0] = (float)((float)((float)((float)(fSize * 2.5) + fFirstTraceDist) - 6.0) * trace.normal.vec.v[1]) + 6.0;
-    Vec3Lerp(vEnd, vForward, trace.normal.vec.v[1], &vTorsoPos[1]);
-    v28 = v28 - 6.0;
-    if ( context.priorityMap )
+    v26 = (float)((float)((float)((float)(fSize * 2.5) + fTraceHeight) - 6.0) * trace.fraction) + 6.0;
+    Vec3Lerp(v36, vEnd, trace.fraction, vWaistPos);
+    vWaistPos[2] = vWaistPos[2] - 6.0;
+    if (bFirstTraceHit)
     {
-        if ( (float)(-0.75 * vWaistPos[0]) > (float)(vDelta[0] - vWaistPos[0]) )
+        if ((float)(-0.75 * v26) > (float)(fWaistTraceDist - v26))
             goto fail;
-        vFeetPos[1] = (float)(6.0 * v35) + (float)(vWaistPos[1] - vTorsoPos[1]);
-        vFeetPos[2] = (float)(6.0 * fTraceRealHeight) + (float)(vWaistPos[2] - vTorsoPos[2]);
-        fPitchDiff = (float)(6.0 * fTraceHeight) + (float)(fWaistTraceDist - v28);
-        fPitchDiff = fPitchDiff + 6.0;
-        Vec3Normalize(&vFeetPos[1]);
-        vTorsoPos[0] = (float)(prone_feet_dist - 6.0) - *(float *)&iTraceMask;
-        vForward[0] = (float)(vTorsoPos[0] * vFeetPos[1]) + vEnd[0];
-        vForward[1] = (float)(vTorsoPos[0] * vFeetPos[2]) + vEnd[1];
-        vForward[2] = (float)(vTorsoPos[0] * fPitchDiff) + vEnd[2];
-        vForward[0] = (float)((float)((float)((float)(prone_feet_dist - 6.0) * v35) + *vPos) + vForward[0]) * 0.5;
-        vForward[1] = (float)((float)((float)((float)(prone_feet_dist - 6.0) * fTraceRealHeight) + vPos[1]) + vForward[1])
-                                * 0.5;
-        ((void (__cdecl *)(int (__cdecl **)(int, col_context_t *), float *, float *, float *, float *, int, unsigned int, float *))LODWORD(vMins[1]))(
-            &context.collide_entity_func,
-            vEnd,
-            vMaxs,
-            vStart,
-            vForward,
-            passEntityNum,
-            LODWORD(vMins[0]),
-            &fWaistDistance);
-        if ( trace.normal.vec.v[1] < 1.0 )
+        v29[0] = (float)(6.0 * v34[0]) + (float)(v27[0] - vWaistPos[0]);
+        v29[1] = (float)(6.0 * v34[1]) + (float)(v27[1] - vWaistPos[1]);
+        v29[2] = (float)(6.0 * v34[2]) + (float)(v27[2] - vWaistPos[2]);
+        v29[2] = v29[2] + 6.0;
+        Vec3Normalize(v29);
+        v24 = (float)(prone_feet_dist - 6.0) - fWaistDistance;
+        vEnd[0] = (float)(v24 * v29[0]) + v36[0];
+        vEnd[1] = (float)(v24 * v29[1]) + v36[1];
+        vEnd[2] = (float)(v24 * v29[2]) + v36[2];
+        vEnd[0] = (float)((float)((float)((float)(prone_feet_dist - 6.0) * v34[0]) + *vPos) + vEnd[0]) * 0.5;
+        vEnd[1] = (float)((float)((float)((float)(prone_feet_dist - 6.0) * v34[1]) + vPos[1]) + vEnd[1]) * 0.5;
+        traceFunc(&trace, v36, vMins, vMaxs, vEnd, passEntityNum, iTraceMask, &context);
+        if (trace.fraction < 1.0)
         {
-            Vec3Lerp(vEnd, vForward, trace.normal.vec.v[1], vEnd);
+            Vec3Lerp(v36, vEnd, trace.fraction, v36);
+            v36[2] = v36[2] + 18.0;
             vEnd[2] = vEnd[2] + 18.0;
-            vForward[2] = vForward[2] + 18.0;
-            ((void (__cdecl *)(int (__cdecl **)(int, col_context_t *), float *, float *, float *, float *, int, unsigned int, float *))LODWORD(vMins[1]))(
-                &context.collide_entity_func,
-                vEnd,
-                vMaxs,
-                vStart,
-                vForward,
-                passEntityNum,
-                LODWORD(vMins[0]),
-                &fWaistDistance);
-            if ( trace.normal.vec.v[1] < 1.0 )
+            traceFunc(&trace, v36, vMins, vMaxs, vEnd, passEntityNum, iTraceMask, &context);
+            if (trace.fraction < 1.0)
                 goto fail;
         }
-        Vec3Lerp(vEnd, vForward, trace.normal.vec.v[1], &vWaistPos[1]);
+        Vec3Lerp(v36, vEnd, trace.fraction, v27);
     }
-    vEnd[0] = vWaistPos[1];
-    vEnd[1] = vWaistPos[2];
-    vEnd[2] = fWaistTraceDist;
-    vForward[0] = vWaistPos[1];
-    vForward[1] = vWaistPos[2];
-    vForward[2] = fWaistTraceDist - (float)((float)((float)(fWaistTraceDist - v28) * 2.0) + (float)(fSize * 1.0));
-    ((void (__cdecl *)(int (__cdecl **)(int, col_context_t *), float *, float *, float *, float *, int, unsigned int, float *))LODWORD(vMins[1]))(
-        &context.collide_entity_func,
-        vEnd,
-        vMaxs,
-        vStart,
-        vForward,
-        passEntityNum,
-        LODWORD(vMins[0]),
-        &fWaistDistance);
-    if ( trace.normal.vec.v[1] != 1.0 )
+    v36[0] = v27[0];
+    v36[1] = v27[1];
+    v36[2] = v27[2];
+    vEnd[0] = v27[0];
+    vEnd[1] = v27[1];
+    vEnd[2] = v27[2] - (float)((float)((float)(v27[2] - vWaistPos[2]) * 2.0) + (float)(fSize * 1.0));
+    traceFunc(&trace, v36, vMins, vMaxs, vEnd, passEntityNum, iTraceMask, &context);
+    if (trace.fraction != 1.0)
     {
-        if ( !LOBYTE(trace.hitId) )
+        if (!trace.walkable)
             return 0;
-        Vec3Lerp(vEnd, vForward, trace.normal.vec.v[1], &vWaistPos[1]);
-        fWaistTraceDist = fWaistTraceDist - 6.0;
-        v24 = *vPos;
-        fWaistPitch = vPos[1];
-        fTorsoPitch = vPos[2];
-        vFeetPos[1] = v24 - vTorsoPos[1];
-        vFeetPos[2] = fWaistPitch - vTorsoPos[2];
-        fPitchDiff = fTorsoPitch - v28;
-        angle = vectopitch(&vFeetPos[1]);
-        v23 = AngleNormalize180(angle);
-        vFeetPos[1] = vTorsoPos[1] - vWaistPos[1];
-        vFeetPos[2] = vTorsoPos[2] - vWaistPos[2];
-        fPitchDiff = v28 - fWaistTraceDist;
-        anglea = vectopitch(&vFeetPos[1]);
-        v22 = AngleNormalize180(anglea);
-        vFeetPos[0] = AngleNormalize180(v23 - v22);
-        if ( vFeetPos[0] < -50.0 || vFeetPos[0] > 70.0 )
-            HIBYTE(context.locational) = 0;
-        vMaxs[0] = -0.0f;
-        vMaxs[1] = -0.0f;
-        vMaxs[2] = -0.0f;
-        memset(vStart, 0, sizeof(vStart));
-        vEnd[0] = v24;
-        vEnd[1] = fWaistPitch;
-        vEnd[2] = fTorsoPitch + 5.0;
-        vForward[0] = vTorsoPos[1];
-        vForward[1] = vTorsoPos[2];
-        vForward[2] = v28 + 5.0;
-        ((void (__cdecl *)(int (__cdecl **)(int, col_context_t *), float *, float *, float *, float *, int, unsigned int, float *))LODWORD(vMins[1]))(
-            &context.collide_entity_func,
-            vEnd,
-            vMaxs,
-            vStart,
-            vForward,
-            passEntityNum,
-            LODWORD(vMins[0]),
-            &fWaistDistance);
-        if ( trace.normal.vec.v[1] < 1.0 )
-            HIBYTE(context.locational) = 0;
-        vEnd[0] = vForward[0];
-        vEnd[1] = vForward[1];
-        vEnd[2] = vForward[2];
-        vForward[0] = vWaistPos[1];
-        vForward[1] = vWaistPos[2];
-        vForward[2] = fWaistTraceDist + 5.0;
-        ((void (__cdecl *)(int (__cdecl **)(int, col_context_t *), float *, float *, float *, float *, int, unsigned int, float *))LODWORD(vMins[1]))(
-            &context.collide_entity_func,
-            vEnd,
-            vMaxs,
-            vStart,
-            vForward,
-            passEntityNum,
-            LODWORD(vMins[0]),
-            &fWaistDistance);
-        if ( render_waist_foot_line )
+        Vec3Lerp(v36, vEnd, trace.fraction, v27);
+        v27[2] = v27[2] - 6.0;
+        vTorsoPos[0] = *vPos;
+        vTorsoPos[1] = vPos[1];
+        vTorsoPos[2] = vPos[2];
+        v29[0] = vTorsoPos[0] - vWaistPos[0];
+        v29[1] = vTorsoPos[1] - vWaistPos[1];
+        v29[2] = vTorsoPos[2] - vWaistPos[2];
+        p0.y = vectopitch(v29);
+        fTorsoPitch = AngleNormalize180(p0.y);
+        v29[0] = vWaistPos[0] - v27[0];
+        v29[1] = vWaistPos[1] - v27[1];
+        v29[2] = vWaistPos[2] - v27[2];
+        p0.y = vectopitch(v29);
+        fWaistPitch = AngleNormalize180(p0.y);
+        fPitchDiff = AngleNormalize180(fTorsoPitch - fWaistPitch);
+        if (fPitchDiff < -50.0 || fPitchDiff > 70.0)
+            success = 0;
+        vMins[0] = -0.0f;
+        vMins[1] = -0.0f;
+        vMins[2] = -0.0f;
+        memset(vMaxs, 0, sizeof(vMaxs));
+        v36[0] = vTorsoPos[0];
+        v36[1] = vTorsoPos[1];
+        v36[2] = vTorsoPos[2] + 5.0;
+        vEnd[0] = vWaistPos[0];
+        vEnd[1] = vWaistPos[1];
+        vEnd[2] = vWaistPos[2] + 5.0;
+        traceFunc(&trace, v36, vMins, vMaxs, vEnd, passEntityNum, iTraceMask, &context);
+        if (trace.fraction < 1.0)
+            success = 0;
+        v36[0] = vEnd[0];
+        v36[1] = vEnd[1];
+        v36[2] = vEnd[2];
+        vEnd[0] = v27[0];
+        vEnd[1] = v27[1];
+        vEnd[2] = v27[2] + 5.0;
+        traceFunc(&trace, v36, vMins, vMaxs, vEnd, passEntityNum, iTraceMask, &context);
+        if (render_waist_foot_line)
         {
-            Phys_Vec3ToNitrousVec(vEnd, (phys_vec3 *)&p1.y);
-            Phys_Vec3ToNitrousVec(vForward, (phys_vec3 *)v20);
-            render_line((phys_vec3 *)&p1.y, (const phys_vec3 *)v20, colorWhite, 0, 0);
+            Phys_Vec3ToNitrousVec(v36, &p0);
+            Phys_Vec3ToNitrousVec(vEnd, &anglea);
+            render_line(&p0, &anglea, colorWhite, 0, 0);
         }
-        if ( !enable_new_prone_check->current.integer && trace.normal.vec.v[1] < 1.0 )
+        if (!enable_new_prone_check->current.integer && trace.fraction < 1.0)
         {
-            if ( v22 >= 0.0 || v22 <= -20.0 )
+            if (fWaistPitch >= 0.0 || fWaistPitch <= -20.0)
             {
-                v22 = 0.0f;
-                HIBYTE(context.locational) = 0;
+                fWaistPitch = 0.0f;
+                success = 0;
             }
             else
             {
-                v22 = 0.0f;
+                fWaistPitch = 0.0f;
             }
         }
-        if ( ps && ps->pm_type == 6 )
+        if (ps && ps->pm_type == 6)
         {
-            LODWORD(v23) ^= _mask__NegFloat_;
-            LODWORD(v22) ^= _mask__NegFloat_;
+            //LODWORD(fTorsoPitch) ^= _mask__NegFloat_;
+            fTorsoPitch = -fTorsoPitch;
+            //LODWORD(fWaistPitch) ^= _mask__NegFloat_;
+            fWaistPitch = -fWaistPitch;
         }
-        if ( pfTorsoPitch )
+        if (pfTorsoPitch)
         {
-            if ( traceFunc )
-                v19 = 0.0f;
-            else
-                v19 = v23 * vMins[2];
-            *pfTorsoPitch = v19;
-        }
-        if ( pfWaistPitch )
-        {
-            if ( traceFunc )
+            if (skip_adjustments)
                 v18 = 0.0f;
             else
-                v18 = v22 * vMins[2];
-            *pfWaistPitch = v18;
+                v18 = fTorsoPitch * v41;
+            *pfTorsoPitch = v18;
         }
-        if ( HIBYTE(context.locational) )
+        if (pfWaistPitch)
+        {
+            if (skip_adjustments)
+                v17 = 0.0f;
+            else
+                v17 = fWaistPitch * v41;
+            *pfWaistPitch = v17;
+        }
+        if (success)
             return 1;
     }
 fail:
-    if ( isOnGround )
+    if (isOnGround)
         return 0;
-    if ( pfTorsoPitch )
+    if (pfTorsoPitch)
         *pfTorsoPitch = 0.0f;
-    if ( pfWaistPitch )
+    if (pfWaistPitch)
         *pfWaistPitch = 0.0f;
     return 1;
-}
-
-void __cdecl Phys_Vec3ToNitrousVec(float *inVector, phys_vec3 *outVector)
-{
-    outVector->x = *inVector;
-    outVector->y = inVector[1];
-    outVector->z = inVector[2];
 }
 
 void __cdecl BG_GetPlayerViewOrigin(const playerState_s *ps, float *origin, int time)
@@ -3525,7 +3487,7 @@ void __cdecl BG_SetShellShockParmsFromDvars(shellshock_parms_t *parms)
     {
         __debugbreak();
     }
-    parms->screenBlend.type = bg_shock_screenType->current.integer;
+    parms->screenBlend.type = (ShockViewTypes)bg_shock_screenType->current.integer;
     parms->view.fadeTime = 3000;
     if ( (float)(0.001 - bg_shock_viewKickPeriod->current.value) < 0.0 )
         value = bg_shock_viewKickPeriod->current.value;
@@ -3534,18 +3496,18 @@ void __cdecl BG_SetShellShockParmsFromDvars(shellshock_parms_t *parms)
     parms->view.kickRate = 0.001 / value;
     parms->view.kickRadius = bg_shock_viewKickRadius->current.value;
     parms->sound.affect = bg_shock_sound->current.enabled;
-    strncpy((unsigned __int8 *)parms->sound.loop, (unsigned __int8 *)bg_shock_soundLoop->current.integer, 0x40u);
+    strncpy((char *)parms->sound.loop, (char *)bg_shock_soundLoop->current.integer, 0x40u);
     strncpy(
-        (unsigned __int8 *)parms->sound.loopSilent,
-        (unsigned __int8 *)bg_shock_soundLoopSilent->current.integer,
+        (char *)parms->sound.loopSilent,
+        (char *)bg_shock_soundLoopSilent->current.integer,
         0x40u);
-    strncpy((unsigned __int8 *)parms->sound.end, (unsigned __int8 *)bg_shock_soundEnd->current.integer, 0x40u);
-    strncpy((unsigned __int8 *)parms->sound.endAbort, (unsigned __int8 *)bg_shock_soundEndAbort->current.integer, 0x40u);
+    strncpy((char *)parms->sound.end, (char *)bg_shock_soundEnd->current.integer, 0x40u);
+    strncpy((char *)parms->sound.endAbort, (char *)bg_shock_soundEndAbort->current.integer, 0x40u);
     parms->sound.fadeInTime = (int)((float)(bg_shock_soundFadeInTime->current.value * 1000.0) + 9.313225746154785e-10);
     parms->sound.fadeOutTime = (int)((float)(bg_shock_soundFadeOutTime->current.value * 1000.0) + 9.313225746154785e-10);
     parms->sound.loopFadeTime = (int)((float)(bg_shock_soundLoopFadeTime->current.value * 1000.0) + 9.313225746154785e-10);
     parms->sound.loopEndDelay = (int)((float)(bg_shock_soundLoopEndDelay->current.value * 1000.0) + 9.313225746154785e-10);
-    strncpy((unsigned __int8 *)parms->sound.roomtype, (unsigned __int8 *)bg_shock_soundRoomType->current.integer, 0x40u);
+    strncpy((char *)parms->sound.roomtype, (char *)bg_shock_soundRoomType->current.integer, 0x40u);
     parms->sound.drylevel = bg_shock_soundDryLevel->current.value;
     parms->sound.wetlevel = bg_shock_soundWetLevel->current.value;
     parms->sound.modEndDelay = (int)((float)(bg_shock_soundModEndDelay->current.value * 1000.0) + 9.313225746154785e-10);
@@ -3628,6 +3590,7 @@ void __cdecl BG_SetShellShockParmsFromDvars(shellshock_parms_t *parms)
     parms->visionSet.outTime = (int)(float)(bg_shock_visionset_outTime->current.value * 1000.0);
 }
 
+char filebuf[65536];
 int __cdecl BG_SaveShellShockDvars(const char *name)
 {
     const char *bg_shock_dvar_names[32]; // [esp+10h] [ebp-90h] BYREF
@@ -3785,20 +3748,5 @@ void __cdecl BG_ClipCameraToHeliPatch(float *origin, float *oldpos, float *veloc
             }
         }
     }
-}
-
-const phys_vec3 *__cdecl Phys_Vec3ToNitrousVec(const phys_vec3 *result, float *inVector)
-{
-    float v3; // [esp-8h] [ebp-18h]
-    float v4; // [esp-4h] [ebp-14h]
-    float outVector; // [esp+0h] [ebp-10h]
-
-    v3 = inVector[1];
-    v4 = inVector[2];
-    result->x = *inVector;
-    result->y = v3;
-    result->z = v4;
-    result->w = outVector;
-    return result;
 }
 

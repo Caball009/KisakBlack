@@ -69,6 +69,7 @@ const dvar_t *band_18players;
 const dvar_t *band_lotsplayers;
 const dvar_t *band_dedicated;
 
+int com_frameNumber;
 
 void *__cdecl Com_LiveAllocate(unsigned int size)
 {

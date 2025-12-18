@@ -5,6 +5,20 @@
 #include <cgame_mp/cg_pose_mp.h>
 #include <xanim/dobj_skel.h>
 #include "ik_math.h"
+#include <game_mp/g_main_mp.h>
+#include <cgame_mp/cg_local_mp.h>
+#include <cgame/cg_drawtools.h>
+#include <bgame/bg_weapons_def.h>
+#include <win32/win_shared.h>
+#include <new>
+#include <cgame/cg_event.h>
+#include <qcommon/threads.h>
+#include <universal/com_math_anglevectors.h>
+
+bool bEnabled;
+bool forcePlayerClip;
+
+IKLayerNames offLayer = IKLAYER_COUNT;
 
 unsigned __int16 ikImportMiscBoneStringVars[3];
 
@@ -80,6 +94,7 @@ bool ikEssentialBones[] =
   false
 };
 
+int notMovedTime = 200;
 
 
 unsigned __int16 ikImportBoneStringVars[24];
@@ -1155,7 +1170,7 @@ bool __cdecl IKImport_ApplyRightHandIK(IKState *ikState)
 }
 
 // local variable allocation has failed, the output may be wrong!
-void    IKImport_GetEntityXform(gentity_s *a1@<ebp>, IKState *ikState)
+void    IKImport_GetEntityXform(IKState *ikState)
 {
     int v2; // eax
     int LocalClientIndex; // eax
@@ -1456,19 +1471,19 @@ void __cdecl IKImport_UpdateCollisionCache(IKState *ikState)
     float expandRange; // [esp+54h] [ebp-8h]
     int contents_mask_no_playerclip; // [esp+58h] [ebp-4h]
 
-    contents_mask_no_playerclip = (int)&loc_82000C + 5;
-    contents_mask_playerclip = (int)&loc_830011;
+    contents_mask_no_playerclip = 0x820011;
+    contents_mask_playerclip = 0x830011;
     collCache = &ikState->collisionCache;
     expandRange = 32.0f;
     expand_vec[0] = 32.0f;
     expand_vec[1] = 32.0f;
     expand_vec[2] = 32.0f;
-    entityBoundsMin[0] = FLOAT_N20_0;
-    entityBoundsMin[1] = FLOAT_N20_0;
+    entityBoundsMin[0] = -20.0f;
+    entityBoundsMin[1] = -20.0f;
     entityBoundsMin[2] = -10.0f;
     entityBoundsMax[0] = 20.0f;
     entityBoundsMax[1] = 20.0f;
-    entityBoundsMax[2] = FLOAT_40_0;
+    entityBoundsMax[2] = 40.0f;
     absmin[0] = ikState->origin[0] + -20.0;
     absmin[1] = ikState->origin[1] + -20.0;
     absmin[2] = ikState->origin[2] + -10.0;
@@ -1477,9 +1492,9 @@ void __cdecl IKImport_UpdateCollisionCache(IKState *ikState)
     absmax[2] = ikState->origin[2] + 40.0;
     lerpEntity = IKImport_GetLerpEntityState(ikState, -1);
     if ( forcePlayerClip || !ikState->lerpInfo[3].goalState || (lerpEntity->eFlags2 & 0x10000) != 0 )
-        contents_mask = (int)&loc_830011;
+        contents_mask = 0x830011;
     else
-        contents_mask = (int)&loc_82000C + 5;
+        contents_mask = 0x820011;
     if ( contents_mask != collCache->proximity_data.m_mask )
     {
         ikState->footTraceCollisionHint[0] = 0;
@@ -1487,7 +1502,7 @@ void __cdecl IKImport_UpdateCollisionCache(IKState *ikState)
         ikState->footTraceCollisionHint[2] = 0;
         ikState->footTraceCollisionHint[3] = 0;
     }
-    collCache->proximity_data.update(&collCache->proximity_data, absmin, absmax, contents_mask, expand_vec);
+    collCache->proximity_data.update(absmin, absmax, contents_mask, expand_vec);
 }
 
 bool __cdecl IKImport_TraceBox(
@@ -1506,7 +1521,7 @@ bool __cdecl IKImport_TraceBox(
     IKCollisionCache *collCache; // [esp+7Ch] [ebp-4h]
 
     memset(&tr, 0, 16);
-    col_context_t::col_context_t(&context);
+    //col_context_t::col_context_t(&context);
     //PIXBeginNamedEvent(-1, "IK Trace");
     collCache = &ikState->collisionCache;
     context.prims = ikState->collisionCache.proximity_data.prims;
@@ -1660,19 +1675,19 @@ clientInfo_t *__cdecl IKImport_GetClientInfo(IKState *ikState)
         return 0;
 }
 
-// local variable allocation has failed, the output may be wrong!
-void    IKImport_DrawDebugSkeleton(int a1@<ebp>, IKState *ikState)
+void    IKImport_DrawDebugSkeleton(IKState *ikState)
 {
     _BYTE v2[76]; // [esp+14h] [ebp-ACh] OVERLAPPED BYREF
     _BYTE *v3; // [esp+60h] [ebp-60h]
     _BYTE v4[76]; // [esp+64h] [ebp-5Ch] OVERLAPPED BYREF
     int i; // [esp+B0h] [ebp-10h]
-    int v6; // [esp+B4h] [ebp-Ch]
-    void *v7; // [esp+B8h] [ebp-8h]
-    void *retaddr; // [esp+C0h] [ebp+0h]
+    //int v6; // [esp+B4h] [ebp-Ch]
+    //void *v7; // [esp+B8h] [ebp-8h]
+    //void *retaddr; // [esp+C0h] [ebp+0h]
 
-    v6 = a1;
-    v7 = retaddr;
+    //v6 = a1;
+    //v7 = retaddr;
+
     if ( !ikState->entityNum )
     {
         for ( i = 0; i < 23; ++i )
@@ -2227,8 +2242,8 @@ double __cdecl IKImport_GetLayerLerp(IKState *ikState, IKLayerNames layerName, f
                 weapVariantDef = IKImport_GetWeaponVariantDef(ikState);
                 if ( weapVariantDef )
                 {
-                    offset = weapVariantDef->ikLeftHandOffset;
-                    rotation = weapVariantDef->ikLeftHandRotation;
+                    offset = (float *)weapVariantDef->ikLeftHandOffset;
+                    rotation = (float *)weapVariantDef->ikLeftHandRotation;
                     if ( IKImport_IsProne(ikState) )
                     {
                         v15 = weapVariantDef->ikLeftHandProneOffset[0] == 0.0
@@ -2242,8 +2257,8 @@ double __cdecl IKImport_GetLayerLerp(IKState *ikState, IKLayerNames layerName, f
                                 : (v14 = 1),
                                     !v14) )
                         {
-                            offset = weapVariantDef->ikLeftHandProneOffset;
-                            rotation = weapVariantDef->ikLeftHandProneRotation;
+                            offset = (float *)weapVariantDef->ikLeftHandProneOffset;
+                            rotation = (float *)weapVariantDef->ikLeftHandProneRotation;
                         }
                     }
                     if ( ikSystem.inViewer )
@@ -2259,8 +2274,8 @@ double __cdecl IKImport_GetLayerLerp(IKState *ikState, IKLayerNames layerName, f
                                 : (v12 = 1),
                                     !v12) )
                         {
-                            offset = weapVariantDef->ikLeftHandUiViewerOffset;
-                            rotation = weapVariantDef->ikLeftHandUiViewerRotation;
+                            offset = (float*)weapVariantDef->ikLeftHandUiViewerOffset;
+                            rotation = (float *)weapVariantDef->ikLeftHandUiViewerRotation;
                         }
                     }
                     v11 = *offset == ikState->leftHandOffset[0]
@@ -2641,7 +2656,7 @@ void __cdecl IKImport_SetWeaponOffsetType(IKState *ikState)
 
 void __cdecl IKImport_UpdateWeaponClass(IKState *ikState)
 {
-    ikState->weaponClass = IKImport_GetWeaponDef(ikState)->weapClass == WEAPCLASS_SPREAD;
+    ikState->weaponClass = (IKWeaponClass)(IKImport_GetWeaponDef(ikState)->weapClass == WEAPCLASS_SPREAD);
 }
 
 int __cdecl IKImport_GetActorNum(unsigned __int8 *model)
@@ -2695,7 +2710,8 @@ int __cdecl IKImport_GetActorNum(unsigned __int8 *model)
         }
         lerpEntity = &cent->nextState.lerp;
     }
-    return lerpEntity->u.actor.index;
+    //return lerpEntity->u.actor.index;
+    return lerpEntity->u.actor.actorNum;
 }
 
 bool __cdecl IKImport_IsValidEntityType(const unsigned __int8 *model)
@@ -2725,95 +2741,117 @@ bool __cdecl IKImport_IsValidEntityType(const unsigned __int8 *model)
     return cent->nextState.eType == 1;
 }
 
+// (aislop cleanup)
 void __cdecl IKImport_GetPitchWeaponOffset(IKState *ikState, bool bIsPitchDirectionUp, float *weapOfsOut)
 {
-    float fraction; // [esp+0h] [ebp-208h]
-    float fractiona; // [esp+0h] [ebp-208h]
-    float fractionb; // [esp+0h] [ebp-208h]
-    float fractionc; // [esp+0h] [ebp-208h]
-    float weapOfsUpMoving[5][2][3]; // [esp+8h] [ebp-200h] BYREF
-    float weapOfsDnIdle[5][2][3]; // [esp+80h] [ebp-188h] BYREF
-    float weapOfsDnMoving[5][2][3]; // [esp+F8h] [ebp-110h] BYREF
-    float weapOfsMoving[3]; // [esp+170h] [ebp-98h] BYREF
-    float weapOfsIdle[3]; // [esp+17Ch] [ebp-8Ch] BYREF
-    float weapOfsUpIdle[5][2][3]; // [esp+188h] [ebp-80h] BYREF
-    IKWeaponOffsetType offsetType; // [esp+204h] [ebp-4h]
+    float weapOfsUpIdle[5][2][3] = { 0 };
+    float weapOfsDnIdle[5][2][3] = { 0 };
+    float weapOfsUpMoving[5][2][3] = { 0 };
+    float weapOfsDnMoving[5][2][3] = { 0 };
+    float weapOfsIdle[3];
+    float weapOfsMoving[3];
+    float fraction;
+    IKWeaponOffsetType offsetType;
 
-    *(_QWORD *)&weapOfsDnIdle[0][0][0] = __PAIR64__(LODWORD(FLOAT_N3_0), 0);
-    *(_QWORD *)&weapOfsDnIdle[0][0][2] = __PAIR64__(LODWORD(FLOAT_N2_0), LODWORD(7.0f));
-    *(_QWORD *)&weapOfsDnIdle[0][1][1] = __PAIR64__(LODWORD(10.0f), LODWORD(FLOAT_N5_0));
-    weapOfsDnIdle[1][0][0] = 0.0f;
-    weapOfsDnIdle[1][0][1] = 0.0f;
-    *(_QWORD *)&weapOfsDnIdle[1][0][2] = __PAIR64__(LODWORD(FLOAT_N5_0), 0);
-    *(_QWORD *)&weapOfsDnIdle[1][1][1] = __PAIR64__(LODWORD(5.0f), LODWORD(FLOAT_N5_0));
-    memset((void *)weapOfsDnIdle[2], 0, sizeof(const float[2][3]));
-    *(_QWORD *)&weapOfsDnIdle[3][0][0] = __PAIR64__(LODWORD(-6.0f), LODWORD(6.0f));
-    *(_QWORD *)&weapOfsDnIdle[3][0][2] = __PAIR64__(LODWORD(4.0f), LODWORD(10.0f));
-    *(_QWORD *)&weapOfsDnIdle[3][1][1] = __PAIR64__(LODWORD(4.0f), LODWORD(-8.0f));
-    memset((void *)weapOfsDnIdle[4], 0, sizeof(const float[2][3]));
-    *(_QWORD *)&weapOfsUpIdle[0][0][0] = __PAIR64__(0, LODWORD(-4.0f));
-    *(_QWORD *)&weapOfsUpIdle[0][0][2] = __PAIR64__(LODWORD(-7.0f), LODWORD(FLOAT_N2_0));
-    *(_QWORD *)&weapOfsUpIdle[0][1][1] = __PAIR64__(LODWORD(-4.0f), 0);
-    *(_QWORD *)&weapOfsUpIdle[1][0][0] = __PAIR64__(0, LODWORD(FLOAT_N3_0));
-    *(_QWORD *)&weapOfsUpIdle[1][0][2] = __PAIR64__(LODWORD(-7.0f), LODWORD(FLOAT_N2_0));
-    *(_QWORD *)&weapOfsUpIdle[1][1][1] = __PAIR64__(LODWORD(-4.0f), 0);
-    memset((void *)weapOfsUpIdle[2], 0, 72);
-    memset((void *)weapOfsDnMoving, 0, 16);
-    *(_QWORD *)&weapOfsDnMoving[0][1][1] = __PAIR64__(LODWORD(8.0f), 0);
-    memset((void *)weapOfsDnMoving[1], 0, sizeof(const float[2][3]));
-    *(_QWORD *)&weapOfsDnMoving[2][0][0] = __PAIR64__(0, LODWORD(4.0f));
-    *(_QWORD *)&weapOfsDnMoving[2][0][2] = __PAIR64__(LODWORD(4.0f), 0);
-    weapOfsDnMoving[2][1][1] = 0.0f;
-    weapOfsDnMoving[2][1][2] = 0.0f;
-    *(_QWORD *)&weapOfsDnMoving[3][0][0] = __PAIR64__(LODWORD(FLOAT_N2_0), 0);
-    *(_QWORD *)&weapOfsDnMoving[3][0][2] = __PAIR64__(LODWORD(8.0f), 0);
-    *(_QWORD *)&weapOfsDnMoving[3][1][1] = __PAIR64__(0, LODWORD(-4.0f));
-    memset((void *)weapOfsDnMoving[4], 0, sizeof(const float[2][3]));
-    memset((void *)weapOfsUpMoving, 0, 24);
-    *(_QWORD *)&weapOfsUpMoving[1][0][0] = __PAIR64__(0, LODWORD(FLOAT_N3_0));
-    *(_QWORD *)&weapOfsUpMoving[1][0][2] = __PAIR64__(0, LODWORD(FLOAT_N2_0));
-    weapOfsUpMoving[1][1][1] = 0.0f;
-    weapOfsUpMoving[1][1][2] = 0.0f;
-    *(_QWORD *)&weapOfsUpMoving[2][0][0] = __PAIR64__(0, LODWORD(4.0f));
-    *(_QWORD *)&weapOfsUpMoving[2][0][2] = __PAIR64__(LODWORD(4.0f), 0);
-    weapOfsUpMoving[2][1][1] = 0.0f;
-    weapOfsUpMoving[2][1][2] = 0.0f;
-    memset((void *)weapOfsUpMoving[3], 0, 48);
+    /* down idle */
+    weapOfsDnIdle[0][0][0] = -3.0f;
+    weapOfsDnIdle[0][0][2] = -2.0f;
+    weapOfsDnIdle[0][1][1] = 10.0f;
+    weapOfsDnIdle[0][1][2] = -5.0f;
+
+    weapOfsDnIdle[1][0][2] = -5.0f;
+    weapOfsDnIdle[1][1][1] = 5.0f;
+    weapOfsDnIdle[1][1][2] = -5.0f;
+
+    weapOfsDnIdle[3][0][0] = -6.0f;
+    weapOfsDnIdle[3][0][1] = 6.0f;
+    weapOfsDnIdle[3][0][2] = 4.0f;
+    weapOfsDnIdle[3][1][1] = 4.0f;
+    weapOfsDnIdle[3][1][2] = -8.0f;
+
+    /* up idle */
+    weapOfsUpIdle[0][0][1] = -4.0f;
+    weapOfsUpIdle[0][0][2] = -7.0f;
+    weapOfsUpIdle[0][1][1] = -4.0f;
+
+    weapOfsUpIdle[1][0][1] = -3.0f;
+    weapOfsUpIdle[1][0][2] = -7.0f;
+    weapOfsUpIdle[1][1][1] = -4.0f;
+
+    /* down moving */
+    weapOfsDnMoving[0][1][1] = 8.0f;
+
+    weapOfsDnMoving[2][0][1] = 4.0f;
+    weapOfsDnMoving[2][0][2] = 4.0f;
+
+    weapOfsDnMoving[3][0][0] = -2.0f;
+    weapOfsDnMoving[3][0][2] = 8.0f;
+    weapOfsDnMoving[3][1][2] = -4.0f;
+
+    /* up moving */
+    weapOfsUpMoving[1][0][1] = -3.0f;
+    weapOfsUpMoving[1][0][2] = -2.0f;
+
+    weapOfsUpMoving[2][0][1] = 4.0f;
+    weapOfsUpMoving[2][0][2] = 4.0f;
+
     offsetType = ikState->weaponOffsetType;
+
     fraction = IKImport_GetLayerLerp(ikState, IKLAYER_CROUCH_ACTIVE);
-    if ( bIsPitchDirectionUp )
+
+    if (bIsPitchDirectionUp)
     {
-        Vec3Lerp(weapOfsUpIdle[offsetType][0], weapOfsUpIdle[offsetType][1], fraction, weapOfsIdle);
-        fractiona = IKImport_GetLayerLerp(ikState, IKLAYER_CROUCH_ACTIVE);
-        Vec3Lerp(weapOfsUpMoving[offsetType][0], weapOfsUpMoving[offsetType][1], fractiona, weapOfsMoving);
+        Vec3Lerp(
+            weapOfsUpIdle[offsetType][0],
+            weapOfsUpIdle[offsetType][1],
+            fraction,
+            weapOfsIdle);
+
+        Vec3Lerp(
+            weapOfsUpMoving[offsetType][0],
+            weapOfsUpMoving[offsetType][1],
+            fraction,
+            weapOfsMoving);
     }
     else
     {
-        Vec3Lerp(weapOfsDnIdle[offsetType][0], weapOfsDnIdle[offsetType][1], fraction, weapOfsIdle);
-        fractionb = IKImport_GetLayerLerp(ikState, IKLAYER_CROUCH_ACTIVE);
-        Vec3Lerp(weapOfsDnMoving[offsetType][0], weapOfsDnMoving[offsetType][1], fractionb, weapOfsMoving);
+        Vec3Lerp(
+            weapOfsDnIdle[offsetType][0],
+            weapOfsDnIdle[offsetType][1],
+            fraction,
+            weapOfsIdle);
+
+        Vec3Lerp(
+            weapOfsDnMoving[offsetType][0],
+            weapOfsDnMoving[offsetType][1],
+            fraction,
+            weapOfsMoving);
     }
-    fractionc = IKImport_GetLayerLerp(ikState, IKLAYER_NOT_MOVING_MED);
-    Vec3Lerp(weapOfsMoving, weapOfsIdle, fractionc, weapOfsOut);
+
+    fraction = IKImport_GetLayerLerp(ikState, IKLAYER_NOT_MOVING_MED);
+    Vec3Lerp(weapOfsMoving, weapOfsIdle, fraction, weapOfsOut);
 }
 
+unsigned int _S1_11;
+colgeom_visitor_inlined_t<200> dummy_2;
 void __cdecl IKImport_InitCollisionCache(IKState *ikState)
 {
     if ( (_S1_11 & 1) == 0 )
     {
         _S1_11 |= 1u;
-        colgeom_visitor_t::colgeom_visitor_t(&dummy_2);
-        dummy_2.__vftable = (colgeom_visitor_inlined_t<200>_vtbl *)&colgeom_visitor_inlined_t<200>::`vftable';
-        colgeom_visitor_inlined_t<500>::reset(&dummy_2);
-        atexit(IKImport_InitCollisionCache_::_2_::_dynamic_atexit_destructor_for__dummy__);
+        new (&dummy_2) colgeom_visitor_t(); // this is so retarded
+        //colgeom_visitor_t::colgeom_visitor_t(&dummy_2);
+        //dummy_2.__vftable = (colgeom_visitor_inlined_t<200>_vtbl *)&colgeom_visitor_inlined_t<200>::`vftable';
+        //colgeom_visitor_inlined_t<500>::reset(&dummy_2);
+        //atexit(IKImport_InitCollisionCache_::_2_::_dynamic_atexit_destructor_for__dummy__);
     }
-    ikState->collisionCache.proximity_data.__vftable = dummy_2.__vftable;
-    colgeom_visitor_inlined_t<500>::reset(&ikState->collisionCache.proximity_data);
+    //ikState->collisionCache.proximity_data.__vftable = dummy_2.__vftable;
+    //colgeom_visitor_inlined_t<500>::reset(&ikState->collisionCache.proximity_data);
+    ikState->collisionCache.proximity_data.reset();
     ikState->collisionCache.hitIndex = 0;
 }
 
-// local variable allocation has failed, the output may be wrong!
-void    IKImport_Profiler(int a1@<ebp>, IKState *ikState)
+void    IKImport_Profiler(IKState *ikState)
 {
     float v2; // [esp-4h] [ebp-C0h] BYREF
     int timed; // [esp+0h] [ebp-BCh]
@@ -2836,13 +2874,13 @@ void    IKImport_Profiler(int a1@<ebp>, IKState *ikState)
     float *v20; // [esp+A0h] [ebp-1Ch]
     int m; // [esp+A4h] [ebp-18h]
     int k; // [esp+A8h] [ebp-14h]
-    unsigned intv23; // [esp+ACh] [ebp-10h]
-    int j; // [esp+B0h] [ebp-Ch]
-    int i; // [esp+B4h] [ebp-8h]
+    unsigned int v23; // [esp+ACh] [ebp-10h]
+    //int j; // [esp+B0h] [ebp-Ch]
+    //int i; // [esp+B4h] [ebp-8h]
     int retaddr; // [esp+BCh] [ebp+0h]
 
-    j = a1;
-    i = retaddr;
+    //j = a1;
+    //i = retaddr;
     if ( bEnabled )
     {
         bEnabled = 0;

@@ -51,7 +51,6 @@ void __cdecl BG_PlayerToEntitySetMisc(playerState_s *ps, entityState_s *s);
 unsigned __int8 __cdecl BG_GetPlayerWeaponModel(const playerState_s *ps, unsigned int weaponIndex);
 renderOptions_s __cdecl BG_PlayerWeaponOptions(const playerState_s *ps, unsigned int weaponIndex);
 void __cdecl BG_PlayerToEntitySetTrajectory(playerState_s *ps, entityState_s *s, int snap);
-// local variable allocation has failed, the output may be wrong!
 char    BG_CheckProne(
                 const playerState_s *ps,
                 int passEntityNum,
@@ -67,7 +66,6 @@ char    BG_CheckProne(
                 unsigned __int8 handler,
                 proneCheckType_t proneCheckType,
                 float prone_feet_dist);
-void __cdecl Phys_Vec3ToNitrousVec(float *inVector, phys_vec3 *outVector);
 void __cdecl BG_GetPlayerViewOrigin(const playerState_s *ps, float *origin, int time);
 void __cdecl BG_GetPlayerViewDirection(const playerState_s *ps, float *forward, float *right, float *up);
 void __cdecl BG_LerpHudColors(const hudelem_s *elem, int time, hudelem_color_t *toColor);
@@ -83,7 +81,6 @@ bool __cdecl BG_ClipMoveToDobj(const entityState_s *es);
 int __cdecl BG_GetFriendlyFireStatus();
 const char *__cdecl BG_DisplayName(const clientInfo_t *ci, int type);
 void __cdecl BG_ClipCameraToHeliPatch(float *origin, float *oldpos, float *velocity, float (*breachPos)[3]);
-const phys_vec3 *__cdecl Phys_Vec3ToNitrousVec(const phys_vec3 *result, float *inVector);
 
 
 extern const dvar_s *bg_viewKickScale;

@@ -2,7 +2,6 @@
 #include <physics/phys_local.h>
 #include <physics/phys_colgeom.h>
 
-void __cdecl Phys_Vec3ToNitrousVec(float *inVector, phys_vec3 *outVector);
 gjk_polygon_cylinder_t *__cdecl create_gjkcc_gjk_geom(
                 float (*mins)[3],
                 float (*maxs)[3],
@@ -32,7 +31,6 @@ void __thiscall gjkcc_info_database_t::gjkcc_info_destroy(
                 bool is_server_thread);
 void __cdecl destroy_client_gjkcc_info(int localClientNum);
 void    gjkcc_prolog(int a1@<ebp>, const gjkcc_input_t *gjkcc_in, float *origin);
-const phys_vec3 *__cdecl Phys_Vec3ToNitrousVec(const phys_vec3 *result, float *inVector);
 void __thiscall gjkcc_info::Lock(gjkcc_info *this);
 void __cdecl gjkcc_epilog(const gjkcc_input_t *gjkcc_in, const float *origin);
 void __thiscall phys_heap_gjk_cache_system_avl_tree::update_cache(phys_heap_gjk_cache_system_avl_tree *this);

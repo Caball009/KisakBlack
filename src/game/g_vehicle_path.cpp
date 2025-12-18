@@ -1,5 +1,7 @@
 #include "g_vehicle_path.h"
 
+int num_heli_height_lock_patches;
+
 void __cdecl VP_ResetLinks()
 {
     s_numVehicleNodeLinks = 0;

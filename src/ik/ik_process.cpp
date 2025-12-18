@@ -1,5 +1,6 @@
 #include "ik_process.h"
 #include "ik_import.h"
+#include "ik_math.h"
 
 void __cdecl IK_GeneratePreIKMatrices(IKState *ikState, bool isLocalBones)
 {
@@ -220,7 +221,7 @@ char __cdecl IK_HasAnimatedBones(IKState *ikState)
     return 0;
 }
 
-void    IK_Process(int a1@<ebp>, IKState *ikState, bool isLocalBones)
+void    IK_Process(IKState *ikState, bool isLocalBones)
 {
     void *v3; // esp
     int v4; // [esp-1CC0h] [ebp-1CCCh] BYREF

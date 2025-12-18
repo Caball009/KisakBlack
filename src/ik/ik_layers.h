@@ -1,4 +1,5 @@
 #pragma once
+#include "ik.h"
 
 void    IK_Layer_TerrainMapping(IKState *ikState);
 void    IK_Layer_ApplyFootIK(

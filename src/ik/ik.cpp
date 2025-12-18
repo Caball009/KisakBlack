@@ -64,7 +64,7 @@ bool ikEssentialBones[] =
   false
 };
 
-float ikLayerLerpTimes[] =
+float ikLayerLerpTimes[22] =
 {
   0.30000001,
   0.30000001,
@@ -90,7 +90,7 @@ float ikLayerLerpTimes[] =
   0.0
 };
 
-int ikLayerRealLayers[] =
+int ikLayerRealLayers[22] =
 { 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0 };
 
 int ikLegSolverLayers[21] =
@@ -595,8 +595,8 @@ void __cdecl IK_UpdateEntity(unsigned int entityNum, unsigned __int8 *model, boo
         ikState = IK_GetIKStateForEntity(entityNum, model, 0);
         if ( !ikState )
         {
-            if ( g_DXDeviceThread != GetCurrentThreadId() )
-                return;
+            //if ( g_DXDeviceThread != GetCurrentThreadId() )
+            //    return;
             goto LABEL_19;
         }
         if ( (!ikState->localIkSystem || !ikState->localIkSystem->bInitialized)
@@ -635,7 +635,8 @@ void __cdecl IK_UpdateEntity(unsigned int entityNum, unsigned __int8 *model, boo
             }
         }
         //if ( GetCurrentThreadId() == g_DXDeviceThread )
-LABEL_19:
+    LABEL_19:
+        ;
             //D3DPERF_EndEvent();
     }
 }
