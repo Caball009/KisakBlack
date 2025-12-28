@@ -382,6 +382,10 @@ void __cdecl Scr_AddObject(unsigned int id, scriptInstance_t inst);
 void __cdecl Scr_AddEntityNum(unsigned int entnum, unsigned int classnum, scriptInstance_t inst, int clientNum);
 void __cdecl Scr_AddStruct(scriptInstance_t inst);
 void __cdecl Scr_AddString(char *value, scriptInstance_t inst);
+inline void Scr_AddString(const char *value, scriptInstance_t inst)
+{
+    Scr_AddString((char *)value, inst);
+}
 void __cdecl Scr_AddIString(char *value, scriptInstance_t inst);
 void __cdecl Scr_AddConstString(unsigned int value, scriptInstance_t inst);
 void __cdecl Scr_AddVector(float *value, scriptInstance_t inst);
@@ -435,3 +439,5 @@ extern const dvar_t *sv_clientside;
 extern scrVmGlob_t gScrVmGlob[2];
 extern scrVmPub_t gScrVmPub[2];
 extern scrVmDebugPub_t gScrVmDebugPub[2];
+
+extern int gScrExecuteTime[2];

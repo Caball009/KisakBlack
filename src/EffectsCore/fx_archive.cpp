@@ -1,4 +1,5 @@
 #include "fx_archive.h"
+#include "fx_random.h"
 
 FxEffectContainer *__cdecl FX_EffectFromHandle(FxSystem *system, unsigned __int16 handle)
 {
@@ -51,29 +52,5 @@ FxElemVisuals __cdecl FX_GetElemVisuals(const FxElemDef *elemDef, int randomSeed
     if ( elemDef->visualCount == 1 )
         return elemDef->visuals.instance;
     else
-        return (FxElemVisuals)elemDef->visuals.markArray->materials[(elemDef->visualCount
-                                                                                                                             * LOWORD(fx_randomTable[randomSeed + 21])) >> 16];
+        return (FxElemVisuals)elemDef->visuals.array[(elemDef->visualCount * LOWORD(fx_randomTable[randomSeed + 21])) >> 16];
 }
-
-FxPool<FxElem,FxElemContainer> *__cdecl FX_PoolFromHandle_Generic<FxElem,FxElemContainer,2048>(
-                FxPool<FxElem,FxElemContainer> *poolArray,
-                unsigned __int16 handle)
-{
-    const char *v2; // eax
-
-    if ( handle >= 0x6000u || handle % 0xCu )
-    {
-        v2 = va("%p %i size=%d limit=%d handlescale=%d", poolArray, handle, 48, 2048, 4);
-        if ( !Assert_MyHandler(
-                        "c:\\projects_pc\\cod\\codsrc\\src\\effectscore\\fx_system.h",
-                        465,
-                        0,
-                        "%s\n\t%s",
-                        "handle < LIMIT * sizeof( CONTAINER_TYPE ) / ITEM_TYPE::HANDLE_SCALE && handle % (sizeof( CONTAINER_TYPE ) / "
-                        "ITEM_TYPE::HANDLE_SCALE) == 0",
-                        v2) )
-            __debugbreak();
-    }
-    return (FxPool<FxElem,FxElemContainer> *)((char *)poolArray + 4 * handle);
-}
-

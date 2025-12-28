@@ -9,6 +9,7 @@
 #include <qcommon/common.h>
 #include <bgame/bg_weapons_view.h>
 #include <physics/phys_colgeom.h>
+#include <physics/physpreset_load_obj.h>
 
 const dvar_s *dynEntPieces_velocity;
 const dvar_s *dynEntPieces_angularVelocity;

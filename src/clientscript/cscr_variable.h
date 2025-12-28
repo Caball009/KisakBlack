@@ -91,6 +91,10 @@ union VariableUnion // sizeof=0x4
     {
         intValue = i;
     }
+    VariableUnion(unsigned int i)
+    {
+        intValue = (int)i;
+    }
     VariableUnion(char *str)
     {
         codePosValue = str;
@@ -655,3 +659,5 @@ static constexpr const char *var_typename[] =
 extern scrVarGlob_t gScrVarGlob[2];
 extern scrVarPub_t gScrVarPub[2];
 extern scrVarDebugPub_t *gScrVarDebugPub[2];
+
+extern scr_classStruct_t *gScrClassMap[2];

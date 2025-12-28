@@ -103,7 +103,7 @@ struct cached_tag_mat_t // sizeof=0x3C
 void assertCmd();
 void assertexCmd();
 void assertmsgCmd();
-int print();
+void print();
 void println();
 gentity_s *__cdecl GetEntity(const unsigned __int16 *targetname);
 void GScr_IsCollectors();

@@ -46,6 +46,10 @@ snd_alias_list_t *__cdecl SND_FindAlias(const char *name);
 snd_alias_list_t *__cdecl SND_FindAliasFromId(unsigned int hash);
 snd_alias_list_t *__cdecl SND_BankAliasLookup(unsigned int key);
 int __cdecl SND_FindAliasId(char *name);
+inline int SND_FindAliasId(const char *name)
+{
+    return SND_FindAliasId((char *)name);
+}
 const snd_radverb *__cdecl SND_GetRadverb(unsigned int id);
 const snd_snapshot *__cdecl SND_GetSnapshotById(unsigned int id);
 const snd_snapshot *__cdecl SND_GetOcclusionSnapshot(const snd_snapshot *snap);

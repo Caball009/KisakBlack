@@ -1,4 +1,32 @@
 #include "cg_sound.h"
+#include <client/splitscreen.h>
+#include <cgame_mp/cg_local_mp.h>
+#include <cgame_mp/cg_main_mp.h>
+#include <gfx_d3d/r_scene.h>
+#include <sound/snd_public_async.h>
+#include <sound/snd_bank.h>
+#include <sound/snd_utils.h>
+#include <client_mp/cl_cgame_mp.h>
+#include <cgame_mp/cg_animscripted_mp.h>
+#include <bgame/bg_misc.h>
+#include <universal/com_math_anglevectors.h>
+#include <bgame/bg_weapons.h>
+
+const char *g_snd_fire_names[8] =
+{
+  "amb_fire_manager_0",
+  "amb_fire_manager_1",
+  "amb_fire_manager_2",
+  "amb_fire_manager_3",
+  "amb_fire_manager_4",
+  "amb_fire_manager_5",
+  "amb_fire_manager_6",
+  "amb_fire_manager_7"
+};
+
+CgSoundPlaybackTrackingInfo cg_SoundPlaybackTracking[256];
+
+snd_fire_manager g_snd_fires[1][8];
 
 bool __cdecl CG_ShouldPlaySoundOnLocalClient(
                 int localClientNum,
@@ -654,10 +682,10 @@ char __cdecl CG_SoundWhizbyPath(const float *p1, const float *p2, const float *p
     if ( d <= 0.0 )
         return 0;
     da = sqrtf(d);
-    t0 = (float)(COERCE_FLOAT(LODWORD(b) ^ _mask__NegFloat_) + da) / (float)(2.0 * a);
-    t1 = (float)(COERCE_FLOAT(LODWORD(b) ^ _mask__NegFloat_) - da) / (float)(2.0 * a);
+    t0 = (float)(-(b) + da) / (float)(2.0 * a);
+    t1 = (float)(-(b) - da) / (float)(2.0 * a);
     if ( (float)(t0 - 1.0) < 0.0 )
-        v10 = (float)(COERCE_FLOAT(LODWORD(b) ^ _mask__NegFloat_) + da) / (float)(2.0 * a);
+        v10 = (float)(-(b) + da) / (float)(2.0 * a);
     else
         v10 = 1.0f;
     if ( (float)(0.0 - t0) < 0.0 )
@@ -665,7 +693,7 @@ char __cdecl CG_SoundWhizbyPath(const float *p1, const float *p2, const float *p
     else
         fraction = 0.0f;
     if ( (float)(t1 - 1.0) < 0.0 )
-        v9 = (float)(COERCE_FLOAT(LODWORD(b) ^ _mask__NegFloat_) - da) / (float)(2.0 * a);
+        v9 = (float)(-(b) - da) / (float)(2.0 * a);
     else
         v9 = 1.0f;
     if ( (float)(0.0 - t1) < 0.0 )

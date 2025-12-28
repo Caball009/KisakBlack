@@ -1,6 +1,7 @@
 #include "g_scr_main_mp.h"
 #include <clientscript/cscr_vm.h>
 #include "g_main_mp.h"
+#include <cgame/cg_scr_main.h>
 
 scr_data_t g_scr_data;
 
@@ -37,22 +38,18 @@ void assertmsgCmd()
     Scr_Error(SCRIPTINSTANCE_CLIENT, error, 1);
 }
 
-int print()
+void print()
 {
-    int result; // eax
     char *DebugString; // [esp+0h] [ebp-Ch]
     int num; // [esp+4h] [ebp-8h]
     signed int i; // [esp+8h] [ebp-4h]
 
-    result = Scr_GetNumParam(SCRIPTINSTANCE_CLIENT);
-    num = result;
-    for ( i = 0; i < num; ++i )
+    num = Scr_GetNumParam(SCRIPTINSTANCE_CLIENT);
+    for (i = 0; i < num; ++i)
     {
         DebugString = Scr_GetDebugString(i, SCRIPTINSTANCE_CLIENT);
         Com_Printf(cg_level.scriptPrintChannel, "%s", DebugString);
-        result = i + 1;
     }
-    return result;
 }
 
 void println()

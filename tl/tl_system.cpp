@@ -13,6 +13,8 @@ void *tlScratchPadPtr;
 void *tlStackBegin;
 void *tlStackEnd;
 
+float tlPcTicksPerMS = 1.0f;
+
 void __cdecl tlSetSystemCallbacks(const tlSystemCallbacks *Callbacks)
 {
   memcpy(&tlCurSystemCallbacks, Callbacks, sizeof(tlCurSystemCallbacks));

@@ -2,6 +2,7 @@
 
 void __cdecl CG_track_init()
 {
+#if 0
     g_mem_track_filename = "cg_memtrack";
     TRACK_g_memtrack();
     g_mem_track_filename = "cg_main";
@@ -30,5 +31,6 @@ void __cdecl CG_track_init()
     TRACK_aim_target();
     g_mem_track_filename = "destructible";
     TRACK_destructible();
+#endif
 }
 

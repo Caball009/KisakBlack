@@ -1,8 +1,8 @@
 #pragma once
 #include <sound/snd.h>
 
-struct ViewModelInfo;
 struct gentity_s;
+struct XModel;
 struct localEntity_s;
 struct FxEffectDef;
 struct DObj;
@@ -10,6 +10,8 @@ struct XAnim_s;
 struct GfxScaledPlacement;
 struct refdef_s;
 struct localEntity_s;
+
+
 
 struct weaponInfo_s // sizeof=0x24
 {                                       // XREF: weaponInfo_t/r

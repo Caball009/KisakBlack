@@ -1,4 +1,49 @@
 #include "r_water_sim.h"
+#include "r_init.h"
+#include <qcommon/com_bsp.h>
+#include "r_singlethreaded_device_pc.h"
+#include "r_foliage.h"
+#include "r_dvars.h"
+#include <universal/com_workercmds.h>
+#include "r_debug.h"
+#include "r_workercmds.h"
+#include "r_warn.h"
+
+bool waterSimInitialized;
+
+const dvar_t *r_watersim_enabled;
+const dvar_t *r_watersim_debug;
+const dvar_t *r_watersim_flatten;
+const dvar_t *r_watersim_waveSeedDelay;
+const dvar_t *r_watersim_curlAmount;
+const dvar_t *r_watersim_curlMax;
+const dvar_t *r_watersim_curlReduce;
+const dvar_t *r_watersim_minShoreHeight;
+const dvar_t *r_watersim_foamAppear;
+const dvar_t *r_watersim_foamDisappear;
+const dvar_t *r_watersim_windAmount;
+const dvar_t *r_watersim_windDir;
+const dvar_t *r_watersim_windMax;
+const dvar_t *r_watersim_particleGravity;
+const dvar_t *r_watersim_particleLimit;
+const dvar_t *r_watersim_particleLength;
+const dvar_t *r_watersim_particleWidth;
+const dvar_t *r_watersim_scroll;
+
+waterconfig_t config;
+waterdata_t data;
+
+HANDLE waterUpdateMutex;
+unsigned int freeVertBlocks[800];
+unsigned int numFreeVertBlocks;
+
+fifo_t<meshExpire_t, 1024> expiredMeshes;
+
+WaterSimulationCmd prevCmd;
+
+fifo_t<debugpoint_t, 16> debugPoints;
+
+bool buffersAllocated = false;
 
 void __cdecl R_InitWaterSimulation()
 {
@@ -102,15 +147,15 @@ void __cdecl R_InitWaterSimulation()
                                                                  "Width of each particle");
         r_watersim_scroll = _Dvar_RegisterVec2(
                                                     "r_watersim_scroll",
-                                                    COERCE_UNSIGNED_INT(0.0),
-                                                    COERCE_UNSIGNED_INT(0.0),
+                                                    (0.0),
+                                                    (0.0),
                                                     -10.0,
                                                     10.0,
                                                     0x4400u,
                                                     "XY coords to scroll water in");
-        config.gridScale = FLOAT_25_0;
-        config.waveSeedHeight = FLOAT_25_0;
-        config.waveSeedRadius = FLOAT_125_0;
+        config.gridScale = 25.0f;
+        config.waveSeedHeight = 25.0f;
+        config.waveSeedRadius = 125.0f;
         config.waveDamping = 64.0f;
         memset((unsigned __int8 *)data.buffer[0].v, 0, data.buffer[0].bufferSize);
         memset((unsigned __int8 *)data.buffer[1].v, 0, data.buffer[1].bufferSize);
@@ -124,7 +169,7 @@ void __cdecl R_InitWaterSimulation()
         for ( n = 0; n < 0x320; ++n )
             freeVertBlocks[numFreeVertBlocks++] = 289 * n;
         waterUpdateMutex = CreateMutexA(0, 0, 0);
-        data.sprayMaterial = Material_RegisterHandle("water_dynamic_spray", 6);
+        data.sprayMaterial = Material_RegisterHandle((char*)"water_dynamic_spray", 6);
         R_WaterSimulationRestart();
     }
 }
@@ -138,7 +183,7 @@ void __cdecl R_WaterSimulationRestart()
     data.timeDelta = 0;
     data.enabled = 0;
     data.localSurfaceDistance = 0.0f;
-    data.localEyeHeight = FLOAT_N32768_0;
+    data.localEyeHeight = -32768.0;
     data.speedScale = 1.0f;
     data.oldEyePos[0] = 0.0f;
     data.oldEyePos[1] = 0.0f;
@@ -185,7 +230,8 @@ void __cdecl ExpireMesh(tile_t *tile)
     }
     expire.framesLeft = 3;
     expire.baseVertex = mesh->baseVertex;
-    fifo_t<meshExpire_t,1024>::add(&expiredMeshes, &expire);
+    //fifo_t<meshExpire_t,1024>::add(&expiredMeshes, &expire);
+    expiredMeshes.add(&expire);
     ++tile->meshes.head;
     tile->meshes.head &= 3u;
 }
@@ -227,12 +273,18 @@ void __cdecl R_InitWaterSimulationBuffers(unsigned int location)
         if ( !buffersAllocated )
         {
             PMem_BeginAlloc("water buffers", location, TRACK_WATERSIM);
-            channel_t<float4>::Alloc(data.buffer, location);
-            channel_t<float4>::Alloc(&data.buffer[1], location);
-            channel_t<short>::Alloc(&data.waterheight, location);
-            channel_t<char>::Alloc(&data.flooroffset, location);
-            channel_t<char>::Alloc(&data.shoredist, location);
-            channel_t<GfxColor>::Alloc(&data.colors, location);
+            //channel_t<float4>::Alloc(data.buffer, location);
+            //channel_t<float4>::Alloc(&data.buffer[1], location);
+            //channel_t<short>::Alloc(&data.waterheight, location);
+            //channel_t<char>::Alloc(&data.flooroffset, location);
+            //channel_t<char>::Alloc(&data.shoredist, location);
+            //channel_t<GfxColor>::Alloc(&data.colors, location);
+            data.buffer[0].Alloc(location);
+            data.buffer[1].Alloc(location);
+            data.waterheight.Alloc(location);
+            data.flooroffset.Alloc(location);
+            data.shoredist.Alloc(location);
+            data.colors.Alloc(location);
             memset((unsigned __int8 *)data.buffer[0].v, 0, data.buffer[0].bufferSize);
             memset((unsigned __int8 *)data.buffer[1].v, 0, data.buffer[1].bufferSize);
             memset((unsigned __int8 *)data.waterheight.v, 0, data.waterheight.bufferSize);
@@ -259,12 +311,18 @@ void __cdecl R_FreeWaterSimulationBuffers()
     {
         R_FreeWaterSimulationVertexBuffers();
         PMem_Free("water buffers");
-        channel_t<GfxColor>::Free((channel_t<GfxColor> *)&data.waterheight);
-        channel_t<GfxColor>::Free((channel_t<GfxColor> *)&data.flooroffset);
-        channel_t<GfxColor>::Free((channel_t<GfxColor> *)&data.shoredist);
-        channel_t<GfxColor>::Free(&data.colors);
-        channel_t<GfxColor>::Free((channel_t<GfxColor> *)&data.buffer[1]);
-        channel_t<GfxColor>::Free((channel_t<GfxColor> *)data.buffer);
+        //channel_t<GfxColor>::Free((channel_t<GfxColor> *)&data.waterheight);
+        //channel_t<GfxColor>::Free((channel_t<GfxColor> *)&data.flooroffset);
+        //channel_t<GfxColor>::Free((channel_t<GfxColor> *)&data.shoredist);
+        //channel_t<GfxColor>::Free(&data.colors);
+        //channel_t<GfxColor>::Free((channel_t<GfxColor> *)&data.buffer[1]);
+        //channel_t<GfxColor>::Free((channel_t<GfxColor> *)data.buffer);
+        data.waterheight.Free();
+        data.flooroffset.Free(); 
+        data.shoredist.Free();
+        data.colors.Free();
+        data.buffer[1].Free();
+        data.buffer[0].Free();
         buffersAllocated = 0;
     }
 }
@@ -285,7 +343,7 @@ void __cdecl R_SetWaterSimulationConstants(GfxCmdBufSourceState *state, float in
 }
 
 // local variable allocation has failed, the output may be wrong!
-void    R_WaterSimulationRender(int a1@<ebp>, const float *eyePos, int time, unsigned int viewIndex)
+void    R_WaterSimulationRender(const float *eyePos, int time, unsigned int viewIndex)
 {
     float v4[3]; // [esp-Ch] [ebp-118h] BYREF
     float dw[3]; // [esp+0h] [ebp-10Ch] BYREF
@@ -307,12 +365,12 @@ void    R_WaterSimulationRender(int a1@<ebp>, const float *eyePos, int time, uns
     int v21; // [esp+F4h] [ebp-18h]
     unsigned int prevFrame; // [esp+F8h] [ebp-14h]
     int frameTime; // [esp+FCh] [ebp-10h]
-    int v24; // [esp+100h] [ebp-Ch]
-    meshExpire_t *entry; // [esp+104h] [ebp-8h]
-    meshExpire_t *retaddr; // [esp+10Ch] [ebp+0h]
+    //int v24; // [esp+100h] [ebp-Ch]
+    //meshExpire_t *entry; // [esp+104h] [ebp-8h]
+    //meshExpire_t *retaddr; // [esp+10Ch] [ebp+0h]
 
-    v24 = a1;
-    entry = retaddr;
+    //v24 = a1;
+    //entry = retaddr;
     if ( r_watersim_enabled->current.enabled && comWorld.numWaterCells )
     {
         if ( buffersAllocated )
@@ -752,37 +810,35 @@ void __cdecl FreeMeshVerts(unsigned int baseVertex)
     freeVertBlocks[numFreeVertBlocks++] = baseVertex;
 }
 
+// aislop
 void R_WaterSimulationUpdateConfig()
 {
-    double v0; // xmm0_8
-    double v1; // xmm0_8
-    long double v2; // [esp+0h] [ebp-8h]
-    long double v3; // [esp+0h] [ebp-8h]
+    // Convert all dvars into the config struct
+    config.waveSeedDelay = r_watersim_waveSeedDelay->current.value;
+    config.curlAmount = r_watersim_curlAmount->current.value;
+    config.curlMax = r_watersim_curlMax->current.value;
+    config.curlReduce = r_watersim_curlReduce->current.value;
+    config.minShoreHeight = r_watersim_minShoreHeight->current.value;
+    config.foamAppear = r_watersim_foamAppear->current.value;
+    config.foamDisappear = r_watersim_foamDisappear->current.value;
+    config.windAmount = r_watersim_windAmount->current.value;
+    config.windMax = r_watersim_windMax->current.value;
+    config.particleGravity = r_watersim_particleGravity->current.value;
+    config.particleLimit = r_watersim_particleLimit->current.value;
+    config.particleLength = r_watersim_particleLength->current.value;
+    config.particleWidth = r_watersim_particleWidth->current.value;
 
-    LODWORD(config.waveSeedDelay) = r_watersim_waveSeedDelay->current.integer;
-    LODWORD(config.curlAmount) = r_watersim_curlAmount->current.integer;
-    LODWORD(config.curlMax) = r_watersim_curlMax->current.integer;
-    LODWORD(config.curlReduce) = r_watersim_curlReduce->current.integer;
-    LODWORD(config.minShoreHeight) = r_watersim_minShoreHeight->current.integer;
-    LODWORD(config.foamAppear) = r_watersim_foamAppear->current.integer;
-    LODWORD(config.foamDisappear) = r_watersim_foamDisappear->current.integer;
-    LODWORD(config.windAmount) = r_watersim_windAmount->current.integer;
-    LODWORD(config.windMax) = r_watersim_windMax->current.integer;
-    LODWORD(config.particleGravity) = r_watersim_particleGravity->current.integer;
-    LODWORD(config.particleLimit) = r_watersim_particleLimit->current.integer;
-    LODWORD(config.particleLength) = r_watersim_particleLength->current.integer;
-    LODWORD(config.particleWidth) = r_watersim_particleWidth->current.integer;
-    *((float *)&v2 + 1) = r_watersim_windDir->current.value * 0.017453292;
-    v0 = *((float *)&v2 + 1);
-    __libm_sse2_cos(v2);
-    *(float *)&v0 = v0;
-    *(_QWORD *)config.windDir = __PAIR64__(0, LODWORD(v0));
-    *(float *)&v3 = r_watersim_windDir->current.value * 0.017453292;
-    v1 = *(float *)&v3;
-    __libm_sse2_sin(v3);
-    *(float *)&v1 = v1;
-    config.windDir[2] = *(float *)&v1;
+    // Convert wind direction from degrees to radians
+    float windDirRadians = r_watersim_windDir->current.value * (3.14159265f / 180.0f);
+
+    // Compute 2D wind direction vector (x, y)
+    config.windDir[0] = cosf(windDirRadians);
+    config.windDir[1] = sinf(windDirRadians);
+
+    // Set z component to 0 (flat horizontal wind)
+    config.windDir[2] = 0.0f;
 }
+
 
 void __cdecl R_RenderWaterModel(unsigned int viewIndex)
 {
@@ -886,22 +942,36 @@ void *FlushBuffers()
 
     for ( i = 0; i < 4; ++i )
     {
-        channel_t<float4>::Cache(data.buffer, 0, 0, 1);
+        //channel_t<float4>::Cache(data.buffer, 0, 0, 1);
+        data.buffer[0].Cache(0, false, true);
         result = (void *)(i + 1);
     }
-    for ( j = 0; j < 4; ++j )
-        result = channel_t<float4>::Cache(&data.buffer[1], 0, 0, 1);
-    for ( k = 0; k < 4; ++k )
-        result = channel_t<short>::Cache(&data.waterheight, 0, 0, 1);
+    for (j = 0; j < 4; ++j)
+    {
+        //result = channel_t<float4>::Cache(&data.buffer[1], 0, 0, 1);
+        result = data.buffer[1].Cache(0, false, true);
+    }
+    for (k = 0; k < 4; ++k)
+    {
+        //result = channel_t<short>::Cache(&data.waterheight, 0, 0, 1);
+        result = data.waterheight.Cache(0, false, true);
+    }
     for ( m = 0; m < 4; ++m )
     {
-        channel_t<char>::Cache(&data.flooroffset, 0, 0, 1);
+        //channel_t<char>::Cache(&data.flooroffset, 0, 0, 1);
+        data.flooroffset.Cache(0, false, true);
         result = (void *)(m + 1);
     }
-    for ( n = 0; n < 4; ++n )
-        result = channel_t<char>::Cache(&data.shoredist, 0, 0, 1);
-    for ( ii = 0; ii < 4; ++ii )
-        result = channel_t<GfxColor>::Cache(&data.colors, 0, 0, 1);
+    for (n = 0; n < 4; ++n)
+    {
+        //result = channel_t<char>::Cache(&data.shoredist, 0, 0, 1);
+        result = data.shoredist.Cache(0, false, true);
+    }
+    for (ii = 0; ii < 4; ++ii)
+    {
+        //result = channel_t<GfxColor>::Cache(&data.colors, 0, 0, 1);
+        result = data.colors.Cache(0, false, true);
+    }
     return result;
 }
 
@@ -2799,417 +2869,3 @@ char __cdecl R_WaterSimulationGetAverageHeight(float *pHeight)
     }
     return 1;
 }
-
-void __thiscall channel_t<float4>::Alloc(channel_t<float4> *this, unsigned int location)
-{
-    if ( this->v
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_water_sim.cpp", 179, 0, "%s", "v == NULL") )
-    {
-        __debugbreak();
-    }
-    this->bufferSize = 1048704;
-    this->v = (float4 *)_PMem_Alloc(
-                                                this->bufferSize,
-                                                0x10u,
-                                                4u,
-                                                location,
-                                                TRACK_WATERSIM,
-                                                "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_water_sim.cpp",
-                                                189);
-}
-
-void __thiscall channel_t<GfxColor>::Free(channel_t<GfxColor> *this)
-{
-    if ( !this->v && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_water_sim.cpp", 195, 0, "%s", "v") )
-        __debugbreak();
-    this->v = 0;
-}
-
-float4 *__thiscall channel_t<float4>::Cache(channel_t<float4> *this, unsigned int y, bool modify, bool flush)
-{
-    unsigned int i; // [esp+4h] [ebp-Ch]
-    channel_t<float4>::cache_t *c; // [esp+Ch] [ebp-4h]
-
-    if ( y > 0x100
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_water_sim.cpp",
-                    216,
-                    0,
-                    "y not in [0, GRIDSIZE]\n\t%i not in [%i, %i]",
-                    y,
-                    0,
-                    256) )
-    {
-        __debugbreak();
-    }
-    if ( !flush )
-    {
-        for ( i = 0; i < 4; ++i )
-        {
-            if ( this->cache[i].y == y )
-            {
-                this->cache[i].modified |= modify;
-                return this->cache[i].data;
-            }
-        }
-    }
-    c = &this->cache[this->cache_now++];
-    this->cache_now %= 4u;
-    if ( c->modified )
-    {
-        memcpy((unsigned __int8 *)&this->v[256 * c->y], (unsigned __int8 *)c->data, 0x1000u);
-        c->modified = 0;
-    }
-    if ( flush )
-    {
-        c->y = -1;
-        return 0;
-    }
-    else
-    {
-        c->modified = modify;
-        c->y = y;
-        memcpy((unsigned __int8 *)c->data, (unsigned __int8 *)&this->v[256 * c->y], sizeof(c->data));
-        c->pad0.u[0] = c->data[255].u[0];
-        c->pad0.u[1] = c->data[255].u[1];
-        c->pad0.u[2] = c->data[255].u[2];
-        c->pad0.u[3] = c->data[255].u[3];
-        c->pad1.u[0] = c->data[0].u[0];
-        c->pad1.u[1] = c->data[0].u[1];
-        c->pad1.u[2] = c->data[0].u[2];
-        c->pad1.u[3] = c->data[0].u[3];
-        return c->data;
-    }
-}
-
-void __thiscall channel_t<short>::Alloc(channel_t<short> *this, unsigned int location)
-{
-    if ( this->v
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_water_sim.cpp", 179, 0, "%s", "v == NULL") )
-    {
-        __debugbreak();
-    }
-    this->bufferSize = 131200;
-    this->v = (__int16 *)_PMem_Alloc(
-                                                 this->bufferSize,
-                                                 0x10u,
-                                                 4u,
-                                                 location,
-                                                 TRACK_WATERSIM,
-                                                 "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_water_sim.cpp",
-                                                 189);
-}
-
-__int16 *__thiscall channel_t<short>::Cache(channel_t<short> *this, unsigned int y, bool modify, bool flush)
-{
-    unsigned int i; // [esp+Ch] [ebp-Ch]
-    channel_t<short>::cache_t *c; // [esp+14h] [ebp-4h]
-
-    if ( y > 0x100
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_water_sim.cpp",
-                    216,
-                    0,
-                    "y not in [0, GRIDSIZE]\n\t%i not in [%i, %i]",
-                    y,
-                    0,
-                    256) )
-    {
-        __debugbreak();
-    }
-    if ( !flush )
-    {
-        for ( i = 0; i < 4; ++i )
-        {
-            if ( this->cache[i].y == y )
-            {
-                this->cache[i].modified |= modify;
-                return this->cache[i].data;
-            }
-        }
-    }
-    c = &this->cache[this->cache_now++];
-    this->cache_now %= 4u;
-    if ( c->modified )
-    {
-        memcpy(&this->v[256 * c->y], c->data, 0x200u);
-        c->modified = 0;
-    }
-    if ( flush )
-    {
-        c->y = -1;
-        return 0;
-    }
-    else
-    {
-        c->modified = modify;
-        c->y = y;
-        memcpy(c->data, &this->v[256 * c->y], sizeof(c->data));
-        *(&c->pad0 + 7) = c->data[255];
-        c->pad1 = c->data[0];
-        return c->data;
-    }
-}
-
-void __thiscall channel_t<char>::Alloc(channel_t<char> *this, unsigned int location)
-{
-    if ( this->v
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_water_sim.cpp", 179, 0, "%s", "v == NULL") )
-    {
-        __debugbreak();
-    }
-    this->bufferSize = 65664;
-    this->v = (char *)_PMem_Alloc(
-                                            this->bufferSize,
-                                            0x10u,
-                                            4u,
-                                            location,
-                                            TRACK_WATERSIM,
-                                            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_water_sim.cpp",
-                                            189);
-}
-
-char *__thiscall channel_t<char>::Cache(channel_t<char> *this, unsigned int y, bool modify, bool flush)
-{
-    unsigned int i; // [esp+Ch] [ebp-Ch]
-    channel_t<char>::cache_t *c; // [esp+14h] [ebp-4h]
-
-    if ( y > 0x100
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_water_sim.cpp",
-                    216,
-                    0,
-                    "y not in [0, GRIDSIZE]\n\t%i not in [%i, %i]",
-                    y,
-                    0,
-                    256) )
-    {
-        __debugbreak();
-    }
-    if ( !flush )
-    {
-        for ( i = 0; i < 4; ++i )
-        {
-            if ( this->cache[i].y == y )
-            {
-                this->cache[i].modified |= modify;
-                return this->cache[i].data;
-            }
-        }
-    }
-    c = &this->cache[this->cache_now++];
-    this->cache_now %= 4u;
-    if ( c->modified )
-    {
-        memcpy(&this->v[256 * c->y], c->data, 0x100u);
-        c->modified = 0;
-    }
-    if ( flush )
-    {
-        c->y = -1;
-        return 0;
-    }
-    else
-    {
-        c->modified = modify;
-        c->y = y;
-        memcpy(c->data, &this->v[256 * c->y], sizeof(c->data));
-        *(&c->pad0 + 15) = c->data[255];
-        c->pad1 = c->data[0];
-        return c->data;
-    }
-}
-
-void __thiscall channel_t<GfxColor>::Alloc(channel_t<GfxColor> *this, unsigned int location)
-{
-    if ( this->v
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_water_sim.cpp", 179, 0, "%s", "v == NULL") )
-    {
-        __debugbreak();
-    }
-    this->bufferSize = 262272;
-    this->v = (GfxColor *)_PMem_Alloc(
-                                                    this->bufferSize,
-                                                    0x10u,
-                                                    4u,
-                                                    location,
-                                                    TRACK_WATERSIM,
-                                                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_water_sim.cpp",
-                                                    189);
-}
-
-void __thiscall fifo_t<debugpoint_t,16>::add(fifo_t<debugpoint_t,16> *this, const debugpoint_t *t)
-{
-    debugpoint_t *v2; // edx
-
-    v2 = &this->data[this->tail];
-    v2->pos[0] = t->pos[0];
-    v2->pos[1] = t->pos[1];
-    v2->pos[2] = t->pos[2];
-    ++this->tail;
-    this->tail &= 0xFu;
-    if ( this->head == this->tail )
-    {
-        ++this->head;
-        this->head &= 0xFu;
-    }
-}
-
-void __thiscall fifo_t<meshExpire_t,1024>::add(fifo_t<meshExpire_t,1024> *this, const meshExpire_t *t)
-{
-    unsigned int baseVertex; // edx
-    unsigned int tail; // eax
-
-    baseVertex = t->baseVertex;
-    tail = this->tail;
-    this->data[tail].framesLeft = t->framesLeft;
-    this->data[tail].baseVertex = baseVertex;
-    ++this->tail;
-    this->tail &= 0x3FFu;
-    if ( this->head == this->tail )
-    {
-        ++this->head;
-        this->head &= 0x3FFu;
-    }
-}
-
-GfxColor *__thiscall channel_t<GfxColor>::Cache(channel_t<GfxColor> *this, unsigned int y, bool modify, bool flush)
-{
-    unsigned int i; // [esp+Ch] [ebp-Ch]
-    channel_t<GfxColor>::cache_t *c; // [esp+14h] [ebp-4h]
-
-    if ( y > 0x100
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_water_sim.cpp",
-                    216,
-                    0,
-                    "y not in [0, GRIDSIZE]\n\t%i not in [%i, %i]",
-                    y,
-                    0,
-                    256) )
-    {
-        __debugbreak();
-    }
-    if ( !flush )
-    {
-        for ( i = 0; i < 4; ++i )
-        {
-            if ( this->cache[i].y == y )
-            {
-                this->cache[i].modified |= modify;
-                return this->cache[i].data;
-            }
-        }
-    }
-    c = &this->cache[this->cache_now++];
-    this->cache_now %= 4u;
-    if ( c->modified )
-    {
-        memcpy(&this->v[256 * c->y], c->data, 0x400u);
-        c->modified = 0;
-    }
-    if ( flush )
-    {
-        c->y = -1;
-        return 0;
-    }
-    else
-    {
-        c->modified = modify;
-        c->y = y;
-        memcpy(c->data, &this->v[256 * c->y], sizeof(c->data));
-        *((unsigned int *)&c->pad0 + 3) = c->data[255].packed;
-        c->pad1.packed = c->data[0].packed;
-        return c->data;
-    }
-}
-
-waterdata_t *__thiscall waterdata_t::waterdata_t(waterdata_t *this)
-{
-    int v3; // [esp+4h] [ebp-34h]
-    tile_t *j; // [esp+8h] [ebp-30h]
-    int v5; // [esp+30h] [ebp-8h]
-    channel_t<float4> *i; // [esp+34h] [ebp-4h]
-
-    v5 = 2;
-    for ( i = this->buffer; --v5 >= 0; ++i )
-    {
-        `vector constructor iterator'(
-            i->cache,
-            0x1030u,
-            4,
-            (void *(__thiscall *)(void *))channel_t<float4>::cache_t::cache_t);
-        i->v = 0;
-        i->bufferSize = 0;
-        i->cache_now = 0;
-    }
-    channel_t<short>::channel_t<short>(&this->waterheight);
-    channel_t<char>::channel_t<char>(&this->flooroffset);
-    channel_t<char>::channel_t<char>(&this->shoredist);
-    channel_t<GfxColor>::channel_t<GfxColor>(&this->colors);
-    v3 = 256;
-    for ( j = this->tiles; --v3 >= 0; ++j )
-    {
-        j->meshes.tail = 0;
-        j->meshes.head = 0;
-    }
-    return this;
-}
-
-channel_t<short> *__thiscall channel_t<short>::channel_t<short>(channel_t<short> *this)
-{
-    int v2; // [esp+4h] [ebp-8h]
-    channel_t<short>::cache_t *i; // [esp+8h] [ebp-4h]
-
-    v2 = 4;
-    for ( i = this->cache; --v2 >= 0; ++i )
-    {
-        i->y = -1;
-        i->modified = 0;
-    }
-    this->v = 0;
-    this->bufferSize = 0;
-    this->cache_now = 0;
-    return this;
-}
-
-channel_t<char> *__thiscall channel_t<char>::channel_t<char>(channel_t<char> *this)
-{
-    int v2; // [esp+4h] [ebp-8h]
-    channel_t<char>::cache_t *i; // [esp+8h] [ebp-4h]
-
-    v2 = 4;
-    for ( i = this->cache; --v2 >= 0; ++i )
-    {
-        i->y = -1;
-        i->modified = 0;
-    }
-    this->v = 0;
-    this->bufferSize = 0;
-    this->cache_now = 0;
-    return this;
-}
-
-channel_t<GfxColor> *__thiscall channel_t<GfxColor>::channel_t<GfxColor>(channel_t<GfxColor> *this)
-{
-    int v2; // [esp+4h] [ebp-8h]
-    channel_t<GfxColor>::cache_t *i; // [esp+8h] [ebp-4h]
-
-    v2 = 4;
-    for ( i = this->cache; --v2 >= 0; ++i )
-    {
-        i->y = -1;
-        i->modified = 0;
-    }
-    this->v = 0;
-    this->bufferSize = 0;
-    this->cache_now = 0;
-    return this;
-}
-
-void __thiscall channel_t<float4>::cache_t::cache_t(channel_t<float4>::cache_t *this)
-{
-    this->y = -1;
-    this->modified = 0;
-}
-

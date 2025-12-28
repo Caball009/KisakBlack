@@ -209,6 +209,14 @@ union SndEntHandle // sizeof=0x4
                 unsigned __int32 tag : 6;
         } field;
         int handle;
+
+        SndEntHandle(int init)
+        {
+            handle = init;
+        }
+        SndEntHandle()
+        {
+        }
 };
 
 struct __declspec(align(4)) snd_occlusion_start_cache // sizeof=0x14

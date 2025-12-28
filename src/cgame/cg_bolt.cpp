@@ -1,4 +1,14 @@
 #include "cg_bolt.h"
+#include <bgame/bg_local.h>
+#include "cg_spawn.h"
+#include <bgame/bg_misc.h>
+#include <bgame/bg_weapons_def.h>
+#include <cgame_mp/cg_local_mp.h>
+#include <xanim/xmodel_utils.h>
+#include <universal/com_math_anglevectors.h>
+
+centity_s *g_BoltEnt[1][10];
+unsigned int g_BoltIndex[1];
 
 void __cdecl CG_InitBolt(unsigned int localClientNum)
 {
@@ -81,7 +91,7 @@ unsigned int __cdecl CG_AddBolt(
         wallPos[0] = *position - axis[0][0];
         wallPos[1] = position[1] - axis[0][1];
         wallPos[2] = position[2] - axis[0][2];
-        Phys_SetUserBody((int)&savedregs, physUserBody, wallPos);
+        Phys_SetUserBody(physUserBody, wallPos);
     }
     return ++g_BoltIndex[localClientNum];
 }

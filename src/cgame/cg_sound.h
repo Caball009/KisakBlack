@@ -1,4 +1,22 @@
 #pragma once
+#include <sound/snd.h>
+#include <flame/flame_sound.h>
+
+struct CgSoundPlaybackTrackingInfo // sizeof=0x18
+{                                       // XREF: .data:cg_SoundPlaybackTracking/r
+    int entitynum;
+    float origin[3];
+    unsigned int aliasname;
+    int wasInKillcam;
+};
+
+struct snd_fire_manager // sizeof=0x18
+{                                       // XREF: .data:g_snd_fires/r
+    int active;
+    float location[3];
+    float level;
+    int id;
+};
 
 bool __cdecl CG_ShouldPlaySoundOnLocalClient(
                 int localClientNum,

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DynEntity_gamestate.h"
+#include "DynEntity_client.h"
 #include <universal/q_parse.h>
 #include <physics/physconstraints_load_obj.h>
 
@@ -72,6 +73,35 @@ struct DynEntityServer // sizeof=0x8
     // padding byte
     int health;
 };
+
+struct node_params_t // sizeof=0x120
+{                                       // XREF: .data:node_params_t * dents_params/r
+                                        // .data:node_params_t * rope_params/r ...
+    char classname[64];
+    char targetname[64];                // XREF: setup_gjkcc_input(pmove_t *,gjkcc_input_t *)+37/o
+                                        // PM_trace(pmove_t *,trace_t *,float const * const,float const * const,float const * const,float const * const,int,int)+4C/o ...
+    unsigned __int16 targetname_hash;   // XREF: LoadRopeParams+2FA/w
+                                        // GetAttachPointsInWorldSpace+8B/r ...
+    char target[64];                    // XREF: LoadRopeParams+327/o
+                                        // .data:00E0AED2/o
+    char target2[64];                   // XREF: LoadRopeParams+3A5/o
+                                        // R_ChangeState_1(GfxCmdBufState *,uint)+2E1/o
+    // padding byte
+    // padding byte
+    float origin[3];                    // XREF: DynEnt_LoadEntities(void)+F2A/o
+                                        // LoadRopeParams+1F9/o ...
+    float angles[3];                    // XREF: DynEnt_LoadEntities(void)+F18/o
+                                        // LoadRopeParams+23C/o ...
+    int used;
+};
+
+struct DynEntityDef;
+struct DynEntityClient;
+struct PhysPreset;
+struct XModelPieces;
+struct XModel;
+struct DynEntityCreateParams;
+struct DynEntityPose;
 
 const DynEntityDef *__cdecl DynEnt_GetEntityDef(unsigned __int16 dynEntId, DynEntityDrawType drawType);
 DynEntityClient *__cdecl DynEnt_GetClientEntity(unsigned __int16 dynEntId, DynEntityDrawType drawType);

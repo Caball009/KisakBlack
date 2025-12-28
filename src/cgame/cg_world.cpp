@@ -27,7 +27,6 @@ int __cdecl CG_GetEntityBModelContents(const centity_s *cent)
 }
 
 void    CG_GetEntityBModelBounds(
-                int a1@<ebp>,
                 const centity_s *cent,
                 float *mins,
                 float *maxs,

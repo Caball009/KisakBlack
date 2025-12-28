@@ -84,3 +84,4 @@ void __cdecl ScrPlace_ApplyRect(
 
 extern ScreenPlacement scrPlaceView[1];
 extern ScreenPlacement scrPlaceFull;
+extern ScreenPlacement scrPlaceFullUnsafe;

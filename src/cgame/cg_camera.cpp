@@ -1,67 +1,91 @@
 #include "cg_camera.h"
 
-void __cdecl InterpolateAnglesSmooth(float *curAngles, float *initialAngles, float *targetAngles, float t)
-{
-    long double v4; // [esp-18h] [ebp-4Ch]
-    float v5; // [esp-Ch] [ebp-40h]
-    float v6; // [esp-8h] [ebp-3Ch]
-    float k; // [esp-4h] [ebp-38h]
-    float time; // [esp+0h] [ebp-34h]
-    float j; // [esp+4h] [ebp-30h]
-    float newDeltaYaw; // [esp+8h] [ebp-2Ch]
-    float i; // [esp+Ch] [ebp-28h]
-    float newStartPitch; // [esp+18h] [ebp-1Ch]
-    float deltaAngles_4; // [esp+20h] [ebp-14h]
-    float deltaAngles_8; // [esp+24h] [ebp-10h]
+#include "cg_weapons.h"
+#include <bgame/bg_local.h>
+#include <cgame_mp/cg_local_mp.h>
+#include <cgame_mp/cg_ents_mp.h>
+#include "cg_main.h"
+#include <cgame_mp/cg_main_mp.h>
+#include <client_mp/cl_cgame_mp.h>
+#include <qcommon/common.h>
+#include <cgame_mp/cg_view_mp.h>
+#include <cgame_mp/cg_vehicles_mp.h>
+#include <vehicle/nitrous_vehicle.h>
+#include <client/cl_keys.h>
+#include <bgame/bg_misc.h>
+#include <bgame/bg_weapons.h>
+#include <clientscript/scr_const.h>
+#include <bgame/bg_weapons_def.h>
+#include "cg_local.h"
+#include <win32/win_shared.h>
+#include <demo/demo_playback.h>
+#include <qcommon/dobj_management.h>
+#include <game_mp/g_main_mp.h>
+#include <universal/com_math_anglevectors.h>
+#include <bgame/bg_pmove.h>
+#include <bgame/bg_slidemove.h>
+#include <client/splitscreen.h>
+#include <gfx_d3d/r_dvars.h>
+#include <client/cl_debugdata.h>
+#include <gfx_d3d/r_extracam.h>
+#include <client/client.h>
+#include <gfx_d3d/r_dpvs.h>
 
-    deltaAngles_4 = initialAngles[1];
-    deltaAngles_8 = initialAngles[2];
-    for ( i = *initialAngles; fabs(i) > 90.0; i = i - (float)(180.0 * newDeltaYaw) )
-    {
-        if ( i <= 0.0 )
-            newDeltaYaw = -1.0f;
-        else
-            newDeltaYaw = 1.0f;
-    }
-    for ( j = *targetAngles; fabs(j) > 90.0; j = j - (float)(180.0 * time) )
-    {
-        if ( j <= 0.0 )
-            time = -1.0f;
-        else
-            time = 1.0f;
-    }
-    newStartPitch = targetAngles[2] - deltaAngles_8;
-    for ( k = targetAngles[1] - deltaAngles_4;
-                fabs(k) > 180.0;
-                k = k - (float)(360.0 * v6) )
-    {
-        if ( (float)(targetAngles[1] - deltaAngles_4) <= 0.0 )
-            v6 = -1.0f;
-        else
-            v6 = 1.0f;
-    }
-    __libm_sse2_cos(v4);
-    v5 = (float)((float)((float)(3.1415927 * t) - 3.1415927) + 1.0) * 0.5;
-    *curAngles = (float)(v5 * (float)(j - i)) + i;
-    curAngles[1] = (float)(v5 * k) + deltaAngles_4;
-    curAngles[2] = (float)(v5 * newStartPitch) + deltaAngles_8;
+bool damped_spring;
+
+// aislop
+static inline float CosineEase(float t)
+{
+    return 0.5f * (1.0f - cosf((float)M_PI * t));
 }
 
-void __cdecl InterpolatePositionSmooth(float *curPos, const float *initialPos, const float *targetPos, float t)
+void __cdecl InterpolateAnglesSmooth(
+    float *curAngles,
+    const float *initialAngles,
+    const float *targetAngles,
+    float t)
 {
-    long double deltaPos; // [esp+0h] [ebp-10h]
-    float deltaPos_4; // [esp+4h] [ebp-Ch]
-    float deltaPos_8; // [esp+8h] [ebp-8h]
-    float time; // [esp+Ch] [ebp-4h]
+    float startPitch = initialAngles[0];
+    float startYaw = initialAngles[1];
+    float startRoll = initialAngles[2];
 
-    __libm_sse2_cos(deltaPos);
-    time = (float)((float)((float)(3.1415927 * t) - 3.1415927) + 1.0) * 0.5;
-    deltaPos_4 = time * (float)(targetPos[1] - initialPos[1]);
-    deltaPos_8 = time * (float)(targetPos[2] - initialPos[2]);
-    *curPos = *initialPos + (float)(time * (float)(*targetPos - *initialPos));
-    curPos[1] = initialPos[1] + deltaPos_4;
-    curPos[2] = initialPos[2] + deltaPos_8;
+    float endPitch = targetAngles[0];
+    float endYaw = targetAngles[1];
+    float endRoll = targetAngles[2];
+
+    while (fabsf(startPitch) > 90.0f)
+        startPitch += (startPitch > 0.0f) ? -180.0f : 180.0f;
+
+    while (fabsf(endPitch) > 90.0f)
+        endPitch += (endPitch > 0.0f) ? -180.0f : 180.0f;
+
+    float deltaYaw = endYaw - startYaw;
+    while (fabsf(deltaYaw) > 180.0f)
+        deltaYaw += (deltaYaw > 0.0f) ? -360.0f : 360.0f;
+
+    float deltaRoll = endRoll - startRoll;
+
+    float f = CosineEase(t);
+
+    curAngles[0] = startPitch + f * (endPitch - startPitch);
+    curAngles[1] = startYaw + f * deltaYaw;
+    curAngles[2] = startRoll + f * deltaRoll;
 }
+
+
+void __cdecl InterpolatePositionSmooth(
+    float *curPos,
+    const float *initialPos,
+    const float *targetPos,
+    float t)
+{
+    float f = CosineEase(t);
+
+    curPos[0] = initialPos[0] + f * (targetPos[0] - initialPos[0]);
+    curPos[1] = initialPos[1] + f * (targetPos[1] - initialPos[1]);
+    curPos[2] = initialPos[2] + f * (targetPos[2] - initialPos[2]);
+}
+
 
 void __cdecl CG_StartCameraTween(int localClientNum, float tweenTime)
 {
@@ -161,7 +185,6 @@ void __cdecl CG_UpdateCameraTween(int localClientNum)
         if ( vehicle )
         {
             CG_AdjustPositionForMover(
-                (int)&savedregs,
                 localClientNum,
                 cgameGlob->cameraData.tweenStartOrg,
                 vehicle->nextState.number,
@@ -231,6 +254,8 @@ void __cdecl CG_UpdateVehicleInitView(int localClientNum, CameraMode newMode)
         cgameGlob->vehicleInitView = 1;
 }
 
+float sTweenTime = 0.5f;
+float sTweenTime_0 = 0.3f;
 void __cdecl CG_UpdateCameraTransition(int localClientNum, CameraMode oldMode, CameraMode newMode, bool useTagCamera)
 {
     float *v4; // [esp+28h] [ebp-58h]
@@ -395,7 +420,7 @@ void __cdecl CG_UpdateVehicleBindings(int localClientNum)
                 if ( (cgameGlob->predictedPlayerState.eFlags & 0x4000) != 0 && !ps->vehiclePos && ps->viewlocked_entNum != 1023 )
                 {
                     vehicle = CG_GetEntity(localClientNum, ps->viewlocked_entNum);
-                    info = CG_GetVehicleInfo(vehicle->nextState.un2.vehicleState.vehicleInfoIndex);
+                    info = CG_GetVehicleInfo(vehicle->nextState.vehicleState.vehicleInfoIndex);
                     gasButton = info->gasButton;
                     boostButton = info->boostButton;
                     reverseBrakeButton = info->reverseBrakeButton;
@@ -409,7 +434,7 @@ void __cdecl CG_UpdateVehicleBindings(int localClientNum)
                     firePickupButton = info->firePickupButton;
                     swapPickupButton = info->swapPickupButton;
                     dropDeployableButton = info->dropDeployableButton;
-                    Cbuf_ExecuteBuffer(0, 0, "unbindall2");
+                    Cbuf_ExecuteBuffer(0, 0, (char*)"unbindall2");
                     if ( Dvar_GetBool("gpad_enabled") )
                     {
                         if ( !I_strcmp(info->name, "motorcycle_player") )
@@ -598,9 +623,9 @@ CameraMode __cdecl CG_UpdateCameraMode(int localClientNum)
     else if ( (cgameGlob->predictedPlayerState.eFlags & 0x4000) != 0 )
     {
         vehicle = CG_GetEntity(localClientNum, cgameGlob->predictedPlayerState.viewlocked_entNum);
-        info = CG_GetVehicleInfo(vehicle->nextState.un2.vehicleState.vehicleInfoIndex);
+        info = CG_GetVehicleInfo(vehicle->nextState.vehicleState.vehicleInfoIndex);
         v2 = (!info->type || info->type == 4 || info->type == 1) && info->cameraMode == 1;
-        cgameGlob->cameraData.lastVehicleInfoIndex = vehicle->nextState.un2.vehicleState.vehicleInfoIndex;
+        cgameGlob->cameraData.lastVehicleInfoIndex = vehicle->nextState.vehicleState.vehicleInfoIndex;
         if ( cgameGlob->predictedPlayerState.vehiclePos < 1 || cgameGlob->predictedPlayerState.vehiclePos > 4 )
         {
             if ( cgameGlob->renderingThirdPerson == TP_FOR_MODEL && v2
@@ -647,8 +672,8 @@ CameraMode __cdecl CG_UpdateCameraMode(int localClientNum)
             CL_ClampViewAngle(
                 localClientNum,
                 0,
-                COERCE_FLOAT(LODWORD(cgameGlob->predictedPlayerState.delta_angles[0]) ^ _mask__NegFloat_),
-                COERCE_FLOAT(LODWORD(cgameGlob->predictedPlayerState.delta_angles[0]) ^ _mask__NegFloat_));
+                -(cgameGlob->predictedPlayerState.delta_angles[0]),
+                -(cgameGlob->predictedPlayerState.delta_angles[0]));
             Com_Printf(0, "CL_SetViewAngles() - HUEY\n");
         }
     }
@@ -722,22 +747,8 @@ void __cdecl CG_ApplyViewAnimation(int localClientNum)
     }
 }
 
-ViewModelInfo *__cdecl CG_GetLocalClientViewModelInfo(int localClientNum)
-{
-    if ( localClientNum
-        && !Assert_MyHandler(
-                    "c:\\projects_pc\\cod\\codsrc\\src\\cgame\\../cgame/cg_local.h",
-                    236,
-                    0,
-                    "%s\n\t(localClientNum) = %i",
-                    "(localClientNum == 0)",
-                    localClientNum) )
-    {
-        __debugbreak();
-    }
-    return cg_viewModelArray;
-}
-
+unsigned int _S1_1;
+int lastTime;
 double __cdecl CG_GetViewFov(int localClientNum)
 {
     int v2; // eax
@@ -751,7 +762,7 @@ double __cdecl CG_GetViewFov(int localClientNum)
     float v11; // [esp+28h] [ebp-64h]
     const vehicle_info_t *info; // [esp+54h] [ebp-38h]
     centity_s *vehicle; // [esp+58h] [ebp-34h]
-    unsigned intthisTime; // [esp+5Ch] [ebp-30h]
+    unsigned int thisTime; // [esp+5Ch] [ebp-30h]
     float weaponFov; // [esp+64h] [ebp-28h]
     float posLerp; // [esp+68h] [ebp-24h]
     cg_s *cgameGlob; // [esp+6Ch] [ebp-20h]
@@ -911,7 +922,7 @@ double __cdecl CG_GetViewFov(int localClientNum)
         {
             if ( ((*((unsigned int *)vehicle + 201) >> 1) & 1) != 0 )
             {
-                info = CG_GetVehicleInfo(vehicle->nextState.un2.vehicleState.vehicleInfoIndex);
+                info = CG_GetVehicleInfo(vehicle->nextState.vehicleState.vehicleInfoIndex);
                 if ( info->cameraFOV <= cg_fovMin->current.value )
                     cameraFOV = viewFov;
                 else
@@ -956,17 +967,19 @@ void __cdecl CG_CalcFov(int localClientNum, float fov_x)
     if ( fov_x <= 0.0 )
         fov_x = CG_GetViewFov(localClientNum);
     fov_xa = CG_UpdateCameraTweenFOV(localClientNum, fov_x);
-    __libm_sse2_tan(v3);
+    //__libm_sse2_tan(v3);
+    fov_xa = tan(fov_xa); 
     dxDzAtDefaultAspectRatio = (float)(fov_xa * 0.017453292) * 0.5;
     *((float *)&var18a + 1) = (float)(dxDzAtDefaultAspectRatio * 0.75) * cgs->viewAspect;
     cgameGlob->refdef.tanHalfFovX = *((float *)&var18a + 1);
     cgameGlob->refdef.tanHalfFovY = dxDzAtDefaultAspectRatio * 0.75;
     cgameGlob->refdef.fov_x = fov_xa;
-    *(float *)&var18a = (float)(cg_fov->current.value * 0.017453292) * 0.5;
-    v2 = *(float *)&var18a;
-    __libm_sse2_tan(var18a);
-    *(float *)&v2 = v2;
-    cgameGlob->zoomSensitivity = dxDzAtDefaultAspectRatio / *(float *)&v2;
+    //*(float *)&var18a = (float)(cg_fov->current.value * 0.017453292) * 0.5;
+    //v2 = *(float *)&var18a;
+    //__libm_sse2_tan(var18a);
+    //*(float *)&v2 = v2;
+    //cgameGlob->zoomSensitivity = dxDzAtDefaultAspectRatio / *(float *)&v2;
+    cgameGlob->zoomSensitivity = dxDzAtDefaultAspectRatio / tan((cg_fov->current.value * 0.017453292) * 0.5);
 }
 
 void __cdecl CG_CalculateGunnerOffset_Sway(
@@ -1034,7 +1047,8 @@ void __cdecl CG_CalculateGunnerOffset_Sway(
             v10 = deltaAngles[0];
         else
             v10 = swayMaxAngle;
-        if ( (float)(COERCE_FLOAT(LODWORD(swayMaxAngle) ^ _mask__NegFloat_) - deltaAngles[0]) < 0.0 )
+        //if ( (float)(COERCE_FLOAT(LODWORD(swayMaxAngle) ^ _mask__NegFloat_) - deltaAngles[0]) < 0.0 )
+        if ( (float)(-(swayMaxAngle) - deltaAngles[0]) < 0.0)
             v8 = v10;
         else
             v8 = -swayMaxAngle;
@@ -1043,7 +1057,8 @@ void __cdecl CG_CalculateGunnerOffset_Sway(
             v9 = deltaAngles[1];
         else
             v9 = swayMaxAngle;
-        if ( (float)(COERCE_FLOAT(LODWORD(swayMaxAngle) ^ _mask__NegFloat_) - deltaAngles[1]) < 0.0 )
+        //if ( (float)(COERCE_FLOAT(LODWORD(swayMaxAngle) ^ _mask__NegFloat_) - deltaAngles[1]) < 0.0 )
+        if ( (float)(-(swayMaxAngle) - deltaAngles[1]) < 0.0)
             v7 = v9;
         else
             v7 = -swayMaxAngle;
@@ -1060,6 +1075,12 @@ void __cdecl CG_CalculateGunnerOffset_Sway(
         swayViewAngles[2] = playerViewAngles[2];
     }
 }
+
+float swayViewAngles[1][3];
+float swayOffset[1][3];
+float swayAngles[1][3];
+float crouchOfs[3] = { 0.0, 0.0, 53.0 };
+bool gVehicleRelativeGunnerAngles = true;
 
 void __cdecl CG_OffsetVehicleGunner(int localClientNum, cg_s *cgameGlob)
 {
@@ -1117,32 +1138,32 @@ void __cdecl CG_OffsetVehicleGunner(int localClientNum, cg_s *cgameGlob)
     ps = &cgameGlob->predictedPlayerState;
     vehicle = CG_GetEntity(localClientNum, cgameGlob->predictedPlayerState.viewlocked_entNum);
     obj = Com_GetClientDObj(vehicle->nextState.number, localClientNum);
-    if ( obj )
+    if (obj)
     {
         gunnerIndex = ps->vehiclePos - 1;
-        if ( CG_DObjGetWorldTagMatrix(&vehicle->pose, obj, *gunnerViewTags[gunnerIndex], tagMtx, tagMtx[3]) )
+        if (CG_DObjGetWorldTagMatrix(&vehicle->pose, obj, *gunnerViewTags[gunnerIndex], tagMtx, tagMtx[3]))
         {
-            info = CG_GetVehicleInfo(vehicle->nextState.un2.vehicleState.vehicleInfoIndex);
+            info = (vehicle_info_t*)CG_GetVehicleInfo(vehicle->nextState.vehicleState.vehicleInfoIndex);
             weapon = info->gunnerWeaponIndex[gunnerIndex];
-            if ( !weapon )
+            if (!weapon)
             {
                 WeaponIndexForName = CG_GetWeaponIndexForName(info->gunnerWeapon[gunnerIndex]);
                 AssignToSmallerType<unsigned short>(&info->gunnerWeaponIndex[gunnerIndex], WeaponIndexForName);
                 weapon = info->gunnerWeaponIndex[gunnerIndex];
             }
             weapDef = BG_GetWeaponDef(weapon);
-            if ( weapDef )
+            if (weapDef)
             {
                 *(_QWORD *)viewPos = *(_QWORD *)&tagMtx[3][0];
                 viewPos[2] = tagMtx[3][2];
                 BG_CalcVehicleTurretWeaponPosOffset(ps->fWeaponPosFrac, weapDef, offset);
                 viewPos[0] = (float)(offset[2] * tagMtx[2][0])
-                                     + (float)((float)(offset[1] * tagMtx[1][0]) + (float)((float)(offset[0] * tagMtx[0][0]) + viewPos[0]));
+                    + (float)((float)(offset[1] * tagMtx[1][0]) + (float)((float)(offset[0] * tagMtx[0][0]) + viewPos[0]));
                 viewPos[1] = (float)(offset[2] * tagMtx[2][1])
-                                     + (float)((float)(offset[1] * tagMtx[1][1]) + (float)((float)(offset[0] * tagMtx[0][1]) + viewPos[1]));
+                    + (float)((float)(offset[1] * tagMtx[1][1]) + (float)((float)(offset[0] * tagMtx[0][1]) + viewPos[1]));
                 viewPos[2] = (float)(offset[2] * tagMtx[2][2])
-                                     + (float)((float)(offset[1] * tagMtx[1][2]) + (float)((float)(offset[0] * tagMtx[0][2]) + viewPos[2]));
-                if ( cgameGlob->vehicleInitView )
+                    + (float)((float)(offset[1] * tagMtx[1][2]) + (float)((float)(offset[0] * tagMtx[0][2]) + viewPos[2]));
+                if (cgameGlob->vehicleInitView)
                 {
                     v14 = swayViewAngles[localClientNum];
                     viewangles = ps->viewangles;
@@ -1162,11 +1183,12 @@ void __cdecl CG_OffsetVehicleGunner(int localClientNum, cg_s *cgameGlob)
                 viewPos[0] = (float)(v13 * tagMtx[0][0]) + viewPos[0];
                 viewPos[1] = (float)(v13 * tagMtx[0][1]) + viewPos[1];
                 viewPos[2] = (float)(v13 * tagMtx[0][2]) + viewPos[2];
-                v12 = *(float *)&dword_E86ACC[3 * localClientNum];
+                v12 = swayOffset[localClientNum][1];
                 viewPos[0] = (float)(v12 * tagMtx[1][0]) + viewPos[0];
                 viewPos[1] = (float)(v12 * tagMtx[1][1]) + viewPos[1];
                 viewPos[2] = (float)(v12 * tagMtx[1][2]) + viewPos[2];
-                LODWORD(v11) = dword_E86AD0[3 * localClientNum] ^ _mask__NegFloat_;
+                //LODWORD(v11) = LODWORD(swayOffset[localClientNum][2]) ^ _mask__NegFloat_;
+                v11 = -swayOffset[localClientNum][2];
                 viewPos[0] = (float)(v11 * tagMtx[2][0]) + viewPos[0];
                 viewPos[1] = (float)(v11 * tagMtx[2][1]) + viewPos[1];
                 viewPos[2] = (float)(v11 * tagMtx[2][2]) + viewPos[2];
@@ -1174,45 +1196,45 @@ void __cdecl CG_OffsetVehicleGunner(int localClientNum, cg_s *cgameGlob)
                 cgameGlob->refdef.vieworg[1] = viewPos[1];
                 cgameGlob->refdef.vieworg[2] = viewPos[2];
                 AxisToAngles(tagMtx, cgameGlob->refdefViewAngles);
-                if ( ps->leanf > 0.0 )
+                if (ps->leanf > 0.0)
                 {
                     v10 = (float)(ps->leanf * 3.1415927) - 1.5707964;
                     fc = cos(v10);
                     v27 = sin(v10);
                     f = (float)(v27 + 1.0) / 2.0;
-                    if ( CG_DObjGetWorldTagMatrix(
-                                 &vehicle->pose,
-                                 obj,
-                                 *gunnerViewCrouchTags[gunnerIndex],
-                                 tagCrouchMtx,
-                                 tagCrouchMtx[3]) )
+                    if (CG_DObjGetWorldTagMatrix(
+                        &vehicle->pose,
+                        obj,
+                        *gunnerViewCrouchTags[gunnerIndex],
+                        tagCrouchMtx,
+                        tagCrouchMtx[3]))
                     {
                         crouchPos[0] = (float)(crouchOfs[0] * tagCrouchMtx[0][0]) + tagCrouchMtx[3][0];
                         crouchPos[1] = (float)(crouchOfs[0] * tagCrouchMtx[0][1]) + tagCrouchMtx[3][1];
                         crouchPos[2] = (float)(crouchOfs[0] * tagCrouchMtx[0][2]) + tagCrouchMtx[3][2];
-                        crouchPos[0] = (float)(*(float *)&dword_E0289C * tagCrouchMtx[1][0]) + crouchPos[0];
-                        crouchPos[1] = (float)(*(float *)&dword_E0289C * tagCrouchMtx[1][1]) + crouchPos[1];
-                        crouchPos[2] = (float)(*(float *)&dword_E0289C * tagCrouchMtx[1][2]) + crouchPos[2];
-                        crouchPos[0] = (float)(*(float *)&dword_E028A0 * tagCrouchMtx[2][0]) + crouchPos[0];
-                        crouchPos[1] = (float)(*(float *)&dword_E028A0 * tagCrouchMtx[2][1]) + crouchPos[1];
-                        crouchPos[2] = (float)(*(float *)&dword_E028A0 * tagCrouchMtx[2][2]) + crouchPos[2];
+                        crouchPos[0] = (float)(crouchOfs[1] * tagCrouchMtx[1][0]) + crouchPos[0];
+                        crouchPos[1] = (float)(crouchOfs[1] * tagCrouchMtx[1][1]) + crouchPos[1];
+                        crouchPos[2] = (float)(crouchOfs[1] * tagCrouchMtx[1][2]) + crouchPos[2];
+                        crouchPos[0] = (float)(crouchOfs[2] * tagCrouchMtx[2][0]) + crouchPos[0];
+                        crouchPos[1] = (float)(crouchOfs[2] * tagCrouchMtx[2][1]) + crouchPos[1];
+                        crouchPos[2] = (float)(crouchOfs[2] * tagCrouchMtx[2][2]) + crouchPos[2];
                         Vec3Lerp(cgameGlob->refdef.vieworg, crouchPos, f, cgameGlob->refdef.vieworg);
                         v3 = AngleNormalize180(cgameGlob->refdefViewAngles[0]);
                         cgameGlob->refdefViewAngles[0] = v3 * (1.0 - f);
                     }
-                    else if ( !CG_DObjGetWorldTagMatrix(
-                                             &vehicle->pose,
-                                             obj,
-                                             *gunnerViewCrouchTags[gunnerIndex],
-                                             tagCrouchMtx,
-                                             tagCrouchMtx[3])
-                                 && !Assert_MyHandler(
-                                             "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_camera.cpp",
-                                             1294,
-                                             0,
-                                             "%s",
-                                             "CG_DObjGetWorldTagMatrix( &vehicle->pose, obj, *gunnerViewCrouchTags[gunnerIndex], tagCrouchMtx, "
-                                             "tagCrouchMtx[3] )") )
+                    else if (!CG_DObjGetWorldTagMatrix(
+                        &vehicle->pose,
+                        obj,
+                        *gunnerViewCrouchTags[gunnerIndex],
+                        tagCrouchMtx,
+                        tagCrouchMtx[3])
+                        && !Assert_MyHandler(
+                            "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_camera.cpp",
+                            1294,
+                            0,
+                            "%s",
+                            "CG_DObjGetWorldTagMatrix( &vehicle->pose, obj, *gunnerViewCrouchTags[gunnerIndex], tagCrouchMtx, "
+                            "tagCrouchMtx[3] )"))
                     {
                         __debugbreak();
                     }
@@ -1221,14 +1243,14 @@ void __cdecl CG_OffsetVehicleGunner(int localClientNum, cg_s *cgameGlob)
                 tagMtx2[3][0] = vehicle->pose.origin[0];
                 tagMtx2[3][1] = vehicle->pose.origin[1];
                 tagMtx2[3][2] = vehicle->pose.origin[2];
-                if ( cgameGlob->vehicleInitView )
+                if (cgameGlob->vehicleInitView)
                 {
                     MatrixTranspose(tagMtx2, cgameGlob->prevVehicleInvAxis);
                     cgameGlob->vehicleInitView = 0;
                 }
                 MatrixMultiply(cgameGlob->prevVehicleInvAxis, tagMtx2, deltaAxis);
                 MatrixTranspose(tagMtx2, cgameGlob->prevVehicleInvAxis);
-                if ( gVehicleRelativeGunnerAngles )
+                if (gVehicleRelativeGunnerAngles)
                 {
                     MatrixTranspose(deltaAxis, (float (*)[3])out);
                     AxisCopy((const float (*)[3])out, deltaAxis);
@@ -1239,7 +1261,7 @@ void __cdecl CG_OffsetVehicleGunner(int localClientNum, cg_s *cgameGlob)
                 AnglesToAxis(playerAngles, viewAxis);
                 MatrixMultiply(viewAxis, deltaAxis, mtx);
                 AxisToAngles(mtx, temp);
-                if ( ps->fWeaponPosFrac == 1.0 || (ps->eFlags & 0x40) != 0 && weapDef->weapType != WEAPTYPE_PROJECTILE )
+                if (ps->fWeaponPosFrac == 1.0 || (ps->eFlags & 0x40) != 0 && weapDef->weapType != WEAPTYPE_PROJECTILE)
                 {
                     vehiclePitchInfluence = cg_viewVehicleInfluenceGunnerFiring->current.value;
                     vehicleYawInfluence = cg_viewVehicleInfluenceGunnerFiring->current.vector[1];
@@ -1251,7 +1273,7 @@ void __cdecl CG_OffsetVehicleGunner(int localClientNum, cg_s *cgameGlob)
                     vehicleYawInfluence = cg_viewVehicleInfluenceGunner->current.vector[1];
                     vehicleRollInfluence = cg_viewVehicleInfluenceGunner->current.vector[2];
                 }
-                if ( gVehicleRelativeGunnerAngles )
+                if (gVehicleRelativeGunnerAngles)
                 {
                     vehiclePitchInfluence = 1.0 - vehiclePitchInfluence;
                     vehicleYawInfluence = 1.0 - vehicleYawInfluence;
@@ -1282,12 +1304,12 @@ void __cdecl CG_OffsetVehicleGunner(int localClientNum, cg_s *cgameGlob)
                 temp[2] = ps->viewangles[2] - ps->delta_angles[2];
                 CL_SetViewAngles(localClientNum, temp);
                 Com_Printf(0, "CL_SetViewAngles() - TANGO - (%3.0f, %3.0f, %3.0f)\n", temp[0], temp[1], temp[2]);
-                if ( !Demo_IsPaused()
+                if (!Demo_IsPaused()
                     && !Demo_IsCompleted()
                     && !Demo_GetClipPausedState()
                     && cl_paused->current.value == 0.0
                     && vehicle->vehicle
-                    && vehicle->vehicle->lastGunnerFire[gunnerIndex] > cgameGlob->time - 100 )
+                    && vehicle->vehicle->lastGunnerFire[gunnerIndex] > cgameGlob->time - 100)
                 {
                     cgameGlob->refdefViewAngles[0] = crandom() * weapDef->vertViewJitter + cgameGlob->refdefViewAngles[0];
                     cgameGlob->refdefViewAngles[1] = crandom() * weapDef->horizViewJitter + cgameGlob->refdefViewAngles[1];
@@ -1296,6 +1318,9 @@ void __cdecl CG_OffsetVehicleGunner(int localClientNum, cg_s *cgameGlob)
         }
     }
 }
+
+float camOffset[3] =
+{ -400.0, 0.0, 200.0 };
 
 void __cdecl CG_OffsetVehicleAnimCam(int localClientNum)
 {
@@ -1411,14 +1436,23 @@ void __cdecl CG_GetMissileViewOrigin(int localClientNum, float *out)
     out[2] = missile->pose.origin[2];
 }
 
+int p = 500;
+int y = 500;
+int r = 2000;
+int fp = 500;
+int fy = 500;
+int fr = 500;
+float d = 2.0f;
+
+
 void __cdecl CG_CalcMissileAngleValues(int localClientNum)
 {
-    double v1; // xmm0_8
-    double v2; // xmm0_8
-    double v3; // xmm0_8
-    long double v4; // [esp+0h] [ebp-30h]
-    long double v5; // [esp+0h] [ebp-30h]
-    long double v6; // [esp+0h] [ebp-30h]
+    float v1; // xmm0_8
+    float v2; // xmm0_8
+    float v3; // xmm0_8
+    float v4; // [esp+0h] [ebp-30h]
+    float v5; // [esp+0h] [ebp-30h]
+    float v6; // [esp+0h] [ebp-30h]
     cg_s *cgameGlob; // [esp+20h] [ebp-10h]
     centity_s *missile; // [esp+28h] [ebp-8h]
 
@@ -1462,25 +1496,36 @@ void __cdecl CG_CalcMissileAngleValues(int localClientNum)
         }
         v1 = (float)((float)((float)(int)(Sys_Milliseconds() - cgameGlob->missileViewWobbleLastTime) / 1000.0)
                              * cgameGlob->missileViewWobbleFreq[2]);
-        __libm_sse2_sin(v4);
-        *(float *)&v1 = v1;
-        cgameGlob->refdefViewAngles[2] = missile->pose.angles[2]
-                                                                     + (float)(*(float *)&v1 * cgameGlob->missileViewWobbleAmp[2]);
-        v2 = (float)((float)((float)(int)(Sys_Milliseconds() - cgameGlob->missileViewWobbleLastTime) / 1000.0)
-                             * cgameGlob->missileViewWobbleFreq[0]);
-        __libm_sse2_sin(v5);
-        *(float *)&v2 = v2;
-        cgameGlob->refdefViewAngles[0] = (float)(*(float *)&v2 * cgameGlob->missileViewWobbleAmp[0])
-                                                                     + cgameGlob->refdefViewAngles[0];
-        *((float *)&v6 + 1) = (float)((float)(int)(Sys_Milliseconds() - cgameGlob->missileViewWobbleLastTime) / 1000.0)
-                                                * cgameGlob->missileViewWobbleFreq[1];
-        v3 = *((float *)&v6 + 1);
-        __libm_sse2_sin(v6);
-        *(float *)&v3 = v3;
-        cgameGlob->refdefViewAngles[1] = (float)(*(float *)&v3 * cgameGlob->missileViewWobbleAmp[1])
-                                                                     + cgameGlob->refdefViewAngles[1];
+        //__libm_sse2_sin(v4);
+        //*(float *)&v1 = v1;
+        v1 = sin(v1);
+        cgameGlob->refdefViewAngles[2] = missile->pose.angles[2] + (float)(v1 * cgameGlob->missileViewWobbleAmp[2]);
+
+        v2 = (float)((float)((float)(int)(Sys_Milliseconds() - cgameGlob->missileViewWobbleLastTime) / 1000.0) * cgameGlob->missileViewWobbleFreq[0]);
+        //__libm_sse2_sin(v5);
+        //*(float *)&v2 = v2;
+        v2 = sin(v2);
+
+        cgameGlob->refdefViewAngles[0] = (float)(v2 * cgameGlob->missileViewWobbleAmp[0]) + cgameGlob->refdefViewAngles[0];
+        //*((float *)&v6 + 1) = (float)((float)(int)(Sys_Milliseconds() - cgameGlob->missileViewWobbleLastTime) / 1000.0) * cgameGlob->missileViewWobbleFreq[1];
+        v6 = (float)((float)(int)(Sys_Milliseconds() - cgameGlob->missileViewWobbleLastTime) / 1000.0) * cgameGlob->missileViewWobbleFreq[1];
+        //v3 = *((float *)&v6 + 1);
+        //__libm_sse2_sin(v6);
+        //*(float *)&v3 = v3;
+        v3 = sin(v6);
+        cgameGlob->refdefViewAngles[1] = (float)(v3 * cgameGlob->missileViewWobbleAmp[1]) + cgameGlob->refdefViewAngles[1];
     }
 }
+
+float swayViewAngles_0[1][3];
+float swayOffset_0[1][3];
+float swayAngles_0[1][3];
+float rollFrac = 0.75f;
+float maxDiff = 6.0f;
+float maxInfluence = 0.8f;
+float lerpRate = 4.0f;
+float maxLerpRate = 1.2f;
+
 
 void __cdecl CG_CalcVehicleViewValues(int localClientNum)
 {
@@ -1557,7 +1602,7 @@ void __cdecl CG_CalcVehicleViewValues(int localClientNum)
     vehicle = CG_GetEntity(localClientNum, cgameGlob->predictedPlayerState.viewlocked_entNum);
     obj = Com_GetClientDObj(vehicle->nextState.number, localClientNum);
     weapDef = 0;
-    info = CG_GetVehicleInfo(vehicle->nextState.un2.vehicleState.vehicleInfoIndex);
+    info = CG_GetVehicleInfo(vehicle->nextState.vehicleState.vehicleInfoIndex);
     if ( obj
         && CG_DObjGetWorldTagMatrix(&vehicle->pose, obj, scr_const.tag_body, bodyMtx, bodyMtx[3])
         && (ps->vehicleType != 2
@@ -1636,19 +1681,23 @@ void __cdecl CG_CalcVehicleViewValues(int localClientNum)
             {
                 if ( offsetVec[0] > -300.0 )
                     offsetVec[0] = -300.0f;
-                if ( cg_thirdPersonRange->current.value > COERCE_FLOAT(LODWORD(offsetVec[0]) ^ _mask__NegFloat_) )
-                    LODWORD(offsetVec[0]) = cg_thirdPersonRange->current.integer ^ _mask__NegFloat_;
+                //if ( cg_thirdPersonRange->current.value > COERCE_FLOAT(LODWORD(offsetVec[0]) ^ _mask__NegFloat_) )
+                if (cg_thirdPersonRange->current.value > -offsetVec[0])
+                {
+                    //LODWORD(offsetVec[0]) = cg_thirdPersonRange->current.integer ^ _mask__NegFloat_;
+                    offsetVec[0] = -cg_thirdPersonRange->current.integer;
+                }
             }
             if ( info->thirdPersonCameraSpringDistance > 0.0
                 && info->thirdPersonCameraSpringTime > 0.0
-                && NitrousVehicle::get_max_speed(vehicle->nitrousVeh, 0) > 0.0
+                && vehicle->nitrousVeh->get_max_speed(false) > 0.0
                 && cgameGlob->frametime > 0 )
             {
                 maxSpringOffset = info->thirdPersonCameraSpringDistance;
                 maxSpringOffsetTimeMs = maxSpringOffset / (float)(info->thirdPersonCameraSpringTime * 1000.0);
                 frameTimeMs = (float)cgameGlob->frametime * 0.001;
                 m_forward_vel = vehicle->nitrousVeh->m_forward_vel;
-                v28 = m_forward_vel / NitrousVehicle::get_max_speed(vehicle->nitrousVeh, 0);
+                v28 = m_forward_vel / vehicle->nitrousVeh->get_max_speed(false);
                 if ( 1.0 <= 0.0
                     && !Assert_MyHandler("c:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.h", 730, 0, "%s", "min < max") )
                 {
@@ -1772,11 +1821,12 @@ void __cdecl CG_CalcVehicleViewValues(int localClientNum)
                 desiredCamPos[0] = (float)(v23 * viewAxis[0][0]) + desiredCamPos[0];
                 desiredCamPos[1] = (float)(v23 * viewAxis[0][1]) + desiredCamPos[1];
                 desiredCamPos[2] = (float)(v23 * viewAxis[0][2]) + desiredCamPos[2];
-                v22 = *(float *)&dword_E86AF0[3 * localClientNum];
+                v22 = swayOffset_0[localClientNum][1];
                 desiredCamPos[0] = (float)(v22 * playerMtx[1][0]) + desiredCamPos[0];
                 desiredCamPos[1] = (float)(v22 * playerMtx[1][1]) + desiredCamPos[1];
                 desiredCamPos[2] = (float)(v22 * playerMtx[1][2]) + desiredCamPos[2];
-                LODWORD(v21) = dword_E86AF4[3 * localClientNum] ^ _mask__NegFloat_;
+                //LODWORD(v21) = LODWORD(swayOffset_0[localClientNum][2]) ^ _mask__NegFloat_;
+                v21 = -(swayOffset_0[localClientNum][2]);
                 desiredCamPos[0] = (float)(v21 * playerMtx[2][0]) + desiredCamPos[0];
                 desiredCamPos[1] = (float)(v21 * playerMtx[2][1]) + desiredCamPos[1];
                 desiredCamPos[2] = (float)(v21 * playerMtx[2][2]) + desiredCamPos[2];
@@ -1787,17 +1837,13 @@ void __cdecl CG_CalcVehicleViewValues(int localClientNum)
             vieworg[2] = desiredCamPos[2];
             if ( offsetVec[0] != 0.0 && ps->fWeaponPosFrac < 0.5 )
             {
-                start[0] = (float)(COERCE_FLOAT(LODWORD(offsetVec[0]) ^ _mask__NegFloat_) * viewAxis[0][0]) + desiredCamPos[0];
-                start[1] = (float)(COERCE_FLOAT(LODWORD(offsetVec[0]) ^ _mask__NegFloat_) * viewAxis[0][1]) + desiredCamPos[1];
-                start[2] = (float)(COERCE_FLOAT(LODWORD(offsetVec[0]) ^ _mask__NegFloat_) * viewAxis[0][2]) + desiredCamPos[2];
-                ThirdPersonViewTrace(
-                    cgameGlob,
-                    start,
-                    cgameGlob->refdef.vieworg,
-                    (int)&loc_800811,
-                    cgameGlob->refdef.vieworg,
-                    1,
-                    0);
+                //start[0] = (float)(COERCE_FLOAT(LODWORD(offsetVec[0]) ^ _mask__NegFloat_) * viewAxis[0][0]) + desiredCamPos[0];
+                start[0] = (float)(-(offsetVec[0]) * viewAxis[0][0]) + desiredCamPos[0];
+                //start[1] = (float)(COERCE_FLOAT(LODWORD(offsetVec[0]) ^ _mask__NegFloat_) * viewAxis[0][1]) + desiredCamPos[1];
+                start[1] = (float)(-(offsetVec[0]) * viewAxis[0][1]) + desiredCamPos[1];
+                //start[2] = (float)(COERCE_FLOAT(LODWORD(offsetVec[0]) ^ _mask__NegFloat_) * viewAxis[0][2]) + desiredCamPos[2];
+                start[2] = (float)(-(offsetVec[0]) * viewAxis[0][2]) + desiredCamPos[2];
+                ThirdPersonViewTrace(cgameGlob, start, cgameGlob->refdef.vieworg, 0x800811, cgameGlob->refdef.vieworg, 1, 0);
             }
             memset(identQuat, 0, 12);
             identQuat[3] = 1.0f;
@@ -1851,7 +1897,7 @@ void __cdecl CG_CalcVehicleViewValues(int localClientNum)
                     {
                         lerpViewBackToForward = 1;
                     }
-                    if ( bitarray<51>::testBit(&ucmd.button_bits, 2u) )
+                    if ( ucmd.button_bits.testBit(2) )
                         cgameGlob->cameraData.lastViewInputTime = -vehRecenterDelay->current.integer;
                     if ( cgameGlob->time - cgameGlob->cameraData.lastViewInputTime > vehRecenterDelay->current.integer )
                         lerpViewBackToForward = 1;
@@ -1862,7 +1908,8 @@ void __cdecl CG_CalcVehicleViewValues(int localClientNum)
                     v15 = AngleNormalize180(vehicle->pose.angles[1] - temp[1]) * lerpRate * frametime * 0.001;
                     v16 = -maxLerpRate;
                     v17 = maxLerpRate;
-                    if ( maxLerpRate <= COERCE_FLOAT(LODWORD(maxLerpRate) ^ _mask__NegFloat_)
+                    //if ( maxLerpRate <= COERCE_FLOAT(LODWORD(maxLerpRate) ^ _mask__NegFloat_)
+                    if ( maxLerpRate <= -(maxLerpRate)
                         && !Assert_MyHandler("c:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.h", 730, 0, "%s", "min < max") )
                     {
                         __debugbreak();
@@ -1883,7 +1930,8 @@ void __cdecl CG_CalcVehicleViewValues(int localClientNum)
                     v11 = AngleNormalize180(vehicle->pose.angles[0] - temp[0]) * lerpRate * v3 * 0.001;
                     v12 = -maxLerpRate;
                     v13 = maxLerpRate;
-                    if ( maxLerpRate <= COERCE_FLOAT(LODWORD(maxLerpRate) ^ _mask__NegFloat_)
+                    //if ( maxLerpRate <= COERCE_FLOAT(LODWORD(maxLerpRate) ^ _mask__NegFloat_)
+                    if ( maxLerpRate <= -(maxLerpRate)
                         && !Assert_MyHandler("c:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.h", 730, 0, "%s", "min < max") )
                     {
                         __debugbreak();
@@ -2002,28 +2050,42 @@ void __cdecl CG_Calc3rdPersonSpringDamp(
     }
 }
 
-double __cdecl GetPitchOffsetRelativeToADirection(float *angles, float *direction)
+double __cdecl GetPitchOffsetRelativeToADirection(const float *angles, const float *direction)
 {
-    double v2; // xmm0_8
-    long double v4; // [esp+0h] [ebp-54h]
-    float directionXY[3]; // [esp+14h] [ebp-40h] BYREF
-    float up[3]; // [esp+24h] [ebp-30h]
-    float axis[3][3]; // [esp+30h] [ebp-24h] BYREF
+    float axis[3][3];
+    float up[3];
+    float directionXY[3];
+    float dot;
+    float angleRad;
 
     AnglesToAxis(angles, axis);
-    *(_QWORD *)up = *(_QWORD *)&axis[2][0];
+
+    up[0] = axis[2][0];
+    up[1] = axis[2][1];
     up[2] = axis[2][2];
-    directionXY[0] = *direction;
+
+    directionXY[0] = direction[0];
     directionXY[1] = direction[1];
     directionXY[2] = 0.0f;
+
     Vec2Normalize(directionXY);
-    *(float *)&v4 = (float)((float)(up[0] * directionXY[0]) + (float)(up[1] * directionXY[1]))
-                                + (float)(up[2] * directionXY[2]);
-    v2 = *(float *)&v4;
-    __libm_sse2_acos(v4);
-    *(float *)&v2 = v2;
-    return 90.0 - (float)(*(float *)&v2 * 57.295776);
+
+    dot = up[0] * directionXY[0]
+        + up[1] * directionXY[1]
+        + up[2] * directionXY[2];
+
+    angleRad = acosf(dot);
+
+    return 90.0 - (double)(angleRad * 57.295776f);
 }
+
+float lookAtOffsetInFront = -50.0f;
+float lookAtOffsetToSide = 100.0f;
+float springConst = 0.5f;
+float dampConst = 0.25f;
+float springLength = 1.0f;
+
+float lastDesiredCamPos[3];
 
 void __cdecl CG_Calc3rdPersonVehicleViewValues(int localClientNum)
 {
@@ -2094,7 +2156,7 @@ void __cdecl CG_Calc3rdPersonVehicleViewValues(int localClientNum)
     cgameGlob = CG_GetLocalClientGlobals(localClientNum);
     ps = &cgameGlob->predictedPlayerState;
     vehicle = CG_GetEntity(localClientNum, cgameGlob->predictedPlayerState.viewlocked_entNum);
-    info = CG_GetVehicleInfo(vehicle->nextState.un2.vehicleState.vehicleInfoIndex);
+    info = CG_GetVehicleInfo(vehicle->nextState.vehicleState.vehicleInfoIndex);
     if ( ((*((unsigned int *)vehicle + 201) >> 1) & 1) != 0 && (vehicle->nitrousVeh || ps->vehicleType == 6) )
     {
         if ( cgameGlob->vehicleInitView )
@@ -2203,12 +2265,14 @@ void __cdecl CG_Calc3rdPersonVehicleViewValues(int localClientNum)
             {
                 frametime = (float)cgameGlob->frametime;
                 v17 = AngleNormalize180(vehicle->pose.angles[1] - newLookAngles[1]) * lerpRate * frametime * 0.001;
-                if ( maxLerpRate <= COERCE_FLOAT(LODWORD(maxLerpRate) ^ _mask__NegFloat_)
+                //if ( maxLerpRate <= COERCE_FLOAT(LODWORD(maxLerpRate) ^ _mask__NegFloat_)
+                if ( maxLerpRate <= -(maxLerpRate)
                     && !Assert_MyHandler("c:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.h", 730, 0, "%s", "min < max") )
                 {
                     __debugbreak();
                 }
-                if ( COERCE_FLOAT(LODWORD(maxLerpRate) ^ _mask__NegFloat_) <= v17 )
+                //if ( COERCE_FLOAT(LODWORD(maxLerpRate) ^ _mask__NegFloat_) <= v17 )
+                if ( -(maxLerpRate) <= v17 )
                 {
                     if ( v17 <= maxLerpRate )
                         v16 = v17;
@@ -2227,12 +2291,13 @@ void __cdecl CG_Calc3rdPersonVehicleViewValues(int localClientNum)
                                         + info->thirdPersonCameraPitch[0]);
             v3 = (float)cgameGlob->frametime;
             v15 = AngleNormalize180(pitchAdjust - newLookAngles[0]) * lerpRate * v3 * 0.001;
-            if ( maxLerpRate <= COERCE_FLOAT(LODWORD(maxLerpRate) ^ _mask__NegFloat_)
+            //if ( maxLerpRate <= COERCE_FLOAT(LODWORD(maxLerpRate) ^ _mask__NegFloat_)
+            if ( maxLerpRate <= -(maxLerpRate)
                 && !Assert_MyHandler("c:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.h", 730, 0, "%s", "min < max") )
             {
                 __debugbreak();
             }
-            if ( COERCE_FLOAT(LODWORD(maxLerpRate) ^ _mask__NegFloat_) <= v15 )
+            if ( -(maxLerpRate) <= v15 )
             {
                 if ( v15 <= maxLerpRate )
                     v14 = v15;
@@ -2249,14 +2314,14 @@ void __cdecl CG_Calc3rdPersonVehicleViewValues(int localClientNum)
             && vehicle->nitrousVeh
             && (info->thirdPersonCameraSpringDistance <= -0.001 || info->thirdPersonCameraSpringDistance >= 0.001)
             && info->thirdPersonCameraSpringTime > 0.0
-            && NitrousVehicle::get_max_speed(vehicle->nitrousVeh, 0) > 0.0
+            && vehicle->nitrousVeh->get_max_speed(false) > 0.0
             && cgameGlob->frametime > 0 )
         {
             maxSpringOffset = fabs(info->thirdPersonCameraSpringDistance);
             maxSpringOffsetTimeMs = maxSpringOffset / (float)(info->thirdPersonCameraSpringTime * 1000.0);
             frameTimeMs = (float)cgameGlob->frametime * 0.001;
             m_forward_vel = vehicle->nitrousVeh->m_forward_vel;
-            v12 = m_forward_vel / NitrousVehicle::get_max_speed(vehicle->nitrousVeh, 0);
+            v12 = m_forward_vel / vehicle->nitrousVeh->get_max_speed(false);
             if ( 1.0 <= 0.0
                 && !Assert_MyHandler("c:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.h", 730, 0, "%s", "min < max") )
             {
@@ -2291,12 +2356,14 @@ void __cdecl CG_Calc3rdPersonVehicleViewValues(int localClientNum)
                 speedRatioTimed = 0.1f;
             }
             v10 = info->thirdPersonCameraSpringDistance * speedRatio;
-            if ( maxSpringOffset <= COERCE_FLOAT(LODWORD(maxSpringOffset) ^ _mask__NegFloat_)
+            //if ( maxSpringOffset <= COERCE_FLOAT(LODWORD(maxSpringOffset) ^ _mask__NegFloat_)
+            if ( maxSpringOffset <= -(maxSpringOffset)
                 && !Assert_MyHandler("c:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.h", 730, 0, "%s", "min < max") )
             {
                 __debugbreak();
             }
-            if ( COERCE_FLOAT(LODWORD(maxSpringOffset) ^ _mask__NegFloat_) <= v10 )
+            //if ( COERCE_FLOAT(LODWORD(maxSpringOffset) ^ _mask__NegFloat_) <= v10 )
+            if ( -(maxSpringOffset) <= v10 )
             {
                 if ( v10 <= maxSpringOffset )
                     ratioOffset = v10;
@@ -2313,9 +2380,12 @@ void __cdecl CG_Calc3rdPersonVehicleViewValues(int localClientNum)
             camDefaultDist = camDefaultDist + cgameGlob->cameraData.lastSpringOffset;
         }
         AngleVectors(newLookAngles, newLookDir, 0, 0);
-        desiredCamPos[0] = (float)(COERCE_FLOAT(LODWORD(camDefaultDist) ^ _mask__NegFloat_) * newLookDir[0]) + lookAtPos[0];
-        desiredCamPos[1] = (float)(COERCE_FLOAT(LODWORD(camDefaultDist) ^ _mask__NegFloat_) * newLookDir[1]) + lookAtPos[1];
-        desiredCamPos[2] = (float)(COERCE_FLOAT(LODWORD(camDefaultDist) ^ _mask__NegFloat_) * newLookDir[2]) + lookAtPos[2];
+        //desiredCamPos[0] = (float)(COERCE_FLOAT(LODWORD(camDefaultDist) ^ _mask__NegFloat_) * newLookDir[0]) + lookAtPos[0];
+        desiredCamPos[0] = (float)(-(camDefaultDist) * newLookDir[0]) + lookAtPos[0];
+        //desiredCamPos[1] = (float)(COERCE_FLOAT(LODWORD(camDefaultDist) ^ _mask__NegFloat_) * newLookDir[1]) + lookAtPos[1];
+        desiredCamPos[1] = (float)(-(camDefaultDist) * newLookDir[1]) + lookAtPos[1];
+        //desiredCamPos[2] = (float)(COERCE_FLOAT(LODWORD(camDefaultDist) ^ _mask__NegFloat_) * newLookDir[2]) + lookAtPos[2];
+        desiredCamPos[2] = (float)(-(camDefaultDist) * newLookDir[2]) + lookAtPos[2];
         if ( damped_spring )
         {
             CG_Calc3rdPersonSpringDamp(
@@ -2328,8 +2398,8 @@ void __cdecl CG_Calc3rdPersonVehicleViewValues(int localClientNum)
                 springLength,
                 newCamPos);
             lastDesiredCamPos[0] = desiredCamPos[0];
-            dword_E86B14 = LODWORD(desiredCamPos[1]);
-            dword_E86B18 = LODWORD(desiredCamPos[2]);
+            lastDesiredCamPos[1] = desiredCamPos[1];
+            lastDesiredCamPos[2] = desiredCamPos[2];
             desiredCamPos[0] = newCamPos[0];
             desiredCamPos[1] = newCamPos[1];
             desiredCamPos[2] = newCamPos[2];
@@ -2398,41 +2468,31 @@ void __cdecl CG_Calc3rdPersonVehicleViewValues(int localClientNum)
     }
 }
 
+// aislop
 void __cdecl RotatePoint(const float *v, const float *q, float *out)
 {
-    float t4; // [esp+0h] [ebp-24h]
-    float t5; // [esp+4h] [ebp-20h]
-    float t6; // [esp+8h] [ebp-1Ch]
-    float t8; // [esp+Ch] [ebp-18h]
-    float t3; // [esp+10h] [ebp-14h]
-    float t2; // [esp+14h] [ebp-10h]
-    float t7; // [esp+18h] [ebp-Ch]
-    float t9; // [esp+1Ch] [ebp-8h]
-    float t10; // [esp+20h] [ebp-4h]
+    float x = q[0];
+    float y = q[1];
+    float z = q[2];
+    float w = q[3];
 
-    t2 = q[3] * *q;
-    t3 = q[3] * q[1];
-    t4 = q[3] * q[2];
-    t5 = COERCE_FLOAT(*(unsigned int *)q ^ _mask__NegFloat_) * *q;
-    t6 = *q * q[1];
-    t7 = *q * q[2];
-    t8 = COERCE_FLOAT(*((unsigned int *)q + 1) ^ _mask__NegFloat_) * q[1];
-    t9 = q[1] * q[2];
-    t10 = COERCE_FLOAT(*((unsigned int *)q + 2) ^ _mask__NegFloat_) * q[2];
-    *out = (float)((float)((float)((float)((float)(t8 + t10) * *v) + (float)((float)(t6 - t4) * v[1]))
-                                             + (float)((float)(t3 + t7) * v[2]))
-                             * 2.0)
-             + *v;
-    out[1] = (float)((float)((float)((float)((float)(t4 + t6) * *v) + (float)((float)(t5 + t10) * v[1]))
-                                                 + (float)((float)(t9 - t2) * v[2]))
-                                 * 2.0)
-                 + v[1];
-    out[2] = (float)((float)((float)((float)((float)(t7 - t3) * *v) + (float)((float)(t2 + t9) * v[1]))
-                                                 + (float)((float)(t5 + t8) * v[2]))
-                                 * 2.0)
-                 + v[2];
+    float vx = v[0];
+    float vy = v[1];
+    float vz = v[2];
+
+    // t = 2 * cross(q.xyz, v)
+    float tx = 2.0f * (y * vz - z * vy);
+    float ty = 2.0f * (z * vx - x * vz);
+    float tz = 2.0f * (x * vy - y * vx);
+
+    // v' = v + w * t + cross(q.xyz, t)
+    out[0] = vx + w * tx + (y * tz - z * ty);
+    out[1] = vy + w * ty + (z * tx - x * tz);
+    out[2] = vz + w * tz + (x * ty - y * tx);
 }
 
+float prevPitch[1];
+int prevTimes[1];
 void __cdecl CG_OffsetVehicleView(int localClientNum, CameraMode camMode)
 {
     bool v2; // [esp+4h] [ebp-50h]
@@ -2465,7 +2525,7 @@ void __cdecl CG_OffsetVehicleView(int localClientNum, CameraMode camMode)
     if ( camMode == CAM_VEHICLE )
     {
         Entity = CG_GetEntity(localClientNum, cgameGlob->predictedPlayerState.viewlocked_entNum);
-        info = CG_GetVehicleInfo(Entity->nextState.un2.vehicleState.vehicleInfoIndex);
+        info = CG_GetVehicleInfo(Entity->nextState.vehicleState.vehicleInfoIndex);
         lerpRate = 0.75f;
         skipLerp = 0;
         if ( Demo_IsPlaying() )
@@ -2479,12 +2539,16 @@ void __cdecl CG_OffsetVehicleView(int localClientNum, CameraMode camMode)
             if ( info->type == 1 )
                 lerpRate = 0.9f;
             v3 = AngleNormalize180(prevPitch[localClientNum] - cgameGlob->refdefViewAngles[0]) * lerpRate;
-            if ( COERCE_FLOAT(LODWORD(30.0f) ^ _mask__NegFloat_) >= 30.0
+
+            //if ( COERCE_FLOAT(LODWORD(30.0f) ^ _mask__NegFloat_) >= 30.0
+            if ( -(30.0f) >= 30.0
                 && !Assert_MyHandler("c:\\projects_pc\\cod\\codsrc\\src\\universal\\com_math.h", 730, 0, "%s", "min < max") )
             {
                 __debugbreak();
             }
-            if ( COERCE_FLOAT(LODWORD(30.0f) ^ _mask__NegFloat_) <= v3 )
+
+            //if ( COERCE_FLOAT(LODWORD(30.0f) ^ _mask__NegFloat_) <= v3 )
+            if ( -(30.0f) <= v3 )
             {
                 if ( v3 <= 30.0 )
                     pitchOffset = v3;
@@ -2501,6 +2565,11 @@ void __cdecl CG_OffsetVehicleView(int localClientNum, CameraMode camMode)
     }
 }
 
+const float MYMINS[3] =
+{ -6.0, -6.0, -6.0 };
+const float MYMAXS[3] =
+{ 6.0, 6.0, 6.0 };
+
 double __cdecl ThirdPersonViewTrace(
                 cg_s *cgameGlob,
                 const float *start,
@@ -2516,7 +2585,7 @@ double __cdecl ThirdPersonViewTrace(
     trace_t trace; // [esp+64h] [ebp-3Ch] BYREF
 
     memset(&trace, 0, 16);
-    col_context_t::col_context_t(&context);
+    //col_context_t::col_context_t(&context);
     if ( (cgameGlob->predictedPlayerState.eFlags & 0x4000) != 0 )
         CG_TraceCapsule(
             &trace,
@@ -2611,6 +2680,11 @@ void __cdecl ThirdPerson_TraceCalcEndpos(const float *start, const float *end, f
     }
 }
 
+const float MYMINS_0[3] =
+{ -8.0, -8.0, -8.0 };
+const float MYMAXS_0[3] =
+{ 8.0, 8.0, 8.0 };
+
 void __cdecl MovieCameraViewTrace(int localClientNum, int contentMask)
 {
     float *v2; // [esp+8h] [ebp-1A4h]
@@ -2643,7 +2717,7 @@ void __cdecl MovieCameraViewTrace(int localClientNum, int contentMask)
     float traceFractionScale; // [esp+1A4h] [ebp-8h]
     float into; // [esp+1A8h] [ebp-4h]
 
-    col_context_t::col_context_t(&context);
+    //col_context_t::col_context_t(&context);
     memset(&trace, 0, 16);
     numplanes = 0;
     numbumps = 4;
@@ -2868,7 +2942,7 @@ void __cdecl CG_RadiantCamCalcView(int localClientNum)
     cgameGlob = CG_GetLocalClientGlobals(localClientNum);
     cmdNumber = CL_GetCurrentCmdNumber(localClientNum);
     if ( CL_GetUserCmd(localClientNum, cmdNumber, &cmd)
-        && (abs8(cmd.forwardmove) > 0x32u
+        && (    (cmd.forwardmove) > 0x32u
          || abs8(cmd.rightmove) > 0x32u
          || abs8(cmd.pitchmove) > 0x32u
          || abs8(cmd.yawmove) > 0x32u) )
@@ -2884,6 +2958,9 @@ void __cdecl CG_RadiantCamCalcView(int localClientNum)
     cgameGlob->refdef.vieworg[2] = cgameGlob->radiantCameraOrigin[2];
 }
 
+float g_extraCamPos[3];
+float g_extraCamViewAngles[3];
+float g_extraCamViewAxis[3][3];
 void __cdecl CG_ExtraCamDebug_SetView(int localClientNum)
 {
     cg_s *cgameGlob; // [esp+10h] [ebp-4h]
@@ -2894,11 +2971,11 @@ void __cdecl CG_ExtraCamDebug_SetView(int localClientNum)
         if ( r_missile_cam_debug_display->current.integer == 3 )
         {
             cgameGlob->refdef.vieworg[0] = g_extraCamPos[0];
-            LODWORD(cgameGlob->refdef.vieworg[1]) = dword_E869F4;
-            LODWORD(cgameGlob->refdef.vieworg[2]) = dword_E869F8;
+            cgameGlob->refdef.vieworg[1] = g_extraCamPos[1];
+            cgameGlob->refdef.vieworg[2] = g_extraCamPos[2];
             cgameGlob->refdefViewAngles[0] = g_extraCamViewAngles[0];
-            LODWORD(cgameGlob->refdefViewAngles[1]) = dword_E86A00;
-            LODWORD(cgameGlob->refdefViewAngles[2]) = dword_E86A04;
+            cgameGlob->refdefViewAngles[1] = g_extraCamViewAngles[1];
+            cgameGlob->refdefViewAngles[2] = g_extraCamViewAngles[2];
             memcpy(cgameGlob->refdef.viewaxis, g_extraCamViewAxis, sizeof(cgameGlob->refdef.viewaxis));
         }
     }
@@ -2909,17 +2986,17 @@ void __cdecl CG_ExtraCamDebug_SaveView(int localClientNum)
     cg_s *cgameGlob; // [esp+1Ch] [ebp-4h]
 
     cgameGlob = CG_GetLocalClientGlobals(localClientNum);
-    if ( CL_LocalClient_IsFirstActive(localClientNum) && r_missile_cam_debug_display->current.integer == 3 )
+    if (CL_LocalClient_IsFirstActive(localClientNum) && r_missile_cam_debug_display->current.integer == 3)
     {
-        if ( r_missile_cam_debug_display->modified )
+        if (r_missile_cam_debug_display->modified)
         {
             Dvar_ClearModified(r_missile_cam_debug_display);
             g_extraCamPos[0] = cgameGlob->refdef.vieworg[0];
-            dword_E869F4 = LODWORD(cgameGlob->refdef.vieworg[1]);
-            dword_E869F8 = LODWORD(cgameGlob->refdef.vieworg[2]);
+            g_extraCamPos[1] = cgameGlob->refdef.vieworg[1];
+            g_extraCamPos[2] = cgameGlob->refdef.vieworg[2];
             g_extraCamViewAngles[0] = cgameGlob->refdefViewAngles[0];
-            dword_E86A00 = LODWORD(cgameGlob->refdefViewAngles[1]);
-            dword_E86A04 = LODWORD(cgameGlob->refdefViewAngles[2]);
+            g_extraCamViewAngles[1] = cgameGlob->refdefViewAngles[1];
+            g_extraCamViewAngles[2] = cgameGlob->refdefViewAngles[2];
             memcpy(g_extraCamViewAxis, cgameGlob->refdef.viewaxis, sizeof(g_extraCamViewAxis));
         }
         CL_AddDebugAxis(g_extraCamPos, g_extraCamViewAxis, 40.0, 1, 1);
@@ -2936,8 +3013,8 @@ void __cdecl CG_CalcFov_ExtraCam(int localClientNum)
 
     cgameGlob = CG_GetLocalClientGlobals(localClientNum);
     fov_x = cg_fovExtraCam->current.value;
-    __libm_sse2_tan(v1);
-    dxDzAtDefaultAspectRatio = (float)(fov_x * 0.017453292) * 0.5;
+    //__libm_sse2_tan(v1);
+    dxDzAtDefaultAspectRatio = (float)(tan(fov_x) * 0.017453292) * 0.5;
     if ( r_extracam_custom_aspectratio->current.value <= 0.0 )
         value = R_ExtraCam_AspectRatio();
     else
@@ -2958,8 +3035,8 @@ void __cdecl CG_ExtraCam_GetViewOrigin(int localClientNum, float *out)
     else if ( r_missile_cam_debug_display->current.integer == 3 )
     {
         *out = g_extraCamPos[0];
-        *((unsigned int *)out + 1) = dword_E869F4;
-        *((unsigned int *)out + 2) = dword_E869F8;
+        out[1] = g_extraCamPos[1];
+        out[2] = g_extraCamPos[2];
     }
 }
 
@@ -2979,9 +3056,7 @@ bool __cdecl CG_ExtraCamIsActive(int localClientNum)
     return r_missile_cam_debug_display->current.integer != 0;
 }
 
-ExtraCamClientStateRestore *__thiscall ExtraCamClientStateRestore::ExtraCamClientStateRestore(
-                ExtraCamClientStateRestore *this,
-                int localClientNum)
+ExtraCamClientStateRestore::ExtraCamClientStateRestore(int localClientNum)
 {
     cg_s *LocalClientGlobals; // eax
 
@@ -2995,10 +3070,10 @@ ExtraCamClientStateRestore *__thiscall ExtraCamClientStateRestore::ExtraCamClien
     this->m_refdefViewAngles[2] = LocalClientGlobals->refdefViewAngles[2];
     AxisCopy(LocalClientGlobals->refdef.viewaxis, this->m_viewaxis);
     R_ExtraCam_SaveDpvsData(this->m_localClientNum, this->m_buffer, 0x360u);
-    return this;
+    //return this;
 }
 
-void __thiscall ExtraCamClientStateRestore::~ExtraCamClientStateRestore(ExtraCamClientStateRestore *this)
+ExtraCamClientStateRestore::~ExtraCamClientStateRestore()
 {
     cg_s *LocalClientGlobals; // eax
 

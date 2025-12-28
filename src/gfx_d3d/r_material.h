@@ -461,6 +461,10 @@ Material *__cdecl Material_Register_LoadObj(char *name, int imageTrack);
 Material *__cdecl Material_MakeDefault(char *name);
 Material *__cdecl Material_Register_FastFile(const char *name);
 Material *__cdecl Material_RegisterHandle(char *name, int imageTrack);
+inline Material *Material_RegisterHandle(const char *name, int imgTrack)
+{
+    return Material_RegisterHandle((char *)name, imgTrack);
+}
 void __cdecl R_MaterialList_f();
 void __cdecl R_GetMaterialList(XAssetHeader header, char *data);
 int __cdecl R_GetMaterialMemory(Material *material);

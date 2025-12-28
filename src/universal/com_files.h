@@ -151,6 +151,10 @@ bool __cdecl FS_TouchFile(const char *name);
 bool __cdecl FS_Delete(char *filename);
 unsigned int __cdecl FS_Read(unsigned __int8 *buffer, unsigned int len, int h);
 unsigned int __cdecl FS_Write(char *buffer, unsigned int len, int h);
+inline unsigned int __cdecl FS_Write(const char *buffer, unsigned int len, int h)
+{
+    return FS_Write((char *)buffer, len, h);
+}
 unsigned int __cdecl FS_WriteToDemo(char *buffer, unsigned int len, int h);
 void FS_Printf(int h, char *fmt, ...);
 int __cdecl FS_Seek(int f, int offset, int origin);

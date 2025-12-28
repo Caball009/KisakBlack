@@ -753,132 +753,134 @@ void __cdecl Mantle_SetHaveWeapon(MantleState *mstate, const playerState_s *ps)
 }
 
 // local variable allocation has failed, the output may be wrong!
-void    Mount_CheckLedge(pmove_t *pm, pml_t *pml, MantleResults *mresults)
+void Mount_CheckLedge(pmove_t *pm, pml_t *pml, MantleResults *mresults)
 {
     float angle; // [esp+4h] [ebp-108h]
     long double v5; // [esp+10h] [ebp-FCh]
-    float v6; // [esp+18h] [ebp-F4h] BYREF
-    float v7; // [esp+1Ch] [ebp-F0h]
-    int v8; // [esp+20h] [ebp-ECh]
-    float color[6]; // [esp+24h] [ebp-E8h] BYREF
-    float dropMaxs[3]; // [esp+3Ch] [ebp-D0h] BYREF
+    float color[6]; // [esp+18h] [ebp-F4h] BYREF
+    float dropMaxs[3]; // [esp+30h] [ebp-DCh] BYREF
+    float v8[3]; // [esp+3Ch] [ebp-D0h] BYREF
     float dropMins[3]; // [esp+48h] [ebp-C4h] BYREF
-    float traceEnd[3]; // [esp+54h] [ebp-B8h] BYREF
-    float v13; // [esp+60h] [ebp-ACh]
-    float v14; // [esp+64h] [ebp-A8h]
-    float traceStart[3]; // [esp+68h] [ebp-A4h] BYREF
-    float ledgeAngles[3]; // [esp+74h] [ebp-98h] BYREF
-    float dotToLedge; // [esp+80h] [ebp-8Ch]
-    float ledgeVec[3]; // [esp+84h] [ebp-88h] BYREF
-    float v19; // [esp+90h] [ebp-7Ch]
-    float v20; // [esp+94h] [ebp-78h]
-    float lookVec[3]; // [esp+98h] [ebp-74h]
-    float heightToLedge; // [esp+A4h] [ebp-68h]
-    float v23; // [esp+A8h] [ebp-64h]
-    float up[3]; // [esp+ACh] [ebp-60h]
-    playerState_s *v25; // [esp+B8h] [ebp-54h]
-    float v26; // [esp+BCh] [ebp-50h] OVERLAPPED
-    int drawTime; // [esp+C0h] [ebp-4Ch]
-    playerState_s *ps; // [esp+C4h] [ebp-48h] BYREF
-    float heightTestDist; // [esp+C8h] [ebp-44h]
-    float dropTraceWidth; // [esp+CCh] [ebp-40h]
-    trace_t trace; // [esp+D0h] [ebp-3Ch]
-    int retaddr; // [esp+10Ch] [ebp+0h]
+    float *traceEnd; // [esp+54h] [ebp-B8h]
+    float v11; // [esp+58h] [ebp-B4h]
+    float traceStart[3]; // [esp+5Ch] [ebp-B0h] BYREF
+    float v13[3]; // [esp+68h] [ebp-A4h] BYREF
+    float ledgeAngles; // [esp+74h] [ebp-98h]
+    float ledgeVec[3]; // [esp+78h] [ebp-94h] BYREF
+    float *ledgePos; // [esp+84h] [ebp-88h]
+    float *origin; // [esp+88h] [ebp-84h]
+    float lookVec[3]; // [esp+8Ch] [ebp-80h] BYREF
+    float v19; // [esp+98h] [ebp-74h]
+    float v20; // [esp+9Ch] [ebp-70h]
+    float up[3]; // [esp+A0h] [ebp-6Ch]
+    float *velocity; // [esp+ACh] [ebp-60h]
+    bool drawLines; // [esp+B3h] [ebp-59h]
+    int drawTime; // [esp+B4h] [ebp-58h]
+    playerState_s *ps; // [esp+B8h] [ebp-54h]
+    float heightTestDist; // [esp+BCh] [ebp-50h]
+    float dropTraceWidth; // [esp+C0h] [ebp-4Ch]
+    trace_t trace; // [esp+C4h] [ebp-48h] BYREF
+    //cStaticModel_s *v29; // [esp+100h] [ebp-Ch]
+    //pmove_t *pm_a; // [esp+104h] [ebp-8h]
+    //void *ret; // [esp+10Ch] [ebp+0h]
 
-    trace.staticModel = a1;
-    trace.hitPartition = retaddr;
-    ps = *(playerState_s **)&FLOAT_0_0;
-    heightTestDist = 0.0f;
-    dropTraceWidth = 0.0f;
-    trace.normal.vec.u[0] = 0;
-    *(float *)&drawTime = 2.0f;
-    v26 = 6.0f;
-    v25 = pm->ps;
-    if ( !v25 && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_mantle.cpp", 616, 0, "%s", "ps") )
+    //v29 = a1;
+    //pm_a = (pmove_t *)ret;
+    memset(&trace, 0, 16);
+    dropTraceWidth = 2.0f;
+    heightTestDist = 6.0f;
+    ps = pm->ps;
+    if (!ps && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_mantle.cpp", 616, 0, "%s", "ps"))
         __debugbreak();
-    LODWORD(up[2]) = 100;
-    HIBYTE(up[1]) = cg_debugMounting->current.integer > 2;
-    LODWORD(up[0]) = v25->velocity;
-    if ( (float)((float)((float)(v25->velocity[0] * v25->velocity[0]) + (float)(v25->velocity[1] * v25->velocity[1]))
-                         + (float)(v25->velocity[2] * v25->velocity[2])) > 0.0 )
-        HIBYTE(up[1]) = 0;
-    lookVec[2] = 0.0f;
-    heightToLedge = 0.0f;
-    v23 = 1.0f;
-    lookVec[1] = mresults->ledgePos[2] - v25->origin[2];
-    lookVec[0] = fabs(lookVec[1]);
-    if ( BG_GetWeaponDef(v25->weapon)->mountableWeapon
+    drawTime = 100;
+    drawLines = cg_debugMounting->current.integer > 2;
+    velocity = ps->velocity;
+    if ((float)((float)((float)(ps->velocity[0] * ps->velocity[0]) + (float)(ps->velocity[1] * ps->velocity[1]))
+        + (float)(ps->velocity[2] * ps->velocity[2])) > 0.0)
+        drawLines = 0;
+    up[0] = 0.0f;
+    up[1] = 0.0f;
+    up[2] = 1.0f;
+    v20 = mresults->ledgePos[2] - ps->origin[2];
+    //LODWORD(v19) = LODWORD(v20) & _mask__AbsFloat_;
+    v19 = fabsf(v20);
+    if (BG_GetWeaponDef(ps->weapon)->mountableWeapon
         && (mresults->flags & 0x20) != 0
-        && lookVec[0] < 50.0
-        && Mount_CanPlayerDeployTurret(v25) )
+        && v19 < 50.0
+        && Mount_CanPlayerDeployTurret(ps))
     {
+        lookVec[0] = 0.0f;
+        lookVec[1] = 1.0f;
+        lookVec[2] = 0.0f;
+        angle = AngleNormalize360(ps->viewangles[1]);
+        YawVectors(angle, lookVec, 0);
+        origin = ps->origin;
+        ledgePos = mresults->ledgePos;
+        ledgeVec[0] = mresults->ledgePos[0] - ps->origin[0];
+        ledgeVec[1] = mresults->ledgePos[1] - ps->origin[1];
         ledgeVec[2] = 0.0f;
-        v19 = 1.0f;
-        v20 = 0.0f;
-        angle = AngleNormalize360(v25->viewangles[1]);
-        YawVectors(angle, &ledgeVec[2], 0);
-        LODWORD(ledgeVec[1]) = v25->origin;
-        LODWORD(ledgeVec[0]) = mresults->ledgePos;
-        ledgeAngles[1] = mresults->ledgePos[0] - v25->origin[0];
-        ledgeAngles[2] = mresults->ledgePos[1] - v25->origin[1];
-        dotToLedge = 0.0f;
-        Vec3Normalize(&ledgeAngles[1]);
-        ledgeAngles[0] = (float)((float)(ledgeVec[2] * ledgeAngles[1]) + (float)(v19 * ledgeAngles[2]))
-                                     + (float)(v20 * dotToLedge);
-        __libm_sse2_acos(v5);
-        if ( (float)(ledgeAngles[0] * 57.295776) < 30.0 )
+        Vec3Normalize(ledgeVec);
+        ledgeAngles = (float)((float)(lookVec[0] * ledgeVec[0]) + (float)(lookVec[1] * ledgeVec[1]))
+            + (float)(lookVec[2] * ledgeVec[2]);
+        //__libm_sse2_acos(v5);
+        ledgeAngles = acosf(ledgeAngles);
+        if ((float)(ledgeAngles * 57.295776) < 30.0)
         {
-            vectoangles(mresults->dir, traceStart);
-            YawVectors(traceStart[1] + 180.0, &traceEnd[2], 0);
-            traceEnd[1] = 36.0f;
-            LODWORD(traceEnd[0]) = mresults->ledgePos;
-            traceEnd[2] = (float)(36.0 * traceEnd[2]) + mresults->ledgePos[0];
-            v13 = (float)(36.0 * v13) + mresults->ledgePos[1];
-            v14 = (float)(36.0 * v14) + mresults->ledgePos[2];
-            v14 = v25->origin[2];
-            dropMins[0] = traceEnd[2];
-            dropMins[1] = v13;
-            dropMins[2] = v14;
-            v14 = v14 + v26;
-            dropMins[2] = dropMins[2] - v26;
-            LODWORD(dropMaxs[0]) = drawTime ^ _mask__NegFloat_;
-            LODWORD(dropMaxs[1]) = drawTime ^ _mask__NegFloat_;
-            dropMaxs[2] = 0.0f;
-            LODWORD(color[3]) = drawTime;
-            LODWORD(color[4]) = drawTime;
-            color[5] = *(float *)&drawTime * 2.0;
-            PM_trace(pm, (trace_t *)&ps, &traceEnd[2], dropMaxs, &color[3], dropMins, v25->clientNum, pm->tracemask);
-            if ( trace.normal.vec.v[1] >= 1.0 )
+            vectoangles(mresults->dir, v13);
+            YawVectors(v13[1] + 180.0, traceStart, 0);
+            v11 = 36.0f;
+            traceEnd = mresults->ledgePos;
+            traceStart[0] = (float)(36.0 * traceStart[0]) + mresults->ledgePos[0];
+            traceStart[1] = (float)(36.0 * traceStart[1]) + mresults->ledgePos[1];
+            traceStart[2] = (float)(36.0 * traceStart[2]) + mresults->ledgePos[2];
+            traceStart[2] = ps->origin[2];
+            dropMins[0] = traceStart[0];
+            dropMins[1] = traceStart[1];
+            dropMins[2] = traceStart[2];
+            traceStart[2] = traceStart[2] + heightTestDist;
+            dropMins[2] = dropMins[2] - heightTestDist;
+            //LODWORD(v8[0]) = LODWORD(dropTraceWidth) ^ _mask__NegFloat_;
+            v8[0] = -dropTraceWidth;
+            //LODWORD(v8[1]) = LODWORD(dropTraceWidth) ^ _mask__NegFloat_;
+            v8[1] = -dropTraceWidth;
+            v8[2] = 0.0f;
+            dropMaxs[0] = dropTraceWidth;
+            dropMaxs[1] = dropTraceWidth;
+            dropMaxs[2] = dropTraceWidth * 2.0;
+            PM_trace(pm, &trace, traceStart, v8, dropMaxs, dropMins, ps->clientNum, pm->tracemask);
+            if (trace.fraction >= 1.0)
             {
-                if ( HIBYTE(up[1]) )
+                if (drawLines)
                 {
-                    v6 = 1.0f;
-                    v7 = 0.0f;
-                    v8 = 0;
                     color[0] = 1.0f;
-                    CG_DebugBox(dropMins, dropMaxs, &color[3], 0.0, &v6, 0, 100);
+                    color[1] = 0.0f;
+                    color[2] = 0.0f;
+                    color[3] = 1.0f;
+                    CG_DebugBox(dropMins, v8, dropMaxs, 0.0, color, 0, 100);
                 }
             }
             else
             {
-                v25->mountAvailable = 1;
-                v25->cursorHintEntIndex = 1023;
-                LODWORD(color[2]) = v25->mountPos;
-                LODWORD(color[1]) = mresults->ledgePos;
-                v25->mountPos[0] = mresults->ledgePos[0];
-                *(float *)(LODWORD(color[2]) + 4) = *(float *)(LODWORD(color[1]) + 4);
-                *(float *)(LODWORD(color[2]) + 8) = *(float *)(LODWORD(color[1]) + 8);
-                v25->mountDir = traceStart[1];
-                v25->mantleState.flags |= 0x80u;
-                v25->mantleState.flags &= ~0x400u;
+                ps->mountAvailable = 1;
+                ps->cursorHintEntIndex = 1023;
+                //LODWORD(color[5]) = ps->mountPos;
+                //LODWORD(color[4]) = mresults->ledgePos;
+                ps->mountPos[0] = mresults->ledgePos[0];
+                //*(float *)(LODWORD(color[5]) + 4) = *(float *)(LODWORD(color[4]) + 4);
+                ps->mountPos[1] = mresults->ledgePos[1];
+                //*(float *)(LODWORD(color[5]) + 8) = *(float *)(LODWORD(color[4]) + 8);
+                ps->mountPos[2] = mresults->ledgePos[2];
+                ps->mountDir = v13[1];
+                ps->mantleState.flags |= 0x80u;
+                ps->mantleState.flags &= ~0x400u;
                 mresults->flags |= 0x80u;
-                if ( HIBYTE(up[1]) )
+                if (drawLines)
                 {
-                    v6 = 0.0f;
-                    v7 = 1.0f;
-                    v8 = 0;
-                    color[0] = 1.0f;
-                    CG_DebugBox(dropMins, dropMaxs, &color[3], 0.0, &v6, 0, 100);
+                    color[0] = 0.0f;
+                    color[1] = 1.0f;
+                    color[2] = 0.0f;
+                    color[3] = 1.0f;
+                    CG_DebugBox(dropMins, v8, dropMaxs, 0.0, color, 0, 100);
                 }
             }
         }
@@ -907,18 +909,20 @@ char    Mantle_FindMantleSurface(pmove_t *pm, pml_t *pml, trace_t *trace, float 
     float mins[3]; // [esp+58h] [ebp-20h]
     float v24; // [esp+64h] [ebp-14h]
     playerState_s *ps; // [esp+68h] [ebp-10h]
-    int v26; // [esp+6Ch] [ebp-Ch]
-    float playerRadius; // [esp+70h] [ebp-8h]
-    float retaddr; // [esp+78h] [ebp+0h]
+    //int v26; // [esp+6Ch] [ebp-Ch]
+    //float playerRadius; // [esp+70h] [ebp-8h]
+    //float retaddr; // [esp+78h] [ebp+0h]
 
-    v26 = a1;
-    playerRadius = retaddr;
+    //v26 = a1;
+    //playerRadius = retaddr;
     ps = pm->ps;
     if ( !ps && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_mantle.cpp", 909, 0, "%s", "ps") )
         __debugbreak();
     v24 = playerMaxs[0];
-    LODWORD(mins[2]) = mantle_check_radius->current.integer ^ _mask__NegFloat_;
-    LODWORD(mins[1]) = mantle_check_radius->current.integer ^ _mask__NegFloat_;
+    //LODWORD(mins[2]) = mantle_check_radius->current.integer ^ _mask__NegFloat_;
+    mins[2] = -mantle_check_radius->current.value;
+    //LODWORD(mins[1]) = mantle_check_radius->current.integer ^ _mask__NegFloat_;
+    mins[1] = -mantle_check_radius->current.value;
     mins[0] = 0.0;
     v20 = mins[2];
     v21 = mins[1];
@@ -956,11 +960,11 @@ char    Mantle_FindMantleSurface(pmove_t *pm, pml_t *pml, trace_t *trace, float 
     v15 = 0.0f;
     Vec3Normalize(&start[2]);
     start[1] = -traceDir[1];
-    LODWORD(start[0]) = ps->origin;
-    end[1] = (float)(COERCE_FLOAT(LODWORD(traceDir[1]) ^ _mask__NegFloat_) * start[2]) + ps->origin[0];
-    end[2] = (float)(COERCE_FLOAT(LODWORD(traceDir[1]) ^ _mask__NegFloat_) * v14) + ps->origin[1];
-    end[3] = (float)(COERCE_FLOAT(LODWORD(traceDir[1]) ^ _mask__NegFloat_) * v15) + ps->origin[2];
-    LODWORD(end[0]) = ps->origin;
+    //LODWORD(start[0]) = ps->origin;
+    end[1] = (float)((-(traceDir[1])) * start[2]) + ps->origin[0];
+    end[2] = (float)((-(traceDir[1])) * v14) + ps->origin[1];
+    end[3] = (float)((-(traceDir[1])) * v15) + ps->origin[2];
+    //LODWORD(end[0]) = ps->origin;
     v9 = (float)(traceDir[0] * start[2]) + ps->origin[0];
     dot = (float)(traceDir[0] * v14) + ps->origin[1];
     len = (float)(traceDir[0] * v15) + ps->origin[2];
@@ -977,17 +981,22 @@ char    Mantle_FindMantleSurface(pmove_t *pm, pml_t *pml, trace_t *trace, float 
     }
     else if ( (trace->sflags & 0x1C000000) != 0 )
     {
-        *(unsigned int *)mantleDir = trace->normal.vec.u[0] ^ _mask__NegFloat_;
-        *((unsigned int *)mantleDir + 1) = trace->normal.vec.u[1] ^ _mask__NegFloat_;
-        *((unsigned int *)mantleDir + 2) = trace->normal.vec.u[2] ^ _mask__NegFloat_;
+        //*(unsigned int *)mantleDir = trace->normal.vec.u[0] ^ _mask__NegFloat_;
+        //*((unsigned int *)mantleDir + 1) = trace->normal.vec.u[1] ^ _mask__NegFloat_;
+        //*((unsigned int *)mantleDir + 2) = trace->normal.vec.u[2] ^ _mask__NegFloat_;
+        mantleDir[0] = -trace->normal.vec.u[0];
+        mantleDir[1] = -trace->normal.vec.u[1];
+        mantleDir[2] = -trace->normal.vec.u[2];
         mantleDir[2] = 0.0f;
         v8 = Vec3Normalize(mantleDir);
         if ( v8 >= 0.000099999997 )
         {
             v6 = (float)((float)((float)(start[2] * *mantleDir) + (float)(v14 * mantleDir[1])) + (float)(v15 * mantleDir[2]));
-            __libm_sse2_acos(v7);
-            *(float *)&v6 = v6;
-            if ( (float)(*(float *)&v6 * 57.295776) <= mantle_check_angle->current.value )
+            //__libm_sse2_acos(v7);
+            //*(float *)&v6 = v6;
+            //if ( (float)(*(float *)&v6 * 57.295776) <= mantle_check_angle->current.value )
+            v6 = acos(v6);
+            if ( (float)(v6 * 57.295776) <= mantle_check_angle->current.value )
             {
                 return 1;
             }

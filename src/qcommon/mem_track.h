@@ -1,5 +1,47 @@
 #pragma once
 
+struct meminfo_t // sizeof=0x1C0
+{                                       // XREF: .data:g_info/r
+                                        // .data:g_virtualMemInfo/r ...
+    int total[2];                       // XREF: track_PrintInfo(void)+7BC/r
+                                        // track_PrintInfo(void)+7DC/w
+    int nonSwapTotal;                   // XREF: track_PrintInfo(void)+834/r
+                                        // track_PrintInfo(void)+841/w ...
+    int nonSwapMinSpecTotal;            // XREF: track_PrintInfo(void)+898/r
+                                        // track_PrintInfo(void)+8A5/w ...
+    int typeTotal[54][2];               // XREF: track_PrintInfo(void)+780/o
+                                        // track_PrintInfo(void)+7A6/o ...
+};
+
+struct mem_track_t // sizeof=0x98
+{                                       // XREF: track_init(void)+10F/w
+                                        // _memmove:UnwindDown1/o ...
+    char name[128];                     // XREF: track_init(void)+11A/w
+                                        // track_init(void)+126/w ...
+    const char *filename;               // XREF: .rdata:00DC1F9E/o
+    int size[2];                        // XREF: G_GetPlayerViewOrigin_Internal(playerState_s const *,float * const,bool):off_600000/o
+                                        // track_z_alloc(int,char const *,int,void *,int,int)+4B/r ...
+    int pos;                            // XREF: track_userhunk_freerange(void *,uint)+4B/r
+                                        // track_userhunk_freerange(void *,uint)+65/r ...
+    unsigned __int8 type;
+    unsigned __int8 usageType;
+    // padding byte
+    // padding byte
+    int count;                          // XREF: .rdata:00D5DB25/o
+};
+
+
+struct TempMemInfo // sizeof=0xAC
+{                                       // XREF: .data:g_mallocMemInfoArray/r
+                                        // .data:g_combinedMemInfoArray/r ...
+    int permanent;
+    int high;
+    int highExtra;
+    int hunkSize;
+    int low;
+    mem_track_t data;                   // XREF: track_PrintInfo(void)+2B1/o
+};
+
 void __cdecl track_static_alloc_internal_simple(void *ptr, int size, const char *name, int memTrack);
 void __cdecl track_addbasicinfo(meminfo_t *info, int type, int location, int size);
 void __cdecl track_static_alloc_internal(void *ptr, int size, const char *name, int type);
@@ -63,6 +105,3 @@ void __cdecl track_PrintInfo();
 double __cdecl mb(int n);
 int __cdecl mem_track_compare(const char *elem1, const char *elem2);
 void __cdecl track_PrintAllInfo();
-void bitarray<54>::bitarray<54>(bitarray<54> *this, unsigned int first, ...);
-bool __thiscall bitarray<54>::testBit(bitarray<54> *this, unsigned int pos);
-void __thiscall bitarray<54>::setBit(bitarray<54> *this, unsigned int pos);

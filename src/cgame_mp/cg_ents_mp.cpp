@@ -508,7 +508,6 @@ DObj *__cdecl CG_ScriptMover_GetDObj(int localClientNum, centity_s *cent)
 
 // local variable allocation has failed, the output may be wrong!
 void    CG_AdjustPositionForMover(
-                int a1@<ebp>,
                 int localClientNum,
                 float *in,
                 int moverNum,

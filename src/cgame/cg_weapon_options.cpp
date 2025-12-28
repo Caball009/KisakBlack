@@ -1,5 +1,10 @@
 #include "cg_weapon_options.h"
 
+const dvar_t *weaponCamoLodDist;
+const dvar_t *weaponEmblemLodDist;
+const dvar_t *weaponClanTagLodDist;
+const dvar_t *facepaintLodDist;
+
 const GfxImage *__cdecl WeaponOptions::GetImageFromTable(const StringTable *table, int row, int column)
 {
     XAssetHeader v4; // [esp+0h] [ebp-1Ch]
@@ -8,12 +13,11 @@ const GfxImage *__cdecl WeaponOptions::GetImageFromTable(const StringTable *tabl
     name = StringTable_GetColumnValueForRow(table, row, column);
     if ( !name || !strlen(name) )
         return 0;
-    v4.xmodelPieces = DB_FindXAssetHeader(ASSET_TYPE_IMAGE, name, 1, -1).xmodelPieces;
+    v4.xmodelPieces = DB_FindXAssetHeader(ASSET_TYPE_IMAGE, (char*)name, 1, -1).xmodelPieces;
     return (const GfxImage *)v4.xmodelPieces;
 }
 
 void __thiscall WeaponOptions::InitWeaponOptionTextures(
-                WeaponOptions *this,
                 const char *tableName,
                 const char *label,
                 int labelCol,
@@ -43,7 +47,6 @@ void __thiscall WeaponOptions::InitWeaponOptionTextures(
 }
 
 void __thiscall WeaponOptions::InitWeaponOptionMaterials(
-                WeaponOptions *this,
                 const char *tableName,
                 const char *label,
                 int labelCol,
@@ -76,7 +79,7 @@ void __thiscall WeaponOptions::InitWeaponOptionMaterials(
         {
             if ( strlen(materialName) )
             {
-                overrides[i] = DB_FindXAssetHeader(ASSET_TYPE_MATERIAL, materialName, 1, -1).material;
+                overrides[i] = DB_FindXAssetHeader(ASSET_TYPE_MATERIAL, (char*)materialName, 1, -1).material;
                 if ( overrides[i] )
                 {
                     if ( this->facepaintMaterials[0]->textureCount != 1 )
@@ -91,7 +94,6 @@ void __thiscall WeaponOptions::InitWeaponOptionMaterials(
 }
 
 void __thiscall WeaponOptions::InitWeaponOptionColors(
-                WeaponOptions *this,
                 const char *tableName,
                 const char *label,
                 int labelCol,
@@ -135,7 +137,7 @@ void __thiscall WeaponOptions::InitWeaponOptionColors(
     }
 }
 
-void __thiscall WeaponOptions::InitWeaponOptions(WeaponOptions *this)
+void __thiscall WeaponOptions::InitWeaponOptions()
 {
     const char *v1; // eax
     unsigned int i; // [esp+10h] [ebp-10h]
@@ -147,7 +149,6 @@ void __thiscall WeaponOptions::InitWeaponOptions(WeaponOptions *this)
     for ( i = 0; i < 0xA; ++i )
     {
         WeaponOptions::InitWeaponOptionTextures(
-            this,
             "mp/weaponoptions.csv",
             "camo",
             1,
@@ -155,7 +156,6 @@ void __thiscall WeaponOptions::InitWeaponOptions(WeaponOptions *this)
             this->camoTextureOverrides[i],
             0x40u);
         WeaponOptions::InitWeaponOptionTextures(
-            this,
             "mp/weaponoptions.csv",
             "lens",
             1,
@@ -163,7 +163,6 @@ void __thiscall WeaponOptions::InitWeaponOptions(WeaponOptions *this)
             this->lensTextureOverrides[i],
             0x10u);
         WeaponOptions::InitWeaponOptionTextures(
-            this,
             "mp/weaponoptions.csv",
             "reticle",
             1,
@@ -171,17 +170,16 @@ void __thiscall WeaponOptions::InitWeaponOptions(WeaponOptions *this)
             this->reticleTextureOverrides[i],
             0x40u);
     }
-    WeaponOptions::InitWeaponOptionColors(this, "mp/weaponoptions.csv", "reticle_color", 1, 2, this->reticleColors);
-    WeaponOptions::InitWeaponOptionColors(this, "mp/weaponoptions.csv", "lens", 1, 2, this->lensColors);
+    WeaponOptions::InitWeaponOptionColors("mp/weaponoptions.csv", "reticle_color", 1, 2, this->reticleColors);
+    WeaponOptions::InitWeaponOptionColors("mp/weaponoptions.csv", "lens", 1, 2, this->lensColors);
     WeaponOptions::InitWeaponOptionMaterials(
-        this,
         "mp/bodyHeadTable.csv",
         "pattern",
         1,
         3,
         this->facepaintMaterials,
         0x40u);
-    WeaponOptions::InitWeaponOptionColors(this, "mp/bodyHeadTable.csv", "pattern_color", 1, 3, this->facepaintColors);
+    WeaponOptions::InitWeaponOptionColors("mp/bodyHeadTable.csv", "pattern_color", 1, 3, this->facepaintColors);
     this->numWeaponOverrides = 0;
     StringTable_GetAsset("mp/weaponoptions.csv", (XAssetHeader *)&tablePtr);
     goldRow = StringTable_LookupRowNumForValue(tablePtr, 1, "gold");
@@ -202,9 +200,9 @@ void __thiscall WeaponOptions::InitWeaponOptions(WeaponOptions *this)
     }
     v1 = StringTable_Lookup(tablePtr, 1, "camo", 2, "gold", 0);
     this->goldCamoIndex = atoi(v1);
-    this->emblemClearTexture = DB_FindXAssetHeader(ASSET_TYPE_IMAGE, "emblem_clear", 1, -1).image;
-    this->lightClanTagFont = DB_FindXAssetHeader(ASSET_TYPE_IMAGE, "clan_font_c", 1, -1).image;
-    this->darkClanTagFont = DB_FindXAssetHeader(ASSET_TYPE_IMAGE, "clan_font_dark_c", 1, -1).image;
+    this->emblemClearTexture = DB_FindXAssetHeader(ASSET_TYPE_IMAGE, (char*)"emblem_clear", 1, -1).image;
+    this->lightClanTagFont = DB_FindXAssetHeader(ASSET_TYPE_IMAGE, (char *)"clan_font_c", 1, -1).image;
+    this->darkClanTagFont = DB_FindXAssetHeader(ASSET_TYPE_IMAGE, (char *)"clan_font_dark_c", 1, -1).image;
 }
 
 void __cdecl GC_InitWeaponOptionsDvars()
@@ -239,10 +237,7 @@ void __cdecl GC_InitWeaponOptionsDvars()
                                              "Distance to stop drawing the player facepaint.");
 }
 
-unsigned int __thiscall WeaponOptions::FindCamoOverrideIndex(
-                WeaponOptions *this,
-                const GfxImage *base,
-                unsigned int defaultIndex)
+unsigned int __thiscall WeaponOptions::FindCamoOverrideIndex(const GfxImage *base, unsigned int defaultIndex)
 {
     unsigned int i; // [esp+4h] [ebp-4h]
 
@@ -254,10 +249,7 @@ unsigned int __thiscall WeaponOptions::FindCamoOverrideIndex(
     return defaultIndex;
 }
 
-void __thiscall WeaponOptions::WeaponOverride::AddToGold(
-                WeaponOptions::WeaponOverride *this,
-                const char *matName,
-                bool gold)
+void __thiscall WeaponOptions::WeaponOverride::AddToGold(const char *matName, bool gold)
 {
     if ( gold )
     {
@@ -271,7 +263,8 @@ void __thiscall WeaponOptions::WeaponOverride::AddToGold(
         {
             __debugbreak();
         }
-        if ( WeaponOptions::WeaponOverride::ToGold::Init(&this->toGold[this->numToGold], matName) )
+        //if ( WeaponOptions::WeaponOverride::ToGold::Init(&this->toGold[this->numToGold], matName) )
+        if ( this->toGold[this->numToGold].Init(matName) )
             ++this->numToGold;
     }
     else
@@ -286,14 +279,13 @@ void __thiscall WeaponOptions::WeaponOverride::AddToGold(
         {
             __debugbreak();
         }
-        if ( WeaponOptions::WeaponOverride::ToGold::Init(&this->toBlack[this->numToBlack], matName) )
+        //if ( WeaponOptions::WeaponOverride::ToGold::Init(&this->toBlack[this->numToBlack], matName) )
+        if ( this->toBlack[this->numToBlack].Init(matName) )
             ++this->numToBlack;
     }
 }
 
-void __thiscall WeaponOptions::WeaponOverride::Init(
-                WeaponOptions::WeaponOverride *this,
-                const WeaponVariantDef *weapVarDef)
+void __thiscall WeaponOptions::WeaponOverride::Init(const WeaponVariantDef *weapVarDef)
 {
     const char *ColumnValueForRow; // eax
     const char *v3; // eax

@@ -12,6 +12,14 @@
 
 clipMap_t cm;
 
+int num_occlusion_overrides;
+float occlusion_overrides[32][2][3];
+
+int num_undertow_volumes;
+int undertow_volumes[32];
+float undertow_origins[32][3];
+float undertow_forces[32][4];
+
 TraceThreadInfo g_traceThreadInfo[15];
 cbrush_t g_box_brush[12];
 cmodel_t g_box_model[12];

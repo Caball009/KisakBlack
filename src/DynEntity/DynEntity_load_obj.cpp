@@ -1,4 +1,39 @@
 #include "DynEntity_load_obj.h"
+#include "DynEntity_client.h"
+#include <qcommon/cm_load.h>
+#include <physics/physpreset_load_obj.h>
+#include <universal/com_memory.h>
+#include <xanim/xmodel_load_obj.h>
+#include "DynEntity_coll.h"
+#include <qcommon/com_bsp_load_obj.h>
+#include <qcommon/common.h>
+#include <physics/rope.h>
+#include <clientscript/cscr_stringlist.h>
+#include <universal/com_math_anglevectors.h>
+#include <xanim/xmodel_utils.h>
+#include <EffectsCore/fx_load_obj.h>
+#include <sound/snd_utils.h>
+
+int num_ents;
+int num_ropes;
+int num_infos;
+int num_dents;
+node_params_t ents_params[8192];
+node_params_t rope_params[8192];
+node_params_t info_params[8192];
+node_params_t dents_params[8192];
+
+int numAutoPhysPresets;
+PhysPreset *autoPhysPresets[512];
+
+const DynEntityProps dynEntProps[3] =
+{
+  { "invalid", false, false, false, false },
+  { "clutter", false, false, true, false },
+  { "destruct", false, false, false, true }
+};
+
+
 
 const DynEntityDef *__cdecl DynEnt_GetEntityDef(unsigned __int16 dynEntId, DynEntityDrawType drawType)
 {
@@ -102,19 +137,19 @@ void __cdecl DynEnt_LoadEntities()
     char *v15; // [esp+4Ch] [ebp-31AA4h]
     char v16; // [esp+53h] [ebp-31A9Dh]
     char *physModelName; // [esp+58h] [ebp-31A98h]
-    char *v18; // [esp+5Ch] [ebp-31A94h]
+    unsigned char *v18; // [esp+5Ch] [ebp-31A94h]
     char v19; // [esp+63h] [ebp-31A8Dh]
     char *v20; // [esp+68h] [ebp-31A88h]
     char *v21; // [esp+6Ch] [ebp-31A84h]
     char v22; // [esp+73h] [ebp-31A7Dh]
     char *destroyedModelName; // [esp+78h] [ebp-31A78h]
-    char *v24; // [esp+7Ch] [ebp-31A74h]
+    unsigned char *v24; // [esp+7Ch] [ebp-31A74h]
     char v25; // [esp+83h] [ebp-31A6Dh]
     char *v26; // [esp+88h] [ebp-31A68h]
     char *v27; // [esp+8Ch] [ebp-31A64h]
     char v28; // [esp+93h] [ebp-31A5Dh]
     char *modelName; // [esp+98h] [ebp-31A58h]
-    char *v30; // [esp+9Ch] [ebp-31A54h]
+    unsigned char *v30; // [esp+9Ch] [ebp-31A54h]
     char v31; // [esp+A3h] [ebp-31A4Dh]
     DynEntityCreateParams *p_dest; // [esp+A8h] [ebp-31A48h]
     char *v33; // [esp+ACh] [ebp-31A44h]
@@ -133,7 +168,7 @@ void __cdecl DynEnt_LoadEntities()
     const DynEntityDef *v46; // [esp+ECh] [ebp-31A04h]
     unsigned __int16 m; // [esp+F0h] [ebp-31A00h]
     int k; // [esp+F4h] [ebp-319FCh]
-    const DynEntityDef *EntityDef; // [esp+F8h] [ebp-319F8h]
+    DynEntityDef *EntityDef; // [esp+F8h] [ebp-319F8h]
     int j; // [esp+FCh] [ebp-319F4h]
     int v51; // [esp+100h] [ebp-319F0h]
     DynEntityDrawType drawType; // [esp+104h] [ebp-319ECh]
@@ -490,9 +525,9 @@ void __cdecl DynEnt_LoadEntities()
         }
         if ( !cm.dynEntPoseList[drawType - 2] )
             cm.dynEntPoseList[drawType - 2] = (DynEntityPose *)v58;
-        collType = drawType;
+        collType = (DynEntityCollType)drawType;
         ++cm.dynEntCount[drawType];
-        collType = drawType + 2;
+        collType = (DynEntityCollType)(drawType + 2);
         ++cm.dynEntCount[drawType + 2];
     }
     if ( !cm.dynEntDefList[0] )
@@ -511,13 +546,13 @@ void __cdecl DynEnt_LoadEntities()
     cm.dynEntCount[0] += 256;
     for ( j = cm.originalDynEntCount; j < cm.originalDynEntCount + 256; ++j )
     {
-        EntityDef = DynEnt_GetEntityDef(j, DYNENT_DRAW_MODEL);
+        EntityDef = (DynEntityDef*)DynEnt_GetEntityDef(j, DYNENT_DRAW_MODEL);
         for ( k = 0; k < 4; ++k )
             EntityDef->physConstraints[k] = 511;
     }
     for ( drawType = DYNENT_DRAW_MODEL; (unsigned int)drawType < DYNENT_DRAW_COUNT; ++drawType )
     {
-        collType = drawType;
+        collType = (DynEntityCollType)drawType;
         num = DynEnt_GetEntityCount((DynEntityCollType)drawType);
         for ( m = 0; m < (int)num; ++m )
         {
@@ -574,14 +609,14 @@ void __cdecl DynEnt_LoadEntities()
     cm.ropes = (rope_t *)Hunk_Alloc(3188 * cm.max_ropes, "ropes", 10);
     for ( drawType = DYNENT_DRAW_MODEL; (unsigned int)drawType < DYNENT_DRAW_COUNT; ++drawType )
     {
-        collType = drawType;
+        collType = (DynEntityCollType)drawType;
         if ( cm.dynEntCount[drawType] )
         {
             cm.dynEntPoseList[drawType] = (DynEntityPose *)DynEnt_Alloc(cm.dynEntCount[collType], 32);
             cm.dynEntClientList[drawType] = (DynEntityClient *)DynEnt_Alloc(cm.dynEntCount[collType], 20);
             cm.dynEntCollList[collType] = (DynEntityColl *)DynEnt_Alloc(cm.dynEntCount[collType], 32);
         }
-        collType = drawType + 2;
+        collType = (DynEntityCollType)(drawType + 2);
         if ( cm.dynEntCount[drawType + 2] )
         {
             cm.dynEntServerList[drawType] = (DynEntityServer *)DynEnt_Alloc(cm.dynEntCount[collType], 8);
@@ -590,6 +625,7 @@ void __cdecl DynEnt_LoadEntities()
     }
 }
 
+const char *dynEntClassNames[2] = { "dyn_brushmodel", "dyn_model" };
 char __cdecl DynEnt_IsValidClassName(const char *className)
 {
     unsigned int classIndex; // [esp+0h] [ebp-4h]
@@ -663,6 +699,8 @@ void __cdecl DynEnt_GetEntityCountFromString(const char *entityString, int *entC
         }
     }
 }
+
+const char *dynEntConstraintClassNames[4] = { "dyn_pointconstraint", "dyn_hingeconstraint", "dyn_lightconstraint", "rope" };
 
 char __cdecl DynEnt_IsValidConstraintName(const char *className)
 {
@@ -1343,7 +1381,7 @@ char __cdecl DynEnt_Create(
     Com_Memset((unsigned int *)dynEntDef, 0, 84);
     if ( params->typeName[0] )
     {
-        dynEntDef->type = DynEnt_GetType(params->typeName);
+        dynEntDef->type = (DynEntityType)DynEnt_GetType(params->typeName);
         if ( dynEntDef->type == DYNENT_TYPE_INVALID )
         {
             Com_Error(ERR_DROP, "Invalid Dyn Entity type [%s]\n", params->typeName);
@@ -1383,7 +1421,7 @@ char __cdecl DynEnt_Create(
     }
     else
     {
-        dynEntDef->xModel = DynEnt_XModelPrecache(params->modelName);
+        dynEntDef->xModel = DynEnt_XModelPrecache((char*)params->modelName);
         if ( !dynEntDef->xModel )
         {
             Com_Error(ERR_DROP, "Couldn't find xmodel [%s] for Dyn Entity.\n", params->modelName);
@@ -1413,7 +1451,7 @@ char __cdecl DynEnt_Create(
     }
     if ( params->destroyFxFile[0] )
     {
-        dynEntDef->destroyFx = FX_Register(params->destroyFxFile);
+        dynEntDef->destroyFx = FX_Register((char*)params->destroyFxFile);
         if ( !dynEntDef->destroyFx )
         {
             Com_Error(ERR_DROP, "Couldn't find fx [%s] for Dyn Entity.\n", params->destroyFxFile);
@@ -1431,7 +1469,7 @@ char __cdecl DynEnt_Create(
     }
     if ( !params->destroyedModelName[0] )
         goto LABEL_89;
-    dynEntDef->destroyedxModel = DynEnt_XModelPrecache(params->destroyedModelName);
+    dynEntDef->destroyedxModel = DynEnt_XModelPrecache((char*)params->destroyedModelName);
     if ( !dynEntDef->destroyedxModel )
     {
         Com_Error(ERR_DROP, "Couldn't find destroyed xmodel [%s] for Dyn Entity.\n", params->destroyedModelName);

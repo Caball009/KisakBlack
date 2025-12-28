@@ -1,4 +1,16 @@
 #include "cg_main.h"
+#include "cg_local.h"
+#include <bgame/bg_weapons_def.h>
+#include <universal/com_loadutils.h>
+#include <bgame/bg_misc.h>
+#include <cgame_mp/cg_main_mp.h>
+#include <cgame_mp/cg_vehicles_mp.h>
+#include <client_mp/cl_cgame_mp.h>
+#include <bgame/bg_misctables.h>
+
+ViewModelInfo *cg_viewModelArray;
+
+bool cgHasClientSystemBeenInitialzed;
 
 int __cdecl CG_irand(int min, int max)
 {
@@ -95,7 +107,7 @@ void __cdecl CG_RegisterVehicle(const char *name, __int16 index)
         memset(dst, 0, 0x1DD8u);
         v6 = name;
         v5 = dst;
-        HIDWORD(v4) = dst;
+        HIDWORD(v4) = (int)dst;
         do
         {
             BYTE3(v4) = *v6;
@@ -114,9 +126,10 @@ void __cdecl CG_RegisterVehicle(const char *name, __int16 index)
             for ( i = 0; i < 4; ++i )
             {
                 v2 = (float)((float)(*(float *)&dst[4 * i + 2788] * 0.5) * 0.017453292);
-                __libm_sse2_cos(v4);
-                *(float *)&v2 = v2;
-                *(unsigned int *)&dst[4 * i + 2788] = LODWORD(v2);
+                //__libm_sse2_cos(v4);
+                //*(float *)&v2 = v2;
+                //*(unsigned int *)&dst[4 * i + 2788] = LODWORD(v2);
+                *(float *)&dst[4 * i + 2788] = cos(v2);
             }
             for ( j = 0; j < 4; ++j )
             {
@@ -127,7 +140,7 @@ void __cdecl CG_RegisterVehicle(const char *name, __int16 index)
         }
         else
         {
-            Com_Error(ERR_DROP, &byte_C7FA04, name);
+            Com_Error(ERR_DROP, "Cannot parse vehicle on client: %s", name);
         }
     }
 }
@@ -216,7 +229,7 @@ bool __cdecl CG_IsVehicleRemoteControl(int index)
 
 void __cdecl CG_UpdateUIDeviceContexts(int localClientNum, int time)
 {
-    dword_EC0BA8[1546 * localClientNum] = time;
+    cgDC[localClientNum].realTime = time;
 }
 
 double __cdecl CG_GetDefaultFovForView()
@@ -230,7 +243,7 @@ double __cdecl CG_GetDefaultFovForView()
 void __cdecl CG_UpdateFov(float value)
 {
     if ( cg_fov->current.value != value )
-        Dvar_SetFloat(cg_fov, value);
+        Dvar_SetFloat((dvar_s*)cg_fov, value);
 }
 
 void __cdecl CG_SetThirdPerson(int value)
@@ -252,23 +265,23 @@ bool __cdecl CG_IsEntWalkable(int localClientNum, int entityNum)
 }
 
 int __cdecl CScriptMover_UpdateMove(
-                trajectory_t *pTr,
-                float *vCurrPos,
-                float fSpeed,
-                float fMidTime,
-                float fDecelTime,
-                const float *vPos1,
-                const float *vPos2,
-                const float *vPos3)
+    trajectory_t *pTr,
+    float *vCurrPos,
+    float fSpeed,
+    float fMidTime,
+    float fDecelTime,
+    const float *vPos1,
+    const float *vPos2,
+    const float *vPos3)
 {
     float fDelta; // [esp+38h] [ebp-14h]
     float vMove[3]; // [esp+3Ch] [ebp-10h] BYREF
     int trDuration; // [esp+48h] [ebp-4h]
 
     trDuration = (int)(float)(fMidTime * 1000.0);
-    if ( pTr->trType == 8 && trDuration > 0 )
+    if (pTr->trType == 8 && trDuration > 0)
     {
-        pTr->trTime = *(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) + 4);
+        pTr->trTime = bgs->time;
         pTr->trDuration = trDuration;
         pTr->trBase[0] = *vPos1;
         pTr->trBase[1] = vPos1[1];
@@ -276,8 +289,8 @@ int __cdecl CScriptMover_UpdateMove(
         vMove[0] = *vPos2 - *vPos1;
         vMove[1] = vPos2[1] - vPos1[1];
         vMove[2] = vPos2[2] - vPos1[2];
-        if ( !trDuration
-            && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_main.cpp", 313, 0, "%s", "trDuration") )
+        if (!trDuration
+            && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_main.cpp", 313, 0, "%s", "trDuration"))
         {
             __debugbreak();
         }
@@ -285,24 +298,24 @@ int __cdecl CScriptMover_UpdateMove(
         pTr->trDelta[0] = fDelta * vMove[0];
         pTr->trDelta[1] = fDelta * vMove[1];
         pTr->trDelta[2] = fDelta * vMove[2];
-        if ( ((LODWORD(pTr->trDelta[0]) & 0x7F800000) == 0x7F800000
-             || (LODWORD(pTr->trDelta[1]) & 0x7F800000) == 0x7F800000
-             || (LODWORD(pTr->trDelta[2]) & 0x7F800000) == 0x7F800000)
+        if (((LODWORD(pTr->trDelta[0]) & 0x7F800000) == 0x7F800000
+            || (LODWORD(pTr->trDelta[1]) & 0x7F800000) == 0x7F800000
+            || (LODWORD(pTr->trDelta[2]) & 0x7F800000) == 0x7F800000)
             && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_main.cpp",
-                        316,
-                        0,
-                        "%s",
-                        "!IS_NAN((pTr->trDelta)[0]) && !IS_NAN((pTr->trDelta)[1]) && !IS_NAN((pTr->trDelta)[2])") )
+                "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_main.cpp",
+                316,
+                0,
+                "%s",
+                "!IS_NAN((pTr->trDelta)[0]) && !IS_NAN((pTr->trDelta)[1]) && !IS_NAN((pTr->trDelta)[2])"))
         {
             __debugbreak();
         }
         pTr->trType = 4;
         return 0;
     }
-    if ( (pTr->trType == 8 && trDuration <= 0 || pTr->trType == 4) && fDecelTime > 0.0 )
+    if ((pTr->trType == 8 && trDuration <= 0 || pTr->trType == 4) && fDecelTime > 0.0)
     {
-        pTr->trTime = *(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) + 4);
+        pTr->trTime = bgs->time;
         pTr->trDuration = (int)(float)(fDecelTime * 1000.0);
         pTr->trBase[0] = *vPos2;
         pTr->trBase[1] = vPos2[1];
@@ -317,27 +330,24 @@ int __cdecl CScriptMover_UpdateMove(
         pTr->trDelta[0] = vMove[0];
         pTr->trDelta[1] = vMove[1];
         pTr->trDelta[2] = vMove[2];
-        if ( ((LODWORD(pTr->trDelta[0]) & 0x7F800000) == 0x7F800000
-             || (LODWORD(pTr->trDelta[1]) & 0x7F800000) == 0x7F800000
-             || (LODWORD(pTr->trDelta[2]) & 0x7F800000) == 0x7F800000)
+        if (((LODWORD(pTr->trDelta[0]) & 0x7F800000) == 0x7F800000
+            || (LODWORD(pTr->trDelta[1]) & 0x7F800000) == 0x7F800000
+            || (LODWORD(pTr->trDelta[2]) & 0x7F800000) == 0x7F800000)
             && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_main.cpp",
-                        330,
-                        0,
-                        "%s",
-                        "!IS_NAN((pTr->trDelta)[0]) && !IS_NAN((pTr->trDelta)[1]) && !IS_NAN((pTr->trDelta)[2])") )
+                "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_main.cpp",
+                330,
+                0,
+                "%s",
+                "!IS_NAN((pTr->trDelta)[0]) && !IS_NAN((pTr->trDelta)[1]) && !IS_NAN((pTr->trDelta)[2])"))
         {
             __debugbreak();
         }
         pTr->trType = 9;
         return 0;
     }
-    if ( pTr->trType == 6 || pTr->trType == 13 )
+    if (pTr->trType == 6 || pTr->trType == 13)
     {
-        BG_EvaluateTrajectory(
-            pTr,
-            *(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) + 4),
-            pTr->trBase);
+        BG_EvaluateTrajectory(pTr, bgs->time, pTr->trBase);
     }
     else
     {
@@ -345,8 +355,7 @@ int __cdecl CScriptMover_UpdateMove(
         pTr->trBase[1] = vPos3[1];
         pTr->trBase[2] = vPos3[2];
     }
-    pTr->trTime = *(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) + 4);
+    pTr->trTime = bgs->time;
     pTr->trType = 0;
     return 1;
 }
-

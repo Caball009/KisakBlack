@@ -1,14 +1,25 @@
 #include "cg_localents.h"
 
+#include <cstring>
+#include "cg_weapons.h"
+#include <cgame_mp/cg_main_mp.h>
+#include <bgame/bg_misc.h>
+
+localEntity_s cg_localEntities[1][128];
+localEntity_s cg_activeLocalEntities[1];
+localEntity_s *cg_freeLocalEntities[1];
+
+volatile unsigned int g_localEntThread;
+
 void __cdecl CG_InitLocalEntities(int localClientNum)
 {
     int entIter; // [esp+0h] [ebp-4h]
 
     memset((unsigned __int8 *)cg_localEntities[localClientNum], 0, sizeof(localEntity_s[128]));
-    dword_EC0AE4[26 * localClientNum] = (int)&cg_activeLocalEntities[localClientNum];
+    cg_activeLocalEntities[localClientNum].next = &cg_activeLocalEntities[localClientNum];
     cg_activeLocalEntities[localClientNum].prev = &cg_activeLocalEntities[localClientNum];
     cg_freeLocalEntities[localClientNum] = cg_localEntities[localClientNum];
-    for ( entIter = 0; entIter < 127; ++entIter )
+    for (entIter = 0; entIter < 127; ++entIter)
         cg_localEntities[localClientNum][entIter].next = &cg_localEntities[localClientNum][entIter + 1];
 }
 
@@ -16,32 +27,32 @@ localEntity_s *__cdecl CG_AllocLocalEntity(int localClientNum)
 {
     localEntity_s *le; // [esp+0h] [ebp-4h]
 
-    if ( _InterlockedIncrement(&g_localEntThread) != 1
+    if (_InterlockedIncrement(&g_localEntThread) != 1
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_localents.cpp",
-                    65,
-                    0,
-                    "%s",
-                    "Sys_InterlockedIncrement( &g_localEntThread ) == 1") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_localents.cpp",
+            65,
+            0,
+            "%s",
+            "Sys_InterlockedIncrement( &g_localEntThread ) == 1"))
     {
         __debugbreak();
     }
-    if ( !cg_freeLocalEntities[localClientNum] )
+    if (!cg_freeLocalEntities[localClientNum])
         CG_FreeLocalEntity(localClientNum, cg_activeLocalEntities[localClientNum].prev);
     le = cg_freeLocalEntities[localClientNum];
     cg_freeLocalEntities[localClientNum] = le->next;
     memset((unsigned __int8 *)le, 0, sizeof(localEntity_s));
-    le->next = (localEntity_s *)dword_EC0AE4[26 * localClientNum];
+    le->next = cg_activeLocalEntities[localClientNum].next;
     le->prev = &cg_activeLocalEntities[localClientNum];
-    *(unsigned int *)dword_EC0AE4[26 * localClientNum] = le;
-    dword_EC0AE4[26 * localClientNum] = (int)le;
-    if ( _InterlockedDecrement(&g_localEntThread)
+    cg_activeLocalEntities[localClientNum].next->prev = le;
+    cg_activeLocalEntities[localClientNum].next = le;
+    if (_InterlockedDecrement(&g_localEntThread)
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_localents.cpp",
-                    85,
-                    0,
-                    "%s",
-                    "Sys_InterlockedDecrement( &g_localEntThread ) == 0") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_localents.cpp",
+            85,
+            0,
+            "%s",
+            "Sys_InterlockedDecrement( &g_localEntThread ) == 0"))
     {
         __debugbreak();
     }
@@ -51,7 +62,7 @@ localEntity_s *__cdecl CG_AllocLocalEntity(int localClientNum)
 void __cdecl CG_FreeLocalEntity(int localClientNum, localEntity_s *le)
 {
     if ( !le->prev )
-        Com_Error(ERR_DROP, &byte_C7F828);
+        Com_Error(ERR_DROP, "CG_FreeLocalEntity: not active");
     le->prev->next = le->next;
     le->next->prev = le->prev;
     le->next = cg_freeLocalEntities[localClientNum];

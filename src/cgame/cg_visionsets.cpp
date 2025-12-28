@@ -20,6 +20,7 @@
 #include <gfx_d3d/r_font.h>
 #include <gfx_d3d/r_rendercmds.h>
 #include <gfx_d3d/r_exposure.h>
+#include <client/client.h>
 
 const dvar_s *nightVisionFadeInOutTime;
 const dvar_s *nightVisionPowerOnTime;

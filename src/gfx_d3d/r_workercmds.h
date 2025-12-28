@@ -51,6 +51,8 @@ extern jqModule r_model_skinModule;
 extern jqModule nuge_physicsModule;
 extern jqModule r_skin_cached_staticmodelModule;
 
+extern jqWorkerCmd r_water_simWorkerCmd;
+
 extern jqWorkerCmd fx_update_spotWorkerCmd;
 extern jqWorkerCmd fx_updateWorkerCmd;
 extern jqWorkerCmd fx_update_remainingWorkerCmd;

@@ -1,4 +1,11 @@
 #include "cg_laser.h"
+#include <universal/q_shared.h>
+#include <clientscript/scr_const.h>
+#include <xanim/dobj_utils.h>
+#include <cgame_mp/cg_ents_mp.h>
+#include <cgame_mp/cg_main_mp.h>
+#include <EffectsCore/fx_beam.h>
+#include <EffectsCore/fx_postlight.h>
 
 void __cdecl CG_Laser_Add(centity_s *cent, DObj *obj, cpose_t *pose, const float *viewerPos, LaserOwnerEnum laserOwner)
 {
@@ -26,7 +33,6 @@ void __cdecl CG_Laser_Add_Core(
     float v7; // [esp+2Ch] [ebp-148h]
     float laserLightAverageDist; // [esp+34h] [ebp-140h]
     float laserLength; // [esp+38h] [ebp-13Ch]
-    col_context_t context; // [esp+3Ch] [ebp-138h] BYREF
     float laserLightBeginDist; // [esp+64h] [ebp-110h]
     float mins[3]; // [esp+68h] [ebp-10Ch] BYREF
     FxBeam beam; // [esp+74h] [ebp-100h] BYREF
@@ -69,7 +75,10 @@ void __cdecl CG_Laser_Add_Core(
     laserEnd[0] = (float)(laserRange * orient->axis[0][0]) + orient->origin[0];
     laserEnd[1] = (float)(laserRange * orient->axis[0][1]) + orient->origin[1];
     laserEnd[2] = (float)(laserRange * orient->axis[0][2]) + orient->origin[2];
-    col_context_t::col_context_t(&context);
+
+    col_context_t context; // [esp+3Ch] [ebp-138h] BYREF
+
+    //col_context_t::col_context_t(&context);
     CG_TraceCapsule(
         &traceResults,
         laserBegin,
@@ -105,14 +114,20 @@ void __cdecl CG_Laser_Add_Core(
     v6 = (int)(float)(255.0 * (float)(1.0 - traceResults.fraction));
     if ( v6 >= 0 )
     {
-        if ( v6 <= 255 )
+        if (v6 <= 255)
+        {
             v5 = (int)(float)(255.0 * (float)(1.0 - traceResults.fraction));
+        }
         else
-            LOBYTE(v5) = -1;
+        {
+            //LOBYTE(v5) = -1;
+            v5 = -1;
+        }
     }
     else
     {
-        LOBYTE(v5) = 0;
+        //LOBYTE(v5) = 0;
+        v5 = 0;
     }
     endColorByte = v5;
     beam.endColor.packed = ((unsigned __int8)v5 << 24) | 0xFFFFFF;

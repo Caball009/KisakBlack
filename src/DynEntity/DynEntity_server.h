@@ -3,7 +3,16 @@
 #include "DynEntity_gamestate.h"
 #include <universal/q_shared.h>
 #include <qcommon/cm_trace.h>
+#include <universal/dvar.h>
 
+struct __declspec(align(4)) DynEntSortStruct // sizeof=0x8
+{                                       // XREF: DynEntSv_GetClosestEntities/r
+    float distSq;                       // XREF: DynEntSv_GetClosestEntities+FE/w
+    unsigned __int16 id;                // XREF: DynEntSv_GetClosestEntities+7B/w
+                                        // DynEntSv_GetClosestEntities+1CC/r
+    // padding byte
+    // padding byte
+};
 
 void __cdecl DynEntSv_RegisterDvars();
 void __cdecl DynEntSv_InitEntities();
@@ -60,3 +69,6 @@ unsigned int __cdecl DynEntSv_GetClosestEntities(
                 float *radiusMaxs,
                 float *origin,
                 unsigned __int16 *hitEnts);
+
+
+extern const dvar_t *dynEnt_damageRadiusScale;

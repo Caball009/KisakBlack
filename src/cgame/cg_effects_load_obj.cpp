@@ -1,4 +1,43 @@
 #include "cg_effects_load_obj.h"
+#include <universal/com_memory.h>
+#include <qcommon/common.h>
+#include <universal/com_files.h>
+#include <universal/q_parse.h>
+#include <universal/surfaceflags.h>
+#include <EffectsCore/fx_load_obj.h>
+
+const char *const g_TypeName[21] =
+{
+  "bullet_small_normal",
+  "bullet_small_exit",
+  "bullet_small_underwater",
+  "bullet_large_normal",
+  "bullet_large_exit",
+  "shotgun_normal",
+  "shotgun_exit",
+  "bullet_ap_normal",
+  "bullet_ap_exit",
+  "bullet_xtreme_normal",
+  "bullet_xtreme_exit",
+  "grenade_bounce",
+  "grenade_explode",
+  "rocket_explode",
+  "rocket_explode_xtreme",
+  "projectile_dud",
+  "mortar_shell",
+  "tank_shell",
+  "physics_impact",
+  "bolt",
+  "blade"
+};
+
+const char *const g_FleshTypeName[4] =
+{
+  "flesh_body_nonfatal",
+  "flesh_body_fatal",
+  "flesh_head_nonfatal",
+  "flesh_head_fatal"
+};
 
 FxImpactTable *__cdecl CG_RegisterImpactEffects(const char *mapname)
 {
@@ -23,7 +62,7 @@ FxImpactTable *__cdecl CG_RegisterImpactEffects_LoadObj(const char *mapname)
     Hunk_CheckTempMemoryClear();
     listbuf = (char *)Hunk_AllocateTempMemory(0x10000, "CG_RegisterImpactEffects");
     memset((unsigned __int8 *)&effectFile, 0, sizeof(effectFile));
-    CG_RegisterImpactEffectsForDir("fx", &effectFile, listbuf);
+    CG_RegisterImpactEffectsForDir((char*)"fx", &effectFile, listbuf);
     if ( mapname )
     {
         Com_sprintf(mapdir, 0x40u, "fx/maps/%s", mapname);
@@ -58,6 +97,45 @@ FxImpactTable *__cdecl CG_RegisterImpactEffects_LoadObj(const char *mapname)
     }
 }
 
+// KISAKTODO: template these ugly muthas
+int __cdecl CG_RegisterImpactEffects_Generic_31_char_const_____cdecl_int__(
+    const char **szEffectFile,
+    const char *pszTypeName,
+    const FxEffectDef **fx,
+    const char *(__cdecl *typeToNameFunc)(int),
+    const char *defaultEffectName)
+{
+    const char *v5; // eax
+    const char *effectName; // [esp+0h] [ebp-Ch]
+    int iBadCount; // [esp+4h] [ebp-8h]
+    int i; // [esp+8h] [ebp-4h]
+
+    iBadCount = 0;
+    for (i = 0; i < 31; ++i)
+    {
+        effectName = szEffectFile[i];
+        if (!effectName)
+            effectName = defaultEffectName;
+        if (effectName)
+        {
+            if (!*effectName && defaultEffectName)
+                effectName = defaultEffectName;
+            if (*effectName)
+                fx[i] = FX_Register((char*)effectName);
+            else
+                fx[i] = 0;
+        }
+        else
+        {
+            v5 = typeToNameFunc(i);
+            Com_Printf(21, "no entry for effect type '%s' on surface/flesh type '%s'\n", pszTypeName, v5);
+            ++iBadCount;
+            fx[i] = 0;
+        }
+    }
+    return iBadCount;
+}
+
 int __cdecl CG_RegisterImpactEffects_NonFlesh(
                 const char **szEffectFile,
                 const char *pszTypeName,
@@ -69,6 +147,44 @@ int __cdecl CG_RegisterImpactEffects_NonFlesh(
                      fx,
                      Com_SurfaceTypeToName,
                      0);
+}
+
+int __cdecl CG_RegisterImpactEffects_Generic_4_char_const_____cdecl_int__(
+    const char **szEffectFile,
+    const char *pszTypeName,
+    const FxEffectDef **fx,
+    const char *(__cdecl *typeToNameFunc)(int),
+    const char *defaultEffectName)
+{
+    const char *v5; // eax
+    const char *effectName; // [esp+0h] [ebp-Ch]
+    int iBadCount; // [esp+4h] [ebp-8h]
+    int i; // [esp+8h] [ebp-4h]
+
+    iBadCount = 0;
+    for (i = 0; i < 4; ++i)
+    {
+        effectName = szEffectFile[i];
+        if (!effectName)
+            effectName = defaultEffectName;
+        if (effectName)
+        {
+            if (!*effectName && defaultEffectName)
+                effectName = defaultEffectName;
+            if (*effectName)
+                fx[i] = FX_Register((char*)effectName);
+            else
+                fx[i] = 0;
+        }
+        else
+        {
+            v5 = typeToNameFunc(i);
+            Com_Printf(21, "no entry for effect type '%s' on surface/flesh type '%s'\n", pszTypeName, v5);
+            ++iBadCount;
+            fx[i] = 0;
+        }
+    }
+    return iBadCount;
 }
 
 int __cdecl CG_RegisterImpactEffects_Flesh(
@@ -113,7 +229,7 @@ void __cdecl CG_RegisterImpactEffectsForDir(char *dir, EffectFile *effectFile, c
     int f; // [esp+4028h] [ebp-8h] BYREF
     unsigned int i; // [esp+402Ch] [ebp-4h]
 
-    num = FS_GetFileList(dir, "csv", FS_LIST_PURE_ONLY, listbuf, 0x10000);
+    num = FS_GetFileList(dir, (char*)"csv", FS_LIST_PURE_ONLY, listbuf, 0x10000);
     if ( num )
     {
         if ( num > 0x1000 )
@@ -258,6 +374,6 @@ int __cdecl compare_impact_files(const char **pe0, const char **pe1)
 
 FxImpactTable *__cdecl CG_RegisterImpactEffects_FastFile()
 {
-    return DB_FindXAssetHeader(ASSET_TYPE_IMPACT_FX, "", 1, -1).impactFx;
+    return DB_FindXAssetHeader(ASSET_TYPE_IMPACT_FX, (char*)"", 1, -1).impactFx;
 }
 

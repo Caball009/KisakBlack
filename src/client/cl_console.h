@@ -431,7 +431,7 @@ void __cdecl Con_Bottom();
 void __cdecl Con_Close(int localClientNum);
 bool __cdecl Con_IsActive(int localClientNum);
 void __cdecl CL_PlayTextFXPulseSounds(
-                char localClientNum,
+                int localClientNum,
                 int currentTime,
                 int strLength,
                 int fxBirthTime,

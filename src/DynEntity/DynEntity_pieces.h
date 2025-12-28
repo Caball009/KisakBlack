@@ -47,3 +47,7 @@ void __cdecl DynEntPieces_SpawnPieces(
                 const float (*axis)[3],
                 const float *hitPos,
                 const float *hitDir);
+
+extern const dvar_s *dynEntPieces_velocity;
+extern const dvar_s *dynEntPieces_angularVelocity;
+extern const dvar_s *dynEntPieces_impactForce;

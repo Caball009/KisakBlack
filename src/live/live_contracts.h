@@ -1,4 +1,5 @@
 #pragma once
+#include "live_storage.h"
 
 void __cdecl LiveContracts_ParseContracts(char *buffer);
 char *__cdecl LiveContracts_GetTokenString(const char *token);

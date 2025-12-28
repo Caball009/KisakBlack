@@ -1,5 +1,7 @@
 #include "physics_system_internal.h"
 
+physics_system *g_physics_system;
+
 void __thiscall phys_transient_allocator::~phys_transient_allocator(phys_transient_allocator *this)
 {
     if ( this->m_first_block )

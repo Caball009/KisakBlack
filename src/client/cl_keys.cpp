@@ -4,6 +4,7 @@
 #include <stringed/stringed_hooks.h>
 #include "cl_console.h"
 #include <win32/win_main.h>
+#include <client_mp/cl_scrn_mp.h>
 
 PlayerKeyState playerKeys[1];
 
@@ -559,19 +560,20 @@ void CompleteCommand()
 
     v2 = g_consoleField.buffer[0] == 47 || g_consoleField.buffer[0] == 92;
     offset = v2;
-    if ( !strnicmp(&g_consoleField.buffer[v2], "pb_", 3u) )
-    {
-        strncpy((unsigned __int8 *)pbbuf, (unsigned __int8 *)&g_consoleField.buffer[offset], 0xFFu);
-        pbbuf[255] = 0;
-        if ( !strnicmp(pbbuf, "pb_sv_", 6u) )
-            PbServerCompleteCommand(pbbuf, 255);
-        else
-            PbClientCompleteCommand(pbbuf, 255);
-        Com_sprintf(g_consoleField.buffer, 0x100u, "\\%s", pbbuf);
-        g_consoleField.cursor = strlen(g_consoleField.buffer);
-        Field_AdjustScroll(&scrPlaceFull, &g_consoleField);
-    }
-    else
+    // LWSS: remove punkbuster crap
+    //if ( !strnicmp(&g_consoleField.buffer[v2], "pb_", 3u) )
+    //{
+    //    strncpy((unsigned __int8 *)pbbuf, (unsigned __int8 *)&g_consoleField.buffer[offset], 0xFFu);
+    //    pbbuf[255] = 0;
+    //    if ( !strnicmp(pbbuf, "pb_sv_", 6u) )
+    //        PbServerCompleteCommand(pbbuf, 255);
+    //    else
+    //        PbClientCompleteCommand(pbbuf, 255);
+    //    Com_sprintf(g_consoleField.buffer, 0x100u, "\\%s", pbbuf);
+    //    g_consoleField.cursor = strlen(g_consoleField.buffer);
+    //    Field_AdjustScroll(&scrPlaceFull, &g_consoleField);
+    //}
+    //else
     {
         s_completionString = Con_TokenizeInput();
         s_matchCount = 0;
@@ -1003,7 +1005,7 @@ LABEL_22:
     }
 }
 
-void __cdecl Key_SetBinding(int localClientNum, int keynum, char *binding, int bindNum)
+void __cdecl Key_SetBinding(int localClientNum, int keynum, const char *binding, int bindNum)
 {
     if ( localClientNum
         && !Assert_MyHandler(
@@ -1036,7 +1038,7 @@ void __cdecl Key_SetBinding(int localClientNum, int keynum, char *binding, int b
     }
 }
 
-void __cdecl Key_SetBindings(int localClientNum, int *twokeys, char *binding, int bindNum)
+void __cdecl Key_SetBindings(int localClientNum, int *twokeys, const char *binding, int bindNum)
 {
     if ( localClientNum
         && !Assert_MyHandler(

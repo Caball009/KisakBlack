@@ -15,7 +15,7 @@ struct StringTable // sizeof=0x14
     __int16 *cellIndex;
 };
 
-struct XAssetHeader;
+union XAssetHeader;
 
 int __cdecl StringTable_LookupRowNumForValue(const StringTable *table, int comparisonColumn, const char *value);
 int __cdecl StringTable_FirstHashIndex(const StringTable *table, int hash);

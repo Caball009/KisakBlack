@@ -1,5 +1,39 @@
 #pragma once
 
+#include <universal/dvar.h>
+#include <bgame/bg_local.h>
+#include <game/g_hudelem.h>
+
+struct cg_hudelem_t // sizeof=0x23C
+{                                       // XREF: DrawSingleHudElem2d/r
+                                        // DrawOffscreenViewableWaypoint/r
+    float x;                            // XREF: DrawSingleHudElem2d+1C7/r
+                                        // DrawSingleHudElem2d+1D7/w
+    float y;
+    float rotation;
+    float width;
+    float height;
+    char hudElemLabel[256];             // XREF: DrawSingleHudElem2d+192/r
+                                        // DrawSingleHudElem2d+1A8/o
+    float labelWidth;                   // XREF: DrawSingleHudElem2d+1CF/r
+    char hudElemText[256];              // XREF: DrawSingleHudElem2d:$LN8_10/r
+                                        // DrawSingleHudElem2d+232/o ...
+    float textWidth;
+    Font_s *font;
+    float fontScale;
+    float fontHeight;
+    float color[4];                     // XREF: DrawSingleHudElem2d:loc_4BAB0E/o
+    int timeNow;                        // XREF: DrawSingleHudElem2d+117/w
+};
+
+struct ScopedScrPlaceViewStack // sizeof=0x4
+{                                       // XREF: ?Menu_Paint@@YA_NHPAUUiContext@@PAUScreenPlacementStack@@PAUmenuDef_t@@H@Z/r
+    ScreenPlacementStack *mStack;
+
+    ScopedScrPlaceViewStack(ScreenPlacementStack *stack, const ScreenPlacement *newPlacement);
+    ~ScopedScrPlaceViewStack();
+};
+
 void __cdecl CG_HudElemRegisterDvars();
 void __cdecl CG_TranslateHudElemMessage(
                 int localClientNum,
@@ -44,11 +78,6 @@ void __cdecl CG_Draw2dHudElemList(
                 bool playerAlive,
                 bool inKillCam);
 void __cdecl DrawSingleHudElem2d(int localClientNum, const hudelem_s *elem);
-ScopedScrPlaceViewStack *__thiscall ScopedScrPlaceViewStack::ScopedScrPlaceViewStack(
-                ScopedScrPlaceViewStack *this,
-                ScreenPlacementStack *stack,
-                const ScreenPlacement *newPlacement);
-void __thiscall ScopedScrPlaceViewStack::~ScopedScrPlaceViewStack(ScopedScrPlaceViewStack *this);
 void __cdecl GetHudElemInfo(int localClientNum, const hudelem_s *elem, cg_hudelem_t *cghe, char *hudElemString);
 void __cdecl SafeTranslateHudElemString(int localClientNum, int index, char *hudElemString);
 double __cdecl HudElemStringWidth(const char *string, const hudelem_s *elem, const cg_hudelem_t *cghe);
@@ -96,13 +125,40 @@ double __cdecl OffsetHudElemY(const hudelem_s *elem, const cg_hudelem_t *cghe, f
 void __cdecl DrawHudElemClock(int localClientNum, const hudelem_s *elem, const cg_hudelem_t *cghe);
 void __cdecl DrawHudElemMaterial(int localClientNum, const hudelem_s *elem, cg_hudelem_t *cghe);
 void __cdecl UpdateHudElemWarGameData(int localClientNum, const hudelem_s *elem);
-// local variable allocation has failed, the output may be wrong!
-void    DrawOffscreenViewableWaypoint(int a1@<ebp>, int localClientNum, const hudelem_s *elem);
+void    DrawOffscreenViewableWaypoint(int localClientNum, const hudelem_s *elem);
 double __cdecl GetScaleForDistance(int localClientNum, const float *worldPos);
 void __cdecl WaypointTargetFade(int localClientNum, const hudelem_s *elem, const float *screenPos, float *color);
 double __cdecl WaypointFadeGetTimeFrac(const cg_s *cgameGlob, int currentTime);
 void __cdecl CG_AddDrawSurfsFor3dHudElems(int localClientNum);
-void    AddDrawSurfForHudElemWaypoint(hudelem_color_t a1@<ebp>, int localClientNum, const hudelem_s *elem);
+void    AddDrawSurfForHudElemWaypoint(int localClientNum, const hudelem_s *elem);
 double __cdecl HudElemWaypointHeight(int localClientNum, const hudelem_s *elem);
 void __cdecl RB_DrawWaypoints(int localClientNum);
 void __cdecl RB_AddWaypoint(int localClientNum, const hudelem_s *elem);
+
+extern const dvar_t *waypointDebugDraw;
+extern const dvar_t *waypointIconWidth;
+extern const dvar_t *waypointIconHeight;
+extern const dvar_t *waypointOffscreenPointerWidth;
+extern const dvar_t *waypointOffscreenPointerHeight;
+extern const dvar_t *waypointOffscreenPointerDistance;
+extern const dvar_t *waypointOffscreenDistanceThresholdAlpha;
+extern const dvar_t *waypointOffscreenPadLeft;
+extern const dvar_t *waypointOffscreenPadRight;
+extern const dvar_t *waypointOffscreenPadTop;
+extern const dvar_t *waypointOffscreenPadBottom;
+extern const dvar_t *waypointOffscreenRoundedCorners;
+extern const dvar_t *waypointOffscreenCornerRadius;
+extern const dvar_t *waypointOffscreenScaleLength;
+extern const dvar_t *waypointOffscreenScaleSmallest;
+extern const dvar_t *waypointDistScaleRangeMin;
+extern const dvar_t *waypointDistScaleRangeMax;
+extern const dvar_t *waypointDistScaleSmallest;
+extern const dvar_t *waypointDistFade;
+extern const dvar_t *waypointTimeFade;
+extern const dvar_t *waypointSplitscreenScale;
+extern const dvar_t *waypointTweakY;
+extern const dvar_t *hudElemPausedBrightness;
+extern const dvar_t *waypointPlayerOffsetProne;
+extern const dvar_t *waypointPlayerOffsetCrouch;
+extern const dvar_t *waypointPlayerOffsetStand;
+extern const dvar_t *waypointPlayerOffsetRevive;

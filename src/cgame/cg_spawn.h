@@ -1,5 +1,18 @@
 #pragma once
 
+enum fieldtype_t : __int32;
+
+struct cent_field_t // sizeof=0xC
+{                                       // XREF: .rdata:client_spawn_fields/r
+    const char *name;
+    int ofs;
+    fieldtype_t type;
+};
+
+struct centity_s;
+struct fake_centity_s;
+struct SpawnVar;
+
 int __cdecl CG_SpawnFloat(const char *key, const char *defaultString, float *out);
 const char *__cdecl CG_GetEntityTypeName(centity_s *cent);
 void __cdecl CG_PrintEntities(unsigned int localClientNum);

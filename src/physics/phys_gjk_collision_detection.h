@@ -282,6 +282,27 @@ struct create_gjk_geom_collision_visitor : gjk_collision_visitor // sizeof=0x8
                                         // XDoll_CreatePhysObj/r ...
     gjk_geom_list_t *gjk_geom_list;     // XREF: DynEntCl_CreatePhysObj(DynEntityDef const *,DynEntityClient *,GfxPlacement const *)+E8/w
     // FX_SpawnModelPhysics+5D6/w ...
+
+    void *allocate(
+        int size,
+        int alignment,
+        bool no_error)
+    {
+        if (!Assert_MyHandler("c:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_colgeom.h", 1140, 0, "%s", "0"))
+            __debugbreak();
+        return 0;
+    }
+
+    bool query_create_prolog(const void *geom)
+    {
+        return 1;
+    }
+
+    void query_create_epilog_1(gjk_base_t *gjk_geom)
+    {
+        //gjk_geom_list_t::add_geom(this->gjk_geom_list, gjk_geom);
+        this->gjk_geom_list->add_geom(gjk_geom);
+    }
 };
 
 struct phys_auto_activate_callback // sizeof=0x4

@@ -1,4 +1,19 @@
 #pragma once
+#include <bgame/bg_local.h>
+
+struct transPlayerState_t // sizeof=0x30
+{                                       // XREF: cg_s/r
+    int otherFlags;
+    int damageEvent;
+    __int16 predictableEventSequence;
+    // padding byte
+    // padding byte
+    int predictableEvents[4];
+    __int16 unpredictableEventSequence;
+    // padding byte
+    // padding byte
+    int unpredictableEvents[4];
+};
 
 void __cdecl CG_Respawn(int localClientNum, int spectate);
 void __cdecl CG_ResetSpectatorViewAngles(int localClientNum);

@@ -22,3 +22,11 @@ void __cdecl CM_Hunk_ClearTempMemoryHigh();
 
 
 extern clipMap_t cm;
+
+extern int num_occlusion_overrides;
+extern float occlusion_overrides[32][2][3];
+
+extern int num_undertow_volumes;
+extern int undertow_volumes[32];
+extern float undertow_origins[32][3];
+extern float undertow_forces[32][4];

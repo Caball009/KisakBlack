@@ -1,4 +1,28 @@
 #include "cg_spawn.h"
+#include <game/g_load_utils.h>
+#include "cg_scr_main.h"
+#include <cgame_mp/cg_local_mp.h>
+#include <cgame_mp/cg_main_mp.h>
+#include <xanim/xmodel.h>
+#include <cgame_mp/cg_ents_mp.h>
+#include <gfx_d3d/r_shader_constant_set.h>
+#include <cgame_mp/cg_snapshot_mp.h>
+#include <cgame_mp/cg_animtree_mp.h>
+#include <EffectsCore/fx_system.h>
+#include <clientscript/cscr_stringlist.h>
+#include <clientscript/cscr_vm.h>
+#include <qcommon/cm_load.h>
+#include <client/splitscreen.h>
+
+const cent_field_t client_spawn_fields[5] =
+{
+  { "origin", 48, F_VECTOR },
+  { "angles", 60, F_VECTOR },
+  { "model", 682, F_MODEL },
+  { "targetname", 694, F_STRING },
+  { NULL, 0, F_INT }
+};
+
 
 int __cdecl CG_SpawnFloat(const char *key, const char *defaultString, float *out)
 {
@@ -641,7 +665,7 @@ LABEL_55:
                         v9 = 0;
                         v10 = 0;
                         sscanf(out[0], "%f %f %f", &v8, &v9, &v10);
-                        v4 = undertow_origins[num_undertow_volumes];
+                        v4 = (unsigned int*)undertow_origins[num_undertow_volumes];
                         *v4 = v8;
                         v4[1] = v9;
                         v4[2] = v10;
@@ -659,7 +683,7 @@ LABEL_55:
                         *v2 = (float)(1.0 / *(float *)&fmag) * force[0];
                         v2[1] = v3 * force[1];
                         v2[2] = v3 * force[2];
-                        dword_3F3E00C[4 * num_undertow_volumes++] = fmag;
+                        undertow_forces[num_undertow_volumes++][3] = fmag;
                     }
                 }
             }

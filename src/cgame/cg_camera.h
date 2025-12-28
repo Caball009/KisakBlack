@@ -33,7 +33,6 @@ bool __cdecl ShouldDoCameraTransition(cg_s *cgameGlob, CameraMode prevMode, Came
 CameraMode __cdecl CG_UpdateCameraMode(int localClientNum);
 int __cdecl CG_UpdateExtraCamMode(int localClientNum);
 void __cdecl CG_ApplyViewAnimation(int localClientNum);
-ViewModelInfo *__cdecl CG_GetLocalClientViewModelInfo(int localClientNum);
 double __cdecl CG_GetViewFov(int localClientNum);
 bool __cdecl CG_ShouldDefaultViewFov(int localClientNum);
 void __cdecl CG_CalcFov(int localClientNum, float fov_x);
@@ -88,8 +87,16 @@ void __cdecl CG_CalcFov_ExtraCam(int localClientNum);
 void __cdecl CG_ExtraCam_GetViewOrigin(int localClientNum, float *out);
 bool __cdecl CG_ExtraCamIsActive(int localClientNum);
 
-ExtraCamClientStateRestore *__thiscall ExtraCamClientStateRestore::ExtraCamClientStateRestore(
-                ExtraCamClientStateRestore *this,
-                int localClientNum);
-void __thiscall ExtraCamClientStateRestore::~ExtraCamClientStateRestore(ExtraCamClientStateRestore *this);
 void __cdecl RotatePoint(float *point, const float (*mat)[3]);
+
+struct ExtraCamClientStateRestore // sizeof=0x3A0
+{                                       // XREF: ?CG_DrawExtraCamFrame@@YAHHHW4DemoType@@W4CubemapShot@@HH@Z/r
+    unsigned __int8 m_buffer[864];
+    float m_vieworg[3];
+    float m_refdefViewAngles[3];
+    float m_viewaxis[3][3];
+    int m_localClientNum;
+
+    ExtraCamClientStateRestore(int localClientNum);
+    ~ExtraCamClientStateRestore();
+};

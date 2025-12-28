@@ -1,4 +1,13 @@
 #include "DynEntity_server.h"
+#include "DynEntity_load_obj.h"
+#include "DynEntity_coll.h"
+#include "DynEntity_client.h"
+#include <qcommon/cm_load.h>
+
+#include <algorithm>
+#include <ragdoll/ragdoll_update.h>
+
+const dvar_t *dynEnt_damageRadiusScale;
 
 void __cdecl DynEntSv_RegisterDvars()
 {
@@ -394,7 +403,7 @@ void __cdecl DynEntSv_PointTrace_r(
     {
         __debugbreak();
     }
-    collType = drawType + 2;
+    collType = (DynEntityCollType)(drawType + 2);
     contentmask = clip->contentmask;
     p[0] = *p1;
     p[1] = p1[1];
@@ -542,10 +551,10 @@ void __cdecl DynEntSv_ClipMoveTrace(const moveclip_t *clip, trace_t *results)
     {
         __debugbreak();
     }
-    if ( results->fraction != 0.0
+    if (results->fraction != 0.0
         && (DynEnt_GetEntityProps(DYNENT_TYPE_CLUTTER)->clipMove
-         || (char *)clip->contentmask == &cls.recentServers[7543].countrycode[1]
-         || clip->contentmask == 529) )
+            || clip->contentmask == 0x280E833
+            || clip->contentmask == 0x211))
     {
         start[0] = *(_QWORD *)clip->extents.start.vec.v;
         LODWORD(start[1]) = clip->extents.start.vec.u[2];
@@ -654,7 +663,8 @@ void __cdecl DynEntSv_ClipMoveTrace_r(
                 v8 = p2[sector->tree.axis] - sector->tree.dist;
             else
                 v8 = p[sector->tree.axis] - sector->tree.dist;
-            if ( COERCE_FLOAT(LODWORD(offset) ^ _mask__NegFloat_) < v8 )
+            //if ( COERCE_FLOAT(LODWORD(offset) ^ _mask__NegFloat_) < v8 )
+            if ( -offset < v8 )
             {
                 if ( p[3] >= results->fraction )
                     return;
@@ -799,7 +809,7 @@ void __cdecl DynEntSv_AreaEntities_r(
     {
         __debugbreak();
     }
-    collType = drawType + 2;
+    collType = (DynEntityCollType)(drawType + 2);
     while ( sectorIndex )
     {
         sector = DynEnt_GetCollSector(collType, sectorIndex);
@@ -953,7 +963,8 @@ void __cdecl DynEntSv_RadiusDamage(
     if ( v20 != 0.0 )
     {
         v15 = v20 * v20;
-        LODWORD(v6) = COERCE_UNSIGNED_INT(1.4142135 * v20) ^ _mask__NegFloat_;
+        //LODWORD(v6) = COERCE_UNSIGNED_INT(1.4142135 * v20) ^ _mask__NegFloat_;
+        v6 = -(1.4142135 * v20);
         radiusMins[0] = *origin + v6;
         radiusMins[1] = origin[1] + v6;
         radiusMins[2] = origin[2] + v6;
@@ -983,60 +994,66 @@ void __cdecl DynEntSv_RadiusDamage(
     }
 }
 
+bool __cdecl DynEntCl_CompareDynEntsForExplosion(const DynEntSortStruct *ent1, const DynEntSortStruct *ent2)
+{
+    return ent2->distSq > ent1->distSq;
+}
+
 unsigned int __cdecl DynEntSv_GetClosestEntities(
-                DynEntityDrawType drawType,
-                float *radiusMins,
-                float *radiusMaxs,
-                float *origin,
-                unsigned __int16 *hitEnts)
+    DynEntityDrawType drawType,
+    float *radiusMins,
+    float *radiusMaxs,
+    float *origin,
+    unsigned __int16 *hitEnts)
 {
     double RadiusDistSqr; // st7
     unsigned int unsignedInt_low; // [esp+110h] [ebp-8014h]
-    MaterialMemory v8[4096]; // [esp+114h] [ebp-8010h] BYREF
+    DynEntSortStruct v8[4096]; // [esp+114h] [ebp-8010h] BYREF
     DynEntityServer *ServerEntity; // [esp+8118h] [ebp-Ch]
     unsigned int i; // [esp+811Ch] [ebp-8h]
     DynEntityColl *dynEntColl; // [esp+8120h] [ebp-4h]
 
-    unsignedInt_low = DynEntSv_AreaEntities(drawType, radiusMins, radiusMaxs, 8396817, 0x1000u, hitEnts);
-    if ( unsignedInt_low > dynEnt_explodeMaxEnts->current.integer )
+    unsignedInt_low = DynEntSv_AreaEntities(drawType, radiusMins, radiusMaxs, 0x802011, 0x1000u, hitEnts);
+    if (unsignedInt_low > dynEnt_explodeMaxEnts->current.integer)
     {
-        for ( i = 0; i < unsignedInt_low; ++i )
+        for (i = 0; i < unsignedInt_low; ++i)
         {
-            LOWORD(v8[i].memory) = hitEnts[i];
+            v8[i].id = hitEnts[i];
             ServerEntity = DynEnt_GetServerEntity(hitEnts[i], drawType);
-            if ( (ServerEntity->flags & 1) == 0
+            if ((ServerEntity->flags & 1) == 0
                 && !Assert_MyHandler(
-                            "C:\\projects_pc\\cod\\codsrc\\src\\DynEntity\\DynEntity_server.cpp",
-                            619,
-                            0,
-                            "%s",
-                            "dynEntServer->flags & DYNENT_SV_ACTIVE") )
+                    "C:\\projects_pc\\cod\\codsrc\\src\\DynEntity\\DynEntity_server.cpp",
+                    619,
+                    0,
+                    "%s",
+                    "dynEntServer->flags & DYNENT_SV_ACTIVE"))
             {
                 __debugbreak();
             }
             dynEntColl = DynEnt_GetEntityColl((DynEntityCollType)(drawType + 2), hitEnts[i]);
             RadiusDistSqr = DynEnt_GetRadiusDistSqr(dynEntColl, origin);
-            *(float *)&v8[i].material = RadiusDistSqr;
+            v8[i].distSq = RadiusDistSqr;
         }
-        std::_Sort<RagdollSortStruct *,int,bool (__cdecl *)(RagdollSortStruct const &,RagdollSortStruct const &)>(
-            v8,
-            &v8[unsignedInt_low],
-            (int)(8 * unsignedInt_low) >> 3,
-            (bool (__cdecl *)(const MaterialMemory *, const MaterialMemory *))DynEntCl_CompareDynEntsForExplosion);
+        //std::_Sort<RagdollSortStruct *, int, bool(__cdecl *)(RagdollSortStruct const &, RagdollSortStruct const &)>(
+        //    (MaterialMemory *)v8,
+        //    (MaterialMemory *)&v8[unsignedInt_low],
+        //    (int)(8 * unsignedInt_low) >> 3,
+        //    (bool(__cdecl *)(const MaterialMemory *, const MaterialMemory *))DynEntCl_CompareDynEntsForExplosion);
+
+        std::sort(v8, &v8[unsignedInt_low], DynEntCl_CompareDynEntsForExplosion);
         unsignedInt_low = LOWORD(dynEnt_explodeMaxEnts->current.unsignedInt);
-        if ( unsignedInt_low != dynEnt_explodeMaxEnts->current.integer
+        if (unsignedInt_low != dynEnt_explodeMaxEnts->current.integer
             && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\DynEntity\\DynEntity_server.cpp",
-                        628,
-                        0,
-                        "%s",
-                        "hitCount == (uint)dynEnt_explodeMaxEnts->current.integer") )
+                "C:\\projects_pc\\cod\\codsrc\\src\\DynEntity\\DynEntity_server.cpp",
+                628,
+                0,
+                "%s",
+                "hitCount == (uint)dynEnt_explodeMaxEnts->current.integer"))
         {
             __debugbreak();
         }
-        for ( i = 0; i < unsignedInt_low; ++i )
-            hitEnts[i] = v8[i].memory;
+        for (i = 0; i < unsignedInt_low; ++i)
+            hitEnts[i] = v8[i].id;
     }
     return unsignedInt_low;
 }
-

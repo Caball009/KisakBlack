@@ -1,5 +1,9 @@
 #pragma once
 
+struct ScreenPlacement;
+struct snd_overlay_info;
+struct meminfo_t;
+
 double __cdecl CG_DrawAnimTagInfo(const ScreenPlacement *scrPlace, float posY);
 double __cdecl CG_CornerDebugPrint(
                 const ScreenPlacement *sP,

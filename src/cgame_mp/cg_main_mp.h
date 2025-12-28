@@ -109,6 +109,11 @@ unsigned __int8 *__cdecl Hunk_AllocXAnimClient(unsigned int size);
 
 extern struct cgMedia_t cgMedia;
 
+extern bool cg_fakeEntitiesInuseArray[512];
+extern int cg_fakeEntitiesInuseCount[1];
+extern int cg_fakeEntitiesInuseCountFromMap;
+extern int cg_fakeEntitiesInuseCountFromLoadScript;
+
 extern const dvar_s *cg_loadScripts;
 extern const dvar_s *cg_usingClientScripts;
 extern const dvar_s *cg_drawGun;

@@ -1250,6 +1250,7 @@ extern clientConnection_t *clientConnections;
 extern UiContext cgDC[1];
 
 extern bool cl_serverLoadingMap;
+extern bool g_waitingForServer;
 
 
 extern const dvar_t *cl_noprint;

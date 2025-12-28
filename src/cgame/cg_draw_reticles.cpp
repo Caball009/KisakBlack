@@ -1,4 +1,20 @@
 #include "cg_draw_reticles.h"
+#include <universal/com_math_anglevectors.h>
+#include <bgame/bg_weapons_def.h>
+#include <cgame_mp/cg_main_mp.h>
+#include <client_mp/cl_cgame_mp.h>
+#include <cgame_mp/cg_view_mp.h>
+#include <cgame_mp/cg_newDraw_mp.h>
+#include <bgame/bg_misc.h>
+#include <cgame_mp/cg_draw_mp.h>
+#include <gfx_d3d/r_init.h>
+#include "cg_world.h"
+#include <gfx_d3d/r_dvars.h>
+#include "cg_compass.h"
+#include <cgame_mp/cg_vehicles_mp.h>
+#include <demo/demo_playback.h>
+#include <ui_mp/ui_main_mp.h>
+#include "cg_drawtools.h"
 
 void __cdecl CG_CalcCrosshairPosition(const cg_s *cgameGlob, float *x, float *y)
 {
@@ -114,7 +130,7 @@ void __cdecl CG_DrawNightVisionOverlay(int localClientNum)
 
 bool __cdecl CG_UsingLowResViewPort(int localClientNum)
 {
-    return *(float *)&dword_2D9E6C4[30 * localClientNum] <= 480.0;
+    return scrPlaceView[localClientNum].realViewportSize[1] <= 480.0;
 }
 
 bool __cdecl CG_ColorCrosshairs(int time, int startMsec, int lastMsec, int fadeInMsec, int fadeOutMsec)
@@ -196,8 +212,8 @@ void __cdecl CG_DrawCrosshair(int localClientNum)
     }
     if ( !ShouldDrawCrosshair(cgameGlob, ps) )
     {
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_46;
     }
     drawHud = CG_ShouldDrawHud(localClientNum);
@@ -209,31 +225,31 @@ void __cdecl CG_DrawCrosshair(int localClientNum)
         if ( (ps->eFlags & 0x4000) != 0 )
         {
             CG_DrawVehicleCrossHair(localClientNum);
-            if ( GetCurrentThreadId() != g_DXDeviceThread )
-                return;
+            //if ( GetCurrentThreadId() != g_DXDeviceThread )
+            //    return;
         }
         else if ( show_reticle_during_swimming->current.enabled || ps->waterlevel < 3 )
         {
             weapIndex = BG_GetViewmodelWeaponIndex(&cgameGlob->predictedPlayerState);
             if ( !weapIndex )
             {
-                if ( g_DXDeviceThread != GetCurrentThreadId() )
-                    return;
+                //if ( g_DXDeviceThread != GetCurrentThreadId() )
+                //    return;
                 goto LABEL_46;
             }
             weapDef = BG_GetWeaponDef(weapIndex);
             reticleAlpha = CG_DrawWeapReticle(localClientNum);
             if ( CG_Flashbanged(localClientNum) )
             {
-                if ( GetCurrentThreadId() != g_DXDeviceThread )
-                    return;
+                //if ( GetCurrentThreadId() != g_DXDeviceThread )
+                //    return;
             }
             else
             {
                 if ( CG_Flared(localClientNum) )
                 {
-                    if ( g_DXDeviceThread != GetCurrentThreadId() )
-                        return;
+                    //if ( g_DXDeviceThread != GetCurrentThreadId() )
+                    //    return;
                     goto LABEL_46;
                 }
                 if ( drawHud )
@@ -245,8 +261,8 @@ void __cdecl CG_DrawCrosshair(int localClientNum)
                         forceCrosshairsOn = weapDef->bKeepCrosshairWhenADS;
                         if ( posLerp == 1.0 && cg_drawGun->current.enabled && !forceCrosshairsOn )
                         {
-                            if ( g_DXDeviceThread != GetCurrentThreadId() )
-                                return;
+                            //if ( g_DXDeviceThread != GetCurrentThreadId() )
+                            //    return;
                         }
                         else
                         {
@@ -299,35 +315,35 @@ void __cdecl CG_DrawCrosshair(int localClientNum)
                                             //D3DPERF_EndEvent();
                                         return;
                                     }
-                                    if ( GetCurrentThreadId() != g_DXDeviceThread )
-                                        return;
+                                    //if ( GetCurrentThreadId() != g_DXDeviceThread )
+                                    //    return;
                                 }
-                                else if ( g_DXDeviceThread != GetCurrentThreadId() )
-                                {
-                                    return;
-                                }
+                                //else if ( g_DXDeviceThread != GetCurrentThreadId() )
+                                //{
+                                //    return;
+                                //}
                                 //D3DPERF_EndEvent();
                                 return;
                             }
-                            if ( g_DXDeviceThread != GetCurrentThreadId() )
-                                return;
+                            //if ( g_DXDeviceThread != GetCurrentThreadId() )
+                            //    return;
                         }
                     }
-                    else if ( GetCurrentThreadId() != g_DXDeviceThread )
-                    {
-                        return;
-                    }
+                    //else if ( GetCurrentThreadId() != g_DXDeviceThread )
+                    //{
+                    //    return;
+                    //}
                     //D3DPERF_EndEvent();
                     return;
                 }
-                if ( GetCurrentThreadId() != g_DXDeviceThread )
-                    return;
+                //if ( GetCurrentThreadId() != g_DXDeviceThread )
+                //    return;
             }
         }
-        else if ( GetCurrentThreadId() != g_DXDeviceThread )
-        {
-            return;
-        }
+        //else if ( GetCurrentThreadId() != g_DXDeviceThread )
+        //{
+        //    return;
+        //}
 LABEL_46:
         //D3DPERF_EndEvent();
         return;
@@ -336,20 +352,20 @@ LABEL_46:
     if ( weapIndex && BG_GetWeaponVariantDef(weapIndex)->overlayMaterial )
     {
         CG_DrawAdsOverlay(localClientNum, weapIndex, colorWhite, vec2_origin);
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_46;
     }
     if ( CG_Flashbanged(localClientNum) )
     {
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_46;
     }
     if ( CG_Flared(localClientNum) )
     {
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_46;
     }
     if ( drawHud && ps->viewlocked_entNum != 1023 )
@@ -662,7 +678,7 @@ double __cdecl CG_DrawWeapReticle(int localClientNum)
     }
     if ( R_StereoActivated() )
         Dvar_SetFloat(
-            r_convergence,
+            (dvar_s*)r_convergence,
             (float)((float)(1.0 - cgameGlob->predictedPlayerState.fWeaponPosFrac) * 6.06253)
         + (float)(1.9224 * cgameGlob->predictedPlayerState.fWeaponPosFrac));
     if ( (crossHairAlpha < 0.0 || crossHairAlpha > 1.0)
@@ -821,7 +837,7 @@ void __cdecl CG_DrawTurretCrossHair(int localClientNum)
         __debugbreak();
     }
     if ( cg_drawTurretCrosshair->current.enabled
-        && (CG_IsShowingZombieMap(v1) || !cg_paused->current.integer || !cg_drawpaused->current.enabled) )
+        && (CG_IsShowingZombieMap() || !cg_paused->current.integer || !cg_drawpaused->current.enabled) )
     {
         cgameGlob = CG_GetLocalClientGlobals(localClientNum);
         if ( cgameGlob->predictedPlayerState.viewlocked_entNum == 1023
@@ -978,6 +994,9 @@ void __cdecl CG_DrawVehicleCrossHair(int localClientNum)
     }
 }
 
+float s_arcEpsilon =
+0.0099999998;
+
 double __cdecl CG_GetVehicleCrossHairAlpha(int localClientNum)
 {
     const vehicle_info_t *info; // [esp+10h] [ebp-30h]
@@ -998,7 +1017,7 @@ double __cdecl CG_GetVehicleCrossHairAlpha(int localClientNum)
     weapDef = BG_GetWeaponDef(weapon);
     vehicle = CG_GetEntity(localClientNum, cgameGlob->predictedPlayerEntity.nextState.otherEntityNum);
     cent = CG_GetEntity(localClientNum, cgameGlob->predictedPlayerState.viewlocked_entNum);
-    info = CG_GetVehicleInfo(cent->nextState.un2.vehicleState.vehicleInfoIndex);
+    info = CG_GetVehicleInfo(cent->nextState.vehicleState.vehicleInfoIndex);
     seatIndex = cgameGlob->predictedPlayerState.vehiclePos;
     gunnerIndex = -1;
     if ( seatIndex < 1 || seatIndex > 4 )
@@ -1018,10 +1037,12 @@ double __cdecl CG_GetVehicleCrossHairAlpha(int localClientNum)
             angleDiff = (float)vehicle->currentState.u.vehicle.gunPitch * 0.0054931641;
         }
         if ( (float)(angleDiff_4 + s_arcEpsilon) < weapDef->leftArc
-            && COERCE_FLOAT(LODWORD(weapDef->rightArc) ^ _mask__NegFloat_) < (float)(angleDiff_4 - s_arcEpsilon) )
+            //&& COERCE_FLOAT(LODWORD(weapDef->rightArc) ^ _mask__NegFloat_) < (float)(angleDiff_4 - s_arcEpsilon) )
+            -(weapDef->rightArc) < (float)(angleDiff_4 - s_arcEpsilon) )
         {
             if ( (float)(angleDiff + s_arcEpsilon) < weapDef->bottomArc
-                && COERCE_FLOAT(LODWORD(weapDef->topArc) ^ _mask__NegFloat_) < (float)(angleDiff - s_arcEpsilon) )
+                //&& COERCE_FLOAT(LODWORD(weapDef->topArc) ^ _mask__NegFloat_) < (float)(angleDiff - s_arcEpsilon) )
+                && -weapDef->topArc < (float)(angleDiff - s_arcEpsilon) )
             {
                 return 1.0;
             }
@@ -1223,11 +1244,12 @@ void __cdecl CG_TransitionToAds(
         __debugbreak();
     }
     *transScale = 1.0 - (float)(fa * 0.5);
-    *((float *)&v6 + 1) = weapDef->fAdsAimPitch * 0.017453292;
-    v5 = *((float *)&v6 + 1);
-    __libm_sse2_tan(v6);
-    *(float *)&v5 = v5;
-    *transShift = (float)((float)(fa * 240.0) / cgameGlob->refdef.tanHalfFovY) * *(float *)&v5;
+    //*((float *)&v6 + 1) = weapDef->fAdsAimPitch * 0.017453292;
+    //v5 = *((float *)&v6 + 1);
+    //__libm_sse2_tan(v6);
+    //*(float *)&v5 = v5;
+    //*transShift = (float)((float)(fa * 240.0) / cgameGlob->refdef.tanHalfFovY) * *(float *)&v5;
+    *transShift = (float)((float)(fa * 240.0) / cgameGlob->refdef.tanHalfFovY) * tan(weapDef->fAdsAimPitch * 0.017453292);
 }
 
 void __cdecl CG_DrawReticleCenter(
@@ -1423,11 +1445,11 @@ void __cdecl CG_CalcReticleSpread(
     BG_GetSpreadForWeapon(&cgameGlob->predictedPlayerState, weapDef, &f, &maxSpread);
     f = (float)((float)((float)(maxSpread - f) * (float)(cgameGlob->predictedPlayerState.aimSpreadScale / 255.0)) + f)
         * transScale;
-    *((float *)&v6 + 1) = f * 0.017453292;
-    v5 = (float)(f * 0.017453292);
-    __libm_sse2_tan(v6);
-    *(float *)&v5 = v5;
-    scale = (float)(240.0 * *(float *)&v5) / cgameGlob->refdef.tanHalfFovY;
+    //*((float *)&v6 + 1) = f * 0.017453292;
+    //v5 = (float)(f * 0.017453292);
+    //__libm_sse2_tan(v6);
+    //*(float *)&v5 = v5;
+    scale = (float)(240.0 * tan(f * 0.017453292)) / cgameGlob->refdef.tanHalfFovY;
     if ( (float)weapDef->iReticleMinOfs > scale )
         scale = (float)weapDef->iReticleMinOfs;
     *spread = scale - (float)(weapDef->fHipReticleSidePos * *drawSize);

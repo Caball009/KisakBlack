@@ -2,6 +2,8 @@
 
 #include <string.h>
 #include <qcommon/cm_load.h>
+#include "DynEntity_load_obj.h"
+#include "DynEntity_client.h"
 
 DynEntityCollWorld dynEntCollWorlds[4];
 
@@ -204,7 +206,7 @@ LABEL_35:
                 break;
             sector = &world->sectors[parentSectorIndexa];
         }
-        drawType = collType & 1;
+        drawType = (DynEntityDrawType)(collType & 1);
         if ( collType >= DYNENT_COLL_SERVER_FIRST )
         {
             ServerEntity = DynEnt_GetServerEntity(dynEntId, drawType);
@@ -276,7 +278,7 @@ void __cdecl DynEnt_LinkEntity(
         __debugbreak();
     }
     world = DynEnt_GetCollWorld(collType);
-    drawType = collType & 1;
+    drawType = (DynEntityDrawType)(collType & 1);
     dynEntDef = DynEnt_GetEntityDef(dynEntId, drawType);
     dynEntColl = DynEnt_GetEntityColl(collType, dynEntId);
     contents = DynEnt_GetContents(dynEntDef);

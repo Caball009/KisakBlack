@@ -33,18 +33,17 @@ enum hudelem_update_t : __int32
     HUDELEM_UPDATE_ARCHIVAL_AND_CURRENT = 0x3,
 };
 
-struct $0D0CB43DF22755AD856C77DD3F304010 // sizeof=0x4
-{                                       // XREF: hudelem_color_t/r
-    unsigned __int8 r;
-    unsigned __int8 g;
-    unsigned __int8 b;
-    unsigned __int8 a;
-};
-
 union hudelem_color_t // sizeof=0x4
 {                                       // XREF: DrawSingleHudElem2d+137/r
                                         // RB_AddWaypoint+3C/r ...
-    $0D0CB43DF22755AD856C77DD3F304010 __s0;
+    //$0D0CB43DF22755AD856C77DD3F304010 __s0;
+    struct //$0D0CB43DF22755AD856C77DD3F304010 // sizeof=0x4
+    {                                       // XREF: hudelem_color_t/r
+        unsigned __int8 r;
+        unsigned __int8 g;
+        unsigned __int8 b;
+        unsigned __int8 a;
+    };
     int rgba;
 };
 

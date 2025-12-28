@@ -3,6 +3,17 @@
 #include <xanim/xmodel.h>
 
 #include "DynEntity_gamestate.h"
+#include "DynEntity_server.h"
+#include "DynEntity_coll.h"
+#include <physics/phys_broad_phase.h>
+
+enum PhysWorld : __int32
+{                                       // XREF: ?DynEnt_DestroyPhysics@@YAXW4PhysWorld@@PBUDynEntityDef@@PAUDynEntityClient@@@Z/r
+    PHYS_WORLD_DYNENT  = 0x0,
+    PHYS_WORLD_FX      = 0x1,
+    PHYS_WORLD_RAGDOLL = 0x2,
+    PHYS_WORLD_COUNT   = 0x3,
+};
 
 enum DynEntityType : __int32
 {                                       // XREF: DynEntityDef/r
@@ -11,6 +22,24 @@ enum DynEntityType : __int32
     DYNENT_TYPE_CLUTTER = 0x1,
     DYNENT_TYPE_DESTRUCT = 0x2,
     DYNENT_TYPE_COUNT = 0x3,
+};
+
+struct DynEnt_BurnData // sizeof=0x8
+{
+    unsigned __int16 id;
+    // padding byte
+    // padding byte
+    unsigned int fx;
+};
+
+struct DynEnt_FadeData // sizeof=0x8
+{                                       // XREF: .data:DynEnt_FadeData * gDynEntFadeData/r
+    unsigned __int16 id;                // XREF: DynEntCl_RemoveFromFadeList+24/r
+                                        // DynEntCl_RemoveFromFadeList+48/r ...
+    // padding byte
+    // padding byte
+    int startTime;                      // XREF: DynEntCl_RemoveFromFadeList+4F/r
+                                        // DynEntCl_RemoveFromFadeList+60/w ...
 };
 
 struct DynEntityPose // sizeof=0x20
@@ -55,7 +84,6 @@ XModel *__cdecl DynEntCl_GetCurrentXModel(const DynEntityDef *dynEntDef, const D
 bool __cdecl DynEntCl_IsHealthGone(const DynEntityDef *dynEntDef, const DynEntityClient *dynEntClient);
 void __cdecl DynEntCl_LinkModel(unsigned __int16 dynEntId);
 const DynEntityDef *__cdecl DynEnt_GetEntityDef(unsigned __int16 dynEntId, DynEntityDrawType drawType);
-DynEntityClient *__cdecl DynEnt_GetClientEntity(unsigned __int16 dynEntId, DynEntityDrawType drawType);
 void __cdecl DynEntCl_LinkBrush(unsigned __int16 dynEntId);
 double __cdecl DynEntCl_UpdateBModelWorldBounds(const DynEntityDef *dynEntDef, const GfxPlacement *pose);
 void __cdecl DynEntCl_UnlinkEntity(unsigned __int16 dynEntId, DynEntityCollType drawType);
@@ -73,26 +101,15 @@ void __cdecl DynEnt_UpdateLightConstraint(
                 const DynEntityPose *dynEntPose);
 void __cdecl DynEnt_UpdateConstraints(int localClientNum, DynEntityClient *dynEntClient, const DynEntityDef *dynEntDef);
 int __cdecl DynEnt_GetDamage(DynEntityClient *dynEntClient, const DynEntityDef *dynEntDef);
-// local variable allocation has failed, the output may be wrong!
-void    DynEnt_SetupConstraints(PhysConstraint *a1@<ebp>, const DynEntityDef *dynEntDef);
+void    DynEnt_SetupConstraints(const DynEntityDef *dynEntDef);
 int __cdecl DynEnt_GetSurfaceType(const DynEntityDef *dynEntDef);
 void __cdecl DynEnt_CalcPhysPreset(const DynEntityDef *dynEntDef);
 int __cdecl DynEntCl_CreatePhysObj(
                 const DynEntityDef *dynEntDef,
                 DynEntityClient *dynEntClient,
                 const GfxPlacement *pose);
-broad_phase_info *__thiscall broad_phase_base::get_bpi(broad_phase_base *this);
-broad_phase_group *__thiscall broad_phase_base::get_bpg(broad_phase_base *this);
-void *__thiscall create_gjk_geom_collision_visitor::allocate(
-                create_gjk_geom_collision_visitor *this,
-                int size,
-                int alignment,
-                bool no_error);
-char __thiscall create_gjk_geom_collision_visitor::query_create_prolog(gjk_collision_visitor *this, const void *geom);
-void __thiscall gjk_geom_list_t::add_geom(gjk_geom_list_t *this, gjk_base_t *geom);
-void __thiscall create_gjk_geom_collision_visitor::query_create_epilog_1(
-                create_gjk_geom_collision_visitor *this,
-                gjk_base_t *gjk_geom);
+
+
 unsigned __int16 __cdecl DynEntCl_CreateEntityModel(
                 XModel *model,
                 const float *quat,
@@ -198,7 +215,6 @@ void __cdecl DynEntCl_DestroyEvent(
 void __cdecl CreateRopes(int localClientNum);
 void __cdecl MapHitLocationToRagdollBoneName(hitLocation_t hitLoc, unsigned int *boneName);
 const DynEntityDef *__cdecl DynEnt_GetEntityDef(unsigned __int16 absDynEntId);
-DynEntityClient *__cdecl DynEnt_GetClientEntity(unsigned __int16 id);
 
 
 extern const dvar_t *dynEnt_bulletForce;

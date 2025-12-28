@@ -1,5 +1,7 @@
 #pragma once
 
+#include <tl/jobqueue/jobqueue_all.h>
+
 struct WorkerCmdConditional // sizeof=0x8
 {
     void *address;

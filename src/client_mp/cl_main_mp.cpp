@@ -139,6 +139,7 @@ clientStatic_t cls;
 clientConnection_t *clientConnections;
 
 bool cl_serverLoadingMap;
+bool g_waitingForServer;
 
 void __cdecl CL_AddReliableCommand(int localClientNum, const char *cmd)
 {

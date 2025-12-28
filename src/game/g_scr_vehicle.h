@@ -147,6 +147,24 @@ struct vehicle_cache_t // sizeof=0x788
     int wheel_mask;
 };
 
+struct cgVehicleWheelEffect // sizeof=0x8
+{                                       // XREF: cgVehicle_s/r
+    int surfaceType;
+    int lastSurfaceType;
+};
+
+struct cgVehicle_s // sizeof=0x54
+{
+    int lastGunnerFire[4];
+    int wheelSurfType[6];
+    int fireTime;
+    int flags;
+    float materialTime;
+    float materialTime2;
+    vehicle_cache_t *vehicle_cache;
+    cgVehicleWheelEffect wheelEffects[3];
+};
+
 struct scr_vehicle_s // sizeof=0xE2C
 {                                       // XREF: .data:s_vehicles/r
                                         // scr_vehicle_t/r
@@ -530,3 +548,7 @@ void __cdecl G_VehSetClientSideGunTurningYaw(gentity_s *const ent, unsigned int 
 void __cdecl VehSetClientSideGunTurnRate(gentity_s *const ent, float percentage, int mask, char shift);
 void __cdecl G_VehSetClientSideGunTurningPitch(gentity_s *const ent, unsigned int seatIndex, bool turning);
 void __cdecl G_VehSetClientSideGunOverheating(gentity_s *const ent, unsigned int seatIndex, bool overheating);
+
+
+extern int bg_numVehicleInfos;
+extern vehicle_info_t bg_vehicleInfos[32];

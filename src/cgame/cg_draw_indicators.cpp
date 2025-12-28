@@ -1,4 +1,19 @@
 #include "cg_draw_indicators.h"
+#include <demo/demo_playback.h>
+#include <client_mp/cl_cgame_mp.h>
+#include <ui/ui_atoms.h>
+#include "cg_draw_reticles.h"
+#include <cgame_mp/cg_main_mp.h>
+#include "cg_drawtools.h"
+#include <cgame_mp/cg_view_mp.h>
+#include <cgame_mp/cg_draw_mp.h>
+#include <cgame_mp/cg_ents_mp.h>
+#include <bgame/bg_weapons_def.h>
+#include <bgame/bg_misc.h>
+#include <gfx_d3d/r_rendercmds.h>
+
+unsigned int g_hudGrenadeCount;
+HudGrenade g_hudGrenades[32];
 
 void __cdecl CG_DrawFlashDamage(const cg_s *cgameGlob)
 {
@@ -15,9 +30,7 @@ void __cdecl CG_DrawFlashDamage(const cg_s *cgameGlob)
         && !Demo_IsMovieCamera()
         && cgameGlob->v_dmg_time > cgameGlob->time )
     {
-        LODWORD(redFlash) = COERCE_UNSIGNED_INT((float)((float)(cgameGlob->v_dmg_time - cgameGlob->time)
-                                                                                                    * cgameGlob->v_dmg_pitch) / 500.0)
-                                            & _mask__AbsFloat_;
+        redFlash = fabs((float)((float)(cgameGlob->v_dmg_time - cgameGlob->time) * cgameGlob->v_dmg_pitch) / 500.0);
         if ( redFlash > 5.0 )
             redFlash = 5.0f;
         col[0] = 0.2f;
@@ -27,8 +40,8 @@ void __cdecl CG_DrawFlashDamage(const cg_s *cgameGlob)
         sidebuffer = 10.0f;
         CL_GetScreenDimensions(&displayWidth, &displayHeight, &displayAspect);
         UI_FillRectPhysical(
-            COERCE_FLOAT(LODWORD(sidebuffer) ^ _mask__NegFloat_),
-            COERCE_FLOAT(LODWORD(sidebuffer) ^ _mask__NegFloat_),
+            -(sidebuffer),
+            -(sidebuffer),
             (float)displayWidth + sidebuffer,
             (float)displayHeight + sidebuffer,
             col);
@@ -92,9 +105,11 @@ void __cdecl CG_DrawDamageDirectionIndicators(int localClientNum)
         *(float *)&radius = v3 * scrPlace->scaleVirtualToReal[1];
         LODWORD(xy[0][0]) = halfWidth;
         xy[0][1] = *(float *)&radius + height;
-        LODWORD(xy[1][0]) = halfWidth ^ _mask__NegFloat_;
+        //LODWORD(xy[1][0]) = halfWidth ^ _mask__NegFloat_;
+        xy[1][0] = -halfWidth;
         xy[1][1] = *(float *)&radius + height;
-        LODWORD(xy[2][0]) = halfWidth ^ _mask__NegFloat_;
+        //LODWORD(xy[2][0]) = halfWidth ^ _mask__NegFloat_;
+        xy[2][0] = -halfWidth;
         LODWORD(xy[2][1]) = radius;
         *(_QWORD *)&xy[3][0] = __PAIR64__(radius, halfWidth);
         color[0] = colorWhite[0];
@@ -205,7 +220,8 @@ double __cdecl CG_AddHudGrenade_PositionCheck(cg_s *cgameGlob, const centity_s *
                 return 0.0;
         }
     }
-    else if ( COERCE_FLOAT(cg_hudGrenadeIconMaxHeight->current.integer ^ _mask__NegFloat_) > grenadeOffset_8 )
+    //else if ( COERCE_FLOAT(cg_hudGrenadeIconMaxHeight->current.integer ^ _mask__NegFloat_) > grenadeOffset_8 )
+    else if ( -cg_hudGrenadeIconMaxHeight->current.value > grenadeOffset_8 )
     {
         return 0.0;
     }
@@ -244,7 +260,7 @@ void __cdecl CG_AddHudGrenade(cg_s *cgameGlob, const centity_s *grenadeEnt)
     float v3; // [esp+8h] [ebp-40h]
     float v4; // [esp+Ch] [ebp-3Ch]
     HudGrenade *v5; // [esp+10h] [ebp-38h]
-    entityState_s *state; // [esp+2Ch] [ebp-1Ch]
+    const entityState_s *state; // [esp+2Ch] [ebp-1Ch]
     int globalClientNum; // [esp+30h] [ebp-18h]
     Material *material; // [esp+34h] [ebp-14h]
     float maxSpeedSq; // [esp+38h] [ebp-10h]
@@ -335,10 +351,10 @@ LABEL_48:
                         g_hudGrenades[g_hudGrenadeCount].material = material;
                         if ( grenadeEnt->nextState.lerp.u.actor.team )
                         {
-                            v3 = (float)(cgameGlob->time - grenadeEnt->nextState.lerp.u.actor.index.actorNum)
+                            v3 = (float)(cgameGlob->time - grenadeEnt->nextState.lerp.u.actor.actorNum)
                                  / (float)grenadeEnt->nextState.lerp.u.actor.team;
                             if ( (float)(v3 - 1.0) < 0.0 )
-                                v4 = (float)(cgameGlob->time - grenadeEnt->nextState.lerp.u.actor.index.actorNum)
+                                v4 = (float)(cgameGlob->time - grenadeEnt->nextState.lerp.u.actor.actorNum)
                                      / (float)grenadeEnt->nextState.lerp.u.actor.team;
                             else
                                 v4 = 1.0f;
@@ -450,9 +466,11 @@ void __cdecl CG_DrawGrenadeIndicators(int localClientNum)
                                     * 0.5;
                 bias = cg_hudGrenadePointerPulseMin->current.value + amplitude;
                 v1 = (float)((float)((float)cgameGlob->time * 0.0062831854) * cg_hudGrenadePointerPulseFreq->current.value);
-                __libm_sse2_sin(v2);
-                *(float *)&v1 = v1;
-                color[3] = (float)(*(float *)&v1 * amplitude) + bias;
+                //__libm_sse2_sin(v2);
+                //*(float *)&v1 = v1;
+                v1 = sin(v1);
+                //color[3] = (float)(*(float *)&v1 * amplitude) + bias;
+                color[3] = (float)(v1 * amplitude) + bias;
             }
             if ( (float)(color[3] - 1.0) < 0.0 )
                 v3 = color[3];
@@ -522,13 +540,15 @@ void __cdecl CG_DrawWarningPointer(
     pointerPos = centerX - (float)(v13 * scrPlace->scaleVirtualToReal[0]);
     v12 = ScrPlace_HiResGetScale() * (float)(cosYaw * radiusScale);
     pointerPos_4 = centerY - (float)(v12 * scrPlace->scaleVirtualToReal[1]);
-    v11 = ScrPlace_HiResGetScale() * COERCE_FLOAT(LODWORD(pivot) ^ _mask__NegFloat_);
+    //v11 = ScrPlace_HiResGetScale() * COERCE_FLOAT(LODWORD(pivot) ^ _mask__NegFloat_);
+    v11 = ScrPlace_HiResGetScale() * -pivot;
     grenade_vertices[3][0] = v11 * scrPlace->scaleVirtualToReal[0];
     grenade_vertices[0][0] = grenade_vertices[3][0];
     v10 = ScrPlace_HiResGetScale() * (float)(width - pivot);
     grenade_vertices[2][0] = v10 * scrPlace->scaleVirtualToReal[0];
     grenade_vertices[1][0] = grenade_vertices[2][0];
-    v9 = ScrPlace_HiResGetScale() * COERCE_FLOAT(LODWORD(pivot_4) ^ _mask__NegFloat_);
+    //v9 = ScrPlace_HiResGetScale() * COERCE_FLOAT(LODWORD(pivot_4) ^ _mask__NegFloat_);
+    v9 = ScrPlace_HiResGetScale() * -pivot_4;
     grenade_vertices[1][1] = v9 * scrPlace->scaleVirtualToReal[1];
     grenade_vertices[0][1] = grenade_vertices[1][1];
     v8 = ScrPlace_HiResGetScale() * (float)(height - pivot_4);
@@ -539,7 +559,8 @@ void __cdecl CG_DrawWarningPointer(
         pointerPos,
         pointerPos_4,
         grenade_vertices,
-        COERCE_FLOAT(LODWORD(yaw) ^ _mask__NegFloat_),
+        //COERCE_FLOAT(LODWORD(yaw) ^ _mask__NegFloat_),
+        -yaw,
         color,
         cgMedia.grenadePointer);
 }
@@ -579,15 +600,15 @@ void __cdecl CG_DrawWarningIcon(
     v7 = (float)(yaw * 0.017453292);
     cosYaw = cos(v7);
     sinYaw = sin(v7);
-    v12 = ScrPlace_HiResGetScale()
-            * (float)(COERCE_FLOAT(COERCE_UNSIGNED_INT(width * 0.5) ^ _mask__NegFloat_) - (float)(sinYaw * radiusScale));
+    //v12 = ScrPlace_HiResGetScale() * (float)(COERCE_FLOAT(COERCE_UNSIGNED_INT(width * 0.5) ^ _mask__NegFloat_) - (float)(sinYaw * radiusScale));
+    v12 = ScrPlace_HiResGetScale() * (float)(-(width * 0.5)) - (float)(sinYaw * radiusScale);
     grenade_vertices[3][0] = (float)(v12 * scrPlace->scaleVirtualToReal[0]) + centerX;
     grenade_vertices[0][0] = grenade_vertices[3][0];
     v11 = ScrPlace_HiResGetScale() * (float)((float)(width * 0.5) - (float)(sinYaw * radiusScale));
     grenade_vertices[2][0] = (float)(v11 * scrPlace->scaleVirtualToReal[0]) + centerX;
     grenade_vertices[1][0] = grenade_vertices[2][0];
-    v10 = ScrPlace_HiResGetScale()
-            * (float)(COERCE_FLOAT(COERCE_UNSIGNED_INT(height * 0.5) ^ _mask__NegFloat_) - (float)(cosYaw * radiusScale));
+    //v10 = ScrPlace_HiResGetScale() * (float)(COERCE_FLOAT(COERCE_UNSIGNED_INT(height * 0.5) ^ _mask__NegFloat_) - (float)(cosYaw * radiusScale));
+    v10 = ScrPlace_HiResGetScale() * (float)(-(height * 0.5) - (float)(cosYaw * radiusScale));
     grenade_vertices[1][1] = (float)(v10 * scrPlace->scaleVirtualToReal[1]) + centerY;
     grenade_vertices[0][1] = grenade_vertices[1][1];
     v9 = ScrPlace_HiResGetScale() * (float)((float)(height * 0.5) - (float)(cosYaw * radiusScale));

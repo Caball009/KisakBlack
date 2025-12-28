@@ -1,4 +1,5 @@
 #pragma once
+#include <qcommon/common.h>
 
 void __cdecl LiveCombatRecord_OpenFriendsCombatRecord(int localClientNum);
 double __cdecl LiveCombatRecord_GetSortedItemData(int index, bool forFriend, sortedItemParams_t param);

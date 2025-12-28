@@ -84,21 +84,6 @@
 #include <bgame/bg_weapons_def.h>
 #include <universal/com_workercmds.h>
 
-const dvar_t *collectors;
-const dvar_t *primaryWeaponOffset;
-const dvar_t *scr_xpcollectorsscale;
-const dvar_t *scr_xpscale;
-const dvar_t *scr_xpzmscale;
-const dvar_t *scr_codpointsxpscale;
-const dvar_t *scr_codpointsmatchscale;
-const dvar_t *scr_codpointsperchallenge;
-const dvar_t *scr_rankXpCap;
-const dvar_t *scr_codPointsCap;
-const dvar_t *version;
-const dvar_t *shortversion;
-
-const dvar_s *com_recommendedSet;
-
 cmd_function_s Com_Error_f_VAR;
 cmd_function_s Com_Crash_f_VAR;
 cmd_function_s Com_Freeze_f_VAR;
@@ -137,6 +122,20 @@ const char *noticeErrors[14] =
 };
 
 static const int maxDemoMsec = 200;
+
+const dvar_t *collectors;
+const dvar_t *primaryWeaponOffset;
+const dvar_t *scr_xpcollectorsscale;
+const dvar_t *scr_xpscale;
+const dvar_t *scr_xpzmscale;
+const dvar_t *scr_codpointsxpscale;
+const dvar_t *scr_codpointsmatchscale;
+const dvar_t *scr_codpointsperchallenge;
+const dvar_t *scr_rankXpCap;
+const dvar_t *scr_codPointsCap;
+const dvar_t *version;
+const dvar_t *shortversion;
+const dvar_s *com_recommendedSet;
 
 const dvar_s *useFastFile;
 const dvar_s *sys_smp_allowed;

@@ -2,6 +2,26 @@
 #include <qcommon/common.h>
 #include <game_mp/g_main_mp.h>
 
+struct BuiltinMethodDef // sizeof=0xC
+{                                       // XREF: .rdata:client_methods/r
+                                        // .rdata:client_project_methods/r ...
+    const char *actionString;           // XREF: CScr_GetMethod(char const * *,int *)+30/r
+                                        // CScr_GetMethod(char const * *,int *)+99/r ...
+    void (__cdecl *actionFunc)(scr_entref_t);
+                                        // XREF: CScr_GetMethod(char const * *,int *)+B8/r
+                                        // CScr_GetMethodProjectSpecific(char const * *,int *)+B8/r ...
+    int type;                           // XREF: CScr_GetMethod(char const * *,int *)+AA/r
+                                        // CScr_GetMethodProjectSpecific(char const * *,int *)+AA/r ...
+};
+
+struct BuiltinFunctionDef // sizeof=0xC
+{                                       // XREF: .data:BuiltinFunctionDef * client_functions/r
+    const char *actionString;           // XREF: CScr_GetFunction(char const * *,int *)+33/r
+                                        // CScr_GetFunction(char const * *,int *)+9C/r
+    void (__cdecl *actionFunc)();       // XREF: CScr_GetFunction(char const * *,int *)+BB/r
+    int type;                           // XREF: CScr_GetFunction(char const * *,int *)+AD/r
+};
+
 struct cg_level_locals_t // sizeof=0x3A1C
 {                                       // XREF: .data:cg_level_locals_t cg_level/r
     int scriptPrintChannel;             // XREF: CScr_StructContents(uint)+2E/r
@@ -104,10 +124,10 @@ void __cdecl CScr_GetVehicleTreadFx(centity_s *cent, const cent_field_s *pField)
 unsigned int __cdecl CScr_GetFakeEntity(unsigned int localClientNum);
 void __cdecl CG_SetFakeEntInUse(int localClientNum, fake_centity_s *ent);
 void CScr_SpawnFakeEnt();
-VariableUnion __cdecl CScr_GetLocalClientNum(unsigned int index);
+int __cdecl CScr_GetLocalClientNum(unsigned int index);
 void CScr_DeleteFakeEnt();
 void __cdecl CScr_FreeFakeEntity(unsigned int localClientNum, unsigned int entNum);
-float *CScr_SetFakeEntOrg();
+void CScr_SetFakeEntOrg();
 void __cdecl CScr_StructContents(unsigned int index);
 void CScr_StructInfo();
 void CScr_IsDefined();
@@ -116,7 +136,7 @@ void CScr_IsArray();
 void assertCmd();
 void assertexCmd();
 void assertmsgCmd();
-int print();
+void print();
 void println();
 void CScr_IPrintLnBold();
 void CScr_Print3D();
@@ -126,7 +146,7 @@ void CScr_RandomIntRange();
 void CScr_RandomFloatRange();
 void CScr_VectorFromLineToPoint();
 void CScr_PointOnSegmentNearestToPoint();
-unsigned intCScr_Distance();
+void CScr_Distance();
 void CScr_Distance2D();
 void CScr_DistanceSquared();
 void CScr_Length();
@@ -147,7 +167,7 @@ void CScr_ClampAngle180();
 void CScr_AbsAngleClamp180();
 int __cdecl Effect_Index(int clientNum, const char *name);
 void CScr_LoadedFX();
-fake_centity_s *CScr_PlayLoopedFX();
+void CScr_PlayLoopedFX();
 void __cdecl CScr_BulletTracer();
 void __cdecl CScr_AnimateUI();
 void __cdecl CScr_GetAnimLength();
@@ -156,7 +176,7 @@ void __cdecl CScr_GetSystemTime();
 void __cdecl CScr_GetServerTime();
 void __cdecl CScr_ClientHasSnapShot();
 void CScr_GetDvar();
-unsigned intCScr_SetDvar();
+void CScr_SetDvar();
 void CScr_SetSavedDvar();
 void CScr_GetDvarColorRed();
 void CScr_GetDvarColorGreen();
@@ -172,8 +192,8 @@ void CScr_SetDvarBool();
 void CScr_SetDvarFloat();
 void CScr_PlaySound();
 void __cdecl CScr_PlaySoundOnEntity(scr_entref_t entref);
-unsigned intCScr_PlayLoopSound();
-unsigned intCScr_StopLoopSound();
+void CScr_PlayLoopSound();
+void CScr_StopLoopSound();
 void __cdecl CScr_PlayLoopSoundOnEntity(scr_entref_t entref);
 void __cdecl CScr_StopLoopSoundOnEntity(scr_entref_t entref);
 void __cdecl CScr_IsPlayingLoopSound(scr_entref_t entref);
@@ -188,8 +208,8 @@ void CScr_IsAliasLoop();
 void CScr_StopLocalSound();
 void CScr_SoundTimescale();
 void CScr_SoundPlaying();
-unsigned intCScr_SetSoundVolume();
-unsigned intCScr_SetSoundPitch();
+void CScr_SetSoundVolume();
+void CScr_SetSoundPitch();
 void CScr_SetSoundVolumeRate();
 void CScr_SetSoundPitchRate();
 void CScr_GetRealTime();
@@ -223,7 +243,7 @@ void CScr_CastInt();
 void CScr_CastFloat();
 void CScr_GetLocalClientEyePos();
 void CScr_GetLocalClientAngles();
-unsigned intCScr_Spawn();
+void CScr_Spawn();
 void CScr_SpawnPlane();
 void __cdecl CScr_IsAlive();
 void CScr_IsSubStr();
@@ -289,8 +309,8 @@ void __cdecl CScr_GetEntNum();
 void __cdecl CScr_GetEntArray();
 void __cdecl CScr_GetLocalPlayers();
 void __cdecl CScr_GetLocalPlayer();
-unsigned intCScr_BulletTrace();
-unsigned intCScr_TracePoint();
+void CScr_BulletTrace();
+void CScr_TracePoint();
 void __cdecl CScr_OpenFile();
 void CScr_CloseFile();
 void CScr_FPrintln();

@@ -1,4 +1,5 @@
 #pragma once
+#include <gfx_d3d/fxprimitives.h>
 
 const FxEffectDef *__cdecl FX_Convert(const FxEditorEffectDef *editorEffect, void *(__cdecl *Alloc)(int));
 int __cdecl FX_DecideVelocitySampleCount(const FxEditorElemDef *edElem, int intervalLimit);

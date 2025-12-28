@@ -5,6 +5,7 @@
 #include <universal/q_shared.h>
 #include <cgame/cg_visionsets.h>
 #include <gfx_d3d/r_gfx.h>
+#include <cgame/cg_camera.h>
 
 enum DemoType : __int32
 {                                                                             // XREF: cg_s/r
@@ -321,21 +322,6 @@ struct __declspec(align(16)) refdef_s // sizeof=0x18510
         // padding byte
 };
 
-enum CameraMode : __int32
-{                                       // XREF: Camera/r
-                                        // CG_CalcViewValues/r ...
-    CAM_NORMAL              = 0x0,
-    CAM_LINKED              = 0x1,
-    CAM_VEHICLE             = 0x2,
-    CAM_VEHICLE_THIRDPERSON = 0x3,
-    CAM_VEHICLE_GUNNER      = 0x4,
-    CAM_TURRET              = 0x5,
-    CAM_MISSILE             = 0x6,
-    CAM_EXTRACAM            = 0x7,
-    CAM_RADIANT             = 0x8,
-    CAM_TOP_DOWN            = 0x9,
-};
-
 struct ScriptCamera // sizeof=0x30
 {                                       // XREF: Camera/r
     int flags;
@@ -395,6 +381,13 @@ enum InvalidCmdHintType : __int32
     INVALID_CMD_CANT_PLACE_TURRET    = 0xB,
     INVALID_CMD_CANT_EQUIP_WHILE_PRONE = 0xC,
     INVALID_CMD_CANT_PLANT_EQUIPMENT = 0xD,
+};
+
+enum invalid_cmd_hint_t : __int32
+{                                       // XREF: CG_SetInvalidStanceHint/r
+    INVALID_CMD_NO_HINT     = 0x0,
+    INVALID_CMD_STAND_HINT  = 0x1,
+    INVALID_CMD_CROUCH_HINT = 0x2,
 };
 
 enum SuccessfulCmdHintType : __int32

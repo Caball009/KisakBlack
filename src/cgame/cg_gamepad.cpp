@@ -1,4 +1,13 @@
 #include "cg_gamepad.h"
+#include <cgame_mp/cg_local_mp.h>
+#include <client_mp/cl_input_mp.h>
+#include "cg_playerstate.h"
+#include "cg_main.h"
+#include <cgame_mp/cg_main_mp.h>
+#include <client_mp/cl_cgame_mp.h>
+#include <demo/demo_playback.h>
+#include <client/cl_keys.h>
+#include <ui/ui_shared.h>
 
 void __cdecl CG_HandleSpecialStateInput(int localClientNum, bitarray<51> *button_bits)
 {

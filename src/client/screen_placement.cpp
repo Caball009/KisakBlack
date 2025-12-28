@@ -4,6 +4,7 @@
 
 ScreenPlacement scrPlaceView[1];
 ScreenPlacement scrPlaceFull;
+ScreenPlacement scrPlaceFullUnsafe;
 
 double __cdecl ScrPlace_HiResGetScale()
 {

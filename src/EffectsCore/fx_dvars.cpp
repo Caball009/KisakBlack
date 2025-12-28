@@ -1,4 +1,28 @@
 #include "fx_dvars.h"
+#include <qcommon/cmd.h>
+
+const dvar_t *fx_enable;
+const dvar_t *fx_draw;
+const dvar_t *fx_cull_elem_spawn;
+const dvar_t *fx_cull_elem_draw;
+const dvar_t *fx_cull_effect_spawn;
+const dvar_t *fx_marks;
+const dvar_t *fx_marks_smodels;
+const dvar_t *fx_marks_ents;
+const dvar_t *fx_freeze;
+const dvar_t *fx_debugBolt;
+const dvar_t *fx_count;
+const dvar_t *fx_visMinTraceDist;
+const dvar_t *fx_profile;
+const dvar_t *fx_mark_profile;
+const dvar_t *fx_drawClouds;
+const dvar_t *fx_priority_debug;
+const dvar_t *fx_seethru_parallax;
+const dvar_t *fx_priority_enable;
+const dvar_t *fx_draw_weapon_tags;
+const dvar_t *fx_marks_draw_impact_axis;
+const dvar_t *fx_marks_debug_text;
+const dvar_t *fx_marks_range;
 
 void __cdecl FX_RegisterDvars()
 {
@@ -72,6 +96,7 @@ void __cdecl FX_RegisterDvars()
                                          "marks will be made only within this range to camera");
 }
 
+bool fxDevGuiCreated = false;
 void __cdecl FX_CreateDevGui()
 {
     if ( !fxDevGuiCreated )

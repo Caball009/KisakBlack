@@ -162,34 +162,6 @@ struct menuClientNum_t // sizeof=0x8
         int localClientNum;
 };
 
-struct UiContext // sizeof=0x1828
-{                                                                             // XREF: .data:uiInfo_s * uiInfoArray/r
-                                                                                // uiInfo_s/r ...
-        int contextIndex;
-        float bias;
-        int realTime;
-        int frameTime;
-        cursor_t cursor;
-        cursor_t prevCursor;
-        int isCursorVisible;
-        int screenWidth;
-        int screenHeight;
-        float screenAspect;
-        float FPS;
-        float blurRadiusOut;
-        BlurStackEntry blurMenuStack[8];
-        int blurMenuStackIndex;
-        menuDef_t *Menus[600];
-        int menuCount;
-        menuClientNum_t menuStack[16];
-        int openMenuCount;
-        bool enableSlideAndFadeEffectForMenu;
-        // padding byte
-        // padding byte
-        // padding byte
-        UILocalVarContext localVars;
-};
-
 enum uiMenuCommand_t : __int32
 {                                                                             // XREF: uiInfo_s/r
         UIMENU_NONE                        = 0x0,

@@ -459,3 +459,6 @@ void __cdecl R_ResolveSection(GfxCmdBufContext context, GfxImage *image);
 
 
 extern GfxRenderTarget gfxRenderTargets[44];
+
+extern int rb_execCmdsMS;
+extern int rb_swapMS;

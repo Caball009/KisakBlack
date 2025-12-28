@@ -2,6 +2,9 @@
 
 GfxRenderTarget gfxRenderTargets[44];
 
+int rb_execCmdsMS;
+int rb_swapMS;
+
 bool __cdecl ValidGamePadButtonIcon(unsigned int letter)
 {
     if ( letter && letter <= 6 )

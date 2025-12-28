@@ -1,4 +1,47 @@
 #include "cg_event.h"
+#include "cg_scr_main.h"
+#include <clientscript/cscr_vm.h>
+#include <clientscript/scr_const.h>
+#include "cg_world.h"
+#include <glass/glass_client.h>
+#include <qcommon/dobj_management.h>
+#include <xanim/dobj_utils.h>
+#include <EffectsCore/fx_system.h>
+#include <client_mp/cl_cgame_mp.h>
+#include <server_mp/sv_init_mp.h>
+#include <clientscript/cscr_stringlist.h>
+#include <cgame_mp/cg_main_mp.h>
+#include <DynEntity/DynEntity_client.h>
+#include <demo/demo_playback.h>
+#include <bgame/bg_weapons_def.h>
+#include "cg_sound.h"
+#include <sound/snd_public_async.h>
+#include <cgame_mp/cg_ents_mp.h>
+#include <client_mp/cl_input_mp.h>
+#include <sound/snd_bank.h>
+#include <bgame/bg_weapons_ammo.h>
+#include "offhandweapons.h"
+#include <cgame_mp/cg_servercmds_mp.h>
+#include "cg_camerashake.h"
+#include <cgame_mp/cg_compassfriendlies_mp.h>
+#include <gfx_d3d/r_water_sim.h>
+#include <ragdoll/ragdoll_update.h>
+#include <gfx_d3d/r_foliage.h>
+#include <bgame/bg_fire.h>
+#include <universal/com_math_anglevectors.h>
+#include <client/splitscreen.h>
+#include <stringed/stringed_hooks.h>
+#include <cgame_mp/cg_vehicles_mp.h>
+#include "cg_main.h"
+#include "cg_spawn.h"
+#include "cg_bolt.h"
+#include <bgame/bg_wind.h>
+#include <client_mp/cl_ui_mp.h>
+#include <cgame_mp/cg_scoreboard_mp.h>
+#include <cgame_mp/cg_draw_mp.h>
+#include <client/cl_console.h>
+#include <cgame_mp/cg_animscripted_mp.h>
+#include <bgame/bg_mantle.h>
 
 void __cdecl CG_SetWetness(int localClientNum, int entNum, float wetness, int invert)
 {
@@ -8,10 +51,15 @@ void __cdecl CG_SetWetness(int localClientNum, int entNum, float wetness, int in
     if ( ent )
     {
         ent->pose.wetness = wetness;
-        if ( invert )
-            LODWORD(ent->pose.wetness) ^= _mask__NegFloat_;
+        if (invert)
+        {
+            //LODWORD(ent->pose.wetness) ^= _mask__NegFloat_;
+            ent->pose.wetness = -ent->pose.wetness;
+        }
     }
 }
+
+float scale = 0.5f;
 
 void __cdecl CG_ExplosionEvent(
                 int localClientNum,
@@ -75,7 +123,7 @@ void __cdecl CG_ExplosionEvent(
             force[0] = v6 * force[0];
             force[1] = v6 * force[1];
             force[2] = v6 * force[2];
-            Phys_ObjAddForce((int)&savedregs, cent->pose.physObjId, origin, force, 0);
+            Phys_ObjAddForce(cent->pose.physObjId, origin, force, 0);
         }
     }
     GlassCl_ExplosionEvent(localClientNum, origin, damageInner, damageOuter, radius, mod);
@@ -514,7 +562,7 @@ void __cdecl CG_EntityEvent(int localClientNum, centity_s *cent, int event)
                         CG_PlayBattleChatter(
                             localClientNum,
                             p_nextState->number,
-                            p_nextState->lerp.pos.trBase,
+                            (float*)p_nextState->lerp.pos.trBase,
                             p_nextState->loopSoundId,
                             p_nextState->un3.item);
                         return;
@@ -563,18 +611,18 @@ void __cdecl CG_EntityEvent(int localClientNum, centity_s *cent, int event)
                             recoilSpeed[1] = 0.0;
                             recoilSpeed[2] = 0.0;
                             if ( isPlayerView )
-                                AliasId = SND_FindAliasId(itemWeapDef->pickupSoundPlayer);
+                                AliasId = SND_FindAliasId((char*)itemWeapDef->pickupSoundPlayer);
                             else
-                                AliasId = SND_FindAliasId(itemWeapDef->pickupSound);
+                                AliasId = SND_FindAliasId((char *)itemWeapDef->pickupSound);
                         }
                         else
                         {
                             if ( event != 12 )
                                 goto LABEL_85;
                             if ( isPlayerView )
-                                AliasId = SND_FindAliasId(itemWeapDef->ammoPickupSoundPlayer);
+                                AliasId = SND_FindAliasId((char *)itemWeapDef->ammoPickupSoundPlayer);
                             else
-                                AliasId = SND_FindAliasId(itemWeapDef->ammoPickupSound);
+                                AliasId = SND_FindAliasId((char *)itemWeapDef->ammoPickupSound);
                         }
                         CG_PlaySound(localClientNum, p_nextState->number, 0, 0, 0, 1.0, AliasId);
 LABEL_85:
@@ -585,9 +633,9 @@ LABEL_85:
                         if ( !BG_WeaponIsClipOnly(weaponIdx) && !weaponDef->cancelAutoHolsterWhenEmpty )
                         {
                             if ( isPlayerView )
-                                v7 = SND_FindAliasId(weaponDef->emptyFireSoundPlayer);
+                                v7 = SND_FindAliasId((char *)weaponDef->emptyFireSoundPlayer);
                             else
-                                v7 = SND_FindAliasId(weaponDef->emptyFireSound);
+                                v7 = SND_FindAliasId((char *)weaponDef->emptyFireSound);
                             CG_PlaySound(localClientNum, p_nextState->number, 0, 0, 0, 1.0, v7);
                         }
                         if ( isPlayerView )
@@ -610,9 +658,9 @@ LABEL_85:
                         {
                             weapDefDW = BG_GetWeaponDef(weaponDef->dualWieldWeaponIndex);
                             if ( isPlayerView )
-                                v9 = SND_FindAliasId(weapDefDW->emptyFireSoundPlayer);
+                                v9 = SND_FindAliasId((char *)weapDefDW->emptyFireSoundPlayer);
                             else
-                                v9 = SND_FindAliasId(weapDefDW->emptyFireSound);
+                                v9 = SND_FindAliasId((char *)weapDefDW->emptyFireSound);
                             CG_PlaySound(localClientNum, p_nextState->number, 0, 0, 0, 1.0, v9);
                         }
                         if ( isPlayerView )
@@ -727,7 +775,7 @@ LABEL_180:
                         }
                         CScr_NotifyNum(localClientNum, p_nextState->number, 0, cscr_const.face_shoot_single, 0);
                         CG_FireWeapon(
-                            (jpeg_decompress_struct *)localClientNum,
+                            localClientNum,
                             cent,
                             event,
                             scr_const.tag_flash,
@@ -745,7 +793,7 @@ LABEL_180:
                         CScr_NotifyNum(localClientNum, p_nextState->number, 0, cscr_const.face_shoot_single, 0);
                         v17 = BG_GetWeaponDef(cgameGlob->predictedPlayerState.weapon);
                         CG_FireWeapon(
-                            (jpeg_decompress_struct *)localClientNum,
+                            localClientNum,
                             cent,
                             event,
                             scr_const.tag_flash1,
@@ -905,7 +953,7 @@ LABEL_180:
                         CG_StartShakeCamera(localClientNum, 0.050000001, 100, cent->pose.origin, 100.0);
                         if ( event == 47 )
                             CG_FireWeapon(
-                                (jpeg_decompress_struct *)localClientNum,
+                                localClientNum,
                                 cent,
                                 47,
                                 scr_const.tag_flash,
@@ -914,7 +962,7 @@ LABEL_180:
                                 0);
                         else
                             CG_FireWeapon(
-                                (jpeg_decompress_struct *)localClientNum,
+                                localClientNum,
                                 cent,
                                 event,
                                 scr_const.tag_flash_2,
@@ -934,7 +982,7 @@ LABEL_180:
                         return;
                     case EV_FIRE_QUADBARREL_1:
                         CG_FireWeapon(
-                            (jpeg_decompress_struct *)localClientNum,
+                            localClientNum,
                             cent,
                             event,
                             scr_const.tag_flash,
@@ -942,7 +990,7 @@ LABEL_180:
                             &cgameGlob->nextSnap->ps,
                             0);
                         CG_FireWeapon(
-                            (jpeg_decompress_struct *)localClientNum,
+                            localClientNum,
                             cent,
                             event,
                             scr_const.tag_flash_11,
@@ -952,7 +1000,7 @@ LABEL_180:
                         return;
                     case EV_FIRE_QUADBARREL_2:
                         CG_FireWeapon(
-                            (jpeg_decompress_struct *)localClientNum,
+                            localClientNum,
                             cent,
                             event,
                             scr_const.tag_flash_2,
@@ -960,7 +1008,7 @@ LABEL_180:
                             &cgameGlob->nextSnap->ps,
                             0);
                         CG_FireWeapon(
-                            (jpeg_decompress_struct *)localClientNum,
+                            localClientNum,
                             cent,
                             event,
                             scr_const.tag_flash_22,
@@ -1069,7 +1117,7 @@ LABEL_180:
                             position,
                             0.0,
                             explosionRadius,
-                            vec3_origin,
+                            (float*)vec3_origin,
                             1.0,
                             weaponDef->iExplosionInnerDamage,
                             weaponDef->iExplosionOuterDamage);
@@ -1142,7 +1190,7 @@ $LN108:
                             position,
                             (float)weaponDef->iExplosionRadius,
                             (float)weaponDef->iExplosionRadius,
-                            vec3_origin,
+                            (float*)vec3_origin,
                             1.0,
                             weaponDef->iExplosionInnerDamage,
                             weaponDef->iExplosionOuterDamage);
@@ -1231,7 +1279,7 @@ $LN101:
                             position,
                             0.0,
                             (float)weaponDef->iExplosionRadius,
-                            vec3_origin,
+                            (float*)vec3_origin,
                             1.0,
                             weaponDef->iExplosionInnerDamage,
                             weaponDef->iExplosionOuterDamage);
@@ -1265,7 +1313,7 @@ $LN101:
                             Com_Printf(
                                 14,
                                 "Playing smoke grenade at %i at ( %f, %f, %f )\n",
-                                p_nextState->lerp.u.actor.index.actorNum,
+                                p_nextState->lerp.u.actor.actorNum,
                                 p_nextState->lerp.pos.trBase[0],
                                 p_nextState->lerp.pos.trBase[1],
                                 p_nextState->lerp.pos.trBase[2]);
@@ -1290,7 +1338,7 @@ $LN101:
                             FX_PlayOrientedEffect(
                                 localClientNum,
                                 expFx,
-                                p_nextState->lerp.u.actor.index.actorNum,
+                                p_nextState->lerp.u.actor.actorNum,
                                 p_nextState->lerp.pos.trBase,
                                 axis);
                         }
@@ -1309,7 +1357,7 @@ $LN101:
                                 __debugbreak();
                             }
                             if ( (p_nextState->lerp.eFlags & 0x4000) == 0
-                                || cgameGlob->time - p_nextState->lerp.u.actor.index.actorNum < 200 )
+                                || cgameGlob->time - p_nextState->lerp.u.actor.actorNum < 200 )
                             {
                                 v27 = SND_FindAliasId(weaponDef->projExplosionSound);
                                 CG_PlaySound(localClientNum, 1022, position, 0, 0, 1.0, v27);
@@ -1446,7 +1494,7 @@ LABEL_437:
                             position,
                             (float)weaponDef->iExplosionRadius,
                             (float)weaponDef->iExplosionRadius,
-                            vec3_origin,
+                            (float *)vec3_origin,
                             1.0,
                             weaponDef->iExplosionInnerDamage,
                             weaponDef->iExplosionOuterDamage);
@@ -1508,7 +1556,7 @@ LABEL_437:
                             position,
                             p_nextState->lerp.u.turret.gunAngles[0],
                             (float)p_nextState->eventParm,
-                            vec3_origin,
+                            (float *)vec3_origin,
                             p_nextState->lerp.u.turret.gunAngles[1],
                             (int)p_nextState->lerp.u.turret.gunAngles[2],
                             (int)p_nextState->lerp.u.turret.heatVal);
@@ -1539,7 +1587,7 @@ LABEL_437:
                             position,
                             p_nextState->lerp.u.turret.gunAngles[0],
                             (float)p_nextState->eventParm,
-                            vec3_origin,
+                            (float *)vec3_origin,
                             p_nextState->lerp.u.turret.gunAngles[1],
                             0,
                             0);
@@ -1563,7 +1611,7 @@ LABEL_437:
                             position,
                             p_nextState->lerp.u.turret.gunAngles[0],
                             (float)p_nextState->eventParm,
-                            &p_nextState->lerp.u.turret.gunAngles[1],
+                            (float *)&p_nextState->lerp.u.turret.gunAngles[1],
                             1.0,
                             0,
                             0);
@@ -1699,7 +1747,7 @@ LABEL_437:
                     case EV_FOOTSTEP_CROUCHRUN:
                     case EV_FOOTSTEP_CROUCHWALK:
                     case EV_FOOTSTEP_PRONE:
-                        CG_DoFootstepEvent(localClientNum, cent, isPlayerView, event, eventParm, quiet, 1);
+                        CG_DoFootstepEvent(localClientNum, cent, isPlayerView, event, eventParm, quiet);
                         return;
                     case EV_MANTLE:
                         if ( isPlayerView )
@@ -1715,7 +1763,7 @@ LABEL_437:
                         CScr_NotifyNum(localClientNum, p_nextState->number, 0, cscr_const.face_shoot_single, 0);
                         v104 = 1;
                         CG_FireWeapon(
-                            (jpeg_decompress_struct *)localClientNum,
+                            localClientNum,
                             cent,
                             event,
                             scr_const.tag_flash,
@@ -1736,7 +1784,7 @@ LABEL_437:
                         v103 = 1;
                         flashIndex = event - 174;
                         gunnerIndex = (event - 174) % 4;
-                        info = CG_GetVehicleInfo(cent->nextState.un2.vehicleState.vehicleInfoIndex);
+                        info = (vehicle_info_t *)CG_GetVehicleInfo(cent->nextState.vehicleState.vehicleInfoIndex);
                         weapon = info->gunnerWeaponIndex[gunnerIndex];
                         if ( !weapon )
                         {
@@ -1745,7 +1793,7 @@ LABEL_437:
                             weapon = info->gunnerWeaponIndex[gunnerIndex];
                         }
                         CG_FireWeapon(
-                            (jpeg_decompress_struct *)localClientNum,
+                            localClientNum,
                             cent,
                             event,
                             scr_const.tag_flash_gunner[flashIndex],
@@ -1778,7 +1826,7 @@ LABEL_437:
                     case EV_CANNOTPLANT:
                         v58 = cgameGlob->nextSnap;
                         if ( (v58->ps.otherFlags & 6) != 0 && p_nextState->number == v58->ps.clientNum )
-                            CG_SetInvalidCmdHint(cgameGlob, INVALID_CMD_CANT_EQUIP_WHILE_PRONE|INVALID_CMD_NO_AMMO_FRAG_GRENADE);
+                            CG_SetInvalidCmdHint(cgameGlob, (InvalidCmdHintType)((int)INVALID_CMD_CANT_EQUIP_WHILE_PRONE|(int)INVALID_CMD_NO_AMMO_FRAG_GRENADE));
                         if ( isPlayerView )
                             v6 = SND_FindAliasId(weaponDef->emptyFireSoundPlayer);
                         else
@@ -1860,7 +1908,7 @@ $LN22_6:
                         if ( isPlayerView )
                             v6 = SND_FindAliasId(weaponDef->adsZoomSound);
                         else
-                            v6 = SND_FindAliasId(0);
+                            v6 = SND_FindAliasId((char*)0);
 LABEL_570:
                         CG_PlaySound(localClientNum, p_nextState->number, 0, 0, 0, 1.0, v6);
                         return;
@@ -2005,7 +2053,7 @@ LABEL_570:
                         else
                             CG_EnableLocalWindSource(1023);
                         return;
-                    case EV_FLOAT_intER:
+                    case EV_FLOAT_LONGER:
                         v21 = CG_GetEntity(localClientNum, p_nextState->otherEntityNum);
                         *((unsigned int *)v21 + 201) |= 0x80000u;
                         return;
@@ -2055,7 +2103,7 @@ LABEL_290:
                         }
                         return;
                     default:
-                        Com_Error(ERR_DROP, &byte_C7E024, eventnames[event]);
+                        Com_Error(ERR_DROP, "Unknown event: '%s'", eventnames[event]);
                         return;
                 }
             }
@@ -2260,7 +2308,7 @@ void __cdecl CG_Obituary(int localClientNum, const entityState_s *ent)
     }
     else
     {
-        Com_Error(ERR_DROP, &byte_C7E39C);
+        Com_Error(ERR_DROP, "CG_Obituary: target out of range");
     }
     if ( attacker < 0 || attacker >= com_maxclients->current.integer )
     {
@@ -2280,13 +2328,13 @@ LABEL_40:
             {
                 if ( !cgameGlob->inKillCam )
                 {
-                    s = va(aCgameYourevive, targetName);
+                    s = va("CGAME_YOUREVIVED", targetName);
                     CG_PriorityCenterPrint(localClientNum, s, 0);
                 }
             }
             else if ( target == ps->clientNum && attackerCI )
             {
-                s = va(aCgameYouwerere, attackerName);
+                s = va("CGAME_YOUWEREREVIVED", attackerName);
                 CG_PriorityCenterPrint(localClientNum, s, 0);
             }
         }

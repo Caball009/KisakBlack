@@ -1,5 +1,11 @@
 #include "cg_spikeacoustic.h"
 
+const dvar_t *acousticSpikeMaxRange;
+const dvar_t *acousticSpikeMinRange;
+const dvar_t *acousticSpikeMinRadius;
+const dvar_t *acousticSpikeSize;
+const dvar_t *acousticSpikeRingSize;
+
 void __cdecl CG_SpikeAcousticRegisterDvars()
 {
     acousticSpikeMaxRange = _Dvar_RegisterFloat(

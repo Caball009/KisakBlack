@@ -1,4 +1,13 @@
 #include "live.h"
+#include <cgame_mp/cg_consolecmds_mp.h>
+#include <cgame/cg_compass.h>
+#include "live_win.h"
+#include "live_storage_pub.h"
+#include "live_storage.h"
+#include <qcommon/common.h>
+#include <demo/demo_playback.h>
+#include <qcommon/com_gamemodes.h>
+#include <DW/dwLogOn_pc.h>
 
 int __cdecl Live_CountGuestsInUse()
 {

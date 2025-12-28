@@ -1,4 +1,68 @@
 #include "cg_drawtools.h"
+#include <gfx_d3d/r_gfx.h>
+#include <gfx_d3d/r_material.h>
+#include <gfx_d3d/r_rendercmds.h>
+#include <gfx_d3d/r_font.h>
+#include <cgame_mp/cg_main_mp.h>
+#include <client_mp/cl_cgame_mp.h>
+#include <universal/q_parse.h>
+#include <universal/com_stringtable.h>
+#include <qcommon/com_clients.h>
+#include <ui/ui_localvars.h>
+#include <clientscript/cscr_vm.h>
+#include "cg_draw_names.h"
+#include <xanim/xmodel.h>
+#include <qcommon/dobj_management.h>
+#include <xanim/dobj_utils.h>
+#include <universal/com_math_anglevectors.h>
+#include <xanim/xmodel_utils.h>
+#include <client/cl_debugdata.h>
+
+float color_2[4];
+
+int boxVerts_0[24][3] =
+{
+  { 0, 0, 0 },
+  { 1, 0, 0 },
+  { 0, 0, 0 },
+  { 0, 1, 0 },
+  { 1, 1, 0 },
+  { 1, 0, 0 },
+  { 1, 1, 0 },
+  { 0, 1, 0 },
+  { 0, 0, 1 },
+  { 1, 0, 1 },
+  { 0, 0, 1 },
+  { 0, 1, 1 },
+  { 1, 1, 1 },
+  { 1, 0, 1 },
+  { 1, 1, 1 },
+  { 0, 1, 1 },
+  { 0, 0, 0 },
+  { 0, 0, 1 },
+  { 1, 0, 0 },
+  { 1, 0, 1 },
+  { 0, 1, 0 },
+  { 0, 1, 1 },
+  { 1, 1, 0 },
+  { 1, 1, 1 }
+};
+
+const int iEdgePairs[12][2] =
+{
+  { 0, 1 },
+  { 0, 2 },
+  { 0, 4 },
+  { 1, 3 },
+  { 1, 5 },
+  { 2, 3 },
+  { 2, 6 },
+  { 3, 7 },
+  { 4, 5 },
+  { 4, 6 },
+  { 5, 7 },
+  { 6, 7 }
+};
 
 double __cdecl CG_GetPicWidth(Material *mat)
 {
@@ -35,16 +99,19 @@ const Material *__cdecl Material_FromHandle(Material *handle)
     return handle;
 }
 
+const float sign[4][2] =
+{ { -1.0, -1.0 }, { 1.0, -1.0 }, { 1.0, 1.0 }, { -1.0, 1.0 } };
+
 void __cdecl CG_DrawRotatedPicPhysicalW(
-                const ScreenPlacement *scrPlace,
-                float x,
-                float y,
-                float w,
-                float width,
-                float height,
-                float angle,
-                const float *color,
-                Material *material)
+    const ScreenPlacement *scrPlace,
+    float x,
+    float y,
+    float w,
+    float width,
+    float height,
+    float angle,
+    const float *color,
+    Material *material)
 {
     long double v9; // st7
     float v10; // [esp+Ch] [ebp-70h]
@@ -55,18 +122,18 @@ void __cdecl CG_DrawRotatedPicPhysicalW(
     float v15; // [esp+18h] [ebp-64h]
     float v16; // [esp+1Ch] [ebp-60h]
     float v17; // [esp+20h] [ebp-5Ch]
-    float cos; // [esp+30h] [ebp-4Ch]
+    float cosval; // [esp+30h] [ebp-4Ch]
     float halfWidth; // [esp+34h] [ebp-48h]
     float verts[4][2]; // [esp+38h] [ebp-44h] BYREF
     int i; // [esp+58h] [ebp-24h]
     float scale[2][2]; // [esp+5Ch] [ebp-20h]
     float halfHeight; // [esp+6Ch] [ebp-10h]
     float center[2]; // [esp+70h] [ebp-Ch]
-    float sin; // [esp+78h] [ebp-4h]
+    float sinval; // [esp+78h] [ebp-4h]
 
     v9 = (float)(angle * 0.017453292);
-    cos = cos(v9);
-    sin = sin(v9);
+    cosval = cos(v9);
+    sinval = sin(v9);
     v17 = (float)(width * 0.5) / ScrPlace_HiResGetScale();
     halfWidth = v17 * scrPlace->scaleRealToVirtual[0];
     v16 = (float)(height * 0.5) / ScrPlace_HiResGetScale();
@@ -75,16 +142,16 @@ void __cdecl CG_DrawRotatedPicPhysicalW(
     center[0] = (float)(v15 * scrPlace->scaleRealToVirtual[0]) + halfWidth;
     v14 = y / ScrPlace_HiResGetScale();
     center[1] = (float)(v14 * scrPlace->scaleRealToVirtual[1]) + halfHeight;
-    scale[0][0] = cos * halfWidth;
-    scale[0][1] = sin * halfWidth;
-    scale[1][0] = sin * halfHeight;
-    scale[1][1] = cos * halfHeight;
-    for ( i = 0; i < 4; ++i )
+    scale[0][0] = cosval * halfWidth;
+    scale[0][1] = sinval * halfWidth;
+    scale[1][0] = sinval * halfHeight;
+    scale[1][1] = cosval * halfHeight;
+    for (i = 0; i < 4; ++i)
     {
-        v12 = (float)((float)((float)sign[i][0] * scale[0][0]) + center[0]) - (float)(dword_C7C888[2 * i] * scale[1][0]);
+        v12 = (float)((float)((float)sign[i][0] * scale[0][0]) + center[0]) - (float)((float)sign[i][1] * scale[1][0]);
         v13 = ScrPlace_HiResGetScale() * v12;
         verts[i][0] = v13 * scrPlace->scaleVirtualToReal[0];
-        v10 = (float)((float)((float)sign[i][0] * scale[0][1]) + center[1]) + (float)(dword_C7C888[2 * i] * scale[1][1]);
+        v10 = (float)((float)((float)sign[i][0] * scale[0][1]) + center[1]) + (float)((float)sign[i][1] * scale[1][1]);
         v11 = ScrPlace_HiResGetScale() * v10;
         verts[i][1] = v11 * scrPlace->scaleVirtualToReal[1];
     }
@@ -199,16 +266,19 @@ void __cdecl CG_DrawRotatedQuadPic(
     R_AddCmdDrawQuadPic(xy, color, material);
 }
 
+const float sign_0[4][2] =
+{ { 1.0, -1.0 }, { 1.0, 1.0 }, { -1.0, 1.0 }, { -1.0, -1.0 } };
+
 void __cdecl CG_DrawVLine(
-                const ScreenPlacement *scrPlace,
-                float x,
-                float top,
-                float lineWidth,
-                float height,
-                int horzAlign,
-                int vertAlign,
-                const float *color,
-                Material *material)
+    const ScreenPlacement *scrPlace,
+    float x,
+    float top,
+    float lineWidth,
+    float height,
+    int horzAlign,
+    int vertAlign,
+    const float *color,
+    Material *material)
 {
     float halfWidth; // [esp+0h] [ebp-34h]
     float verts[4][2]; // [esp+4h] [ebp-30h] BYREF
@@ -221,10 +291,10 @@ void __cdecl CG_DrawVLine(
     halfHeight = height * 0.5;
     center[0] = x;
     center[1] = top + (float)(height * 0.5);
-    for ( i = 0; i < 4; ++i )
+    for (i = 0; i < 4; ++i)
     {
         verts[i][0] = (float)((float)sign_0[i][0] * halfWidth) + center[0];
-        verts[i][1] = (float)(dword_C7C8A8[2 * i] * halfHeight) + center[1];
+        verts[i][1] = (float)((float)sign_0[i][1] * halfHeight) + center[1];
     }
     R_AddCmdDrawQuadPic(verts, color, material);
 }
@@ -235,7 +305,8 @@ double __cdecl Vec2NormalizeTo(const float *v, float *out)
     float length; // [esp+Ch] [ebp-4h]
 
     length = sqrtf((float)(*v * *v) + (float)(v[1] * v[1]));
-    if ( COERCE_FLOAT(LODWORD(length) ^ _mask__NegFloat_) < 0.0 )
+    //if ( COERCE_FLOAT(LODWORD(length) ^ _mask__NegFloat_) < 0.0 )
+    if ( -(length) < 0.0 )
         v3 = length;
     else
         v3 = 1.0f;
@@ -370,13 +441,13 @@ double __cdecl CG_FadeAlpha(int timeNow, int startMsec, int totalMsec, int fadeM
 
 float *__cdecl CG_FadeColor(int timeNow, int startMsec, int totalMsec, int fadeMsec)
 {
-    if ( !startMsec )
+    if (!startMsec)
         return 0;
-    if ( timeNow - startMsec >= totalMsec )
+    if (timeNow - startMsec >= totalMsec)
         return 0;
-    flt_EBD4E8 = CG_FadeAlpha(timeNow, startMsec, totalMsec, fadeMsec);
-    dword_EBD4E4 = LODWORD(1.0f);
-    dword_EBD4E0 = LODWORD(1.0f);
+    color_2[3] = CG_FadeAlpha(timeNow, startMsec, totalMsec, fadeMsec);
+    color_2[2] = 1.0f;
+    color_2[1] = 1.0f;
     color_2[0] = 1.0f;
     return color_2;
 }
@@ -397,15 +468,15 @@ void __cdecl CG_MiniMapChanged(int localClientNum)
 
     string = CL_GetConfigString(1549);
     cgameGlob = CG_GetLocalClientGlobals(localClientNum);
-    material = Com_Parse(&string);
-    cgameGlob->compassMapMaterial = Material_RegisterHandle(material, 7);
-    v1 = Com_Parse(&string);
+    material = Com_Parse(&string)->token;
+    cgameGlob->compassMapMaterial = Material_RegisterHandle((char*)material, 7);
+    v1 = Com_Parse(&string)->token;
     cgameGlob->compassMapUpperLeft[0] = atof(v1);
-    v2 = Com_Parse(&string);
+    v2 = Com_Parse(&string)->token;
     cgameGlob->compassMapUpperLeft[1] = atof(v2);
-    v3 = Com_Parse(&string);
+    v3 = Com_Parse(&string)->token;
     lowerRight[0] = atof(v3);
-    v4 = Com_Parse(&string);
+    v4 = Com_Parse(&string)->token;
     lowerRight[1] = atof(v4);
     east[0] = cgameGlob->compassNorth[1];
     east[1] = -cgameGlob->compassNorth[0];
@@ -437,13 +508,13 @@ void __cdecl CG_NorthDirectionChanged(int localClientNum)
 }
 
 void __cdecl CG_DebugBox(
-                const float *origin,
-                const float *mins,
-                const float *maxs,
-                float yaw,
-                const float *color,
-                int depthTest,
-                int duration)
+    const float *origin,
+    const float *mins,
+    const float *maxs,
+    float yaw,
+    const float *color,
+    int depthTest,
+    int duration)
 {
     long double v7; // st7
     float v8; // [esp+0h] [ebp-9Ch]
@@ -459,11 +530,11 @@ void __cdecl CG_DebugBox(
     v7 = (float)(yaw * 0.017453292);
     fCos = cos(v7);
     fSin = sin(v7);
-    for ( i = 0; i < 8; ++i )
+    for (i = 0; i < 8; ++i)
     {
-        for ( j = 0; j < 3; ++j )
+        for (j = 0; j < 3; ++j)
         {
-            if ( (i & (1 << j)) != 0 )
+            if ((i & (1 << j)) != 0)
                 v8 = maxs[j];
             else
                 v8 = mins[j];
@@ -477,18 +548,18 @@ void __cdecl CG_DebugBox(
         v9[1] = v9[1] + origin[1];
         v9[2] = v9[2] + origin[2];
     }
-    for ( ia = 0; ia < 0xC; ++ia )
-        CG_DebugLine(&v[3 * iEdgePairs[ia][0]], &v[3 * dword_D7F394[2 * ia]], color, depthTest, duration);
+    for (ia = 0; ia < 0xC; ++ia)
+        CG_DebugLine(&v[3 * iEdgePairs[ia][0]], &v[3 * iEdgePairs[ia][1]], color, depthTest, duration);
 }
 
 void __cdecl CG_DebugBoxOriented(
-                const float *origin,
-                const float *mins,
-                const float *maxs,
-                const float (*rotation)[3],
-                const float *color,
-                int depthTest,
-                int duration)
+    const float *origin,
+    const float *mins,
+    const float *maxs,
+    const float (*rotation)[3],
+    const float *color,
+    int depthTest,
+    int duration)
 {
     float v7; // [esp+0h] [ebp-84h]
     float *v8; // [esp+4h] [ebp-80h]
@@ -498,11 +569,11 @@ void __cdecl CG_DebugBoxOriented(
     unsigned int i; // [esp+20h] [ebp-64h]
     float v[8][3]; // [esp+24h] [ebp-60h] BYREF
 
-    for ( i = 0; i < 8; ++i )
+    for (i = 0; i < 8; ++i)
     {
-        for ( j = 0; j < 3; ++j )
+        for (j = 0; j < 3; ++j)
         {
-            if ( (i & (1 << j)) != 0 )
+            if ((i & (1 << j)) != 0)
                 v7 = maxs[j];
             else
                 v7 = mins[j];
@@ -518,8 +589,8 @@ void __cdecl CG_DebugBoxOriented(
         v8[1] = v8[1] + origin[1];
         v8[2] = v8[2] + origin[2];
     }
-    for ( i = 0; i < 0xC; ++i )
-        CG_DebugLine(v[iEdgePairs[i][0]], v[dword_D7F394[2 * i]], color, depthTest, duration);
+    for (i = 0; i < 0xC; ++i)
+        CG_DebugLine(v[iEdgePairs[i][0]], v[iEdgePairs[i][1]], color, depthTest, duration);
 }
 
 void __cdecl CG_ScoreboardTeamColor(int localClientNum, int team, float *color)
@@ -609,7 +680,7 @@ void __cdecl CG_RelativeTeamColor(int clientNum, float *color, int localClientNu
     int savedAlpha; // [esp+Ch] [ebp-8h]
     int teamIndicator; // [esp+10h] [ebp-4h]
 
-    teamIndicator = CG_GetTeamIndicator(localClientNum);
+    teamIndicator = CG_GetTeamIndicator();
     cgameGlob = CG_GetLocalClientGlobals(localClientNum);
     if ( cgameGlob->clientNum >= 0x20u
         && !Assert_MyHandler(

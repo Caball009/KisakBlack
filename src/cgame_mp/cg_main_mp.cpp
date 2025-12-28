@@ -17,11 +17,17 @@
 #include <bgame/bg_misc.h>
 #include <game_mp/g_main_mp.h>
 #include "cg_local_mp.h"
+#include <ragdoll/ragdoll.h>
 
 const char *debugOverlayNames[4] =
 { "Off", "ViewmodelInfo", "FontTest", NULL };
 
 cgMedia_t cgMedia;
+
+bool cg_fakeEntitiesInuseArray[512];
+int cg_fakeEntitiesInuseCount[1];
+int cg_fakeEntitiesInuseCountFromMap;
+int cg_fakeEntitiesInuseCountFromLoadScript;
 
 const dvar_s *cg_loadScripts;
 const dvar_s *cg_usingClientScripts;

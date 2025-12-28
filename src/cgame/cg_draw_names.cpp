@@ -1,5 +1,32 @@
 #include "cg_draw_names.h"
 
+#include <cstring>
+#include <client_mp/cl_ui_mp.h>
+#include <cgame_mp/cg_local_mp.h>
+#include "cg_main.h"
+#include <cgame_mp/cg_ents_mp.h>
+#include <cgame_mp/cg_main_mp.h>
+#include <demo/demo_playback.h>
+#include <clientscript/scr_const.h>
+#include "cg_drawtools.h"
+#include <gfx_d3d/r_font.h>
+#include <client/cl_rank.h>
+#include <client_mp/cl_cgame_mp.h>
+#include <universal/com_math_anglevectors.h>
+#include <qcommon/dobj_management.h>
+#include <cgame_mp/cg_players_mp.h>
+#include <gfx_d3d/r_dpvs.h>
+#include "cg_world.h"
+#include <bgame/bg_weapons.h>
+#include <bgame/bg_weapons_def.h>
+#include <EffectsCore/fx_system.h>
+#include <win32/win_shared.h>
+
+OverheadFade overheadFade[32];
+DrawNameEntity drawNameEntities[32];
+unsigned int numDrawNameEntities;
+PlayerDetails playerDetails[1][32];
+
 void __cdecl CG_ClearOverheadFade()
 {
     memset((unsigned __int8 *)overheadFade, 0, sizeof(overheadFade));
@@ -87,7 +114,7 @@ void __cdecl CG_DrawOverheadNames(int localClientNum, const centity_s *cent, flo
         cgameGlob = CG_GetLocalClientGlobals(localClientNum);
         scrPlace = &scrPlaceView[localClientNum];
         if ( cent->pose.eType != 14
-            || !CG_IsVehicleRemoteControl(cent->nextState.un2.vehicleState.vehicleInfoIndex)
+            || !CG_IsVehicleRemoteControl(cent->nextState.vehicleState.vehicleInfoIndex)
             && (entnum = CG_GetDriverClientNumFromVehicle(localClientNum, cent), entnum < com_maxclients->current.integer) )
         {
             if ( (cent->nextState.lerp.eFlags & 0x40000) == 0 )
@@ -515,7 +542,7 @@ void __cdecl CG_ScanForCrosshairEntityInternal(int localClientNum)
                 Vec3Lerp(start, end, 0.050000001, start);
             }
         }
-        col_context_t::col_context_t(&context);
+        //col_context_t::col_context_t(&context);
         context.ignoreEntParams = &ignoreEntParams;
         CG_LocationalTrace(
             &trace,
@@ -541,8 +568,8 @@ void __cdecl CG_ScanForCrosshairEntityInternal(int localClientNum)
             && hitEnt->nextState.eType != 17
             && !CG_CheckIfDrivingRemoteControlVehicle(localClientNum, hitEntId) )
         {
-            if ( GetCurrentThreadId() != g_DXDeviceThread )
-                return;
+            //if ( GetCurrentThreadId() != g_DXDeviceThread )
+            //    return;
             goto LABEL_69;
         }
         if ( cgameGlob->nextSnap->ps.clientNum >= 0x20u
@@ -561,13 +588,13 @@ void __cdecl CG_ScanForCrosshairEntityInternal(int localClientNum)
         {
             if ( hitEnt->nextState.eType == 17 )
             {
-                hitEntTeam = hitEnt->nextState.lerp.u.actor.team;
+                hitEntTeam = (team_t)hitEnt->nextState.lerp.u.actor.team;
                 if ( cgameGlob->nextSnap->ps.clientNum == (int)hitEnt->nextState.faction.iHeadIconTeam >> 2 )
                     owner = 1;
             }
             else if ( hitEnt->nextState.eType == 14 || hitEnt->nextState.eType == 15 || hitEnt->nextState.eType == 16 )
             {
-                hitEntTeam = hitEnt->nextState.faction.iHeadIconTeam & 3;
+                hitEntTeam = (team_t)(hitEnt->nextState.faction.iHeadIconTeam & 3);
             }
             else if ( hitEntId < com_maxclients->current.integer )
             {
@@ -581,14 +608,14 @@ void __cdecl CG_ScanForCrosshairEntityInternal(int localClientNum)
             {
                 if ( (hitEnt->nextState.lerp.eFlags & 0x40000) != 0 )
                 {
-                    if ( GetCurrentThreadId() != g_DXDeviceThread )
-                        return;
+                    //if ( GetCurrentThreadId() != g_DXDeviceThread )
+                    //    return;
                     goto LABEL_69;
                 }
                 if ( (cgameGlob->bgs.clientinfo[hitEntId].perks[1] & 4) != 0 )
                 {
-                    if ( g_DXDeviceThread != GetCurrentThreadId() )
-                        return;
+                    //if ( g_DXDeviceThread != GetCurrentThreadId() )
+                    //    return;
                     goto LABEL_69;
                 }
                 diff[0] = hitEnt->pose.origin[0] - start[0];
@@ -602,14 +629,14 @@ void __cdecl CG_ScanForCrosshairEntityInternal(int localClientNum)
                     enemyCrosshairRange = weapDef->enemyCrosshairRange;
                 if ( (float)((float)((float)(diff[0] * diff[0]) + (float)(diff[1] * diff[1])) + (float)(diff[2] * diff[2])) > (float)(enemyCrosshairRange * enemyCrosshairRange) )
                 {
-                    if ( GetCurrentThreadId() != g_DXDeviceThread )
-                        return;
+                    //if ( GetCurrentThreadId() != g_DXDeviceThread )
+                    //    return;
                     goto LABEL_69;
                 }
                 if ( !FX_ClientVisibilityTest(localClientNum, start, contactEnd) )
                 {
-                    if ( g_DXDeviceThread != GetCurrentThreadId() )
-                        return;
+                    //if ( g_DXDeviceThread != GetCurrentThreadId() )
+                    //    return;
                     goto LABEL_69;
                 }
                 cgameGlob->predictedPlayerState.weapFlags |= 0x10u;
@@ -625,13 +652,13 @@ void __cdecl CG_ScanForCrosshairEntityInternal(int localClientNum)
                 cgameGlob->crosshairClientStartTime = cgameGlob->time;
             }
             cgameGlob->crosshairClientLastTime = cgameGlob->time;
-            if ( GetCurrentThreadId() != g_DXDeviceThread )
-                return;
+            //if ( GetCurrentThreadId() != g_DXDeviceThread )
+            //    return;
         }
-        else if ( g_DXDeviceThread != GetCurrentThreadId() )
-        {
-            return;
-        }
+        //else if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //{
+        //    return;
+        //}
 LABEL_69:
         //D3DPERF_EndEvent();
         return;
@@ -841,7 +868,7 @@ char __cdecl CG_IsValidCrosshairEntity(int localClientNum, const cg_s *cgameGlob
         return 0;
     if ( (cent->nextState.lerp.eFlags & 0x20) != 0 && cent->nextState.eType != 14 )
         return 0;
-    if ( cent->nextState.eType == 14 && CG_IsVehicleRemoteControl(cent->nextState.un2.vehicleState.vehicleInfoIndex) )
+    if ( cent->nextState.eType == 14 && CG_IsVehicleRemoteControl(cent->nextState.vehicleState.vehicleInfoIndex) )
         return 0;
     if ( entNum == cgameGlob->crosshairClientNum )
         return 1;
@@ -961,7 +988,7 @@ void __cdecl CG_DrawVisibleNames(int localClientNum)
     const cg_s *cgameGlob; // [esp+34h] [ebp-1Ch]
     const snapshot_s *nextSnap; // [esp+38h] [ebp-18h]
     const centity_s *cent; // [esp+3Ch] [ebp-14h]
-    unsigned inttimeNow; // [esp+40h] [ebp-10h]
+    unsigned int timeNow; // [esp+40h] [ebp-10h]
     int entnum; // [esp+44h] [ebp-Ch]
     float alpha; // [esp+4Ch] [ebp-4h]
 

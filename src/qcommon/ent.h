@@ -72,18 +72,19 @@ struct LerpEntityStateVehicleGunnerAngles // sizeof=0x4
         __int16 yaw;
 };
 
-union $ABF14481B6CB3C635AAEF83DF0F35947 // sizeof=0x2
-{                                                                             // XREF: LerpEntityStateVehicle/r
-        __int16 throttle;
-        __int16 bodyPitch;
-};
+
 
 struct __declspec(align(2)) LerpEntityStateVehicle // sizeof=0x20
 {                                                                             // XREF: LerpEntityStateTypeUnion/r
         float steerYaw;
         float bodyRoll;
         LerpEntityStateVehicleGunnerAngles gunnerAngles[4];
-        $ABF14481B6CB3C635AAEF83DF0F35947 ___u3;
+        //$ABF14481B6CB3C635AAEF83DF0F35947 ___u3;
+        union //$ABF14481B6CB3C635AAEF83DF0F35947 // sizeof=0x2
+        {                                                                             // XREF: LerpEntityStateVehicle/r
+            __int16 throttle;
+            __int16 bodyPitch;
+        };
         __int16 gunPitch;
         __int16 gunYaw;
         unsigned __int8 drawOnCompass;

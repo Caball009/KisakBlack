@@ -1,9 +1,502 @@
 #include "cg_scr_main.h"
 #include <clientscript/cscr_stringlist.h>
 #include <clientscript/scr_const.h>
+#include <cgame_mp/cg_scr_main_mp.h>
+#include <clientscript/cscr_vm.h>
+#include <bgame/bg_weapons.h>
+#include <cgame_mp/cg_ents_mp.h>
+#include <cgame_mp/cg_actors_mp.h>
+#include <xanim/xmodel.h>
+#include <cgame_mp/cg_vehicles_mp.h>
+#include <bgame/bg_misctables.h>
+#include <universal/surfaceflags.h>
+#include <cgame_mp/cg_local_mp.h>
+#include <cgame_mp/cg_main_mp.h>
+#include "cg_spawn.h"
+#include <clientscript/cscr_evaluate.h>
+#include <client/cl_debugdata.h>
+#include <universal/com_math_anglevectors.h>
+#include <client_mp/cl_cgame_mp.h>
+#include <ui/ui_shared.h>
+#include <universal/com_shared.h>
+#include <sound/snd_bank.h>
+#include "cg_sound.h"
+#include <sound/snd_public_async.h>
+#include <sound/snd_utils.h>
+#include <win32/win_shared.h>
+#include <client/splitscreen.h>
+#include <qcommon/dobj_management.h>
+#include <xanim/dobj_utils.h>
+#include <demo/demo_playback.h>
+#include <qcommon/com_clients.h>
+#include "cg_compass.h"
+#include <gfx_d3d/r_cinematic.h>
+#include <EffectsCore/fx_system.h>
+#include <EffectsCore/fx_dvars.h>
+#include "cg_world.h"
+#include <universal/com_files.h>
+#include <universal/q_parse.h>
+#include <universal/com_memory.h>
+#include <gfx_d3d/r_ui3d.h>
+#include "cg_main.h"
+#include <bgame/bg_weapons_def.h>
+#include <xanim/xmodel_utils.h>
+#include <bgame/bg_misc.h>
+#include <gfx_d3d/r_primarylights.h>
+#include "cg_camerashake.h"
+#include <DynEntity/DynEntity_client.h>
+#include <clientscript/cscr_memorytree.h>
+#include <cgame_mp/cg_animscripted_mp.h>
+#include "cg_event.h"
+#include <game/g_load_utils.h>
+#include <stringed/stringed_hooks.h>
 
 cg_level_locals_t cg_level;
 cscr_data_t cg_scr_data;
+
+int g_cs_file;
+char *g_cs_file_buffer;
+com_parse_mark_t g_cs_file_linemark;
+
+
+void NULLSUB()
+{
+
+}
+
+const BuiltinMethodDef client_methods[111] =
+{
+  { "print", &CScr_Print, 1 },
+  { "delete", &CScrCmd_Delete, 0 },
+  { "forcedelete", &CScrCmd_ForceDelete, 0 },
+  { "earthquake", &CScrCmd_Earthquake, 0 },
+  { "playsound", &CScr_PlaySoundOnEntity, 0 },
+  { "playloopsound", &CScr_PlayLoopSoundOnEntity, 0 },
+  { "stoploopsound", &CScr_StopLoopSoundOnEntity, 0 },
+  { "isplayingloopsound", &CScr_IsPlayingLoopSound, 0 },
+  { "makelight", &CScrCmd_MakeLight, 0 },
+  { "getlightcolor", &CScr_GetLightColor, 0 },
+  { "setlightcolor", &CScr_SetLightColor, 0 },
+  { "getlightintensity", &CScr_GetLightIntensity, 0 },
+  { "setlightintensity", &CScr_SetLightIntensity, 0 },
+  { "getlightradius", &CScr_GetLightRadius, 0 },
+  { "setlightradius", &CScr_SetLightRadius, 0 },
+  { "getlightfovinner", &CScr_GetLightFovInner, 0 },
+  { "getlightfovouter", &CScr_GetLightFovOuter, 0 },
+  { "setlightfovrange", &CScr_SetLightFovRange, 0 },
+  { "getlightexponent", &CScr_GetLightExponent, 0 },
+  { "setlightexponent", &CScr_SetLightExponent, 0 },
+  { "getentnum", &CScrCmd_GetEntNum, 1 },
+  { "getentitynumber", &CScrCmd_GetEntityNumber, 0 },
+  { "setmodel", &CScrCmd_SetModel, 0 },
+  { "attach", &CScr_Attach, 0 },
+  { "linkto", &CScrCmd_LinkTo, 0 },
+  { "unlink", &CScrCmd_Unlink, 0 },
+  { "istouching", &CScrCmd_IsTouching, 0 },
+  { "isalive", &CScrCmd_IsAlive, 0 },
+  { "getspeed", &CScrCmd_GetSpeed, 0 },
+  { "underwater", &CScrCmd_UnderWater, 0 },
+  { "isplayer", &CScrCmd_IsPlayer, 0 },
+  { "islocalplayer", &CScrCmd_IsLocalPlayer, 0 },
+  { "isai", &CScrCmd_IsAI, 0 },
+  { "hasdobj", &CScr_HasDObj, 0 },
+  { "setcompassicon", &CScr_SetCompassIcon, 0 },
+  { "launchragdoll", &CScr_LaunchRagdoll, 0 },
+  { "show", &CScr_Show, 0 },
+  { "hide", &CScr_Hide, 0 },
+  { "getthrottle", &CScrCmd_GetThrottle, 0 },
+  { "getbrake", &CScrCmd_GetBrake, 0 },
+  { "getmaxspeed", &CScrCmd_GetMaxSpeed, 0 },
+  { "getmaxreversespeed", &CScrCmd_GetMaxReverseSpeed, 0 },
+  { "islocalclientdriver", &CScrCmd_IsLocalClientDriver, 0 },
+  { "getlocalclientdriver", &CScrCmd_GetLocalClientDriver, 0 },
+  { "getwheelsurface", &CScrCmd_GetWheelSurface, 0 },
+  { "ispeelingout", &CScrCmd_IsVehiclePeelingOut, 0 },
+  { "iswheelsliding", &CScrCmd_IsWheelSliding, 0 },
+  { "iswheelcolliding", &CScrCmd_IsWheelColliding, 0 },
+  { "getlocalgunnerangles", &CScrCmd_GetLocalGunnerAngles, 0 },
+  { "setstunned", &CScrCmd_SetStunned, 0 },
+  { "isdriving", &CScrCmd_IsDriving, 0 },
+  { "rotatepitch", &CScrCmd_RotatePitch, 0 },
+  { "rotateyaw", &CScrCmd_RotateYaw, 0 },
+  { "rotateroll", &CScrCmd_RotateRoll, 0 },
+  { "rotateto", &CScrCmd_RotateTo, 0 },
+  { "moveto", &CScrCmd_MoveTo, 0 },
+  { "movegravity", &CScrCmd_MoveGravity, 0 },
+  { "movex", &CScrEntCmd_MoveX, 0 },
+  { "movey", &CScrEntCmd_MoveY, 0 },
+  { "movez", &CScrEntCmd_MoveZ, 0 },
+  { "rotatevelocity", &CScrCmd_RotateVelocity, 0 },
+  { "playrumbleonentity", &NULLSUB, 0 },
+  { "playrumblelooponentity", &NULLSUB, 0 },
+  { "stoprumble", &NULLSUB, 0 },
+  { "startpoisoning", &CScr_StartPoisoning, 0 },
+  { "stoppoisoning", &CScr_StopPoisoning, 0 },
+  { "ispoisoned", &CScr_IsPoisoned, 0 },
+  { "issplitscreenhost", &CScrCmd_IsSplitScreenHost, 0 },
+  { "setwatchstyle", &NULLSUB, 0 },
+  { "getcampos", &CScrCmd_GetCamPos, 0 },
+  { "getcamangles", &CScrCmd_GetCamAngles, 0 },
+  { "useanimtree", &CScr_UseAnimTree, 0 },
+  { "hasanimtree", &CScr_HasAnimTree, 0 },
+  { "clearanim", &CScr_ClearAnim, 0 },
+  { "clearanimlimited", &CScr_ClearAnimLimited, 0 },
+  { "setanim", &CScr_SetAnim, 0 },
+  { "setanimlimited", &CScr_SetAnimLimited, 0 },
+  { "setanimrestart", &CScr_SetAnimRestart, 0 },
+  { "setanimlimitedrestart", &CScr_SetAnimLimitedRestart, 0 },
+  { "setflaggedanim", &CScr_SetFlaggedAnim, 0 },
+  { "setflaggedanimlimited", &CScr_SetFlaggedAnimLimited, 0 },
+  { "setflaggedanimrestart", &CScr_SetFlaggedAnimRestart, 0 },
+  { "setflaggedanimlimitedrestart", &CScr_SetFlaggedAnimLimitedRestart, 0 },
+  { "setanimknob", &CScr_SetAnimKnob, 0 },
+  { "setanimknoblimited", &CScr_SetAnimKnobLimited, 0 },
+  { "setanimknobrestart", &CScr_SetAnimKnobRestart, 0 },
+  { "setanimknoblimitedrestart", &CScr_SetAnimKnobLimitedRestart, 0 },
+  { "setanimknoball", &CScr_SetAnimKnobAll, 0 },
+  { "setanimknoballlimited", &CScr_SetAnimKnobAllLimited, 0 },
+  { "setanimknoballrestart", &CScr_SetAnimKnobAllRestart, 0 },
+  { "setanimknoballlimitedrestart", &CScr_SetAnimKnobAllLimitedRestart, 0 },
+  { "setflaggedanimknob", &CScr_SetFlaggedAnimKnob, 0 },
+  { "setflaggedanimknoblimited", &CScr_SetFlaggedAnimKnobLimited, 0 },
+  { "setflaggedanimknobrestart", &CScr_SetFlaggedAnimKnobRestart, 0 },
+  {
+    "setflaggedanimknoblimitedrestart",
+    &CScr_SetFlaggedAnimKnobLimitedRestart,
+    0
+  },
+  { "setflaggedanimknoball", &CScr_SetFlaggedAnimKnobAll, 0 },
+  { "setflaggedanimknoballrestart", &CScr_SetFlaggedAnimKnobAllRestart, 0 },
+  { "getanimtime", &CScr_GetAnimTime, 0 },
+  { "setanimtime", &CScr_SetAnimTime, 0 },
+  { "getanimcurrframecount", &CScr_GetAnimCurrFrameCount, 0 },
+  { "animgetchildat", &CScr_AnimGetChildAt, 0 },
+  { "animgetnumchildren", &CScr_AnimGetNumChildren, 0 },
+  { "map_material", &CScr_Map_Material, 0 },
+  { "set_filter_pass_material", &CScr_Set_Filter_Pass_Material, 0 },
+  { "set_filter_pass_enabled", &CScr_Set_Filter_Pass_Enabled, 0 },
+  { "set_filter_pass_quads", &CScr_Set_Filter_Pass_Quads, 0 },
+  { "set_filter_pass_constant", &CScr_Set_Filter_Pass_Constant, 0 },
+  { "set_overlay_enabled", &CScr_Set_Overlay_Enabled, 0 },
+  { "set_overlay_material", &CScr_Set_Overlay_Material, 0 },
+  { "set_overlay_constant", &CScr_Set_Overlay_Constant, 0 },
+  { "setinfraredvisionset", &CScr_SetInfraredVisionset, 0 }
+};
+
+
+
+BuiltinFunctionDef client_functions[154] =
+{
+  { "print", print, 1 },
+  { "print3d", &CScr_Print3D, 1 },
+  { "assert", &assertCmd, 1 },
+  { "assertex", &assertexCmd, 1 },
+  { "assertmsg", &assertmsgCmd, 1 },
+  { "structinfo", &CScr_StructInfo, 1 },
+  { "spawnstruct", &CScr_AddStruct, 0 },
+  { "println", &println, 1 },
+  { "iprintlnbold", &CScr_IPrintLnBold, 0 },
+  { "line", &CScr_line, 1 },
+  { "box", &CScr_box, 1 },
+  { "debugstar", &CScr_debugstar, 1 },
+  { "clienthassnapshot", &CScr_ClientHasSnapShot, 0 },
+  { "getsystemtime", &CScr_GetSystemTime, 0 },
+  { "getservertime", &CScr_GetServerTime, 0 },
+  { "getarraykeys", &CScr_GetArrayKeys, 0 },
+  { "splitargs", &CScr_SplitArgs, 0 },
+  { "bullettrace", &CScr_BulletTrace, 0 },
+  { "tracepoint", &CScr_TracePoint, 0 },
+  { "getlocalclientpos", &CScr_GetLocalClientPos, 0 },
+  { "getlocalclienteyepos", &CScr_GetLocalClientEyePos, 0 },
+  { "getlocalclientangles", &CScr_GetLocalClientAngles, 0 },
+  { "getmaxlocalclients", &CScr_GetMaxLocalClients, 0 },
+  { "localclientactive", &CScr_LocalClientActive, 0 },
+  { "issplitscreenhost", &CScr_IsSplitScreenHost, 0 },
+  { "issplitscreen", &CScr_IsSplitScreen, 0 },
+  { "aimingatfriendly", &CScr_AimingAtFriendly, 0 },
+  { "randomint", &CScr_RandomInt, 0 },
+  { "randomfloat", &CScr_RandomFloat, 0 },
+  { "randomintrange", &CScr_RandomIntRange, 0 },
+  { "randomfloatrange", &CScr_RandomFloatRange, 0 },
+  { "sin", &CScr_sin, 0 },
+  { "cos", &CScr_cos, 0 },
+  { "tan", &CScr_tan, 0 },
+  { "asin", &CScr_asin, 0 },
+  { "acos", &CScr_acos, 0 },
+  { "atan", &CScr_atan, 0 },
+  { "int", &CScr_CastInt, 0 },
+  { "float", &CScr_CastFloat, 0 },
+  { "abs", &CScr_abs, 0 },
+  { "min", &CScr_min, 0 },
+  { "max", &CScr_max, 0 },
+  { "floor", &CScr_floor, 0 },
+  { "ceil", &CScr_ceil, 0 },
+  { "sqrt", &CScr_sqrt, 0 },
+  { "lerpfloat", &CScr_LerpFloat, 0 },
+  { "lerpvector", &CScr_LerpVector, 0 },
+  { "isdefined", &CScr_IsDefined, 0 },
+  { "isstring", &CScr_IsString, 0 },
+  { "isarray", &CScr_IsArray, 0 },
+  { "vectorfromlinetopoint", &CScr_VectorFromLineToPoint, 0 },
+  { "pointonsegmentnearesttopoint", &CScr_PointOnSegmentNearestToPoint, 0 },
+  { "distance", &CScr_Distance, 0 },
+  { "distance2d", &CScr_Distance2D, 0 },
+  { "distancesquared", &CScr_DistanceSquared, 0 },
+  { "length", &CScr_Length, 0 },
+  { "lengthsquared", &CScr_LengthSquared, 0 },
+  { "closer", &CScr_Closer, 0 },
+  { "vectordot", &CScr_VectorDot, 0 },
+  { "vectorcross", &CScr_VectorCross, 0 },
+  { "vectornormalize", &CScr_VectorNormalize, 0 },
+  { "vectortoangles", &CScr_VectorToAngles, 0 },
+  { "vectorlerp", &CScr_VectorLerp, 0 },
+  { "anglestoup", &CScr_AnglesToUp, 0 },
+  { "anglestoright", &CScr_AnglesToRight, 0 },
+  { "anglestoforward", &CScr_AnglesToForward, 0 },
+  { "combineangles", &CScr_CombineAngles, 0 },
+  { "angleclamp180", &CScr_ClampAngle180, 0 },
+  { "absangleclamp180", &CScr_AbsAngleClamp180, 0 },
+  { "getsubstr", &CScr_GetSubStr, 0 },
+  { "tolower", &CScr_ToLower, 0 },
+  { "strtok", &CScr_StrTok, 0 },
+  { "issubstr", &CScr_IsSubStr, 0 },
+  { "spawnfakeent", &CScr_SpawnFakeEnt, 0 },
+  { "deletefakeent", &CScr_DeleteFakeEnt, 0 },
+  { "setfakeentorg", &CScr_SetFakeEntOrg, 0 },
+  { "spawn", &CScr_Spawn, 0 },
+  { "spawnplane", &CScr_SpawnPlane, 0 },
+  { "getent", &CScr_GetEnt, 0 },
+  { "getentnum", &CScr_GetEntNum, 0 },
+  { "getentarray", &CScr_GetEntArray, 0 },
+  { "getlocalplayers", &CScr_GetLocalPlayers, 0 },
+  { "getlocalplayer", &CScr_GetLocalPlayer, 0 },
+  { "isalive", &CScr_IsAlive, 0 },
+  { "getweaponmodel", &CScr_GetWeaponModel, 0 },
+  { "loadfx", &CScr_LoadedFX, 0 },
+  { "playfx", &CScr_PlayFX, 0 },
+  { "playloopedfx", &CScr_PlayLoopedFX, 0 },
+  { "stopfx", &CScr_StopFX, 0 },
+  { "isfxplaying", &CScr_IsFXPlaying, 0 },
+  { "bullettracer", &CScr_BulletTracer, 0 },
+  { "disableimpactmarks", &CScr_DisableImpactMarks, 0 },
+  { "enableimpactmarks", &CScr_EnableImpactMarks, 0 },
+  { "playloopsound", &CScr_PlayLoopSound, 0 },
+  { "stoploopsound", &CScr_StopLoopSound, 0 },
+  { "playsound", &CScr_PlaySound, 0 },
+  { "soundplaying", &CScr_SoundPlaying, 0 },
+  { "deactivatereverb", &CScr_DeactivateReverb, 0 },
+  { "setreverb", &CScr_SetReverb, 0 },
+  { "setsoundvolume", &CScr_SetSoundVolume, 0 },
+  { "setsoundpitch", &CScr_SetSoundPitch, 0 },
+  { "setsoundvolumerate", &CScr_SetSoundVolumeRate, 0 },
+  { "setsoundpitchrate", &CScr_SetSoundPitchRate, 0 },
+  { "stopsound", &CScr_StopSound, 0 },
+  { "getrealtime", &CScr_GetRealTime, 0 },
+  { "getplaybacktime", &CScr_GetPlaybackTime, 0 },
+  { "getknownlength", &CScr_GetKnownLength, 0 },
+  { "setgroupsnapshot", &CScr_SetGroupSnapshot, 0 },
+  { "setambientsnapshot", &CScr_SetAmbientSnapshot, 0 },
+  { "sethealthsnapshot", &CScr_SetHealthSnapshot, 0 },
+  { "setlevelfadesnapshot", &CScr_SetLevelFadeSnapshot, 0 },
+  { "scalespeed", &CScr_ScaleSpeed, 0 },
+  { "soundloopemitter", &CScr_SoundLoopEmitter, 0 },
+  { "setsoundcontext", &CScr_SetSoundContext, 0 },
+  { "soundstoploopemitter", &CScr_SoundStopLoopEmitter, 0 },
+  { "soundlineemitter", &CScr_SoundLineEmitter, 0 },
+  { "soundstoplineemitter", &CScr_SoundStopLineEmitter, 0 },
+  { "getsoundname", &CScr_GetAliasName, 0 },
+  { "getsoundcount", &CScr_GetAliasCount, 0 },
+  { "issoundloop", &CScr_IsAliasLoop, 0 },
+  { "stoplocalsound", &CScr_StopLocalSound, 0 },
+  { "soundtimescale", &CScr_SoundTimescale, 0 },
+  { "precacherumble", &CScr_PrecacheRumble, 0 },
+  { "playrumbleonposition", &NULLSUB, 0 },
+  { "getdvar", &CScr_GetDvar, 0 },
+  { "getdvarcolorred", &CScr_GetDvarColorRed, 0 },
+  { "getdvarcolorgreen", &CScr_GetDvarColorGreen, 0 },
+  { "getdvarcolorblue", &CScr_GetDvarColorBlue, 0 },
+  { "getdvarcoloralpha", &CScr_GetDvarColorAlpha, 0 },
+  { "getdvarint", &CScr_GetDvarInt, 0 },
+  { "getdvarfloat", &CScr_GetDvarFloat, 0 },
+  { "getdvarvector", &CScr_GetDvarVector, 0 },
+  { "getdebugdvar", &CScr_GetDebugDvar, 1 },
+  { "getdebugdvarint", &CScr_GetDebugDvarInt, 1 },
+  { "getdebugdvarfloat", &CScr_GetDebugDvarFloat, 1 },
+  { "setdvarbool", &CScr_SetDvarBool, 0 },
+  { "setdvarfloat", &CScr_SetDvarFloat, 0 },
+  { "setdvar", CScr_SetDvar, 0 },
+  { "setsaveddvar", &CScr_SetSavedDvar, 0 },
+  { "openfile", &CScr_OpenFile, 1 },
+  { "closefile", &CScr_CloseFile, 1 },
+  { "fprintln", &CScr_FPrintln, 1 },
+  { "fprintfields", &CScr_FPrintFields, 1 },
+  { "freadln", &CScr_FReadLn, 1 },
+  { "fgetarg", &CScr_FGetArg, 1 },
+  { "ui3dsetwindow", &CScr_SetUI3DTextureWindow, 0 },
+  { "playbink", &CScr_StopBink, 0 },
+  { "stopbink", &CScr_StopBink, 0 },
+  { "getbinklength", &CScr_GetBinkLength, 0 },
+  { "isbinkfinished", &CScr_IsBinkFinished, 0 },
+  { "isinvehicle", &CScr_IsInVehicle, 0 },
+  { "isps3", &CScr_PrecacheRumble, 0 },
+  { "ispc", &CScr_GetMaxLocalClients, 0 },
+  { "isxenon", &CScr_PrecacheRumble, 0 }
+};
+
+const cent_field_s cent_fields[25] =
+{
+  { "origin", 48, { 12 }, F_VECTOR, &CScr_SetOrigin, NULL },
+  { "angles", 60, { 12 }, F_VECTOR, &CScr_SetAngles, NULL },
+  { "weapon", 690, { 2 }, F_STRING, &CScr_ReadOnly, &CScr_GetWeaponName },
+  { "targetname", 694, { 2 }, F_STRING, NULL, NULL },
+  { "species", 576, { 4 }, F_STRING, &CScr_ReadOnly, &CScr_GetSpecies },
+  { "isdog", 576, { 4 }, F_INT, &CScr_ReadOnly, &CScr_GetIsDog },
+  { "type", 678, { 2 }, F_STRING, &CScr_ReadOnly, &CScr_GetType },
+  { "model", 678, { 2 }, F_STRING, &CScr_ReadOnly, &CScr_GetModel },
+  {
+    "vehicletype",
+    0,
+    { 64 },
+    F_LSTRING,
+    &CScr_ReadOnly,
+    &VehicleCScr_GetVehicleInfoField
+  },
+  {
+    "vehicleclass",
+    624,
+    { 1 },
+    F_LSTRING,
+    &CScr_ReadOnly,
+    &CScr_GetVehicleClass
+  },
+  {
+    "treadfxname",
+    624,
+    { 1 },
+    F_LSTRING,
+    &CScr_ReadOnly,
+    &CScr_GetVehicleTreadFx
+  },
+  {
+    "treadfxnamearray",
+    624,
+    { 1 },
+    F_LSTRING,
+    &CScr_ReadOnly,
+    &CScr_GetVehicleTreadFxArray
+  },
+  {
+    "exhaustfxname",
+    3984,
+    { 64 },
+    F_LSTRING,
+    &CScr_ReadOnly,
+    &VehicleCScr_GetVehicleInfoField
+  },
+  {
+    "oneexhaust",
+    4048,
+    { 4 },
+    F_INT,
+    &CScr_ReadOnly,
+    &VehicleCScr_GetVehicleInfoField
+  },
+  {
+    "rotormainidlefxname",
+    4052,
+    { 64 },
+    F_LSTRING,
+    &CScr_ReadOnly,
+    &VehicleCScr_GetVehicleInfoField
+  },
+  {
+    "rotormainstartfxname",
+    4116,
+    { 64 },
+    F_LSTRING,
+    &CScr_ReadOnly,
+    &VehicleCScr_GetVehicleInfoField
+  },
+  {
+    "rotormainrunningfxname",
+    4180,
+    { 64 },
+    F_LSTRING,
+    &CScr_ReadOnly,
+    &VehicleCScr_GetVehicleInfoField
+  },
+  {
+    "rotormainstopfxname",
+    4244,
+    { 64 },
+    F_LSTRING,
+    &CScr_ReadOnly,
+    &VehicleCScr_GetVehicleInfoField
+  },
+  {
+    "rotortailidlefxname",
+    4308,
+    { 64 },
+    F_LSTRING,
+    &CScr_ReadOnly,
+    &VehicleCScr_GetVehicleInfoField
+  },
+  {
+    "rotortailstartfxname",
+    4372,
+    { 64 },
+    F_LSTRING,
+    &CScr_ReadOnly,
+    &VehicleCScr_GetVehicleInfoField
+  },
+  {
+    "rotortailrunningfxname",
+    4436,
+    { 64 },
+    F_LSTRING,
+    &CScr_ReadOnly,
+    &VehicleCScr_GetVehicleInfoField
+  },
+  {
+    "rotortailstopfxname",
+    4500,
+    { 64 },
+    F_LSTRING,
+    &CScr_ReadOnly,
+    &VehicleCScr_GetVehicleInfoField
+  },
+  { "enemy", 584, { 4 }, F_ENTITY, &CScr_ReadOnly, &CScr_GetEntityByIndex },
+  { "team", 703, { 1 }, F_STRING, &CScr_ReadOnly, &CScr_GetTeamName },
+  { NULL, 0, { 0 }, F_INT, NULL, NULL }
+};
+
+
+
+unsigned __int16 *cg_modNames[21] =
+{
+    &cscr_const.mod_unknown,
+    &cscr_const.mod_pistol_bullet,
+    &cscr_const.mod_rifle_bullet,
+    &cscr_const.mod_grenade,
+    &cscr_const.mod_grenade_splash,
+    &cscr_const.mod_projectile,
+    &cscr_const.mod_projectile_splash,
+    &cscr_const.mod_melee,
+    &cscr_const.mod_bayonet,
+    &cscr_const.mod_head_shot,
+    &cscr_const.mod_crush,
+    &cscr_const.mod_telefrag,
+    &cscr_const.mod_falling,
+    &cscr_const.mod_suicide,
+    &cscr_const.mod_trigger_hurt,
+    &cscr_const.mod_explosive,
+    &cscr_const.mod_impact,
+    &cscr_const.mod_burned,
+    &cscr_const.mod_hit_by_object,
+    &cscr_const.mod_drown,
+    &cscr_const.mod_gas
+};
+
 
 void __cdecl CScr_AddStruct()
 {
@@ -307,7 +800,7 @@ void __cdecl VehicleCScr_GetVehicleInfoField(centity_s *cent, const cent_field_s
         error = va(".%s can only be used on vehicles.", pField->name);
         Scr_Error(SCRIPTINSTANCE_CLIENT, error, 0);
     }
-    info = CG_GetVehicleInfo(cent->nextState.un2.vehicleState.vehicleInfoIndex);
+    info = CG_GetVehicleInfo(cent->nextState.vehicleState.vehicleInfoIndex);
     Scr_GetGenericField((unsigned __int8 *)info, pField->type, pField->ofs, SCRIPTINSTANCE_CLIENT, 0);
 }
 
@@ -321,7 +814,7 @@ void __cdecl CScr_GetVehicleClass(centity_s *cent, const cent_field_s *pField)
         __debugbreak();
     if ( cent->nextState.eType != 14 && cent->nextState.eType != 16 && cent->nextState.eType != 12 )
         Scr_Error(SCRIPTINSTANCE_CLIENT, ".vehicleclass can only be used on vehicles.", 0);
-    info = CG_GetVehicleInfo(cent->nextState.un2.vehicleState.vehicleInfoIndex);
+    info = CG_GetVehicleInfo(cent->nextState.vehicleState.vehicleInfoIndex);
     Scr_AddString((char *)s_vehicleClassNames[info->type], SCRIPTINSTANCE_CLIENT);
 }
 
@@ -335,7 +828,7 @@ void __cdecl CScr_GetVehicleTreadFxArray(centity_s *cent, const cent_field_s *pF
         __debugbreak();
     if ( cent->nextState.eType != 14 && cent->nextState.eType != 16 && cent->nextState.eType != 12 )
         Scr_Error(SCRIPTINSTANCE_CLIENT, ".treadfxnamearray can only be used on vehicles.", 0);
-    info = CG_GetVehicleInfo(cent->nextState.un2.vehicleState.vehicleInfoIndex);
+    info = CG_GetVehicleInfo(cent->nextState.vehicleState.vehicleInfoIndex);
     Scr_MakeArray(SCRIPTINSTANCE_CLIENT);
     Scr_AddString(info->treadFx[22], SCRIPTINSTANCE_CLIENT);
     Scr_AddArrayStringIndexed(cscr_const.asphalt, SCRIPTINSTANCE_CLIENT);
@@ -409,9 +902,9 @@ void __cdecl CScr_GetVehicleTreadFx(centity_s *cent, const cent_field_s *pField)
         __debugbreak();
     if ( cent->nextState.eType != 14 && cent->nextState.eType != 16 && cent->nextState.eType != 12 )
         Scr_Error(SCRIPTINSTANCE_CLIENT, ".treadfxname can only be used on vehicles.", 0);
-    info = CG_GetVehicleInfo(cent->nextState.un2.vehicleState.vehicleInfoIndex);
+    info = CG_GetVehicleInfo(cent->nextState.vehicleState.vehicleInfoIndex);
     surfaceType = Scr_GetString(0, SCRIPTINSTANCE_CLIENT);
-    value = info->treadFx[Com_SurfaceTypeFromName(surfaceType)];
+    value = (char*)info->treadFx[Com_SurfaceTypeFromName(surfaceType)];
     Scr_AddString(value, SCRIPTINSTANCE_CLIENT);
 }
 
@@ -465,12 +958,12 @@ void CScr_SpawnFakeEnt()
     unsigned int value; // [esp+0h] [ebp-10h]
     unsigned int localClientNum; // [esp+Ch] [ebp-4h]
 
-    localClientNum = CScr_GetLocalClientNum(0).stringValue;
+    localClientNum = CScr_GetLocalClientNum(0);
     value = CScr_GetFakeEntity(localClientNum);
     Scr_AddInt(value, SCRIPTINSTANCE_CLIENT);
 }
 
-VariableUnion __cdecl CScr_GetLocalClientNum(unsigned int index)
+int __cdecl CScr_GetLocalClientNum(unsigned int index)
 {
     char *error; // [esp+0h] [ebp-8h]
     int localClientNum; // [esp+4h] [ebp-4h]
@@ -481,7 +974,7 @@ VariableUnion __cdecl CScr_GetLocalClientNum(unsigned int index)
         error = va("Trying to get a local client index for a client '%d' that is not a local client.", localClientNum);
         Scr_Error(SCRIPTINSTANCE_CLIENT, error, 0);
     }
-    return (VariableUnion)localClientNum;
+    return localClientNum;
 }
 
 void CScr_DeleteFakeEnt()
@@ -489,7 +982,7 @@ void CScr_DeleteFakeEnt()
     unsigned int localClientNum; // [esp+8h] [ebp-8h]
     unsigned int ent; // [esp+Ch] [ebp-4h]
 
-    localClientNum = CScr_GetLocalClientNum(0).stringValue;
+    localClientNum = CScr_GetLocalClientNum(0);
     ent = Scr_GetInt(1u, SCRIPTINSTANCE_CLIENT).stringValue;
     CScr_FreeFakeEntity(localClientNum, ent);
 }
@@ -523,49 +1016,46 @@ void __cdecl CScr_FreeFakeEntity(unsigned int localClientNum, unsigned int entNu
     CG_Free(localClientNum, entNum + 1024);
 }
 
-float *CScr_SetFakeEntOrg()
+void CScr_SetFakeEntOrg()
 {
-    float *result; // eax
-    int localClientNum; // [esp+14h] [ebp-18h]
+    unsigned int localClientNum; // [esp+14h] [ebp-18h]
     fake_centity_s *cent; // [esp+18h] [ebp-14h]
     float org[3]; // [esp+1Ch] [ebp-10h] BYREF
     int entNum; // [esp+28h] [ebp-4h]
 
-    localClientNum = CScr_GetLocalClientNum(0).intValue;
+    localClientNum = CScr_GetLocalClientNum(0);
     entNum = Scr_GetInt(1u, SCRIPTINSTANCE_CLIENT).intValue;
-    if ( (unsigned int)localClientNum >= 2
+    if (localClientNum >= 2
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
-                    730,
-                    0,
-                    "localClientNum not in [0, MAX_LOCAL_CLIENTS]\n\t%i not in [%i, %i]",
-                    localClientNum,
-                    0,
-                    1) )
+            "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
+            730,
+            0,
+            "localClientNum not in [0, MAX_LOCAL_CLIENTS]\n\t%i not in [%i, %i]",
+            localClientNum,
+            0,
+            1))
     {
         __debugbreak();
     }
-    if ( (unsigned int)entNum > 0x200
+    if ((unsigned int)entNum > 0x200
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
-                    731,
-                    0,
-                    "entNum not in [0, MAX_FAKE_LOCAL_CENTITIES]\n\t%i not in [%i, %i]",
-                    entNum,
-                    0,
-                    512) )
+            "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
+            731,
+            0,
+            "entNum not in [0, MAX_FAKE_LOCAL_CENTITIES]\n\t%i not in [%i, %i]",
+            entNum,
+            0,
+            512))
     {
         __debugbreak();
     }
     Scr_GetVector(2u, org, SCRIPTINSTANCE_CLIENT);
     cent = &cg_fakeEntitiesArray[512 * localClientNum + entNum];
-    if ( !cg_fakeEntitiesInuseArray[512 * localClientNum + cent - &cg_fakeEntitiesArray[512 * localClientNum]] )
+    if (!cg_fakeEntitiesInuseArray[512 * localClientNum + cent - &cg_fakeEntitiesArray[512 * localClientNum]])
         Scr_ParamError(1u, "Fake ent is not in use!", SCRIPTINSTANCE_CLIENT);
-    result = cent->cent.pose.origin;
     cent->cent.pose.origin[0] = org[0];
     cent->cent.pose.origin[1] = org[1];
     cent->cent.pose.origin[2] = org[2];
-    return result;
 }
 
 void __cdecl CScr_StructContents(unsigned int index)
@@ -706,22 +1196,18 @@ void assertmsgCmd()
     Scr_Error(SCRIPTINSTANCE_CLIENT, error, 1);
 }
 
-int print()
+void print()
 {
-    int result; // eax
     char *DebugString; // [esp+0h] [ebp-Ch]
     int num; // [esp+4h] [ebp-8h]
     signed int i; // [esp+8h] [ebp-4h]
 
-    result = Scr_GetNumParam(SCRIPTINSTANCE_CLIENT);
-    num = result;
-    for ( i = 0; i < num; ++i )
+    num = Scr_GetNumParam(SCRIPTINSTANCE_CLIENT);
+    for (i = 0; i < num; ++i)
     {
         DebugString = Scr_GetDebugString(i, SCRIPTINSTANCE_CLIENT);
         Com_Printf(cg_level.scriptPrintChannel, "%s", DebugString);
-        result = i + 1;
     }
-    return result;
 }
 
 void println()
@@ -875,9 +1361,12 @@ void CScr_VectorFromLineToPoint()
     fraction = (float)((float)((float)(BA[0] * (float)(P[0] - segmentA[0])) + (float)(BA[1] * (float)(P[1] - segmentA[1])))
                                      + (float)(BA[2] * (float)(P[2] - segmentA[2])))
                      / segmentLengthSq;
-    result[0] = (float)(COERCE_FLOAT(LODWORD(fraction) ^ _mask__NegFloat_) * BA[0]) + (float)(P[0] - segmentA[0]);
-    result[1] = (float)(COERCE_FLOAT(LODWORD(fraction) ^ _mask__NegFloat_) * BA[1]) + (float)(P[1] - segmentA[1]);
-    result[2] = (float)(COERCE_FLOAT(LODWORD(fraction) ^ _mask__NegFloat_) * BA[2]) + (float)(P[2] - segmentA[2]);
+    //result[0] = (float)(COERCE_FLOAT(LODWORD(fraction) ^ _mask__NegFloat_) * BA[0]) + (float)(P[0] - segmentA[0]);
+    //result[1] = (float)(COERCE_FLOAT(LODWORD(fraction) ^ _mask__NegFloat_) * BA[1]) + (float)(P[1] - segmentA[1]);
+    //result[2] = (float)(COERCE_FLOAT(LODWORD(fraction) ^ _mask__NegFloat_) * BA[2]) + (float)(P[2] - segmentA[2]);
+    result[0] = (float)(-(fraction) * BA[0]) + (float)(P[0] - segmentA[0]);
+    result[1] = (float)(-(fraction) * BA[1]) + (float)(P[1] - segmentA[1]);
+    result[2] = (float)(-(fraction) * BA[2]) + (float)(P[2] - segmentA[2]);
     Scr_AddVector(result, SCRIPTINSTANCE_CLIENT);
 }
 
@@ -929,9 +1418,8 @@ void CScr_PointOnSegmentNearestToPoint()
     }
 }
 
-unsigned intCScr_Distance()
+void CScr_Distance()
 {
-    unsigned intresult; // eax
     float value; // [esp+10h] [ebp-30h]
     float v0[3]; // [esp+24h] [ebp-1Ch] BYREF
     float v1[3]; // [esp+34h] [ebp-Ch] BYREF
@@ -941,14 +1429,8 @@ unsigned intCScr_Distance()
     Scr_GetVector(1u, v1, SCRIPTINSTANCE_CLIENT);
     value = Vec3Distance(v0, v1);
     Scr_AddFloat(value, SCRIPTINSTANCE_CLIENT);
-    result = GetCurrentThreadId();
-    if ( result == (unsigned int)g_DXDeviceThread )
-    {
-        result = 0;
-        if ( !HIDWORD(g_DXDeviceThread) )
-            return //D3DPERF_EndEvent();
-    }
-    return result;
+    //if (GetCurrentThreadId() == (_DWORD)g_DXDeviceThread && !dword_A8402BC)
+    //    D3DPERF_EndEvent();
 }
 
 void CScr_Distance2D()
@@ -1244,10 +1726,9 @@ void CScr_LoadedFX()
     Scr_AddInt(id, SCRIPTINSTANCE_CLIENT);
 }
 
-fake_centity_s *CScr_PlayLoopedFX()
+void CScr_PlayLoopedFX()
 {
-    fake_centity_s *result; // eax
-    int NumParam; // [esp+4h] [ebp-8Ch]
+    unsigned int NumParam; // [esp+4h] [ebp-8Ch]
     float *origin; // [esp+8h] [ebp-88h]
     float Float; // [esp+20h] [ebp-70h]
     float pos[3]; // [esp+44h] [ebp-4Ch] BYREF
@@ -1262,31 +1743,28 @@ fake_centity_s *CScr_PlayLoopedFX()
 
     cullDist = 0.0f;
     period = 0;
-    if ( (unsigned int)Scr_GetNumParam(SCRIPTINSTANCE_CLIENT) < 5
-        || (unsigned int)Scr_GetNumParam(SCRIPTINSTANCE_CLIENT) > 8 )
-    {
+    if (Scr_GetNumParam(SCRIPTINSTANCE_CLIENT) < 5 || Scr_GetNumParam(SCRIPTINSTANCE_CLIENT) > 8)
         Scr_Error(SCRIPTINSTANCE_CLIENT, "Incorrect number of parameters", 0);
-    }
     givenAxisCount = 0;
     cullDist = 0.0f;
-    localClientNum = CScr_GetLocalClientNum(0).intValue;
+    localClientNum = CScr_GetLocalClientNum(0);
     entId = Scr_GetInt(1u, SCRIPTINSTANCE_CLIENT).intValue;
     fxId = Scr_GetInt(2u, SCRIPTINSTANCE_CLIENT).intValue;
     NumParam = Scr_GetNumParam(SCRIPTINSTANCE_CLIENT);
-    if ( NumParam != 6 )
+    if (NumParam != 6)
     {
-        if ( NumParam != 7 )
+        if (NumParam != 7)
         {
-            if ( NumParam != 8 )
+            if (NumParam != 8)
                 goto LABEL_13;
             ++givenAxisCount;
             Scr_GetVector(7u, axis[2], SCRIPTINSTANCE_CLIENT);
-            if ( Vec3Normalize(axis[2]) == 0.0 )
-                CScr_FxParamError(localClientNum, 7u, "playLoopedFx called with (0 0 0) up direction", fxId);
+            if (Vec3Normalize(axis[2]) == 0.0)
+                CScr_FxParamError(localClientNum, 7, "playLoopedFx called with (0 0 0) up direction", fxId);
         }
         Scr_GetVector(6u, axis[0], SCRIPTINSTANCE_CLIENT);
-        if ( Vec3Normalize(axis[0]) == 0.0 )
-            CScr_FxParamError(localClientNum, 6u, "playLoopedFx called with (0 0 0) forward direction", fxId);
+        if (Vec3Normalize(axis[0]) == 0.0)
+            CScr_FxParamError(localClientNum, 6, "playLoopedFx called with (0 0 0) forward direction", fxId);
         ++givenAxisCount;
     }
     cullDist = Scr_GetFloat(5u, SCRIPTINSTANCE_CLIENT);
@@ -1294,28 +1772,28 @@ LABEL_13:
     Scr_GetVector(4u, pos, SCRIPTINSTANCE_CLIENT);
     Float = Scr_GetFloat(3u, SCRIPTINSTANCE_CLIENT);
     period = (int)((float)(Float * 1000.0) + 9.313225746154785e-10);
-    if ( period <= 0 )
-        CScr_FxParamError(localClientNum, 3u, "playLoopedFx called with repeat < 0.001 seconds", fxId);
-    if ( (unsigned int)entId > 0x200
+    if (period <= 0)
+        CScr_FxParamError(localClientNum, 3, "playLoopedFx called with repeat < 0.001 seconds", fxId);
+    if ((unsigned int)entId > 0x200
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
-                    1884,
-                    0,
-                    "entId not in [0, MAX_FAKE_LOCAL_CENTITIES]\n\t%i not in [%i, %i]",
-                    entId,
-                    0,
-                    512) )
+            "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
+            1884,
+            0,
+            "entId not in [0, MAX_FAKE_LOCAL_CENTITIES]\n\t%i not in [%i, %i]",
+            entId,
+            0,
+            512))
     {
         __debugbreak();
     }
     cent = &cg_fakeEntitiesArray[512 * localClientNum + entId];
-    if ( !cg_fakeEntitiesInuseArray[512 * localClientNum + cent - &cg_fakeEntitiesArray[512 * localClientNum]]
+    if (!cg_fakeEntitiesInuseArray[512 * localClientNum + cent - &cg_fakeEntitiesArray[512 * localClientNum]]
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
-                    1887,
-                    0,
-                    "%s",
-                    "CG_FakeEntInUse(localClientNum,cent)") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
+            1887,
+            0,
+            "%s",
+            "CG_FakeEntInUse(localClientNum,cent)"))
     {
         __debugbreak();
     }
@@ -1326,10 +1804,8 @@ LABEL_13:
     origin[1] = pos[1];
     origin[2] = pos[2];
     CScr_SetFxAngles(givenAxisCount, axis, cent->cent.nextState.lerp.apos.trBase);
-    result = cent;
     cent->cent.nextState.lerp.u.turret.gunAngles[0] = cullDist;
     cent->cent.nextState.lerp.u.loopFx.period = period;
-    return result;
 }
 
 void __cdecl CScr_BulletTracer()
@@ -1444,7 +1920,7 @@ void __cdecl CScr_GetServerTime()
     snapshot_s *nextSnap; // [esp+14h] [ebp-8h]
     int deltaTime; // [esp+18h] [ebp-4h]
 
-    localClientNum = CScr_GetLocalClientNum(0).intValue;
+    localClientNum = CScr_GetLocalClientNum(0);
     deltaTime = 0;
     if ( (unsigned int)localClientNum >= 2
         && !Assert_MyHandler(
@@ -1471,7 +1947,7 @@ void __cdecl CScr_ClientHasSnapShot()
     cg_s *cgameGlob; // [esp+Ch] [ebp-8h]
     int localClientNum; // [esp+10h] [ebp-4h]
 
-    localClientNum = CScr_GetLocalClientNum(0).intValue;
+    localClientNum = CScr_GetLocalClientNum(0);
     if ( (unsigned int)localClientNum >= 2
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
@@ -1507,10 +1983,9 @@ void CScr_GetDvar()
     Scr_AddString(string, SCRIPTINSTANCE_CLIENT);
 }
 
-unsigned intCScr_SetDvar()
+void CScr_SetDvar()
 {
-    unsigned intresult; // eax
-    char *v1; // [esp+18h] [ebp-434h]
+    char *v0; // [esp+18h] [ebp-434h]
     char *error; // [esp+28h] [ebp-424h]
     char outString[1024]; // [esp+34h] [ebp-418h] BYREF
     const char *dvarName; // [esp+438h] [ebp-14h]
@@ -1525,41 +2000,37 @@ unsigned intCScr_SetDvar()
     strlen(text);
     pCh = outString;
     i = 0;
-    while ( i < 1023 && text[i] )
+    while (i < 1023 && text[i])
     {
         *pCh = text[i];
-        if ( *pCh == 34 )
+        if (*pCh == 34)
             *pCh = 39;
         ++i;
         ++pCh;
     }
     *pCh = 0;
-    if ( !Dvar_IsValidName(dvarName) )
+    if (!Dvar_IsValidName(dvarName))
     {
         error = va("Dvar %s has an invalid dvar name", dvarName);
         Scr_Error(SCRIPTINSTANCE_CLIENT, error, 0);
-        result = GetCurrentThreadId();
-        if ( result != (unsigned int)g_DXDeviceThread )
-            return result;
-        result = 0;
-        if ( HIDWORD(g_DXDeviceThread) )
-            return result;
-        return //D3DPERF_EndEvent();
+        //if (GetCurrentThreadId() != (_DWORD)g_DXDeviceThread || dword_A8402BC)
+        //    return;
+    LABEL_21:
+        //D3DPERF_EndEvent();
+        return;
     }
     dvar = Dvar_FindVar(dvarName);
-    if ( dvar && (dvar->flags & 0x4000) == 0 )
+    if (dvar && (dvar->flags & 0x4000) == 0)
     {
-        v1 = va(
-                     "Invalid Dvar set: %s - Internal Dvars cannot be changed by script. Use 'setsaveddvar' to alter SAVED internal dvars\n",
-                     dvarName);
-        Scr_Error(SCRIPTINSTANCE_CLIENT, v1, 0);
+        v0 = va(
+            "Invalid Dvar set: %s - Internal Dvars cannot be changed by script. Use 'setsaveddvar' to alter SAVED internal dvars\n",
+            dvarName);
+        Scr_Error(SCRIPTINSTANCE_CLIENT, v0, 0);
     }
-    if ( !dvar || (dvar->flags & 0x4000) != 0 )
+    if (!dvar || (dvar->flags & 0x4000) != 0)
         Dvar_SetFromStringByNameFromSource(dvarName, outString, DVAR_SOURCE_SCRIPT, 0);
-    result = GetCurrentThreadId();
-    if ( result == g_DXDeviceThread )
-        return //D3DPERF_EndEvent();
-    return result;
+    //if (GetCurrentThreadId() == (_DWORD)g_DXDeviceThread && !dword_A8402BC)
+    //    goto LABEL_21;
 }
 
 void CScr_SetSavedDvar()
@@ -1757,7 +2228,7 @@ void CScr_GetDvarVector()
     {
         if ( dvar->type != DVAR_TYPE_FLOAT_3 )
             Scr_Error(SCRIPTINSTANCE_CLIENT, "dvar is not a vector in but GetDvarVec has been called on it", 0);
-        Scr_AddVector(&dvar->current.value, SCRIPTINSTANCE_CLIENT);
+        Scr_AddVector((float*)&dvar->current.value, SCRIPTINSTANCE_CLIENT);
     }
     else
     {
@@ -1843,7 +2314,7 @@ void CScr_PlaySound()
 
     volume = 1.0f;
     havePosition = 0;
-    localClientNum = CScr_GetLocalClientNum(0).intValue;
+    localClientNum = CScr_GetLocalClientNum(0);
     pAlias = Scr_GetString(1u, SCRIPTINSTANCE_CLIENT);
     if ( (unsigned int)Scr_GetNumParam(SCRIPTINSTANCE_CLIENT) >= 3 )
     {
@@ -1940,65 +2411,64 @@ void __cdecl CScr_PlaySoundOnEntity(scr_entref_t entref)
     Scr_AddInt(value, SCRIPTINSTANCE_CLIENT);
 }
 
-unsigned intCScr_PlayLoopSound()
+void CScr_PlayLoopSound()
 {
-    unsigned intresult; // eax
     int value; // [esp+14h] [ebp-30h]
     char *error; // [esp+18h] [ebp-2Ch]
-    int localClientNum; // [esp+2Ch] [ebp-18h]
+    unsigned int localClientNum; // [esp+2Ch] [ebp-18h]
     centity_s *cent; // [esp+30h] [ebp-14h]
-    char *pszSoundName; // [esp+34h] [ebp-10h]
+    const char *pszSoundName; // [esp+34h] [ebp-10h]
     float fadeTime; // [esp+38h] [ebp-Ch]
     float fadeTimea; // [esp+38h] [ebp-Ch]
-    int entId; // [esp+40h] [ebp-4h]
+    unsigned int entId; // [esp+40h] [ebp-4h]
 
     //PIXBeginNamedEvent(-1, "CScr_PlayLoopSound");
-    localClientNum = CScr_GetLocalClientNum(0).intValue;
+    localClientNum = CScr_GetLocalClientNum(0);
     entId = Scr_GetInt(1u, SCRIPTINSTANCE_CLIENT).intValue;
-    if ( (unsigned int)localClientNum >= 2
+    if (localClientNum >= 2
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
-                    2725,
-                    0,
-                    "localClientNum not in [0, MAX_LOCAL_CLIENTS]\n\t%i not in [%i, %i]",
-                    localClientNum,
-                    0,
-                    1) )
+            "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
+            2725,
+            0,
+            "localClientNum not in [0, MAX_LOCAL_CLIENTS]\n\t%i not in [%i, %i]",
+            localClientNum,
+            0,
+            1))
     {
         __debugbreak();
     }
-    if ( (unsigned int)entId > 0x200
+    if (entId > 0x200
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
-                    2726,
-                    0,
-                    "entId not in [0, MAX_FAKE_LOCAL_CENTITIES]\n\t%i not in [%i, %i]",
-                    entId,
-                    0,
-                    512) )
+            "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
+            2726,
+            0,
+            "entId not in [0, MAX_FAKE_LOCAL_CENTITIES]\n\t%i not in [%i, %i]",
+            entId,
+            0,
+            512))
     {
         __debugbreak();
     }
     cent = &cg_fakeEntitiesArray[512 * localClientNum + entId].cent;
-    if ( !cg_fakeEntitiesInuseArray[512 * localClientNum
-                                                                + &cg_fakeEntitiesArray[512 * localClientNum + entId]
-                                                                - &cg_fakeEntitiesArray[512 * localClientNum]]
+    if (!cg_fakeEntitiesInuseArray[512 * localClientNum
+        + &cg_fakeEntitiesArray[512 * localClientNum + entId]
+        - &cg_fakeEntitiesArray[512 * localClientNum]]
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
-                    2731,
-                    0,
-                    "%s",
-                    "CG_FakeEntInUse(localClientNum,fcent)") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
+            2731,
+            0,
+            "%s",
+            "CG_FakeEntInUse(localClientNum,fcent)"))
     {
         __debugbreak();
     }
     pszSoundName = Scr_GetString(2u, SCRIPTINSTANCE_CLIENT);
     cent->nextState.loopSoundId = SND_FindAliasId(pszSoundName);
     fadeTime = 0.0f;
-    if ( Scr_GetNumParam(SCRIPTINSTANCE_CLIENT) == 4 )
+    if (Scr_GetNumParam(SCRIPTINSTANCE_CLIENT) == 4)
     {
         fadeTimea = Scr_GetFloat(3u, SCRIPTINSTANCE_CLIENT);
-        if ( fadeTimea < 0.0 || fadeTimea > 32.0 )
+        if (fadeTimea < 0.0 || fadeTimea > 32.0)
         {
             error = va("playloopsound: invalid fade value %f. it must be between 0 and 32 seconds.", fadeTimea);
             Scr_ParamError(3u, error, SCRIPTINSTANCE_CLIENT);
@@ -2008,99 +2478,87 @@ unsigned intCScr_PlayLoopSound()
     cent->nextState.number = entId + 1024;
     cent->nextState.loopSoundFade = (int)fadeTime;
     value = CG_PlaySoundWithHandle(
-                        localClientNum,
-                        cent->nextState.number,
-                        0,
-                        (__int16)(int)fadeTime,
-                        0,
-                        1.0,
-                        cent->nextState.loopSoundId);
+        localClientNum,
+        cent->nextState.number,
+        0,
+        (__int16)(int)fadeTime,
+        0,
+        1.0,
+        cent->nextState.loopSoundId);
     Scr_AddInt(value, SCRIPTINSTANCE_CLIENT);
-    result = GetCurrentThreadId();
-    if ( result == (unsigned int)g_DXDeviceThread )
-    {
-        result = 0;
-        if ( !HIDWORD(g_DXDeviceThread) )
-            return //D3DPERF_EndEvent();
-    }
-    return result;
+    //if (GetCurrentThreadId() == (_DWORD)g_DXDeviceThread && !dword_A8402BC)
+    //    D3DPERF_EndEvent();
 }
 
-unsigned intCScr_StopLoopSound()
+void CScr_StopLoopSound()
 {
-    unsigned intresult; // eax
     char *error; // [esp+14h] [ebp-28h]
-    int localClientNum; // [esp+28h] [ebp-14h]
+    unsigned int localClientNum; // [esp+28h] [ebp-14h]
     centity_s *cent; // [esp+2Ch] [ebp-10h]
     float fadeTime; // [esp+30h] [ebp-Ch]
-    int entId; // [esp+38h] [ebp-4h]
+    unsigned int entId; // [esp+38h] [ebp-4h]
 
     //PIXBeginNamedEvent(-1, "CScr_StopLoopSound");
-    localClientNum = CScr_GetLocalClientNum(0).intValue;
+    localClientNum = CScr_GetLocalClientNum(0);
     entId = Scr_GetInt(1u, SCRIPTINSTANCE_CLIENT).intValue;
-    if ( (unsigned int)localClientNum >= 2
+    if (localClientNum >= 2
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
-                    2760,
-                    0,
-                    "localClientNum not in [0, MAX_LOCAL_CLIENTS]\n\t%i not in [%i, %i]",
-                    localClientNum,
-                    0,
-                    1) )
+            "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
+            2760,
+            0,
+            "localClientNum not in [0, MAX_LOCAL_CLIENTS]\n\t%i not in [%i, %i]",
+            localClientNum,
+            0,
+            1))
     {
         __debugbreak();
     }
-    if ( (unsigned int)entId > 0x200
+    if (entId > 0x200
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
-                    2761,
-                    0,
-                    "entId not in [0, MAX_FAKE_LOCAL_CENTITIES]\n\t%i not in [%i, %i]",
-                    entId,
-                    0,
-                    512) )
+            "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
+            2761,
+            0,
+            "entId not in [0, MAX_FAKE_LOCAL_CENTITIES]\n\t%i not in [%i, %i]",
+            entId,
+            0,
+            512))
     {
         __debugbreak();
     }
     cent = &cg_fakeEntitiesArray[512 * localClientNum + entId].cent;
-    if ( !cg_fakeEntitiesInuseArray[512 * localClientNum
-                                                                + &cg_fakeEntitiesArray[512 * localClientNum + entId]
-                                                                - &cg_fakeEntitiesArray[512 * localClientNum]]
+    if (!cg_fakeEntitiesInuseArray[512 * localClientNum
+        + &cg_fakeEntitiesArray[512 * localClientNum + entId]
+        - &cg_fakeEntitiesArray[512 * localClientNum]]
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
-                    2765,
-                    0,
-                    "%s",
-                    "CG_FakeEntInUse(localClientNum,fcent)") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
+            2765,
+            0,
+            "%s",
+            "CG_FakeEntInUse(localClientNum,fcent)"))
     {
         __debugbreak();
     }
     fadeTime = 0.0f;
-    if ( Scr_GetNumParam(SCRIPTINSTANCE_CLIENT) == 3 )
+    if (Scr_GetNumParam(SCRIPTINSTANCE_CLIENT) == 3)
         fadeTime = Scr_GetFloat(2u, SCRIPTINSTANCE_CLIENT) * 1000.0;
-    if ( fadeTime < 0.0 || fadeTime > 32000.0 )
+    if (fadeTime < 0.0 || fadeTime > 32000.0)
     {
         error = va("stoploopsound: invalid fade value %f. it must be between 0 and 32 seconds.", fadeTime);
         Scr_ParamError(0, error, SCRIPTINSTANCE_CLIENT);
         fadeTime = 0.0f;
     }
-    if ( Scr_GetNumParam(SCRIPTINSTANCE_CLIENT) == 2 || fadeTime == 0.0 )
+    if (Scr_GetNumParam(SCRIPTINSTANCE_CLIENT) == 2 || fadeTime == 0.0)
     {
         cent->nextState.loopSoundId = 0;
         cent->nextState.loopSoundFade = 0;
     }
     else
     {
-        cent->nextState.loopSoundFade = (int)COERCE_FLOAT(LODWORD(fadeTime) ^ _mask__NegFloat_);
+        //cent->nextState.loopSoundFade = (int)COERCE_FLOAT(LODWORD(fadeTime) ^ _mask__NegFloat_);
+        cent->nextState.loopSoundFade = -fadeTime;
     }
-    result = GetCurrentThreadId();
-    if ( result == (unsigned int)g_DXDeviceThread )
-    {
-        result = 0;
-        if ( !HIDWORD(g_DXDeviceThread) )
-            return //D3DPERF_EndEvent();
-    }
-    return result;
+    //if (GetCurrentThreadId() == (_DWORD)g_DXDeviceThread && !dword_A8402BC)
+    //    D3DPERF_EndEvent();
 }
 
 void __cdecl CScr_PlayLoopSoundOnEntity(scr_entref_t entref)
@@ -2409,7 +2867,7 @@ void CScr_StopLocalSound()
     char *pAlias; // [esp+8h] [ebp-8h]
     VariableUnion localClientNum; // [esp+Ch] [ebp-4h]
 
-    localClientNum.intValue = CScr_GetLocalClientNum(0).intValue;
+    localClientNum.intValue = CScr_GetLocalClientNum(0);
     pAlias = Scr_GetString(1u, SCRIPTINSTANCE_CLIENT);
     AliasId = SND_FindAliasId(pAlias);
     LocalClientGlobals = CG_GetLocalClientGlobals(localClientNum.intValue);
@@ -2448,94 +2906,66 @@ void CScr_SoundPlaying()
     }
 }
 
-unsigned intCScr_SetSoundVolume()
+void CScr_SetSoundVolume()
 {
-    unsigned intresult; // eax
-    VariableUnion v1; // eax
+    int Int; // eax
     float x; // [esp+24h] [ebp-4h]
 
     //PIXBeginNamedEvent(-1, "setsoundvol");
-    if ( Scr_GetNumParam(SCRIPTINSTANCE_CLIENT) != 2 )
+    if (Scr_GetNumParam(SCRIPTINSTANCE_CLIENT) != 2)
     {
         Scr_ParamError(0, "setsoundvolume takes two parameters.", SCRIPTINSTANCE_CLIENT);
-        result = GetCurrentThreadId();
-        if ( result != (unsigned int)g_DXDeviceThread )
-            return result;
-        result = 0;
-        if ( HIDWORD(g_DXDeviceThread) )
-            return result;
-        return //D3DPERF_EndEvent();
+        //if (GetCurrentThreadId() != (_DWORD)g_DXDeviceThread || dword_A8402BC)
+        //    return;
+    LABEL_14:
+        //D3DPERF_EndEvent();
+        return;
     }
     x = Scr_GetFloat(1u, SCRIPTINSTANCE_CLIENT);
-    if ( (LODWORD(x) & 0x7F800000) == 0x7F800000 )
+    if ((LODWORD(x) & 0x7F800000) == 0x7F800000)
     {
         Scr_ParamError(0, "setsoundvolume cannot be NAN.", SCRIPTINSTANCE_CLIENT);
-        result = GetCurrentThreadId();
-        if ( result == (unsigned int)g_DXDeviceThread )
-        {
-            result = 0;
-            if ( !HIDWORD(g_DXDeviceThread) )
-                return //D3DPERF_EndEvent();
-        }
+        //if (GetCurrentThreadId() == (_DWORD)g_DXDeviceThread && !dword_A8402BC)
+        //    goto LABEL_14;
     }
     else
     {
-        v1.intValue = Scr_GetInt(0, SCRIPTINSTANCE_CLIENT).intValue;
-        SND_SetPlaybackAttenuation(v1.stringValue, x);
-        result = GetCurrentThreadId();
-        if ( result == (unsigned int)g_DXDeviceThread )
-        {
-            result = 0;
-            if ( !HIDWORD(g_DXDeviceThread) )
-                return //D3DPERF_EndEvent();
-        }
+        Int = Scr_GetInt(0, SCRIPTINSTANCE_CLIENT).intValue;
+        SND_SetPlaybackAttenuation(Int, x);
+        //if (GetCurrentThreadId() == (_DWORD)g_DXDeviceThread && !dword_A8402BC)
+        //    goto LABEL_14;
     }
-    return result;
 }
 
-unsigned intCScr_SetSoundPitch()
+void CScr_SetSoundPitch()
 {
-    unsigned intresult; // eax
-    VariableUnion v1; // eax
+    int Int; // eax
     float x; // [esp+24h] [ebp-4h]
 
     //PIXBeginNamedEvent(-1, "setsoundpitch");
-    if ( Scr_GetNumParam(SCRIPTINSTANCE_CLIENT) != 2 )
+    if (Scr_GetNumParam(SCRIPTINSTANCE_CLIENT) != 2)
     {
         Scr_ParamError(0, "setsoundpitch takes two parameters.", SCRIPTINSTANCE_CLIENT);
-        result = GetCurrentThreadId();
-        if ( result != (unsigned int)g_DXDeviceThread )
-            return result;
-        result = 0;
-        if ( HIDWORD(g_DXDeviceThread) )
-            return result;
-        return //D3DPERF_EndEvent();
+        //if (GetCurrentThreadId() != (_DWORD)g_DXDeviceThread || dword_A8402BC)
+        //    return;
+    LABEL_14:
+        //D3DPERF_EndEvent();
+        return;
     }
     x = Scr_GetFloat(1u, SCRIPTINSTANCE_CLIENT);
-    if ( (LODWORD(x) & 0x7F800000) == 0x7F800000 )
+    if ((LODWORD(x) & 0x7F800000) == 0x7F800000)
     {
         Scr_ParamError(0, "setsoundpitch cannot be NAN.", SCRIPTINSTANCE_CLIENT);
-        result = GetCurrentThreadId();
-        if ( result == (unsigned int)g_DXDeviceThread )
-        {
-            result = 0;
-            if ( !HIDWORD(g_DXDeviceThread) )
-                return //D3DPERF_EndEvent();
-        }
+        //if (GetCurrentThreadId() == (_DWORD)g_DXDeviceThread && !dword_A8402BC)
+        //    goto LABEL_14;
     }
     else
     {
-        v1.intValue = Scr_GetInt(0, SCRIPTINSTANCE_CLIENT).intValue;
-        SND_SetPlaybackPitch(v1.stringValue, x);
-        result = GetCurrentThreadId();
-        if ( result == (unsigned int)g_DXDeviceThread )
-        {
-            result = 0;
-            if ( !HIDWORD(g_DXDeviceThread) )
-                return //D3DPERF_EndEvent();
-        }
+        Int = Scr_GetInt(0, SCRIPTINSTANCE_CLIENT).intValue;
+        SND_SetPlaybackPitch(Int, x);
+        //if (GetCurrentThreadId() == (_DWORD)g_DXDeviceThread && !dword_A8402BC)
+        //    goto LABEL_14;
     }
-    return result;
 }
 
 void CScr_SetSoundVolumeRate()
@@ -2588,7 +3018,7 @@ void CScr_SetSoundPitchRate()
 
 void CScr_GetRealTime()
 {
-    unsigned intvalue; // [esp+0h] [ebp-4h]
+    unsigned int value; // [esp+0h] [ebp-4h]
 
     value = Sys_Milliseconds();
     Scr_AddInt(value, SCRIPTINSTANCE_CLIENT);
@@ -2877,7 +3307,7 @@ void CScr_GetLocalClientPos()
     int localClientNum; // [esp+8h] [ebp-8h]
     const playerState_s *ps; // [esp+Ch] [ebp-4h]
 
-    localClientNum = CScr_GetLocalClientNum(0).intValue;
+    localClientNum = CScr_GetLocalClientNum(0);
     if ( (unsigned int)localClientNum >= 2
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
@@ -2901,7 +3331,7 @@ void CScr_GetLocalClientPos()
         __debugbreak();
     }
     ps = CG_GetPredictedPlayerState(localClientNum);
-    Scr_AddVector(ps->origin, SCRIPTINSTANCE_CLIENT);
+    Scr_AddVector((float*)ps->origin, SCRIPTINSTANCE_CLIENT);
 }
 
 void CScr_AimingAtFriendly()
@@ -2909,7 +3339,7 @@ void CScr_AimingAtFriendly()
     int localClientNum; // [esp+Ch] [ebp-8h]
     const playerState_s *ps; // [esp+10h] [ebp-4h]
 
-    localClientNum = CScr_GetLocalClientNum(0).intValue;
+    localClientNum = CScr_GetLocalClientNum(0);
     if ( (unsigned int)localClientNum >= 2
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
@@ -2950,7 +3380,7 @@ void CScr_SplitArgs()
     pArg = Scr_GetString(0, SCRIPTINSTANCE_CLIENT);
     I_strncpyz(str, pArg, 1024);
     Scr_MakeArray(SCRIPTINSTANCE_CLIENT);
-    strstr((unsigned __int8 *)str, " ");
+    v0 = strstr(str, " ");
     pSearch = v0;
     pos = 0;
     while ( pSearch )
@@ -2960,7 +3390,7 @@ void CScr_SplitArgs()
         Scr_AddString(pStr, SCRIPTINSTANCE_CLIENT);
         Scr_AddArray(SCRIPTINSTANCE_CLIENT);
         pStr += pos + 1;
-        strstr((unsigned __int8 *)pStr, " ");
+        v1 = strstr(pStr, " ");
         pSearch = v1;
     }
     if ( pStr )
@@ -2972,26 +3402,30 @@ void CScr_SplitArgs()
 
 void CScr_sin()
 {
-    double value; // xmm0_8
+    float value; // xmm0_8
     long double v1; // [esp+8h] [ebp-8h]
 
-    *((float *)&v1 + 1) = Scr_GetFloat(0, SCRIPTINSTANCE_CLIENT);
-    value = (float)(*((float *)&v1 + 1) * 0.017453292);
-    __libm_sse2_sin(v1);
-    *(float *)&value = value;
-    Scr_AddFloat(*(float *)&value, SCRIPTINSTANCE_CLIENT);
+    //*((float *)&v1 + 1) = Scr_GetFloat(0, SCRIPTINSTANCE_CLIENT);
+    //value = (float)(*((float *)&v1 + 1) * 0.017453292);
+    value = (float)(Scr_GetFloat(0, SCRIPTINSTANCE_CLIENT) * 0.017453292);
+    //__libm_sse2_sin(v1);
+    //*(float *)&value = value;
+    value = sin(value);
+    Scr_AddFloat(value, SCRIPTINSTANCE_CLIENT);
 }
 
 void CScr_cos()
 {
-    double value; // xmm0_8
+    float value; // xmm0_8
     long double v1; // [esp+8h] [ebp-8h]
 
-    *((float *)&v1 + 1) = Scr_GetFloat(0, SCRIPTINSTANCE_CLIENT);
-    value = (float)(*((float *)&v1 + 1) * 0.017453292);
-    __libm_sse2_cos(v1);
-    *(float *)&value = value;
-    Scr_AddFloat(*(float *)&value, SCRIPTINSTANCE_CLIENT);
+    //*((float *)&v1 + 1) = Scr_GetFloat(0, SCRIPTINSTANCE_CLIENT);
+    //value = (float)(*((float *)&v1 + 1) * 0.017453292);
+    value = (float)(Scr_GetFloat(0, SCRIPTINSTANCE_CLIENT) * 0.017453292);
+    //__libm_sse2_cos(v1);
+    //*(float *)&value = value;
+    value = cos(value);
+    Scr_AddFloat(value, SCRIPTINSTANCE_CLIENT);
 }
 
 void CScr_tan()
@@ -3016,11 +3450,10 @@ void CScr_asin()
     x = Scr_GetFloat(0, SCRIPTINSTANCE_CLIENT);
     if ( x < -1.0 || x > 1.0 )
     {
-        HIDWORD(v0) = va("%g out of range", x);
-        Scr_Error(SCRIPTINSTANCE_CLIENT, (const char *)HIDWORD(v0), 0);
+        Scr_Error(SCRIPTINSTANCE_CLIENT, va("%g out of range", x), 0);
     }
-    __libm_sse2_asin(v0);
-    Scr_AddFloat(x * 57.295776, SCRIPTINSTANCE_CLIENT);
+    //__libm_sse2_asin(v0);
+    Scr_AddFloat(asin(x) * 57.295776, SCRIPTINSTANCE_CLIENT);
 }
 
 void CScr_acos()
@@ -3031,11 +3464,10 @@ void CScr_acos()
     x = Scr_GetFloat(0, SCRIPTINSTANCE_CLIENT);
     if ( x < -1.0 || x > 1.0 )
     {
-        HIDWORD(v0) = va("%g out of range", x);
-        Scr_Error(SCRIPTINSTANCE_CLIENT, (const char *)HIDWORD(v0), 0);
+        Scr_Error(SCRIPTINSTANCE_CLIENT, va("%g out of range", x), 0);
     }
-    __libm_sse2_acos(v0);
-    Scr_AddFloat(x * 57.295776, SCRIPTINSTANCE_CLIENT);
+    //__libm_sse2_acos(v0);
+    Scr_AddFloat(acos(x) * 57.295776, SCRIPTINSTANCE_CLIENT);
 }
 
 void CScr_atan()
@@ -3043,11 +3475,12 @@ void CScr_atan()
     double v0; // xmm0_8
     long double v1; // [esp+8h] [ebp-8h]
 
-    *((float *)&v1 + 1) = Scr_GetFloat(0, SCRIPTINSTANCE_CLIENT);
-    v0 = *((float *)&v1 + 1);
-    __libm_sse2_atan(v1);
-    *(float *)&v0 = v0;
-    Scr_AddFloat(*(float *)&v0 * 57.295776, SCRIPTINSTANCE_CLIENT);
+    //*((float *)&v1 + 1) = Scr_GetFloat(0, SCRIPTINSTANCE_CLIENT);
+    //v0 = *((float *)&v1 + 1);
+    //__libm_sse2_atan(v1);
+    //*(float *)&v0 = v0;
+    //Scr_AddFloat(*(float *)&v0 * 57.295776, SCRIPTINSTANCE_CLIENT);
+    Scr_AddFloat(atan(Scr_GetFloat(0, SCRIPTINSTANCE_CLIENT)) * 57.295776, SCRIPTINSTANCE_CLIENT);
 }
 
 void CScr_abs()
@@ -3190,7 +3623,7 @@ void CScr_GetLocalClientEyePos()
     int localClientNum; // [esp+28h] [ebp-8h]
     const playerState_s *ps; // [esp+2Ch] [ebp-4h]
 
-    localClientNum = CScr_GetLocalClientNum(0).intValue;
+    localClientNum = CScr_GetLocalClientNum(0);
     if ( (unsigned int)localClientNum >= 2
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
@@ -3227,7 +3660,7 @@ void CScr_GetLocalClientAngles()
     int localClientNum; // [esp+8h] [ebp-8h]
     const playerState_s *ps; // [esp+Ch] [ebp-4h]
 
-    localClientNum = CScr_GetLocalClientNum(0).intValue;
+    localClientNum = CScr_GetLocalClientNum(0);
     if ( (unsigned int)localClientNum >= 2
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
@@ -3251,44 +3684,42 @@ void CScr_GetLocalClientAngles()
         __debugbreak();
     }
     ps = CG_GetPredictedPlayerState(localClientNum);
-    Scr_AddVector(ps->viewangles, SCRIPTINSTANCE_CLIENT);
+    Scr_AddVector((float*)ps->viewangles, SCRIPTINSTANCE_CLIENT);
 }
 
-unsigned intCScr_Spawn()
+void CScr_Spawn()
 {
-    unsigned intresult; // eax
-    float *v1; // [esp+10h] [ebp-28h]
-    char *entClass; // [esp+1Ch] [ebp-1Ch]
+    float *v0; // [esp+10h] [ebp-28h]
+    const char *entClass; // [esp+1Ch] [ebp-1Ch]
     float origin[3]; // [esp+24h] [ebp-14h] BYREF
     int localClientNum; // [esp+30h] [ebp-8h]
     centity_s *ent; // [esp+34h] [ebp-4h]
 
     //PIXBeginNamedEvent(-1, "spawn");
-    localClientNum = CScr_GetLocalClientNum(0).intValue;
+    localClientNum = CScr_GetLocalClientNum(0);
     Scr_GetVector(1u, origin, SCRIPTINSTANCE_CLIENT);
     ent = CG_Spawn(localClientNum);
-    if ( !ent )
+    if (!ent)
     {
-        result = GetCurrentThreadId();
-        if ( result != g_DXDeviceThread )
-            return result;
-        return //D3DPERF_EndEvent();
+        //if (GetCurrentThreadId() != (_DWORD)g_DXDeviceThread || dword_A8402BC)
+        //    return;
+    LABEL_13:
+        //D3DPERF_EndEvent();
+        return;
     }
-    v1 = ent->pose.origin;
+    v0 = ent->pose.origin;
     ent->pose.origin[0] = origin[0];
-    v1[1] = origin[1];
-    v1[2] = origin[2];
-    if ( (unsigned int)Scr_GetNumParam(SCRIPTINSTANCE_CLIENT) >= 3 )
+    v0[1] = origin[1];
+    v0[2] = origin[2];
+    if (Scr_GetNumParam(SCRIPTINSTANCE_CLIENT) >= 3)
     {
         entClass = Scr_GetString(2u, SCRIPTINSTANCE_CLIENT);
-        if ( !I_stricmp(entClass, "script_model") || !I_stricmp(entClass, "script_origin") )
+        if (!I_stricmp(entClass, "script_model") || !I_stricmp(entClass, "script_origin"))
             CG_InitScriptMover(ent);
     }
     CScr_AddEntity(ent, localClientNum);
-    result = GetCurrentThreadId();
-    if ( result == g_DXDeviceThread )
-        return //D3DPERF_EndEvent();
-    return result;
+    //if (GetCurrentThreadId() == (_DWORD)g_DXDeviceThread && !dword_A8402BC)
+    //    goto LABEL_13;
 }
 
 void CScr_SpawnPlane()
@@ -3310,7 +3741,7 @@ void CScr_SpawnPlane()
     error = "illegal call to spawnplane()\n";
     if ( Scr_GetNumParam(SCRIPTINSTANCE_CLIENT) != 6 )
         Scr_Error(SCRIPTINSTANCE_CLIENT, error, 0);
-    localClientNum = CScr_GetLocalClientNum(0).intValue;
+    localClientNum = CScr_GetLocalClientNum(0);
     Scr_GetVector(1u, origin, SCRIPTINSTANCE_CLIENT);
     modelName = Scr_GetString(2u, SCRIPTINSTANCE_CLIENT);
     team = Scr_GetString(3u, SCRIPTINSTANCE_CLIENT);
@@ -3395,7 +3826,7 @@ void __cdecl CScr_IsAlive()
     scr_entref_t entref; // [esp+18h] [ebp-Ch]
     centity_s *pSelf; // [esp+20h] [ebp-4h]
 
-    v1 = *Scr_GetEntityRef(&v0, 0, SCRIPTINSTANCE_CLIENT);
+    v1 = Scr_GetEntityRef(0, SCRIPTINSTANCE_CLIENT);
     entref = v1;
     if ( v1.classnum )
     {
@@ -3437,13 +3868,13 @@ void __cdecl CScr_IsAlive()
 
 void CScr_IsSubStr()
 {
-    int v0; // eax
-    unsigned __int8 *str1; // [esp+4h] [ebp-8h]
-    unsigned __int8 *str2; // [esp+8h] [ebp-4h]
+    char *v0; // eax
+    char *str1; // [esp+4h] [ebp-8h]
+    char *str2; // [esp+8h] [ebp-4h]
 
-    str2 = (unsigned __int8 *)Scr_GetString(1u, SCRIPTINSTANCE_CLIENT);
-    str1 = (unsigned __int8 *)Scr_GetString(0, SCRIPTINSTANCE_CLIENT);
-    strstr(str1, str2);
+    str2 = Scr_GetString(1u, SCRIPTINSTANCE_CLIENT);
+    str1 = Scr_GetString(0, SCRIPTINSTANCE_CLIENT);
+    v0 = strstr(str1, str2);
     Scr_AddBool(v0 != 0, SCRIPTINSTANCE_CLIENT);
 }
 
@@ -3818,7 +4249,7 @@ void __cdecl CScrCmd_GetMaxSpeed(scr_entref_t entref)
     }
     if ( pSelf->nextState.eType != 14 && pSelf->nextState.eType != 16 && pSelf->nextState.eType != 12 )
         Scr_Error(SCRIPTINSTANCE_CLIENT, "GetMaxSpeed not called on a vehicle.", 0);
-    value = CG_GetVehicleInfo(pSelf->nextState.un2.vehicleState.vehicleInfoIndex)->maxSpeed;
+    value = CG_GetVehicleInfo(pSelf->nextState.vehicleState.vehicleInfoIndex)->maxSpeed;
     Scr_AddFloat(value, SCRIPTINSTANCE_CLIENT);
 }
 
@@ -3858,7 +4289,7 @@ void __cdecl CScrCmd_GetMaxReverseSpeed(scr_entref_t entref)
     {
         __debugbreak();
     }
-    info = CG_GetVehicleInfo(pSelf->nextState.un2.vehicleState.vehicleInfoIndex);
+    info = CG_GetVehicleInfo(pSelf->nextState.vehicleState.vehicleInfoIndex);
     Scr_AddFloat(info->maxSpeed * info->nitrousVehParams.m_reverse_scale, SCRIPTINSTANCE_CLIENT);
 }
 
@@ -3893,11 +4324,11 @@ void __cdecl CScrCmd_IsDriving(scr_entref_t entref)
     }
     if ( entref.entnum < com_maxclients->current.integer )
     {
-        localClientNum.intValue = CScr_GetLocalClientNum(0).intValue;
+        localClientNum.intValue = CScr_GetLocalClientNum(0);
         cgameGlob = CG_GetLocalClientGlobals(localClientNum.intValue);
         Scr_AddInt(cgameGlob->bgs.clientinfo[entref.entnum].attachedVehEntNum != 1023, SCRIPTINSTANCE_CLIENT);
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_16;
     }
     Scr_Error(SCRIPTINSTANCE_CLIENT, "IsDriving not called on a player.", 0);
@@ -3942,19 +4373,19 @@ void __cdecl CScrCmd_IsLocalClientDriver(scr_entref_t entref)
         Scr_Error(SCRIPTINSTANCE_CLIENT, "IsLocalClientDriver not called on a vehicle.", 0);
     if ( pSelf->vehicle )
     {
-        localClientNum.intValue = CScr_GetLocalClientNum(0).intValue;
+        localClientNum.intValue = CScr_GetLocalClientNum(0);
         cgameGlob = CG_GetLocalClientGlobals(localClientNum.intValue);
         Scr_AddInt(
             cgameGlob->bgs.clientinfo[cgameGlob->clientNum].attachedVehEntNum == pSelf->nextState.number,
             SCRIPTINSTANCE_CLIENT);
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
     }
     else
     {
         Scr_AddInt(0, SCRIPTINSTANCE_CLIENT);
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
     }
     //D3DPERF_EndEvent();
 }
@@ -4005,14 +4436,14 @@ void __cdecl CScrCmd_GetLocalClientDriver(scr_entref_t entref)
             if ( cgameGlob->bgs.clientinfo[cgameGlob->clientNum].attachedVehEntNum == pSelf->nextState.number )
             {
                 Scr_AddInt(i, SCRIPTINSTANCE_CLIENT);
-                if ( g_DXDeviceThread != GetCurrentThreadId() )
-                    return;
+                //if ( g_DXDeviceThread != GetCurrentThreadId() )
+                //    return;
                 goto LABEL_27;
             }
         }
     }
-    if ( g_DXDeviceThread != GetCurrentThreadId() )
-        return;
+    //if ( g_DXDeviceThread != GetCurrentThreadId() )
+    //    return;
 LABEL_27:
     //D3DPERF_EndEvent();
 }
@@ -4385,8 +4816,8 @@ void CScr_IsInVehicle()
     int localClientNum; // [esp+2Ch] [ebp-Ch]
     scr_entref_t vehicleEntRef; // [esp+30h] [ebp-8h]
 
-    localClientNum = CScr_GetLocalClientNum(0).intValue;
-    v1 = *Scr_GetEntityRef(&v0, 1u, SCRIPTINSTANCE_CLIENT);
+    localClientNum = CScr_GetLocalClientNum(0);
+    v1 = Scr_GetEntityRef(1, SCRIPTINSTANCE_CLIENT);
     v2 = v1;
     v3 = v1;
     vehicleEntRef = v1;
@@ -4437,7 +4868,7 @@ void __cdecl CScrCmd_IsVehiclePeelingOut(scr_entref_t entref)
     {
         __debugbreak();
     }
-    if ( pSelf->nitrousVeh && NitrousVehicle::is_peeling_out(pSelf->nitrousVeh) )
+    if ( pSelf->nitrousVeh && pSelf->nitrousVeh->is_peeling_out() )
         Scr_AddInt(1, SCRIPTINSTANCE_CLIENT);
     else
         Scr_AddInt(0, SCRIPTINSTANCE_CLIENT);
@@ -4718,10 +5149,7 @@ void __cdecl CScr_SetFxAngles(unsigned int givenAxisCount, float (*axis)[3], flo
     }
     else if ( givenAxisCount == 2 )
     {
-        LODWORD(v4) = COERCE_UNSIGNED_INT(
-                                        (float)((float)((*axis)[0] * (*axis)[6]) + (float)((*axis)[1] * (*axis)[7]))
-                                    + (float)((*axis)[2] * (*axis)[8]))
-                                ^ _mask__NegFloat_;
+        v4 = -( (float)((float)((*axis)[0] * (*axis)[6]) + (float)((*axis)[1] * (*axis)[7])) + (float)((*axis)[2] * (*axis)[8]));
         (*axis)[6] = (float)(v4 * (*axis)[0]) + (*axis)[6];
         (*axis)[7] = (float)(v4 * (*axis)[1]) + (*axis)[7];
         (*axis)[8] = (float)(v4 * (*axis)[2]) + (*axis)[8];
@@ -4778,7 +5206,7 @@ void __cdecl CScr_PlayFX()
     numParams = Scr_GetNumParam(SCRIPTINSTANCE_CLIENT);
     if ( numParams < 3 || numParams > 6 )
         Scr_Error(SCRIPTINSTANCE_CLIENT, "Incorrect number of parameters", 0);
-    localClientNum = CScr_GetLocalClientNum(0).intValue;
+    localClientNum = CScr_GetLocalClientNum(0);
     iTime = CG_GetLocalClientGlobals(localClientNum)->time;
     fxId = Scr_GetInt(1u, SCRIPTINSTANCE_CLIENT).intValue;
     if ( fxId <= 0 || fxId >= 196 )
@@ -4841,7 +5269,7 @@ void __cdecl CScr_StopFX()
 
     if ( Scr_GetNumParam(SCRIPTINSTANCE_CLIENT) != 2 )
         Scr_Error(SCRIPTINSTANCE_CLIENT, "Incorrect number of parameters for IsFXPlaying", 0);
-    localClientNum = CScr_GetLocalClientNum(0).intValue;
+    localClientNum = CScr_GetLocalClientNum(0);
     if ( (unsigned int)localClientNum >= 2
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
@@ -4866,7 +5294,7 @@ void __cdecl CScr_IsFXPlaying()
 
     if ( Scr_GetNumParam(SCRIPTINSTANCE_CLIENT) != 2 )
         Scr_Error(SCRIPTINSTANCE_CLIENT, "Incorrect number of parameters for IsFXPlaying", 0);
-    localClientNum = CScr_GetLocalClientNum(0).intValue;
+    localClientNum = CScr_GetLocalClientNum(0);
     if ( (unsigned int)localClientNum >= 2
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
@@ -4903,7 +5331,7 @@ void __cdecl CScr_GetEnt()
 
     if ( Scr_GetNumParam(SCRIPTINSTANCE_CLIENT) != 3 )
         Scr_Error(SCRIPTINSTANCE_CLIENT, "illegal call to getent()\n", 0);
-    localClientNum = CScr_GetLocalClientNum(0).intValue;
+    localClientNum = CScr_GetLocalClientNum(0);
     pName = Scr_GetString(1u, SCRIPTINSTANCE_CLIENT);
     key = Scr_GetString(2u, SCRIPTINSTANCE_CLIENT);
     offset = Scr_GetOffset(0, key, SCRIPTINSTANCE_CLIENT);
@@ -5019,7 +5447,7 @@ void __cdecl CScr_GetEntNum()
 
     if ( Scr_GetNumParam(SCRIPTINSTANCE_CLIENT) != 2 )
         Scr_Error(SCRIPTINSTANCE_CLIENT, "CScr_GetEntNum takes 2 params.", 0);
-    localClientNum = CScr_GetLocalClientNum(0).intValue;
+    localClientNum = CScr_GetLocalClientNum(0);
     centNum.intValue = Scr_GetInt(1u, SCRIPTINSTANCE_CLIENT).intValue;
     cent = CG_GetEntity(localClientNum, centNum.intValue);
     if ( ((*((unsigned int *)cent + 201) >> 1) & 1) == 0 )
@@ -5042,7 +5470,7 @@ void __cdecl CScr_GetEntArray()
     int i; // [esp+50h] [ebp-8h]
     int ia; // [esp+50h] [ebp-8h]
 
-    localClientNum = CScr_GetLocalClientNum(0).intValue;
+    localClientNum = CScr_GetLocalClientNum(0);
     if ( Scr_GetNumParam(SCRIPTINSTANCE_CLIENT) == 1 )
     {
         Scr_MakeArray(SCRIPTINSTANCE_CLIENT);
@@ -5128,7 +5556,7 @@ void __cdecl CScr_GetLocalPlayer()
     centity_s *cent; // [esp+Ch] [ebp-8h]
     int localClientNum; // [esp+10h] [ebp-4h]
 
-    localClientNum = CScr_GetLocalClientNum(0).intValue;
+    localClientNum = CScr_GetLocalClientNum(0);
     if ( CL_LocalClient_IsActive(localClientNum) )
     {
         cent = &CG_GetLocalClientGlobals(localClientNum)->predictedPlayerEntity;
@@ -5140,7 +5568,7 @@ void __cdecl CScr_GetLocalPlayer()
     }
 }
 
-unsigned intCScr_BulletTrace()
+void CScr_BulletTrace()
 {
     centity_s *Entity; // eax
     unsigned intresult; // eax
@@ -5173,7 +5601,7 @@ unsigned intCScr_BulletTrace()
         iClipMask &= 0xFDFF7FFF;
     if ( Scr_GetType(3u, SCRIPTINSTANCE_CLIENT) == 1 && Scr_GetPointerType(3u, SCRIPTINSTANCE_CLIENT) == 19 )
     {
-        v4 = *Scr_GetEntityRef(&v3, 3u, SCRIPTINSTANCE_CLIENT);
+        v4 = Scr_GetEntityRef(3, SCRIPTINSTANCE_CLIENT);
         v5 = v4;
         v6 = v4;
         ref = v4;
@@ -5222,13 +5650,13 @@ unsigned intCScr_BulletTrace()
         Scr_AddString(value, SCRIPTINSTANCE_CLIENT);
     }
     Scr_AddArrayStringIndexed(cscr_const.surfacetype, SCRIPTINSTANCE_CLIENT);
-    result = GetCurrentThreadId();
-    if ( result == g_DXDeviceThread )
-        return //D3DPERF_EndEvent();
-    return result;
+    //result = GetCurrentThreadId();
+    //if ( result == g_DXDeviceThread )
+    //    return //D3DPERF_EndEvent();
+    //return result;
 }
 
-unsigned intCScr_TracePoint()
+void CScr_TracePoint()
 {
     unsigned intresult; // eax
     char *value; // [esp+30h] [ebp-54h]
@@ -5278,10 +5706,10 @@ unsigned intCScr_TracePoint()
         Scr_AddString(value, SCRIPTINSTANCE_CLIENT);
     }
     Scr_AddArrayStringIndexed(cscr_const.surfacetype, SCRIPTINSTANCE_CLIENT);
-    result = GetCurrentThreadId();
-    if ( result == g_DXDeviceThread )
-        return //D3DPERF_EndEvent();
-    return result;
+    //result = GetCurrentThreadId();
+    //if ( result == g_DXDeviceThread )
+    //    return //D3DPERF_EndEvent();
+    //return result;
 }
 
 void __cdecl CScr_OpenFile()
@@ -5652,17 +6080,17 @@ void CScr_GetWeaponModel()
     }
 }
 
-void (__cdecl *__cdecl CScr_GetFunction(const char **pName, int *type))()
+void(__cdecl *__cdecl CScr_GetFunction(const char **pName, int *type))()
 {
     unsigned int i; // [esp+18h] [ebp-4h]
 
-    for ( i = 0; i < 0x9A; ++i )
+    for (i = 0; i < 0x9A; ++i)
     {
-        if ( !strcmp(*pName, client_functions[i].actionString) )
+        if (!strcmp(*pName, client_functions[i].actionString))
         {
             *pName = client_functions[i].actionString;
-            *type = dword_E038B8[3 * i];
-            return (void (__cdecl *)())*(&off_E038B4 + 3 * i);
+            *type = client_functions[i].type;
+            return client_functions[i].actionFunc;
         }
     }
     return CScr_GetFunctionProjectSpecific(pName, type);
@@ -5705,12 +6133,12 @@ void __cdecl CScrCmd_Delete(scr_entref_t entref)
 
 void __cdecl CScr_FreeEntity(centity_s *cent, int clientNum)
 {
-    if ( !cent
-        && !Assert_MyHandler("c:\\projects_pc\\cod\\codsrc\\src\\cgame\\../cgame/cg_scr_main.h", 407, 0, "%s", "cent") )
+    if (!cent
+        && !Assert_MyHandler("c:\\projects_pc\\cod\\codsrc\\src\\cgame\\../cgame/cg_scr_main.h", 407, 0, "%s", "cent"))
     {
         __debugbreak();
     }
-    if ( off_E13D0C->entArrayId )
+    if (gScrClassMap[1]->entArrayId)
     {
         CScr_FreeEntityFields(cent);
         Scr_FreeEntityNum(cent->nextState.number + 1536 * clientNum, 0, SCRIPTINSTANCE_CLIENT);
@@ -6525,11 +6953,12 @@ void __cdecl CScr_GetLightFovInner(scr_entref_t entref)
     }
     if ( pSelf->nextState.eType != 10 )
         Scr_Error(SCRIPTINSTANCE_CLIENT, "Function can only be called on a 'light' entity", 0);
-    LODWORD(v2) = pSelf->nextState.lerp.u.destructibleHit.modelState3;
-    v1 = *(float *)&v2;
-    __libm_sse2_acos(v2);
-    *(float *)&v1 = v1;
-    Scr_AddFloat((float)(*(float *)&v1 * 2.0) * 57.295776, SCRIPTINSTANCE_CLIENT);
+    //LODWORD(v2) = pSelf->nextState.lerp.u.destructibleHit.modelState3;
+    //v1 = *(float *)&v2;
+    //__libm_sse2_acos(v2);
+    //*(float *)&v1 = v1;
+    //Scr_AddFloat((float)(*(float *)&v1 * 2.0) * 57.295776, SCRIPTINSTANCE_CLIENT);
+    Scr_AddFloat((float)(acos(pSelf->nextState.lerp.u.destructibleHit.modelState3) * 2.0) * 57.295776, SCRIPTINSTANCE_CLIENT);
 }
 
 void __cdecl CScr_GetLightFovOuter(scr_entref_t entref)
@@ -6564,11 +6993,12 @@ void __cdecl CScr_GetLightFovOuter(scr_entref_t entref)
     }
     if ( pSelf->nextState.eType != 10 )
         Scr_Error(SCRIPTINSTANCE_CLIENT, "Function can only be called on a 'light' entity", 0);
-    LODWORD(v2) = pSelf->nextState.lerp.u.turret.ownerNum;
-    v1 = *(float *)&v2;
-    __libm_sse2_acos(v2);
-    *(float *)&v1 = v1;
-    Scr_AddFloat((float)(*(float *)&v1 * 2.0) * 57.295776, SCRIPTINSTANCE_CLIENT);
+    //LODWORD(v2) = pSelf->nextState.lerp.u.turret.ownerNum;
+    //v1 = *(float *)&v2;
+    //__libm_sse2_acos(v2);
+    //*(float *)&v1 = v1;
+    //Scr_AddFloat((float)(*(float *)&v1 * 2.0) * 57.295776, SCRIPTINSTANCE_CLIENT);
+    Scr_AddFloat((float)(acos(pSelf->nextState.lerp.u.turret.ownerNum) * 2.0) * 57.295776, SCRIPTINSTANCE_CLIENT);
 }
 
 void __cdecl CScr_SetLightFovRange(scr_entref_t entref)
@@ -6624,7 +7054,9 @@ void __cdecl CScr_SetLightFovRange(scr_entref_t entref)
     fovOuter = Scr_GetFloat(0, SCRIPTINSTANCE_CLIENT);
     if ( fovOuter < 0.99900001 || fovOuter >= 136.00101 )
         Scr_ParamError(0, "outer fov must be in the range of 1 to 136", SCRIPTINSTANCE_CLIENT);
-    __libm_sse2_cos(v2);
+    
+    //__libm_sse2_cos(v2);
+    fovOuter = cos(fovOuter);
     cosHalfFovOuter = (float)(fovOuter * 0.017453292) * 0.5;
     if ( (float)(refLight->cosHalfFovOuter - 0.001) > cosHalfFovOuter )
         Scr_ParamError(0, "outer fov cannot be larger than the fov when the map was compiled", SCRIPTINSTANCE_CLIENT);
@@ -6641,7 +7073,8 @@ void __cdecl CScr_SetLightFovRange(scr_entref_t entref)
         fovInner = Scr_GetFloat(1u, SCRIPTINSTANCE_CLIENT);
         if ( fovInner < -0.001 || fovInner >= (float)(fovOuter + 0.001) )
             Scr_ParamError(1u, "inner fov must be in the range of 0 to outer fov", SCRIPTINSTANCE_CLIENT);
-        __libm_sse2_cos(v3);
+        //__libm_sse2_cos(v3);
+        fovInner = cos(fovInner);
         cosHalfFovInner = (float)(fovInner * 0.017453292) * 0.5;
         if ( (float)(cosHalfFovInner - 1.0) < 0.0 )
             v7 = (float)(fovInner * 0.017453292) * 0.5;
@@ -6846,41 +7279,35 @@ void __cdecl CScrCmd_MoveGravity(scr_entref_t entref)
 
 void __cdecl CScriptMover_MoveGravity(trajectory_t *pTr, const float *velocity, float fTotalTime, float *vCurrPos)
 {
-    if ( pTr->trType )
-        BG_EvaluateTrajectory(
-            pTr,
-            *(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) + 4),
-            vCurrPos);
+    if (pTr->trType)
+        BG_EvaluateTrajectory(pTr, bgs->time, vCurrPos);
     pTr->trTime = CG_GetLocalClientGlobals(0)->time;
     pTr->trDuration = (int)(float)(fTotalTime * 10000.0);
     pTr->trBase[0] = *vCurrPos;
     pTr->trBase[1] = vCurrPos[1];
     pTr->trBase[2] = vCurrPos[2];
-    if ( !pTr->trDuration
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp", 7553, 0, "%s", "pTr->trDuration") )
+    if (!pTr->trDuration
+        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp", 7553, 0, "%s", "pTr->trDuration"))
     {
         __debugbreak();
     }
     pTr->trDelta[0] = *velocity;
     pTr->trDelta[1] = velocity[1];
     pTr->trDelta[2] = velocity[2];
-    if ( ((LODWORD(pTr->trDelta[0]) & 0x7F800000) == 0x7F800000
-         || (LODWORD(pTr->trDelta[1]) & 0x7F800000) == 0x7F800000
-         || (LODWORD(pTr->trDelta[2]) & 0x7F800000) == 0x7F800000)
+    if (((LODWORD(pTr->trDelta[0]) & 0x7F800000) == 0x7F800000
+        || (LODWORD(pTr->trDelta[1]) & 0x7F800000) == 0x7F800000
+        || (LODWORD(pTr->trDelta[2]) & 0x7F800000) == 0x7F800000)
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
-                    7555,
-                    0,
-                    "%s",
-                    "!IS_NAN((pTr->trDelta)[0]) && !IS_NAN((pTr->trDelta)[1]) && !IS_NAN((pTr->trDelta)[2])") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
+            7555,
+            0,
+            "%s",
+            "!IS_NAN((pTr->trDelta)[0]) && !IS_NAN((pTr->trDelta)[1]) && !IS_NAN((pTr->trDelta)[2])"))
     {
         __debugbreak();
     }
     pTr->trType = 6;
-    BG_EvaluateTrajectory(
-        pTr,
-        *(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) + 4),
-        vCurrPos);
+    BG_EvaluateTrajectory(pTr, bgs->time, vCurrPos);
 }
 
 void __cdecl CScrCmd_MoveTo(scr_entref_t entref)
@@ -6956,18 +7383,18 @@ void __cdecl CScriptMover_Move(
 }
 
 void __cdecl CScriptMover_SetupMove(
-                trajectory_t *pTr,
-                const float *vPos,
-                float fTotalTime,
-                float fAccelTime,
-                float fDecelTime,
-                float *vCurrPos,
-                float *pfSpeed,
-                float *pfMidTime,
-                float *pfDecelTime,
-                float *vPos1,
-                float *vPos2,
-                float *vPos3)
+    trajectory_t *pTr,
+    const float *vPos,
+    float fTotalTime,
+    float fAccelTime,
+    float fDecelTime,
+    float *vCurrPos,
+    float *pfSpeed,
+    float *pfMidTime,
+    float *pfDecelTime,
+    float *vPos1,
+    float *vPos2,
+    float *vPos3)
 {
     float v12; // [esp+0h] [ebp-8Ch]
     float v13; // [esp+28h] [ebp-64h]
@@ -6981,14 +7408,11 @@ void __cdecl CScriptMover_SetupMove(
     vMove[0] = *vPos - *vCurrPos;
     vMove[1] = vPos[1] - vCurrPos[1];
     vMove[2] = vPos[2] - vCurrPos[2];
-    if ( pTr->trType )
-        BG_EvaluateTrajectory(
-            pTr,
-            *(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) + 4),
-            vCurrPos);
-    if ( fAccelTime == 0.0 && fDecelTime == 0.0 )
+    if (pTr->trType)
+        BG_EvaluateTrajectory(pTr, bgs->time, vCurrPos);
+    if (fAccelTime == 0.0 && fDecelTime == 0.0)
     {
-        pTr->trTime = *(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) + 4);
+        pTr->trTime =bgs->time;
         pTr->trDuration = (int)(float)(fTotalTime * 1000.0);
         *pfMidTime = fTotalTime;
         *pfDecelTime = 0.0f;
@@ -6998,13 +7422,13 @@ void __cdecl CScriptMover_SetupMove(
         pTr->trBase[0] = *vCurrPos;
         pTr->trBase[1] = vCurrPos[1];
         pTr->trBase[2] = vCurrPos[2];
-        if ( !pTr->trDuration
+        if (!pTr->trDuration
             && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
-                        7353,
-                        0,
-                        "%s",
-                        "pTr->trDuration") )
+                "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
+                7353,
+                0,
+                "%s",
+                "pTr->trDuration"))
         {
             __debugbreak();
         }
@@ -7012,36 +7436,33 @@ void __cdecl CScriptMover_SetupMove(
         pTr->trDelta[0] = fDelta * vMove[0];
         pTr->trDelta[1] = fDelta * vMove[1];
         pTr->trDelta[2] = fDelta * vMove[2];
-        if ( ((LODWORD(pTr->trDelta[0]) & 0x7F800000) == 0x7F800000
-             || (LODWORD(pTr->trDelta[1]) & 0x7F800000) == 0x7F800000
-             || (LODWORD(pTr->trDelta[2]) & 0x7F800000) == 0x7F800000)
+        if (((LODWORD(pTr->trDelta[0]) & 0x7F800000) == 0x7F800000
+            || (LODWORD(pTr->trDelta[1]) & 0x7F800000) == 0x7F800000
+            || (LODWORD(pTr->trDelta[2]) & 0x7F800000) == 0x7F800000)
             && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
-                        7356,
-                        0,
-                        "%s",
-                        "!IS_NAN((pTr->trDelta)[0]) && !IS_NAN((pTr->trDelta)[1]) && !IS_NAN((pTr->trDelta)[2])") )
+                "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
+                7356,
+                0,
+                "%s",
+                "!IS_NAN((pTr->trDelta)[0]) && !IS_NAN((pTr->trDelta)[1]) && !IS_NAN((pTr->trDelta)[2])"))
         {
             __debugbreak();
         }
         pTr->trType = 4;
-        BG_EvaluateTrajectory(
-            pTr,
-            *(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) + 4),
-            vCurrPos);
+        BG_EvaluateTrajectory(pTr, bgs->time, vCurrPos);
     }
     else
     {
         *pfMidTime = (float)(fTotalTime - fAccelTime) - fDecelTime;
         *pfDecelTime = fDecelTime;
         fDist = Abs(vMove);
-        if ( (float)((float)((float)(2.0 * fTotalTime) - fAccelTime) - fDecelTime) == 0.0
+        if ((float)((float)((float)(2.0 * fTotalTime) - fAccelTime) - fDecelTime) == 0.0
             && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
-                        7368,
-                        0,
-                        "%s",
-                        "(2.0f * fTotalTime) - fAccelTime - fDecelTime") )
+                "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
+                7368,
+                0,
+                "%s",
+                "(2.0f * fTotalTime) - fAccelTime - fDecelTime"))
         {
             __debugbreak();
         }
@@ -7051,15 +7472,14 @@ void __cdecl CScriptMover_SetupMove(
         vMaxSpeed[0] = *pfSpeed * vMaxSpeed[0];
         vMaxSpeed[1] = v14 * vMaxSpeed[1];
         vMaxSpeed[2] = v14 * vMaxSpeed[2];
-        if ( fAccelTime == 0.0 )
+        if (fAccelTime == 0.0)
         {
             *vPos1 = *vCurrPos;
             vPos1[1] = vCurrPos[1];
             vPos1[2] = vCurrPos[2];
-            if ( *pfMidTime == 0.0 )
+            if (*pfMidTime == 0.0)
             {
-                pTr->trTime = *(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8)
-                                                                + 4);
+                pTr->trTime = bgs->time;
                 pTr->trDuration = (int)(float)(*pfDecelTime * 1000.0);
                 pTr->trBase[0] = *vCurrPos;
                 pTr->trBase[1] = vCurrPos[1];
@@ -7067,15 +7487,15 @@ void __cdecl CScriptMover_SetupMove(
                 pTr->trDelta[0] = vMaxSpeed[0];
                 pTr->trDelta[1] = vMaxSpeed[1];
                 pTr->trDelta[2] = vMaxSpeed[2];
-                if ( ((LODWORD(pTr->trDelta[0]) & 0x7F800000) == 0x7F800000
-                     || (LODWORD(pTr->trDelta[1]) & 0x7F800000) == 0x7F800000
-                     || (LODWORD(pTr->trDelta[2]) & 0x7F800000) == 0x7F800000)
+                if (((LODWORD(pTr->trDelta[0]) & 0x7F800000) == 0x7F800000
+                    || (LODWORD(pTr->trDelta[1]) & 0x7F800000) == 0x7F800000
+                    || (LODWORD(pTr->trDelta[2]) & 0x7F800000) == 0x7F800000)
                     && !Assert_MyHandler(
-                                "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
-                                7411,
-                                0,
-                                "%s",
-                                "!IS_NAN((pTr->trDelta)[0]) && !IS_NAN((pTr->trDelta)[1]) && !IS_NAN((pTr->trDelta)[2])") )
+                        "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
+                        7411,
+                        0,
+                        "%s",
+                        "!IS_NAN((pTr->trDelta)[0]) && !IS_NAN((pTr->trDelta)[1]) && !IS_NAN((pTr->trDelta)[2])"))
                 {
                     __debugbreak();
                 }
@@ -7083,8 +7503,7 @@ void __cdecl CScriptMover_SetupMove(
             }
             else
             {
-                pTr->trTime = *(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8)
-                                                                + 4);
+                pTr->trTime = bgs->time;
                 pTr->trDuration = (int)(float)(*pfMidTime * 1000.0);
                 pTr->trBase[0] = *vCurrPos;
                 pTr->trBase[1] = vCurrPos[1];
@@ -7093,13 +7512,13 @@ void __cdecl CScriptMover_SetupMove(
                 vMove[0] = *pfMidTime * vMaxSpeed[0];
                 vMove[1] = v13 * vMaxSpeed[1];
                 vMove[2] = v13 * vMaxSpeed[2];
-                if ( !pTr->trDuration
+                if (!pTr->trDuration
                     && !Assert_MyHandler(
-                                "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
-                                7397,
-                                0,
-                                "%s",
-                                "pTr->trDuration") )
+                        "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
+                        7397,
+                        0,
+                        "%s",
+                        "pTr->trDuration"))
                 {
                     __debugbreak();
                 }
@@ -7107,15 +7526,15 @@ void __cdecl CScriptMover_SetupMove(
                 pTr->trDelta[0] = fDeltaa * vMove[0];
                 pTr->trDelta[1] = fDeltaa * vMove[1];
                 pTr->trDelta[2] = fDeltaa * vMove[2];
-                if ( ((LODWORD(pTr->trDelta[0]) & 0x7F800000) == 0x7F800000
-                     || (LODWORD(pTr->trDelta[1]) & 0x7F800000) == 0x7F800000
-                     || (LODWORD(pTr->trDelta[2]) & 0x7F800000) == 0x7F800000)
+                if (((LODWORD(pTr->trDelta[0]) & 0x7F800000) == 0x7F800000
+                    || (LODWORD(pTr->trDelta[1]) & 0x7F800000) == 0x7F800000
+                    || (LODWORD(pTr->trDelta[2]) & 0x7F800000) == 0x7F800000)
                     && !Assert_MyHandler(
-                                "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
-                                7400,
-                                0,
-                                "%s",
-                                "!IS_NAN((pTr->trDelta)[0]) && !IS_NAN((pTr->trDelta)[1]) && !IS_NAN((pTr->trDelta)[2])") )
+                        "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
+                        7400,
+                        0,
+                        "%s",
+                        "!IS_NAN((pTr->trDelta)[0]) && !IS_NAN((pTr->trDelta)[1]) && !IS_NAN((pTr->trDelta)[2])"))
                 {
                     __debugbreak();
                 }
@@ -7124,7 +7543,7 @@ void __cdecl CScriptMover_SetupMove(
         }
         else
         {
-            pTr->trTime = *(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) + 4);
+            pTr->trTime = bgs->time;
             pTr->trDuration = (int)(float)(fAccelTime * 1000.0);
             pTr->trBase[0] = *vCurrPos;
             pTr->trBase[1] = vCurrPos[1];
@@ -7132,23 +7551,22 @@ void __cdecl CScriptMover_SetupMove(
             pTr->trDelta[0] = vMaxSpeed[0];
             pTr->trDelta[1] = vMaxSpeed[1];
             pTr->trDelta[2] = vMaxSpeed[2];
-            if ( ((LODWORD(pTr->trDelta[0]) & 0x7F800000) == 0x7F800000
-                 || (LODWORD(pTr->trDelta[1]) & 0x7F800000) == 0x7F800000
-                 || (LODWORD(pTr->trDelta[2]) & 0x7F800000) == 0x7F800000)
+            if (((LODWORD(pTr->trDelta[0]) & 0x7F800000) == 0x7F800000
+                || (LODWORD(pTr->trDelta[1]) & 0x7F800000) == 0x7F800000
+                || (LODWORD(pTr->trDelta[2]) & 0x7F800000) == 0x7F800000)
                 && !Assert_MyHandler(
-                            "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
-                            7380,
-                            0,
-                            "%s",
-                            "!IS_NAN((pTr->trDelta)[0]) && !IS_NAN((pTr->trDelta)[1]) && !IS_NAN((pTr->trDelta)[2])") )
+                    "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
+                    7380,
+                    0,
+                    "%s",
+                    "!IS_NAN((pTr->trDelta)[0]) && !IS_NAN((pTr->trDelta)[1]) && !IS_NAN((pTr->trDelta)[2])"))
             {
                 __debugbreak();
             }
             pTr->trType = 8;
             BG_EvaluateTrajectory(
                 pTr,
-                pTr->trDuration
-            + *(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) + 4),
+                pTr->trDuration + bgs->time,
                 vPos1);
         }
         v12 = *pfMidTime;
@@ -7158,10 +7576,7 @@ void __cdecl CScriptMover_SetupMove(
         *vPos3 = *vPos;
         vPos3[1] = vPos[1];
         vPos3[2] = vPos[2];
-        BG_EvaluateTrajectory(
-            pTr,
-            *(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) + 4),
-            vCurrPos);
+        BG_EvaluateTrajectory(pTr, bgs->time, vCurrPos);
     }
 }
 
@@ -7439,30 +7854,27 @@ void __cdecl CScriptMover_RotateSpeed(
 }
 
 void __cdecl CScriptMover_SetupMoveSpeed(
-                trajectory_t *pTr,
-                const float *vSpeed,
-                float fTotalTime,
-                float fAccelTime,
-                float fDecelTime,
-                float *vCurrPos,
-                float *pfSpeed,
-                float *pfMidTime,
-                float *pfDecelTime,
-                float *vPos1,
-                float *vPos2,
-                float *vPos3)
+    trajectory_t *pTr,
+    const float *vSpeed,
+    float fTotalTime,
+    float fAccelTime,
+    float fDecelTime,
+    float *vCurrPos,
+    float *pfSpeed,
+    float *pfMidTime,
+    float *pfDecelTime,
+    float *vPos1,
+    float *vPos2,
+    float *vPos3)
 {
     float v12; // [esp+Ch] [ebp-7Ch]
     trajectory_t tr; // [esp+64h] [ebp-24h] BYREF
 
-    if ( pTr->trType )
-        BG_EvaluateTrajectory(
-            pTr,
-            *(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) + 4),
-            vCurrPos);
-    if ( fAccelTime == 0.0 && fDecelTime == 0.0 )
+    if (pTr->trType)
+        BG_EvaluateTrajectory(pTr, bgs->time, vCurrPos);
+    if (fAccelTime == 0.0 && fDecelTime == 0.0)
     {
-        pTr->trTime = *(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) + 4);
+        pTr->trTime = bgs->time;
         pTr->trDuration = (int)(float)(fTotalTime * 1000.0);
         *pfMidTime = fTotalTime;
         *pfDecelTime = 0.0f;
@@ -7472,27 +7884,23 @@ void __cdecl CScriptMover_SetupMoveSpeed(
         pTr->trDelta[0] = *vSpeed;
         pTr->trDelta[1] = vSpeed[1];
         pTr->trDelta[2] = vSpeed[2];
-        if ( ((LODWORD(pTr->trDelta[0]) & 0x7F800000) == 0x7F800000
-             || (LODWORD(pTr->trDelta[1]) & 0x7F800000) == 0x7F800000
-             || (LODWORD(pTr->trDelta[2]) & 0x7F800000) == 0x7F800000)
+        if (((LODWORD(pTr->trDelta[0]) & 0x7F800000) == 0x7F800000
+            || (LODWORD(pTr->trDelta[1]) & 0x7F800000) == 0x7F800000
+            || (LODWORD(pTr->trDelta[2]) & 0x7F800000) == 0x7F800000)
             && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
-                        7445,
-                        0,
-                        "%s",
-                        "!IS_NAN((pTr->trDelta)[0]) && !IS_NAN((pTr->trDelta)[1]) && !IS_NAN((pTr->trDelta)[2])") )
+                "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
+                7445,
+                0,
+                "%s",
+                "!IS_NAN((pTr->trDelta)[0]) && !IS_NAN((pTr->trDelta)[1]) && !IS_NAN((pTr->trDelta)[2])"))
         {
             __debugbreak();
         }
         pTr->trType = 4;
+        BG_EvaluateTrajectory(pTr, bgs->time, vCurrPos);
         BG_EvaluateTrajectory(
             pTr,
-            *(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) + 4),
-            vCurrPos);
-        BG_EvaluateTrajectory(
-            pTr,
-            pTr->trDuration
-        + *(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) + 4),
+            pTr->trDuration + bgs->time,
             vPos3);
     }
     else
@@ -7500,15 +7908,14 @@ void __cdecl CScriptMover_SetupMoveSpeed(
         *pfMidTime = (float)(fTotalTime - fAccelTime) - fDecelTime;
         *pfDecelTime = fDecelTime;
         *pfSpeed = Abs(vSpeed);
-        if ( fAccelTime == 0.0 )
+        if (fAccelTime == 0.0)
         {
             *vPos1 = *vCurrPos;
             vPos1[1] = vCurrPos[1];
             vPos1[2] = vCurrPos[2];
-            if ( *pfMidTime == 0.0 )
+            if (*pfMidTime == 0.0)
             {
-                pTr->trTime = *(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8)
-                                                                + 4);
+                pTr->trTime = bgs->time;
                 pTr->trDuration = (int)(float)(*pfDecelTime * 1000.0);
                 pTr->trBase[0] = *vCurrPos;
                 pTr->trBase[1] = vCurrPos[1];
@@ -7516,15 +7923,15 @@ void __cdecl CScriptMover_SetupMoveSpeed(
                 pTr->trDelta[0] = *vSpeed;
                 pTr->trDelta[1] = vSpeed[1];
                 pTr->trDelta[2] = vSpeed[2];
-                if ( ((LODWORD(pTr->trDelta[0]) & 0x7F800000) == 0x7F800000
-                     || (LODWORD(pTr->trDelta[1]) & 0x7F800000) == 0x7F800000
-                     || (LODWORD(pTr->trDelta[2]) & 0x7F800000) == 0x7F800000)
+                if (((LODWORD(pTr->trDelta[0]) & 0x7F800000) == 0x7F800000
+                    || (LODWORD(pTr->trDelta[1]) & 0x7F800000) == 0x7F800000
+                    || (LODWORD(pTr->trDelta[2]) & 0x7F800000) == 0x7F800000)
                     && !Assert_MyHandler(
-                                "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
-                                7494,
-                                0,
-                                "%s",
-                                "!IS_NAN((pTr->trDelta)[0]) && !IS_NAN((pTr->trDelta)[1]) && !IS_NAN((pTr->trDelta)[2])") )
+                        "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
+                        7494,
+                        0,
+                        "%s",
+                        "!IS_NAN((pTr->trDelta)[0]) && !IS_NAN((pTr->trDelta)[1]) && !IS_NAN((pTr->trDelta)[2])"))
                 {
                     __debugbreak();
                 }
@@ -7532,8 +7939,7 @@ void __cdecl CScriptMover_SetupMoveSpeed(
             }
             else
             {
-                pTr->trTime = *(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8)
-                                                                + 4);
+                pTr->trTime = bgs->time;
                 pTr->trDuration = (int)(float)(*pfMidTime * 1000.0);
                 pTr->trBase[0] = *vCurrPos;
                 pTr->trBase[1] = vCurrPos[1];
@@ -7541,15 +7947,15 @@ void __cdecl CScriptMover_SetupMoveSpeed(
                 pTr->trDelta[0] = *vSpeed;
                 pTr->trDelta[1] = vSpeed[1];
                 pTr->trDelta[2] = vSpeed[2];
-                if ( ((LODWORD(pTr->trDelta[0]) & 0x7F800000) == 0x7F800000
-                     || (LODWORD(pTr->trDelta[1]) & 0x7F800000) == 0x7F800000
-                     || (LODWORD(pTr->trDelta[2]) & 0x7F800000) == 0x7F800000)
+                if (((LODWORD(pTr->trDelta[0]) & 0x7F800000) == 0x7F800000
+                    || (LODWORD(pTr->trDelta[1]) & 0x7F800000) == 0x7F800000
+                    || (LODWORD(pTr->trDelta[2]) & 0x7F800000) == 0x7F800000)
                     && !Assert_MyHandler(
-                                "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
-                                7484,
-                                0,
-                                "%s",
-                                "!IS_NAN((pTr->trDelta)[0]) && !IS_NAN((pTr->trDelta)[1]) && !IS_NAN((pTr->trDelta)[2])") )
+                        "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
+                        7484,
+                        0,
+                        "%s",
+                        "!IS_NAN((pTr->trDelta)[0]) && !IS_NAN((pTr->trDelta)[1]) && !IS_NAN((pTr->trDelta)[2])"))
                 {
                     __debugbreak();
                 }
@@ -7558,7 +7964,7 @@ void __cdecl CScriptMover_SetupMoveSpeed(
         }
         else
         {
-            pTr->trTime = *(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) + 4);
+            pTr->trTime = bgs->time;
             pTr->trDuration = (int)(float)(fAccelTime * 1000.0);
             pTr->trBase[0] = *vCurrPos;
             pTr->trBase[1] = vCurrPos[1];
@@ -7566,30 +7972,29 @@ void __cdecl CScriptMover_SetupMoveSpeed(
             pTr->trDelta[0] = *vSpeed;
             pTr->trDelta[1] = vSpeed[1];
             pTr->trDelta[2] = vSpeed[2];
-            if ( ((LODWORD(pTr->trDelta[0]) & 0x7F800000) == 0x7F800000
-                 || (LODWORD(pTr->trDelta[1]) & 0x7F800000) == 0x7F800000
-                 || (LODWORD(pTr->trDelta[2]) & 0x7F800000) == 0x7F800000)
+            if (((LODWORD(pTr->trDelta[0]) & 0x7F800000) == 0x7F800000
+                || (LODWORD(pTr->trDelta[1]) & 0x7F800000) == 0x7F800000
+                || (LODWORD(pTr->trDelta[2]) & 0x7F800000) == 0x7F800000)
                 && !Assert_MyHandler(
-                            "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
-                            7467,
-                            0,
-                            "%s",
-                            "!IS_NAN((pTr->trDelta)[0]) && !IS_NAN((pTr->trDelta)[1]) && !IS_NAN((pTr->trDelta)[2])") )
+                    "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
+                    7467,
+                    0,
+                    "%s",
+                    "!IS_NAN((pTr->trDelta)[0]) && !IS_NAN((pTr->trDelta)[1]) && !IS_NAN((pTr->trDelta)[2])"))
             {
                 __debugbreak();
             }
             pTr->trType = 8;
             BG_EvaluateTrajectory(
                 pTr,
-                pTr->trDuration
-            + *(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) + 4),
+                pTr->trDuration + bgs->time,
                 vPos1);
         }
         v12 = *pfMidTime;
         *vPos2 = (float)(*pfMidTime * *vSpeed) + *vPos1;
         vPos2[1] = (float)(v12 * vSpeed[1]) + vPos1[1];
         vPos2[2] = (float)(v12 * vSpeed[2]) + vPos1[2];
-        if ( *pfDecelTime == 0.0 )
+        if (*pfDecelTime == 0.0)
         {
             *vPos3 = *vPos2;
             vPos3[1] = vPos2[1];
@@ -7598,7 +8003,7 @@ void __cdecl CScriptMover_SetupMoveSpeed(
         else
         {
             tr.trType = 9;
-            tr.trTime = *(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) + 4);
+            tr.trTime = bgs->time;
             tr.trDuration = (int)(float)(*pfDecelTime * 1000.0);
             tr.trBase[0] = *vPos2;
             tr.trBase[1] = vPos2[1];
@@ -7606,28 +8011,24 @@ void __cdecl CScriptMover_SetupMoveSpeed(
             tr.trDelta[0] = *vSpeed;
             tr.trDelta[1] = vSpeed[1];
             tr.trDelta[2] = vSpeed[2];
-            if ( ((LODWORD(tr.trDelta[0]) & 0x7F800000) == 0x7F800000
-                 || (LODWORD(tr.trDelta[1]) & 0x7F800000) == 0x7F800000
-                 || (LODWORD(tr.trDelta[2]) & 0x7F800000) == 0x7F800000)
+            if (((LODWORD(tr.trDelta[0]) & 0x7F800000) == 0x7F800000
+                || (LODWORD(tr.trDelta[1]) & 0x7F800000) == 0x7F800000
+                || (LODWORD(tr.trDelta[2]) & 0x7F800000) == 0x7F800000)
                 && !Assert_MyHandler(
-                            "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
-                            7512,
-                            0,
-                            "%s",
-                            "!IS_NAN((tr.trDelta)[0]) && !IS_NAN((tr.trDelta)[1]) && !IS_NAN((tr.trDelta)[2])") )
+                    "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_scr_main.cpp",
+                    7512,
+                    0,
+                    "%s",
+                    "!IS_NAN((tr.trDelta)[0]) && !IS_NAN((tr.trDelta)[1]) && !IS_NAN((tr.trDelta)[2])"))
             {
                 __debugbreak();
             }
             BG_EvaluateTrajectory(
                 &tr,
-                tr.trDuration
-            + *(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) + 4),
+                tr.trDuration + bgs->time,
                 vPos3);
         }
-        BG_EvaluateTrajectory(
-            pTr,
-            *(unsigned int *)(*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) + 4),
-            vCurrPos);
+        BG_EvaluateTrajectory(pTr, bgs->time, vCurrPos);
     }
 }
 
@@ -7763,6 +8164,7 @@ void __cdecl CScrCmd_GetCamAngles(scr_entref_t entref)
     }
 }
 
+int iVal;
 void __cdecl CScr_UseAnimTree(scr_entref_t entref)
 {
     centity_s *pSelf; // [esp+10h] [ebp-14h]
@@ -8837,7 +9239,7 @@ void __cdecl CScr_HasDObj(scr_entref_t entref)
 
     if ( Scr_GetNumParam(SCRIPTINSTANCE_CLIENT) != 1 )
         Scr_Error(SCRIPTINSTANCE_CLIENT, "HasDObj: Must be passed the local client number", 0);
-    localClientNum.intValue = CScr_GetLocalClientNum(0).intValue;
+    localClientNum.intValue = CScr_GetLocalClientNum(0);
     if ( Com_GetClientDObj(entref.entnum, localClientNum.intValue) )
         Scr_AddInt(1, SCRIPTINSTANCE_CLIENT);
     else
@@ -8941,7 +9343,7 @@ void __cdecl CScrCmd_IsTouching(scr_entref_t entref)
         pTemp = ent;
         tempEntref.client = entref.client;
         tempEntref.entnum = entref.entnum;
-        v7 = *Scr_GetEntityRef(&v6, 0, SCRIPTINSTANCE_CLIENT);
+        v7 = Scr_GetEntityRef(0, SCRIPTINSTANCE_CLIENT);
         v10 = v7;
         v11 = v7;
         otherEntref = v7;
@@ -8957,7 +9359,7 @@ void __cdecl CScrCmd_IsTouching(scr_entref_t entref)
     }
     else
     {
-        v5 = *Scr_GetEntityRef(&v4, 0, SCRIPTINSTANCE_CLIENT);
+        v5 = Scr_GetEntityRef(0, SCRIPTINSTANCE_CLIENT);
         v8 = v5;
         v9 = v5;
         otherEntref = v5;
@@ -8986,7 +9388,7 @@ void __cdecl CScrCmd_IsTouching(scr_entref_t entref)
         absMaxs[0] = ent->pose.absmax[0];
         absMaxs[1] = ent->pose.absmax[1];
         absMaxs[2] = ent->pose.absmax[2];
-        CG_GetEntityBModelBounds((int)&savedregs, ent, mins, maxs, 0, 0);
+        CG_GetEntityBModelBounds(ent, mins, maxs, 0, 0);
     }
     else
     {
@@ -9086,7 +9488,7 @@ void __cdecl CScrCmd_LinkTo(scr_entref_t entref)
     centity_s *cent; // [esp+48h] [ebp-4h]
 
     cent = CG_GetEntity(entref.client, entref.entnum);
-    v2 = *Scr_GetEntityRef(&v1, 0, SCRIPTINSTANCE_CLIENT);
+    v2 = Scr_GetEntityRef(0, SCRIPTINSTANCE_CLIENT);
     v3 = v2;
     v4 = v2;
     linkEnt = v2;
@@ -9722,7 +10124,7 @@ int __cdecl CScr_SetScriptAndLabel(
     if ( !func )
     {
         if ( bEnforceExists )
-            Com_Error(ERR_DROP, &byte_C8DF14, label, filename);
+            Com_Error(ERR_DROP, "Could not find label '%s' in script '%s'", label, filename);
     }
     return func;
 }
@@ -10323,7 +10725,7 @@ void __cdecl CScr_AddFieldsForEntity()
 
 void __cdecl CScr_AddFieldsForRadiant()
 {
-    Scr_AddFields("radiant", "txt", SCRIPTINSTANCE_CLIENT);
+    Scr_AddFields("radiant", (char*)"txt", SCRIPTINSTANCE_CLIENT);
 }
 
 void __cdecl CScr_PostLoadScripts()

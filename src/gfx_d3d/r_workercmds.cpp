@@ -35,6 +35,10 @@ jqModule r_model_skinModule;
 jqModule nuge_physicsModule;
 jqModule r_skin_cached_staticmodelModule;
 
+jqModule r_water_simModule;
+volatile unsigned int r_water_simLimit;
+jqWorkerCmd r_water_simWorkerCmd = { &r_water_simModule, 84u, 0, 0, &r_water_simLimit, NULL, 0u };
+
 // probably decl'd with a macro here, but ya'know
 
 volatile unsigned int fx_update_spotLimit = 1;

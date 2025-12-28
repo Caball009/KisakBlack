@@ -5,6 +5,7 @@
 #include <client_mp/client_mp.h>
 #include <sound/snd.h>
 #include "bg_animation.h"
+#include <game/g_scr_vehicle.h>
 
 
 
@@ -108,11 +109,6 @@ struct CEntFx // sizeof=0x8
         unsigned int effect;
 };
 
-union $B5C6484BFC4A9A509FCDCE318554591E // sizeof=0x4
-{                                                                             // XREF: CEntActorInfo/r
-        float height;
-        float yaw;
-};
 
 struct CEntActorInfo // sizeof=0x20
 {                                                                             // XREF: $251974A72D8ACF7EC8C19B3B5F3F224B/r
@@ -123,7 +119,12 @@ struct CEntActorInfo // sizeof=0x20
         // padding byte
         // padding byte
         // padding byte
-        $B5C6484BFC4A9A509FCDCE318554591E ___u4;
+        //$B5C6484BFC4A9A509FCDCE318554591E ___u4;
+        union //$B5C6484BFC4A9A509FCDCE318554591E // sizeof=0x4
+        {                                                                             // XREF: CEntActorInfo/r
+            float height;
+            float yaw;
+        };
         float waterHeight;
         int nextWaterHeightCheck;
         int nextRippleTime;
@@ -157,7 +158,7 @@ struct cpose_t // sizeof=0x174
         // padding byte
         // padding byte
         // padding byte
-        int cullIn;
+        volatile unsigned int cullIn;
         unsigned __int8 isRagdoll;
         // padding byte
         // padding byte
@@ -207,8 +208,6 @@ struct __declspec(align(4)) cLinkInfo_s // sizeof=0x48
         // padding byte
 };
 
-struct cgVehicle_s; // sizeof=0x54
-
 struct cached_client_tag_t // sizeof=0x30
 {                                                                             // XREF: ClientTagCache/r
                                                                                 // ClientTagCache/r
@@ -252,6 +251,32 @@ struct cgScriptMover_s // sizeof=0x60
 };
 
 struct Material;
+
+enum entityType_t : __int32
+{                                       // XREF: ?CG_EntityEvent@@YAXHPAUcentity_s@@H@Z/r
+    ET_GENERAL         = 0x0,
+    ET_PLAYER          = 0x1,
+    ET_PLAYER_CORPSE   = 0x2,
+    ET_ITEM            = 0x3,
+    ET_MISSILE         = 0x4,
+    ET_INVISIBLE       = 0x5,
+    ET_SCRIPTMOVER     = 0x6,
+    ET_SOUND_BLEND     = 0x7,
+    ET_FX              = 0x8,
+    ET_LOOP_FX         = 0x9,
+    ET_PRIMARY_LIGHT   = 0xA,
+    ET_MG42            = 0xB,
+    ET_HELICOPTER      = 0xC,
+    ET_PLANE           = 0xD,
+    ET_VEHICLE         = 0xE,
+    ET_VEHICLE_COLLMAP = 0xF,
+    ET_VEHICLE_CORPSE  = 0x10,
+    ET_ACTOR           = 0x11,
+    ET_ACTOR_SPAWNER   = 0x12,
+    ET_ACTOR_CORPSE    = 0x13,
+    ET_STREAMER_HINT   = 0x14,
+    ET_EVENTS          = 0x15,
+};
 
 struct centity_s // sizeof=0x328
 {                                                                             // XREF: cg_s/r

@@ -1,4 +1,22 @@
 #include "cg_vehicle.h"
+#include <client/splitscreen.h>
+#include <universal/com_math_anglevectors.h>
+#include <gfx_d3d/r_water_sim.h>
+#include <bgame/bg_weapons.h>
+#include <clientscript/cscr_memorytree.h>
+#include <cgame_mp/cg_local_mp.h>
+
+float foam = 1.9;
+float foamLerpRate = 0.5;
+float foamRadius = 30.0;
+float depth = -2.0;
+float lerpRate_0 = 0.1;
+float radius = 30.0;
+float dist1 = 200.0;
+float depth2 = 2.0;
+float lerpRate2 = 0.18000001;
+float radius2 = 30.0;
+float dist2 = -200.0;
 
 void __cdecl CG_UpdateVehicleWaterFX(int localClientNum, centity_s *cent)
 {
@@ -21,8 +39,6 @@ void __cdecl CG_UpdateVehicleWaterFX(int localClientNum, centity_s *cent)
 
 // local variable allocation has failed, the output may be wrong!
 void    CG_Vehicle_PreControllers(
-                cStaticModel_s *a1@<ebp>,
-                int a2@<esi>,
                 int localClientNum,
                 const DObj *obj,
                 centity_s *cent)

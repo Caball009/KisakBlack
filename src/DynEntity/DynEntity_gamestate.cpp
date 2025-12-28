@@ -1,4 +1,11 @@
 #include "DynEntity_gamestate.h"
+#include "DynEntity_coll.h"
+#include "DynEntity_client.h"
+#include "DynEntity_load_obj.h"
+#include <qcommon/cm_load.h>
+#include <win32/win_common.h>
+#include <qcommon/common.h>
+#include <client/splitscreen.h>
 
 void __cdecl DynEnt_WriteGameState(msg_t *msg)
 {
@@ -18,7 +25,7 @@ void __cdecl DynEnt_WriteGameState(msg_t *msg)
     sizeAtStart = msg->cursize;
     for ( drawType = 0; drawType < 2; ++drawType )
     {
-        collType = drawType;
+        collType = (DynEntityCollType)drawType;
         dynEntCount = DynEnt_GetEntityCount((DynEntityCollType)drawType);
         if ( !drawType )
             dynEntCount = cm.originalDynEntCount;
@@ -118,8 +125,8 @@ void __cdecl DynEnt_ReadGameState(msg_t *msg, int localClientNum)
                 }
                 if ( dynEntClient->physObjId )
                 {
-                    Phys_ObjSetVelocity((int)&savedregs, dynEntClient->physObjId, tvel);
-                    Phys_ObjSetAngularVelocity((int)&savedregs, dynEntClient->physObjId, avel);
+                    Phys_ObjSetVelocity(dynEntClient->physObjId, tvel);
+                    Phys_ObjSetAngularVelocity(dynEntClient->physObjId, avel);
                 }
             }
         }

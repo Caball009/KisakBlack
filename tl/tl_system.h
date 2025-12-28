@@ -42,3 +42,5 @@ void *__cdecl tlScratchPadInit();
 void __cdecl tlScratchPadReset();
 void tlWarning(const char *Format, ...);
 bool __cdecl tlReadFile(const char *FileName, tlFileBuf *File, unsigned int Align, unsigned int Flags);
+
+extern float tlPcTicksPerMS;

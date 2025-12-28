@@ -1,4 +1,70 @@
 #include "cg_draw_debug.h"
+#include <client/screen_placement.h>
+#include <cgame_mp/cg_main_mp.h>
+#include <gfx_d3d/r_font.h>
+#include "cg_drawtools.h"
+#include <qcommon/mem_track.h>
+#include <gfx_d3d/r_init.h>
+#include <game_mp/g_main_mp.h>
+#include <server_mp/sv_main_mp.h>
+#include <bgame/bg_misc.h>
+#include <sound/snd_debug.h>
+#include <win32/win_shared.h>
+#include <ui/ui_atoms.h>
+#include <aim_assist/aim_assist.h>
+#include <gfx_d3d/r_utils.h>
+#include <client_mp/cl_cgame_mp.h>
+#include <bgame/bg_pmove.h>
+#include <clientscript/cscr_vm.h>
+#include <clientscript/cscr_memorytree.h>
+#include <EffectsCore/fx_profile.h>
+#include <clientscript/cscr_stringlist.h>
+#include <clientscript/scr_const.h>
+#include <qcommon/sv_msg_write_mp.h>
+#include <EffectsCore/fx_dvars.h>
+#include <ragdoll/ragdoll.h>
+#include <glass/glass_client.h>
+#include <server_mp/sv_bot_mp.h>
+#include <gfx_d3d/r_foliage.h>
+#include "cg_perf.h"
+#include <physics/physics_system_internal.h>
+#include <gfx_d3d/r_dvars.h>
+#include <tl/tl_system.h>
+
+__int16 entity_counts[65536];
+
+trViewStatistics_t rendererViewStats[1];
+trStatistics_t rendererStats;
+
+const char *g_TagNames[6] =
+{
+  "tag_weapon_left",
+  "tag_weapon_right",
+  "tag_inhand",
+  "tag_stowed_back",
+  "tag_weapon_chest",
+  "1st person view pos"
+};
+
+int(__cdecl *CG_SoundCompares[6])(const void *, const void *) =
+{
+  (int(*)(const void*, const void*))CG_CompareSndInfoPriority,
+  (int(*)(const void*, const void*))CG_CompareSndInfoChannel,
+  (int(*)(const void*, const void*))CG_CompareSndInfoAlias,
+  (int(*)(const void*, const void*))CG_CompareSndInfoDryLevel,
+  (int(*)(const void*, const void*))CG_CompareSndInfoEntity,
+  (int(*)(const void*, const void*))CG_CompareSndInfoDistance
+};
+
+float g_TagColors[6][4] =
+{
+  { 0.89999998, 0.2, 0.2, 1.0 },
+  { 0.2, 0.2, 0.89999998, 1.0 },
+  { 0.2, 0.89999998, 0.2, 1.0 },
+  { 0.89999998, 0.2, 0.89999998, 1.0 },
+  { 0.2, 0.89999998, 0.89999998, 1.0 },
+  { 0.89999998, 0.89999998, 0.2, 1.0 }
+};
 
 double __cdecl CG_DrawAnimTagInfo(const ScreenPlacement *scrPlace, float posY)
 {
@@ -10,16 +76,14 @@ double __cdecl CG_DrawAnimTagInfo(const ScreenPlacement *scrPlace, float posY)
     for ( i = 0; i < 6; ++i )
     {
         v2 = R_TextWidth("tag name", 0, cgMedia.smallDevFont);
-        posY = CG_CornerDebugPrint(
+        posY += CG_CornerDebugPrint(
                          scrPlace,
-                         (float)(scrPlace->virtualViewableMax[0] - scrPlace->virtualViewableMin[0])
-                     + cg_debugInfoCornerOffset->current.value,
+                         (float)(scrPlace->virtualViewableMax[0] - scrPlace->virtualViewableMin[0]) + cg_debugInfoCornerOffset->current.value,
                          posY,
                          (float)v2 * 1.0,
-                         g_TagNames[i],
-                         "tag name",
-                         g_TagColors[i])
-                 + posY;
+                         (char*)g_TagNames[i],
+                         (char*)"tag name",
+                         (const float*)g_TagColors[i]);
     }
     return posY;
 }
@@ -93,8 +157,8 @@ void __cdecl CG_DrawUpperRightDebugInfo(int localClientNum)
 
 double __cdecl CG_DrawSnapshot(int localClientNum, float posY)
 {
-    const char *v2; // eax
-    const char *v3; // eax
+    char *v2; // eax
+    char *v3; // eax
     float v5; // [esp+18h] [ebp-1Ch]
     char *str; // [esp+1Ch] [ebp-18h]
     const ScreenPlacement *scrPlace; // [esp+20h] [ebp-14h]
@@ -111,13 +175,13 @@ double __cdecl CG_DrawSnapshot(int localClientNum, float posY)
     posX = (float)(scrPlace->virtualViewableMax[0] - scrPlace->virtualViewableMin[0])
              + cg_debugInfoCornerOffset->current.value;
     v5 = (float)R_TextWidth(" server time", 0, cgMedia.smallDevFont) * 1.0;
-    posYa = CG_CornerDebugPrintCaption(scrPlace, posX, posY, v5, "-Snapshot-", colorGreenFaded) + posY;
+    posYa = CG_CornerDebugPrintCaption(scrPlace, posX, posY, v5, (char*)"-Snapshot-", colorGreenFaded) + posY;
     v2 = va("%i", cgameGlob->nextSnap->serverTime);
-    posYb = CG_CornerDebugPrint(scrPlace, posX, posYa, v5, v2, " server time", colorWhite) + posYa;
+    posYb = CG_CornerDebugPrint(scrPlace, posX, posYa, v5, v2, (char *)" server time", colorWhite) + posYa;
     v3 = va("%i", cgameGlob->latestSnapshotNum);
-    posYc = CG_CornerDebugPrint(scrPlace, posX, posYb, v5, v3, " snap num", colorWhite) + posYb;
+    posYc = CG_CornerDebugPrint(scrPlace, posX, posYb, v5, v3, (char *)" snap num", colorWhite) + posYb;
     str = va("%i", cgs->serverCommandSequence);
-    return (float)(CG_CornerDebugPrint(scrPlace, posX, posYc, v5, str, " cmd", colorWhite) + posYc);
+    return (float)(CG_CornerDebugPrint(scrPlace, posX, posYc, v5, str, (char *)" cmd", colorWhite) + posYc);
 }
 
 double __cdecl CG_CornerDebugPrintCaption(
@@ -142,6 +206,7 @@ double __cdecl CG_DrawStatmon(const ScreenPlacement *scrPlace, float y)
     return y;
 }
 
+float CG_DrawViewposoffset = 50.0f;
 double __cdecl CG_DrawViewpos(const ScreenPlacement *scrPlace, float y, int localClientNum)
 {
     const char *String; // eax
@@ -334,21 +399,21 @@ double __cdecl DrawEntityCounts(const ScreenPlacement *scrPlace, float posY)
     if ( listEntityCountsCurrent == 2 )
     {
         v5 = va("%d", total);
-        posYb = CG_CornerDebugPrint(scrPlace, posX, posYa, v22, v5, " CEnt Count High", colorWhite) + posYa;
+        posYb = CG_CornerDebugPrint(scrPlace, posX, posYa, v22, v5, (char*)" CEnt Count High", colorWhite) + posYa;
         v6 = va("%d", fx);
-        posYc = CG_CornerDebugPrint(scrPlace, posX, posYb, v22, v6, " CEnt fx", colorWhite) + posYb;
+        posYc = CG_CornerDebugPrint(scrPlace, posX, posYb, v22, v6, (char *)" CEnt fx", colorWhite) + posYb;
         v7 = va("%d", sound);
-        posYd = CG_CornerDebugPrint(scrPlace, posX, posYc, v22, v7, " CEnt sound", colorWhite) + posYc;
+        posYd = CG_CornerDebugPrint(scrPlace, posX, posYc, v22, v7, (char *)" CEnt sound", colorWhite) + posYc;
         v8 = va("%d", scriptmovers);
-        posYe = CG_CornerDebugPrint(scrPlace, posX, posYd, v22, v8, " CEnt scriptmovers", colorWhite) + posYd;
+        posYe = CG_CornerDebugPrint(scrPlace, posX, posYd, v22, v8, (char *)" CEnt scriptmovers", colorWhite) + posYd;
         v9 = va("%d", lights);
-        posYf = CG_CornerDebugPrint(scrPlace, posX, posYe, v22, v9, " CEnt lights", colorWhite) + posYe;
+        posYf = CG_CornerDebugPrint(scrPlace, posX, posYe, v22, v9, (char *)" CEnt lights", colorWhite) + posYe;
         v10 = va("%d", destructibles);
-        posYg = CG_CornerDebugPrint(scrPlace, posX, posYf, v22, v10, " CEnt dest", colorWhite) + posYf;
+        posYg = CG_CornerDebugPrint(scrPlace, posX, posYf, v22, v10, (char *)" CEnt dest", colorWhite) + posYf;
         v11 = va("%d", triggers);
-        posYh = CG_CornerDebugPrint(scrPlace, posX, posYg, v22, v11, " CEnt triggers", colorWhite) + posYg;
+        posYh = CG_CornerDebugPrint(scrPlace, posX, posYg, v22, v11, (char *)" CEnt triggers", colorWhite) + posYg;
         strb = va("%d", total - (scriptmovers + triggers + destructibles + sound + fx + lights));
-        posYa = CG_CornerDebugPrint(scrPlace, posX, posYh, v22, strb, " CEnt misc", colorWhite) + posYh;
+        posYa = CG_CornerDebugPrint(scrPlace, posX, posYh, v22, strb, (char *)" CEnt misc", colorWhite) + posYh;
     }
     if ( listEntityCountsCurrent > 2 && listEntityCountsCurrent <= 5 )
     {
@@ -455,7 +520,7 @@ int __cdecl CG_CompareSndInfoPriority(float *va, float *vb)
     if ( va[49] > vb[49] )
         return -1;
     if ( vb[49] <= va[49] )
-        return CG_CompareSndInfoChannel(va, vb);
+        return CG_CompareSndInfoChannel((unsigned int*)va, (unsigned int *)vb);
     return 1;
 }
 
@@ -489,7 +554,7 @@ int __cdecl CG_CompareSndInfoDryLevel(snd_overlay_info *va, snd_overlay_info *vb
     if ( va->fDry > vb->fDry )
         return -1;
     if ( vb->fDry <= va->fDry )
-        return CG_CompareSndInfoChannel(va, vb);
+        return CG_CompareSndInfoChannel((unsigned int *)va, (unsigned int *)vb);
     return 1;
 }
 
@@ -503,7 +568,7 @@ int __cdecl CG_CompareSndInfoDistance(snd_overlay_info *va, snd_overlay_info *vb
     if ( va->fDistance > vb->fDistance )
         return 1;
     if ( vb->fDistance <= va->fDistance )
-        return CG_CompareSndInfoChannel(va, vb);
+        return CG_CompareSndInfoChannel((unsigned int *)va, (unsigned int *)vb);
     return -1;
 }
 
@@ -517,7 +582,7 @@ int __cdecl CG_CompareSndInfoEntity(snd_overlay_info *va, snd_overlay_info *vb)
     if ( va->iEntity > vb->iEntity )
         return -1;
     if ( va->iEntity >= vb->iEntity )
-        return CG_CompareSndInfoChannel(va, vb);
+        return CG_CompareSndInfoChannel((unsigned int *)va, (unsigned int *)vb);
     return 1;
 }
 
@@ -809,7 +874,7 @@ void __cdecl CG_DrawSoundOverlay(const ScreenPlacement *scrPlace)
     char *string; // [esp+7868h] [ebp-8h]
     unsigned int num; // [esp+786Ch] [ebp-4h]
 
-    type = snd_drawInfo->current.integer;
+    type = (snd_overlay_type)snd_drawInfo->current.integer;
     num = SND_GetSoundOverlay(type, info, 128);
     qsort(info, num, 0xF0u, CG_SoundCompares[snd_drawSort->current.integer]);
     v6 = 0;
@@ -926,6 +991,8 @@ void __cdecl CG_DrawFxPriorityText(char *text, float *profilePos)
     profilePos[1] = profilePos[1] + 9.0;
 }
 
+int offs = -70;
+
 double __cdecl CG_DrawFPS(int localClientNum, const ScreenPlacement *scrPlace, float y, meminfo_t *meminfo)
 {
     char *v4; // eax
@@ -1010,9 +1077,9 @@ double __cdecl CG_DrawFPS(int localClientNum, const ScreenPlacement *scrPlace, f
     Vec4Lerp(colorRed, colorWhite, frac, varColor);
     color = varColor;
     s = va("(%i-%i, %i) %i", fpsMin, fpsMax, (int)(cg_perfInfo.frame.variance + 9.313225746154785e-10), fps);
-    yf = CG_CornerDebugPrint(scrPlace, farRight, y, labelWidth, s, " FPS", color) + y;
+    yf = CG_CornerDebugPrint(scrPlace, farRight, y, labelWidth, s, (char*)" FPS", color) + y;
     s = va("(%i-%i) %1.2f", cg_perfInfo.frame.min, cg_perfInfo.frame.max, cg_perfInfo.frame.average);
-    ya = CG_CornerDebugPrint(scrPlace, farRight, yf, labelWidth, s, " cg ms/frame", colorWhite) + yf;
+    ya = CG_CornerDebugPrint(scrPlace, farRight, yf, labelWidth, s, (char*)" cg ms/frame", colorWhite) + yf;
     if ( cg_drawFPS->current.integer >= 2 )
     {
         s = va("(%2i-%2i) %1.2f", cg_perfInfo.server.min, cg_perfInfo.server.max, cg_perfInfo.server.average);
@@ -1027,7 +1094,7 @@ double __cdecl CG_DrawFPS(int localClientNum, const ScreenPlacement *scrPlace, f
         {
             color = colorWhite;
         }
-        yb = CG_CornerDebugPrint(scrPlace, farRight, ya, labelWidth, s, " sv ms/frame", color) + ya;
+        yb = CG_CornerDebugPrint(scrPlace, farRight, ya, labelWidth, s, (char *)" sv ms/frame", color) + ya;
         s = va("(%2i-%2i) %1.2f", cg_perfInfo.script.min, cg_perfInfo.script.max, cg_perfInfo.script.average);
         if ( cg_perfInfo.script.average >= 40.0 )
         {
@@ -1040,7 +1107,7 @@ double __cdecl CG_DrawFPS(int localClientNum, const ScreenPlacement *scrPlace, f
         {
             color = colorWhite;
         }
-        ya = CG_CornerDebugPrint(scrPlace, farRight, yb, labelWidth, s, " script ms/frame", color) + yb;
+        ya = CG_CornerDebugPrint(scrPlace, farRight, yb, labelWidth, s, (char *)" script ms/frame", color) + yb;
     }
     freeMem = (float)((float)RETURN_ZERO32() / 1024.0) / 1024.0;
     if ( freeMem >= 5.0 )
@@ -1060,17 +1127,17 @@ double __cdecl CG_DrawFPS(int localClientNum, const ScreenPlacement *scrPlace, f
     }
     s = va("%3.1f", freeMem);
     if ( cg_drawFPS->current.integer >= 2 )
-        ya = CG_CornerDebugPrint(scrPlace, farRight, ya, labelWidth, s, " lvl free", colorWhite) + ya;
+        ya = CG_CornerDebugPrint(scrPlace, farRight, ya, labelWidth, s, (char *)" lvl free", colorWhite) + ya;
     s = va(
                 "%d/%d",
                 g_physics_system->m_list_rigid_body.m_list_count,
                 g_physics_system->m_list_rigid_body.m_list_count_high_water);
-    yg = CG_CornerDebugPrint(scrPlace, farRight, ya, labelWidth, s, " phys objects", colorWhite) + ya;
+    yg = CG_CornerDebugPrint(scrPlace, farRight, ya, labelWidth, s, (char *)" phys objects", colorWhite) + ya;
     s = va(
                 "%d/%d",
                 g_physics_system->m_list_rbc_ragdoll.m_list_count / 11,
                 g_physics_system->m_list_rbc_ragdoll.m_list_count_high_water / 11);
-    yc = CG_CornerDebugPrint(scrPlace, farRight, yg, labelWidth, s, " ragdolls", colorWhite) + yg;
+    yc = CG_CornerDebugPrint(scrPlace, farRight, yg, labelWidth, s, (char *)" ragdolls", colorWhite) + yg;
     if ( cg_drawFPS->current.integer >= 2 )
     {
         s = va("(%2i-%2i) %1.2f", cg_perfInfo.cscript.min, cg_perfInfo.cscript.max, cg_perfInfo.cscript.average);
@@ -1085,26 +1152,26 @@ double __cdecl CG_DrawFPS(int localClientNum, const ScreenPlacement *scrPlace, f
         {
             color = colorWhite;
         }
-        yh = CG_CornerDebugPrint(scrPlace, farRight, yc, labelWidth, s, " cscript ms/frame", color) + yc;
+        yh = CG_CornerDebugPrint(scrPlace, farRight, yc, labelWidth, s, (char*)" cscript ms/frame", color) + yc;
         rendererStats.views = rendererViewStats;
         R_TrackStatistics(&rendererStats);
-        yi = CG_CornerDebugPrintCaption(scrPlace, farRight, yh, labelWidth, "-Scene-", colorGreenFaded) + yh;
+        yi = CG_CornerDebugPrintCaption(scrPlace, farRight, yh, labelWidth, (char *)"-Scene-", colorGreenFaded) + yh;
         s = va("%i", viewstats->c_viewIndexes / 3);
-        yd = CG_CornerDebugPrint(scrPlace, farRight, yi, labelWidth, s, " view tris", colorWhite) + yi;
+        yd = CG_CornerDebugPrint(scrPlace, farRight, yi, labelWidth, s, (char *)" view tris", colorWhite) + yi;
         if ( viewstats->c_shadowIndexes )
         {
             s = va("%i", viewstats->c_shadowIndexes / 3);
-            yd = CG_CornerDebugPrint(scrPlace, farRight, yd, labelWidth, s, " shadow tris", colorWhite) + yd;
+            yd = CG_CornerDebugPrint(scrPlace, farRight, yd, labelWidth, s, (char *)" shadow tris", colorWhite) + yd;
         }
         s = va("%i", viewstats->c_indexes / 3);
-        yj = CG_CornerDebugPrint(scrPlace, farRight, yd, labelWidth, s, " raw geo tris", colorWhite) + yd;
+        yj = CG_CornerDebugPrint(scrPlace, farRight, yd, labelWidth, s, (char *)" raw geo tris", colorWhite) + yd;
         s = va("%i", viewstats->c_fxIndexes / 3);
-        yk = CG_CornerDebugPrint(scrPlace, farRight, yj, labelWidth, s, " raw fx tris", colorWhite) + yj;
+        yk = CG_CornerDebugPrint(scrPlace, farRight, yj, labelWidth, s, (char *)" raw fx tris", colorWhite) + yj;
         s = va("%i", viewstats->c_batches);
-        yl = CG_CornerDebugPrint(scrPlace, farRight, yk, labelWidth, s, " prim", colorWhite) + yk;
-        ym = CG_CornerDebugPrintCaption(scrPlace, farRight, yl, labelWidth, "-Level-", colorGreenFaded) + yl;
+        yl = CG_CornerDebugPrint(scrPlace, farRight, yk, labelWidth, s, (char *)" prim", colorWhite) + yk;
+        ym = CG_CornerDebugPrintCaption(scrPlace, farRight, yl, labelWidth, (char *)"-Level-", colorGreenFaded) + yl;
         s = va("%d", rendererStats.c_imageUsage.total / 0x100000);
-        ye = CG_CornerDebugPrint(scrPlace, farRight, ym, labelWidth, s, " tex", colorWhite) + ym;
+        ye = CG_CornerDebugPrint(scrPlace, farRight, ym, labelWidth, s, (char *)" tex", colorWhite) + ym;
         if ( rendererStats.c_imageUsage.minspec > 50331648 )
         {
             color = colorRed;
@@ -1115,9 +1182,9 @@ double __cdecl CG_DrawFPS(int localClientNum, const ScreenPlacement *scrPlace, f
             color = colorWhite;
             s = va("%d", rendererStats.c_imageUsage.minspec / 0x100000);
         }
-        yn = CG_CornerDebugPrint(scrPlace, farRight, ye, labelWidth, s, " min pc tex", color) + ye;
+        yn = CG_CornerDebugPrint(scrPlace, farRight, ye, labelWidth, s, (char *)" min pc tex", color) + ye;
         s = va("%i", meminfo->nonSwapMinSpecTotal / 0x100000);
-        yc = CG_CornerDebugPrint(scrPlace, farRight, yn, labelWidth, s, " min pc mem", colorWhite) + yn;
+        yc = CG_CornerDebugPrint(scrPlace, farRight, yn, labelWidth, s, (char *)" min pc mem", colorWhite) + yn;
     }
     if ( !r_reflectionProbeGenerate->current.enabled && cg_drawBudgets->current.integer > 0 )
     {
@@ -1191,21 +1258,21 @@ double __cdecl CG_DrawFPS(int localClientNum, const ScreenPlacement *scrPlace, f
         if ( v15 )
         {
             s = va("%i / %i", numSModel, numSModelMax);
-            yc = CG_CornerDebugPrint(scrPlace, farRight, yc, labelWidth, s, " dyn smodel", color) + yc;
+            yc = CG_CornerDebugPrint(scrPlace, farRight, yc, labelWidth, s, (char *)" dyn smodel", color) + yc;
         }
     }
     if ( cg_profile_physics->current.enabled )
     {
         v11 = (double)sv_flame_proftimer.avr / tlPcTicksPerMS;
         s = va("%4.2f", v11);
-        yo = CG_CornerDebugPrint(scrPlace, farRight, yc, labelWidth, s, " sv flame", colorWhite) + yc;
+        yo = CG_CornerDebugPrint(scrPlace, farRight, yc, labelWidth, s, (char *)" sv flame", colorWhite) + yc;
         s = va("%lld", sv_flame_proftimer.calls);
-        yp = CG_CornerDebugPrint(scrPlace, farRight, yo, labelWidth, s, " sv calls", colorWhite) + yo;
+        yp = CG_CornerDebugPrint(scrPlace, farRight, yo, labelWidth, s, (char *)" sv calls", colorWhite) + yo;
         v10 = (double)cl_flame_proftimer.avr / tlPcTicksPerMS;
         s = va("%4.2f", v10);
-        yq = CG_CornerDebugPrint(scrPlace, farRight, yp, labelWidth, s, " cl flame", colorWhite) + yp;
+        yq = CG_CornerDebugPrint(scrPlace, farRight, yp, labelWidth, s, (char *)" cl flame", colorWhite) + yp;
         s = va("%lld", cl_flame_proftimer.calls);
-        yc = CG_CornerDebugPrint(scrPlace, farRight, yq, labelWidth, s, " cl calls", colorWhite) + yq;
+        yc = CG_CornerDebugPrint(scrPlace, farRight, yq, labelWidth, s, (char *)" cl calls", colorWhite) + yq;
     }
     if ( g_bDebugRenderEntityBrushes->current.enabled )
     {
@@ -1214,7 +1281,7 @@ double __cdecl CG_DrawFPS(int localClientNum, const ScreenPlacement *scrPlace, f
                      farRight,
                      yc,
                      (float)offs + labelWidth,
-                     "                                     ",
+            (char *)"                                     ",
                      (char *)"",
                      colorWhite)
              + yc;
@@ -1223,7 +1290,7 @@ double __cdecl CG_DrawFPS(int localClientNum, const ScreenPlacement *scrPlace, f
                      farRight,
                      yr,
                      (float)offs + labelWidth,
-                     "** ENTITY BRUSHES *",
+            (char *)"** ENTITY BRUSHES *",
                      (char *)"",
                      colorWhite)
              + yr;
@@ -1232,7 +1299,7 @@ double __cdecl CG_DrawFPS(int localClientNum, const ScreenPlacement *scrPlace, f
                      farRight,
                      ys,
                      (float)offs + labelWidth,
-                     "*                                 *",
+            (char *)"*                                 *",
                      (char *)"",
                      colorWhite)
              + ys;
@@ -1241,7 +1308,7 @@ double __cdecl CG_DrawFPS(int localClientNum, const ScreenPlacement *scrPlace, f
                      farRight,
                      yt,
                      (float)offs + labelWidth,
-                     "*    server ents        *",
+            (char *)"*    server ents        *",
                      (char *)"",
                      colorCyan)
              + yt;
@@ -1250,7 +1317,7 @@ double __cdecl CG_DrawFPS(int localClientNum, const ScreenPlacement *scrPlace, f
                      farRight,
                      yu,
                      (float)offs + labelWidth,
-                     "*    server trigs     *",
+            (char *)"*    server trigs     *",
                      (char *)"",
                      colorRed)
              + yu;
@@ -1259,7 +1326,7 @@ double __cdecl CG_DrawFPS(int localClientNum, const ScreenPlacement *scrPlace, f
                      farRight,
                      yv,
                      (float)offs + labelWidth,
-                     "*    dyn ents             *",
+            (char *)"*    dyn ents             *",
                      (char *)"",
                      colorGreen)
              + yv;
@@ -1268,7 +1335,7 @@ double __cdecl CG_DrawFPS(int localClientNum, const ScreenPlacement *scrPlace, f
                      farRight,
                      yw,
                      (float)offs + labelWidth,
-                     "*    cl only ents     *",
+            (char *)"*    cl only ents     *",
                      (char *)"",
                      colorYellow)
              + yw;
@@ -1277,7 +1344,7 @@ double __cdecl CG_DrawFPS(int localClientNum, const ScreenPlacement *scrPlace, f
                      farRight,
                      yx,
                      (float)offs + labelWidth,
-                     "*    client trigs     *",
+            (char *)"*    client trigs     *",
                      (char *)"",
                      colorWhite)
              + yx;
@@ -1286,7 +1353,7 @@ double __cdecl CG_DrawFPS(int localClientNum, const ScreenPlacement *scrPlace, f
                      farRight,
                      yy,
                      (float)offs + labelWidth,
-                     "*                                 *",
+            (char *)"*                                 *",
                      (char *)"",
                      colorWhite)
              + yy;
@@ -1295,7 +1362,7 @@ double __cdecl CG_DrawFPS(int localClientNum, const ScreenPlacement *scrPlace, f
                         farRight,
                         yz,
                         (float)offs + labelWidth,
-                        "*******************",
+            (char *)"*******************",
                         (char *)"",
                         colorWhite)
                 + yz;
@@ -1304,7 +1371,7 @@ double __cdecl CG_DrawFPS(int localClientNum, const ScreenPlacement *scrPlace, f
                                          farRight,
                                          yba,
                                          (float)offs + labelWidth,
-                                         "                                     ",
+            (char *)"                                     ",
                                          (char *)"",
                                          colorWhite)
                                  + yba);
@@ -1343,8 +1410,8 @@ void __cdecl CG_DrawVersion()
             (char *)version->current.integer,
             0x7FFFFFFF,
             font,
-            (float)(COERCE_FLOAT(LODWORD(w) ^ _mask__NegFloat_) - cg_drawVersionX->current.value) + 1.0,
-            (float)(COERCE_FLOAT(LODWORD(h) ^ _mask__NegFloat_) - cg_drawVersionY->current.value) + 1.0,
+            (float)(-(w) - cg_drawVersionX->current.value) + 1.0,
+            (float)(-(h) - cg_drawVersionY->current.value) + 1.0,
             3,
             3,
             fontScale,
@@ -1355,8 +1422,8 @@ void __cdecl CG_DrawVersion()
             (char *)version->current.integer,
             0x7FFFFFFF,
             font,
-            COERCE_FLOAT(LODWORD(w) ^ _mask__NegFloat_) - cg_drawVersionX->current.value,
-            COERCE_FLOAT(LODWORD(h) ^ _mask__NegFloat_) - cg_drawVersionY->current.value,
+            -(w) - cg_drawVersionX->current.value,
+            -(h) - cg_drawVersionY->current.value,
             3,
             3,
             fontScale,
@@ -1364,6 +1431,9 @@ void __cdecl CG_DrawVersion()
             0);
     }
 }
+
+unsigned int quick_print_buffer_pos;
+char quick_print_buffer[5120];
 
 void CG_QuickPrint(const char *fmt, ...)
 {
@@ -1379,6 +1449,8 @@ void CG_QuickPrint(const char *fmt, ...)
         CG_QuickPrintFlush();
 }
 
+FILE *file;
+unsigned int _S2_0;
 void __cdecl CG_QuickPrintFlush()
 {
     if ( quick_print_buffer_pos )

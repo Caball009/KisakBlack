@@ -94,3 +94,5 @@ void __cdecl IPN_verify_rigid_bodies(rigid_body *rb_partition_head);
 void __cdecl rigid_body_island_qsort(rigid_body **list, int list_count);
 void __cdecl merge_sort(rigid_body_constraint_contact **list, int list_count);
 void __cdecl SetIdentity(phys_mat44 *m);
+
+extern physics_system *g_physics_system;

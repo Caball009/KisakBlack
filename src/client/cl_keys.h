@@ -72,8 +72,8 @@ int __cdecl Key_IsDown(int localClientNum, int keynum);
 int __cdecl Key_StringToKeynum(const char *str);
 bool __cdecl Key_IsValidGamePadChar(char key);
 const char *__cdecl Key_KeynumToString(int keynum, int translate);
-void __cdecl Key_SetBinding(int localClientNum, int keynum, char *binding, int bindNum);
-void __cdecl Key_SetBindings(int localClientNum, int *twokeys, char *binding, int bindNum);
+void __cdecl Key_SetBinding(int localClientNum, int keynum, const char *binding, int bindNum);
+void __cdecl Key_SetBindings(int localClientNum, int *twokeys, const char *binding, int bindNum);
 const char *__cdecl Key_GetBinding(int localClientNum, unsigned int keynum, int bindNum);
 int __cdecl Key_GetCommandAssignment(int localClientNum, const char *command, int *twokeys, int bindNum);
 int __cdecl Key_GetCommandAssignmentInternal(

@@ -269,6 +269,19 @@ inline int SnapFloatToInt(float x)
 }
 
 
+extern const dvar_t *collectors;
+extern const dvar_t *primaryWeaponOffset;
+extern const dvar_t *scr_xpcollectorsscale;
+extern const dvar_t *scr_xpscale;
+extern const dvar_t *scr_xpzmscale;
+extern const dvar_t *scr_codpointsxpscale;
+extern const dvar_t *scr_codpointsmatchscale;
+extern const dvar_t *scr_codpointsperchallenge;
+extern const dvar_t *scr_rankXpCap;
+extern const dvar_t *scr_codPointsCap;
+extern const dvar_t *version;
+extern const dvar_t *shortversion;
+extern const dvar_s *com_recommendedSet;
 
 extern const dvar_s *useFastFile;
 extern const dvar_s *sys_smp_allowed;

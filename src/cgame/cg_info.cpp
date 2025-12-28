@@ -1,4 +1,10 @@
 #include "cg_info.h"
+#include <cgame_mp/cg_local_mp.h>
+#include <client_mp/cl_scrn_mp.h>
+#include <cgame_mp/cg_servercmds_mp.h>
+#include <client_mp/cl_cgame_mp.h>
+#include <win32/win_shared.h>
+#include <database/db_file_load.h>
 
 void __cdecl CG_LoadingString(int localClientNum, const char *s)
 {

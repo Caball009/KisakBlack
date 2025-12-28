@@ -7,6 +7,9 @@
 #include <cgame_mp/cg_newDraw_mp.h>
 #include "cg_weapons.h"
 #include <qcommon/common.h>
+#include <ui/ui_shared.h>
+#include <client/splitscreen.h>
+#include <ui/ui_atoms.h>
 
 const dvar_t *ammoCounterHide;
 const dvar_t *actionSlotsHide;
@@ -460,23 +463,25 @@ void __cdecl CG_DrawPlayerWeaponAmmoClip(
     }
 }
 
+float MYFLASHTERM = 40.0f;
 void __cdecl AmmoColor(cg_s *cgameGlob, float *color, unsigned int weapIndex)
 {
-    double v3; // xmm0_8
-    float v4; // xmm0_4
-    long double delta; // [esp+0h] [ebp-8h]
-    int idx; // [esp+4h] [ebp-4h]
+    float t;
+    int idx;
 
-    if ( CG_CheckPlayerForLowClipSpecific(cgameGlob, weapIndex) )
+    if (CG_CheckPlayerForLowClipSpecific(cgameGlob, weapIndex))
     {
-        *(float *)&delta = (float)(cgameGlob->time - cgameGlob->lastClipFlashTime) / (float)(MYFLASHTERM * 3.1415927);
-        v3 = *(float *)&delta;
-        __libm_sse2_sin(delta);
-        v4 = v3;
-        for ( idx = 0; idx < 3; ++idx )
-            color[idx] = (float)((float)(colorLowAmmo[idx] - color[idx]) * (float)((float)(v4 * 0.5) + 0.5)) + color[idx];
+        t = (float)(cgameGlob->time - cgameGlob->lastClipFlashTime) /
+            (float)(MYFLASHTERM * M_PI);
+
+        t = sinf(t);
+        t = t * 0.5f + 0.5f;
+
+        for (idx = 0; idx < 3; ++idx)
+            color[idx] = (colorLowAmmo[idx] - color[idx]) * t + color[idx];
     }
 }
+
 
 void __cdecl CG_DrawPlayerWeaponAmmoClipDualWield(
                 int localClientNum,
@@ -877,7 +882,7 @@ void __cdecl CG_DrawPlayerActionSlot(
     {
         __debugbreak();
     }
-    if ( CL_LocalClient_GetActiveCount(v9) > 1 )
+    if ( CL_LocalClient_GetActiveCount() > 1 )
     {
         highlightSize = highlightSize * 2.0;
         topHighlightSize = topHighlightSize * 2.0;
@@ -1467,6 +1472,8 @@ void __cdecl DrawClipAmmo(
     }
 }
 
+const float colorSpentRound[4] = { 0.30000001, 0.30000001, 0.30000001, 1.0 };
+
 void __cdecl DrawClipAmmoMagazine(
                 cg_s *cgameGlob,
                 const float *base,
@@ -1549,12 +1556,15 @@ void __cdecl DrawClipAmmoShortMagazine(
     }
 }
 
+float TEST_bullet_wh_1[2] = { 16.0, 8.0 };
+float TEST_bullet_step_1[2] = { 20.0, 12.0 };
+
 void __cdecl DrawClipAmmoShotgunShells(
-                cg_s *cgameGlob,
-                const float *base,
-                unsigned int weapIdx,
-                const WeaponVariantDef *weapVarDef,
-                float *color)
+    cg_s *cgameGlob,
+    const float *base,
+    unsigned int weapIdx,
+    const WeaponVariantDef *weapVarDef,
+    float *color)
 {
     int magCnt; // [esp+54h] [ebp-18h]
     int clipSize; // [esp+58h] [ebp-14h]
@@ -1562,24 +1572,24 @@ void __cdecl DrawClipAmmoShotgunShells(
     float bulletY; // [esp+60h] [ebp-Ch]
     int magIdx; // [esp+68h] [ebp-4h]
 
-    if ( !cgameGlob
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_ammocounter.cpp", 250, 0, "%s", "cgameGlob") )
+    if (!cgameGlob
+        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_ammocounter.cpp", 250, 0, "%s", "cgameGlob"))
     {
         __debugbreak();
     }
-    if ( !weapVarDef
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_ammocounter.cpp", 251, 0, "%s", "weapVarDef") )
+    if (!weapVarDef
+        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_ammocounter.cpp", 251, 0, "%s", "weapVarDef"))
     {
         __debugbreak();
     }
     bulletX = *base - TEST_bullet_wh_1[0];
-    bulletY = base[1] - (float)(*(float *)&dword_E027C4 * 0.5);
+    bulletY = base[1] - (float)(TEST_bullet_wh_1[1] * 0.5);
     magCnt = BG_GetAmmoInClipForWeaponDef(&cgameGlob->predictedPlayerState, weapVarDef);
     AmmoColor(cgameGlob, color, weapIdx);
     clipSize = BG_GetClipSize(weapIdx);
-    for ( magIdx = 0; magIdx < clipSize; ++magIdx )
+    for (magIdx = 0; magIdx < clipSize; ++magIdx)
     {
-        if ( magIdx == magCnt )
+        if (magIdx == magCnt)
         {
             *color = colorSpentRound[0];
             color[1] = colorSpentRound[1];
@@ -1589,7 +1599,7 @@ void __cdecl DrawClipAmmoShotgunShells(
             bulletX,
             bulletY,
             TEST_bullet_wh_1[0],
-            *(float *)&dword_E027C4,
+            TEST_bullet_wh_1[1],
             0.0,
             0.0,
             1.0,
@@ -1600,12 +1610,19 @@ void __cdecl DrawClipAmmoShotgunShells(
     }
 }
 
+float TEST_bullet_wh_2[2] =
+{ 64.0, 16.0 };
+float TEST_bullet_wh_3[2] =
+{ 8.0, 4.0 };
+float TEST_bullet_step_2[2] =
+{ 72.0, 12.0 };
+
 void __cdecl DrawClipAmmoRockets(
-                cg_s *cgameGlob,
-                const float *base,
-                unsigned int weapIdx,
-                const WeaponVariantDef *weapVarDef,
-                float *color)
+    cg_s *cgameGlob,
+    const float *base,
+    unsigned int weapIdx,
+    const WeaponVariantDef *weapVarDef,
+    float *color)
 {
     int magCnt; // [esp+54h] [ebp-18h]
     int clipSize; // [esp+58h] [ebp-14h]
@@ -1613,24 +1630,24 @@ void __cdecl DrawClipAmmoRockets(
     float bulletY; // [esp+60h] [ebp-Ch]
     int magIdx; // [esp+68h] [ebp-4h]
 
-    if ( !cgameGlob
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_ammocounter.cpp", 282, 0, "%s", "cgameGlob") )
+    if (!cgameGlob
+        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_ammocounter.cpp", 282, 0, "%s", "cgameGlob"))
     {
         __debugbreak();
     }
-    if ( !weapVarDef
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_ammocounter.cpp", 283, 0, "%s", "weapVarDef") )
+    if (!weapVarDef
+        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_ammocounter.cpp", 283, 0, "%s", "weapVarDef"))
     {
         __debugbreak();
     }
     bulletX = *base - TEST_bullet_wh_2[0];
-    bulletY = base[1] - (float)(*(float *)&dword_E027D4 * 0.5);
+    bulletY = base[1] - (float)(TEST_bullet_wh_2[1] * 0.5);
     magCnt = BG_GetAmmoInClipForWeaponDef(&cgameGlob->predictedPlayerState, weapVarDef);
     AmmoColor(cgameGlob, color, weapIdx);
     clipSize = BG_GetClipSize(weapIdx);
-    for ( magIdx = 0; magIdx < clipSize; ++magIdx )
+    for (magIdx = 0; magIdx < clipSize; ++magIdx)
     {
-        if ( magIdx == magCnt )
+        if (magIdx == magCnt)
         {
             *color = colorSpentRound[0];
             color[1] = colorSpentRound[1];
@@ -1640,7 +1657,7 @@ void __cdecl DrawClipAmmoRockets(
             bulletX,
             bulletY,
             TEST_bullet_wh_2[0],
-            *(float *)&dword_E027D4,
+            TEST_bullet_wh_2[1],
             0.0,
             0.0,
             1.0,
@@ -1651,13 +1668,19 @@ void __cdecl DrawClipAmmoRockets(
     }
 }
 
+float TEST_bullet_step_3[2] =
+{ 8.0, -6.0 };
+int TEST_bullet_rowCnt =
+20;
+
+
 void __cdecl DrawClipAmmoBeltfed(
-                cg_s *cgameGlob,
-                float *base,
-                unsigned int weapIdx,
-                const WeaponDef *weapDef,
-                const WeaponVariantDef *weapVarDef,
-                float *color)
+    cg_s *cgameGlob,
+    float *base,
+    unsigned int weapIdx,
+    const WeaponDef *weapDef,
+    const WeaponVariantDef *weapVarDef,
+    float *color)
 {
     float v6; // [esp+28h] [ebp-ACh]
     int ClipSize; // [esp+9Ch] [ebp-38h]
@@ -1672,15 +1695,15 @@ void __cdecl DrawClipAmmoBeltfed(
     int clipIdx; // [esp+C8h] [ebp-Ch]
     int clipCnt; // [esp+D0h] [ebp-4h]
 
-    if ( weapDef->fireType == WEAPON_FIRETYPE_MINIGUN )
+    if (weapDef->fireType == WEAPON_FIRETYPE_MINIGUN)
     {
-        if ( !cgameGlob
-            && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_ammocounter.cpp", 316, 0, "%s", "cgameGlob") )
+        if (!cgameGlob
+            && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_ammocounter.cpp", 316, 0, "%s", "cgameGlob"))
         {
             __debugbreak();
         }
-        if ( !weapDef
-            && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_ammocounter.cpp", 317, 0, "%s", "weapDef") )
+        if (!weapDef
+            && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_ammocounter.cpp", 317, 0, "%s", "weapDef"))
         {
             __debugbreak();
         }
@@ -1689,9 +1712,9 @@ void __cdecl DrawClipAmmoBeltfed(
         clipCnt = BG_GetAmmoInClipForWeaponDef(&cgameGlob->predictedPlayerState, weapVarDef);
         AmmoColor(cgameGlob, color, weapIdx);
         percent = (int)(float)((float)((float)clipCnt / (float)BG_GetClipSize(weapIdx)) * 20.0);
-        for ( clipIdx = 0; clipIdx < 20; ++clipIdx )
+        for (clipIdx = 0; clipIdx < 20; ++clipIdx)
         {
-            if ( clipIdx >= percent )
+            if (clipIdx >= percent)
             {
                 *color = colorSpentRound[0];
                 color[1] = colorSpentRound[1];
@@ -1703,42 +1726,42 @@ void __cdecl DrawClipAmmoBeltfed(
     }
     else
     {
-        if ( !cgameGlob
-            && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_ammocounter.cpp", 351, 0, "%s", "cgameGlob") )
+        if (!cgameGlob
+            && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_ammocounter.cpp", 351, 0, "%s", "cgameGlob"))
         {
             __debugbreak();
         }
-        if ( !weapDef
-            && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_ammocounter.cpp", 352, 0, "%s", "weapDef") )
+        if (!weapDef
+            && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_ammocounter.cpp", 352, 0, "%s", "weapDef"))
         {
             __debugbreak();
         }
         stepX = TEST_bullet_step_3[0];
         x = *base;
-        v6 = *(float *)&dword_E027E0 * 0.25;
+        v6 = TEST_bullet_wh_3[1] * 0.25;
         y = (float)(v6 * (float)(BG_GetClipSize(weapIdx) / TEST_bullet_rowCnt)) + base[1];
         AmmoInClipForWeaponDef = BG_GetAmmoInClipForWeaponDef(&cgameGlob->predictedPlayerState, weapVarDef);
         AmmoColor(cgameGlob, color, weapIdx);
         ClipSize = BG_GetClipSize(weapIdx);
-        for ( i = 0; i < ClipSize; ++i )
+        for (i = 0; i < ClipSize; ++i)
         {
-            if ( i == AmmoInClipForWeaponDef )
+            if (i == AmmoInClipForWeaponDef)
             {
                 *color = colorSpentRound[0];
                 color[1] = colorSpentRound[1];
                 color[2] = colorSpentRound[2];
             }
-            if ( !(i % TEST_bullet_rowCnt) )
+            if (!(i % TEST_bullet_rowCnt))
             {
                 stepX = stepX * -1.0;
-                y = y + *(float *)&dword_E027E8;
+                y = y + TEST_bullet_step_3[1];
                 x = x + stepX;
             }
             CL_DrawStretchPicPhysical(
                 x,
                 y,
                 TEST_bullet_wh_3[0],
-                *(float *)&dword_E027E0,
+                TEST_bullet_wh_3[1],
                 0.0,
                 0.0,
                 1.0,
@@ -1752,7 +1775,7 @@ void __cdecl DrawClipAmmoBeltfed(
 
 void __cdecl CG_DrawPlayerWeaponAmmoClipGraphicDualWield(int localClientNum, const rectDef_s *rect, const float *color)
 {
-    const WeaponDef *WeaponDef; // eax
+    const WeaponDef *wd; // eax
     const WeaponVariantDef *WeaponVariantDef; // [esp-8h] [ebp-40h]
     cg_s *cgameGlob; // [esp+14h] [ebp-24h]
     int weapIdx; // [esp+18h] [ebp-20h]
@@ -1760,7 +1783,7 @@ void __cdecl CG_DrawPlayerWeaponAmmoClipGraphicDualWield(int localClientNum, con
     float colorMod[4]; // [esp+24h] [ebp-14h] BYREF
     const WeaponDef *weapDef; // [esp+34h] [ebp-4h]
 
-    if ( !rect && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_ammocounter.cpp", 1355, 0, "%s", "rect") )
+    if (!rect && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_ammocounter.cpp", 1355, 0, "%s", "rect"))
         __debugbreak();
     cgameGlob = CG_GetLocalClientGlobals(localClientNum);
     colorMod[0] = *color;
@@ -1768,25 +1791,25 @@ void __cdecl CG_DrawPlayerWeaponAmmoClipGraphicDualWield(int localClientNum, con
     colorMod[2] = color[2];
     colorMod[3] = color[3];
     colorMod[3] = AmmoCounterFadeAlpha(localClientNum, cgameGlob) * colorMod[3];
-    if ( colorMod[3] != 0.0
+    if (colorMod[3] != 0.0
         && ((cgameGlob->predictedPlayerState.eFlags & 0x300) == 0
-         || cgameGlob->predictedPlayerState.weaponstate == 35
-         || cgameGlob->predictedPlayerState.weaponstate == 36
-         || cgameGlob->predictedPlayerState.weaponstate == 37)
-        && (cgameGlob->predictedPlayerState.eFlags & 0x4000) == 0 )
+            || cgameGlob->predictedPlayerState.weaponstate == 35
+            || cgameGlob->predictedPlayerState.weaponstate == 36
+            || cgameGlob->predictedPlayerState.weaponstate == 37)
+        && (cgameGlob->predictedPlayerState.eFlags & 0x4000) == 0)
     {
         weapIdx = GetWeaponIndex(cgameGlob);
-        if ( weapIdx )
+        if (weapIdx)
         {
             weapDef = BG_GetWeaponDef(weapIdx);
-            if ( weapDef->bDualWield )
+            if (weapDef->bDualWield)
             {
-                if ( weapDef->dualWieldWeaponIndex )
+                if (weapDef->dualWieldWeaponIndex)
                 {
                     GetBaseRectPos(localClientNum, rect, base);
                     WeaponVariantDef = BG_GetWeaponVariantDef(weapDef->dualWieldWeaponIndex);
-                    WeaponDef = BG_GetWeaponDef(weapDef->dualWieldWeaponIndex);
-                    DrawClipAmmo(cgameGlob, base, weapDef->dualWieldWeaponIndex, WeaponDef, WeaponVariantDef, colorMod);
+                    wd = BG_GetWeaponDef(weapDef->dualWieldWeaponIndex);
+                    DrawClipAmmo(cgameGlob, base, weapDef->dualWieldWeaponIndex, wd, WeaponVariantDef, colorMod);
                 }
             }
         }
@@ -1981,12 +2004,14 @@ void __cdecl CG_DrawPlayerWeaponLowAmmoWarning(
                         }
                         amplitude = (float)(lowAmmoWarningPulseMax->current.value - lowAmmoWarningPulseMin->current.value) * 0.5;
                         bias = lowAmmoWarningPulseMin->current.value + amplitude;
-                        *((float *)&v12 + 1) = (float)((float)cgameGlob->time * 0.0062831854)
-                                                                 * lowAmmoWarningPulseFreq->current.value;
-                        v9 = *((float *)&v12 + 1);
-                        __libm_sse2_sin(v12);
-                        *(float *)&v9 = v9;
-                        Vec4Lerp(color1, color2, (float)(*(float *)&v9 * amplitude) + bias, colorMod);
+
+                        //*((float *)&v12 + 1) = (float)((float)cgameGlob->time * 0.0062831854) * lowAmmoWarningPulseFreq->current.value;
+                        //v9 = *((float *)&v12 + 1);
+                        //__libm_sse2_sin(v12);
+                        //*(float *)&v9 = v9;
+
+                        //Vec4Lerp(color1, color2, (float)(*(float *)&v9 * amplitude) + bias, colorMod);
+                        Vec4Lerp(color1, color2, (float)(sin(((float)cgameGlob->time * 0.0062831854) * lowAmmoWarningPulseFreq->current.value)* amplitude) + bias, colorMod);
                         colorMod[3] = colorMod[3] * fade;
                         if ( material )
                             CL_DrawStretchPic(
@@ -2009,7 +2034,7 @@ void __cdecl CG_DrawPlayerWeaponLowAmmoWarning(
                             I_strncpyz(binding, v10, 256);
                         }
                         v11 = UI_SafeTranslateString(text);
-                        localizedString = UI_ReplaceConversionString(v11, binding);
+                        localizedString = UI_ReplaceConversionString((char*)v11, binding);
                         UI_DrawWrappedText(
                             &scrPlaceView[localClientNum],
                             localizedString,

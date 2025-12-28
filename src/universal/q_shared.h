@@ -13,6 +13,8 @@
 #include <universal/dvar.h>
 #include <universal/com_math.h>
 
+#include <cstdint>
+
 //======================= WIN32 DEFINES =================================
 #ifdef WIN32
 
@@ -475,4 +477,11 @@ inline void AssignToSmallerType(T *dest, int src)
 {
     *dest = src;
     iassert((int)*dest == src);
+}
+
+static inline unsigned int abs8(int8_t v)
+{
+    int x = v;
+    int mask = x >> 31;
+    return (unsigned int)((x + mask) ^ mask);
 }

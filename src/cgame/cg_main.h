@@ -1,5 +1,7 @@
 #pragma once
 
+struct trajectory_t;
+
 int __cdecl CG_irand(int min, int max);
 double __cdecl CG_flrand(float min, float max);
 int __cdecl CG_rand();

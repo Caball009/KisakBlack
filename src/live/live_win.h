@@ -1,4 +1,5 @@
 #pragma once
+#include "live_storage.h"
 
 void __cdecl Live_ClearDWOverlappedTasks();
 char __cdecl Live_ContentRatingAllowed();

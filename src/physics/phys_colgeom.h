@@ -312,7 +312,13 @@ struct gjk_geom_list_t // sizeof=0x8
                                                                                 // DynEntPieces_SpawnPhysObj+50/w ...
 public:
         int get_geom_count();
-        void add_geom(gjk_base_t *geom);
+        void add_geom(gjk_base_t *geom)
+        {
+            iassert(geom);
+            geom->m_next_geom = this->m_first_geom;
+            this->m_first_geom = geom;
+            ++this->m_geom_count;
+        }
         void comp_aabb_loc(
             phys_vec3 *aabb_mn_loc,
             phys_vec3 *aabb_mx_loc);

@@ -1,5 +1,15 @@
 #include "cg_perf.h"
 
+#include <cstring>
+#include <win32/win_shared.h>
+#include <clientscript/cscr_vm.h>
+#include <gfx_d3d/rb_backend.h>
+
+CG_PerfInfo cg_perfInfo;
+
+unsigned __int64 gRunFrameTicks;
+long double msecPerRawTimerTick;
+
 void __cdecl CG_PerfInit()
 {
     if ( !cg_perfInfo.initialized )
@@ -15,10 +25,11 @@ void __cdecl CG_PerfInit()
     }
 }
 
+int previousMS;
 void __cdecl CG_PerfUpdate()
 {
     int frameMS; // [esp+10h] [ebp-8h]
-    unsigned intcurrentMS; // [esp+14h] [ebp-4h]
+    unsigned int currentMS; // [esp+14h] [ebp-4h]
 
     CG_PerfInit();
     currentMS = Sys_Milliseconds();
@@ -27,7 +38,7 @@ void __cdecl CG_PerfUpdate()
     UpdateData(&cg_perfInfo.frame, frameMS);
     UpdateData(&cg_perfInfo.server, (int)((double)gRunFrameTicks * msecPerRawTimerTick));
     UpdateData(&cg_perfInfo.script, gScrExecuteTime[0]);
-    UpdateData(&cg_perfInfo.cscript, dword_A05AC7C);
+    UpdateData(&cg_perfInfo.cscript, gScrExecuteTime[1]);
     UpdateData(&cg_perfInfo.renderExec, rb_execCmdsMS);
     UpdateData(&cg_perfInfo.renderSwap, rb_swapMS);
 }

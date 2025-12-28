@@ -183,3 +183,5 @@ void __cdecl Rope_Trace(const float *p0, const float *p1);
 void __cdecl Rope_CollideWorld(int rope_index);
 void __cdecl Rope_CollideEntitiesHelper(int rope_index, float *origin);
 void __cdecl Rope_CollideEntities(int rope_index);
+
+extern rope_t *g_ropes;

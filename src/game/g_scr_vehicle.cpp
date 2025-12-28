@@ -1,5 +1,8 @@
 #include "g_scr_vehicle.h"
 
+int bg_numVehicleInfos;
+vehicle_info_t bg_vehicleInfos[32];
+
 const vehicle_info_t *__cdecl BG_GetVehicleInfo(int index)
 {
     if ( index < 0

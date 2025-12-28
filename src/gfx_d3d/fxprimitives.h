@@ -1,5 +1,6 @@
 #pragma once
 #include "r_material.h"
+#include <universal/q_shared.h>
 
 enum FxRandKey : __int32
 {                                       // XREF: FX_IntegrateRotationFromZero/r
@@ -620,6 +621,17 @@ struct FxPostLightInfo // sizeof=0xD84
     FxPostLight postLights[96];
     int postLightCount;                 // XREF: FX_PostLight_Begin(void)+3/w
                                         // FX_PostLight_Add(FxPostLight *)+5/r ...
+};
+
+struct FxSprite // sizeof=0x20
+{                                       // XREF: CG_AddPlayerSpriteDrawSurf/r
+                                        // AddDrawSurfForHudElemWaypoint/r
+    Material *material;
+    float pos[3];
+    unsigned __int8 rgbaColor[4];
+    float radius;
+    float minScreenRadius;
+    int flags;
 };
 
 template<typename ITEM_TYPE, typename ITEM_TYPE2, size_t LIMIT>

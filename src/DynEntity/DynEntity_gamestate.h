@@ -9,6 +9,17 @@ enum DynEntityDrawType : __int32
     DYNENT_DRAW_BRUSH = 0x1,
     DYNENT_DRAW_COUNT = 0x2,
 };
+inline DynEntityDrawType &operator++(DynEntityDrawType &t)
+{
+    t = static_cast<DynEntityDrawType>((static_cast<int>(t) + 1));
+    return t;
+}
+inline DynEntityDrawType operator++(DynEntityDrawType &t, int)
+{
+    DynEntityDrawType old = t;
+    t = static_cast<DynEntityDrawType>((static_cast<int>(t) + 1));
+    return old;
+}
 
 struct DynEntityAreaParms // sizeof=0x14
 {                                       // XREF: ?DynEntSv_AreaEntities@@YAGW4DynEntityDrawType@@QBM1HGPAG@Z/r

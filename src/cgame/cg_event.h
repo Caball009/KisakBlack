@@ -1,4 +1,9 @@
 #pragma once
+#include <gfx_d3d/fxprimitives.h>
+#include <bgame/bg_local.h>
+#include <cgame_mp/cg_local_mp.h>
+#include <bgame/bg_misc.h>
+#include <bgame/bg_weapons.h>
 
 void __cdecl CG_SetWetness(int localClientNum, int entNum, float wetness, int invert);
 void __cdecl CG_ExplosionEvent(

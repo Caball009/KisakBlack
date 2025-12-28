@@ -1,4 +1,7 @@
 #include "com_bsp.h"
+#include <win32/win_main.h>
+
+ComWorld comWorld;
 
 char __cdecl Com_CanPrimaryLightAffectPoint(const ComPrimaryLight *light, const float *point)
 {
@@ -36,7 +39,8 @@ char __cdecl Com_CanPrimaryLightAffectPoint(const ComPrimaryLight *light, const 
         lightRadius = lightRadius / light->cosHalfFovOuter;
     if ( distSq >= (float)(lightRadius * lightRadius) )
         return 0;
-    if ( light->type == 3 || COERCE_FLOAT(LODWORD(light->cosHalfFovOuter) ^ _mask__NegFloat_) >= light->rotationLimit )
+    //if ( light->type == 3 || COERCE_FLOAT(LODWORD(light->cosHalfFovOuter) ^ _mask__NegFloat_) >= light->rotationLimit )
+    if ( light->type == 3 || -(light->cosHalfFovOuter) >= light->rotationLimit )
         return 1;
     spotDotTimesDist = (float)((float)(deltaToLight * light->dir[0]) + (float)(deltaToLight_4 * light->dir[1]))
                                      + (float)(deltaToLight_8 * light->dir[2]);
@@ -72,6 +76,6 @@ void __cdecl Com_UnloadWorld()
         __debugbreak();
     }
     if ( comWorld.isInUse )
-        Sys_Error("Cannot unload world while it is in use");
+        Sys_Error((char*)"Cannot unload world while it is in use");
 }
 

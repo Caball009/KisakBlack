@@ -1,4 +1,20 @@
 #include "cg_playerstate.h"
+#include <cgame_mp/cg_local_mp.h>
+#include <cgame_mp/cg_predict_mp.h>
+#include "cg_camerashake.h"
+#include <client_mp/cl_input_mp.h>
+#include <client_mp/cl_cgame_mp.h>
+#include "offhandweapons.h"
+#include <cgame_mp/cg_view_mp.h>
+#include "cg_main.h"
+#include <cgame_mp/cg_main_mp.h>
+#include <clientscript/cscr_vm.h>
+#include <clientscript/scr_const.h>
+#include <bgame/bg_misc.h>
+#include <bgame/bg_perks.h>
+#include <universal/com_math_anglevectors.h>
+#include <cgame_mp/cg_servercmds_mp.h>
+#include "cg_event.h"
 
 void __cdecl CG_Respawn(int localClientNum, int spectate)
 {
@@ -142,7 +158,8 @@ void __cdecl CG_DamageFeedback(int localClientNum, int yawByte, int pitchByte, i
                                 + (float)(dir[2] * cgameGlob->refdef.viewaxis[0][2]);
         if ( yawByte || pitchByte )
         {
-            cgameGlob->v_dmg_roll = COERCE_FLOAT(LODWORD(kick) ^ _mask__NegFloat_) * sideFrac;
+            //cgameGlob->v_dmg_roll = COERCE_FLOAT(LODWORD(kick) ^ _mask__NegFloat_) * sideFrac;
+            cgameGlob->v_dmg_roll = -kick * sideFrac;
             cgameGlob->v_dmg_pitch = kick * forwardFrac;
         }
         slot = 0;

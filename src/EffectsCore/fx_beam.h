@@ -1,4 +1,6 @@
 #pragma once
+#include "fx_draw.h"
+#include <universal/com_math.h>
 
 // local variable allocation has failed, the output may be wrong!
 void __cdecl FX_Beam_GenerateVerts(FxGenerateVertsCmd *cmd);
@@ -6,8 +8,7 @@ void __cdecl CreateClipMatrix(vector4 *clipMtx, const float *vieworg, const floa
 void __cdecl Float4x4ForViewer(vector4 *mtx, const float *origin3, const float (*axis3)[3]);
 void __cdecl Float4x4InfinitePerspectiveMatrix(vector4 *mtx, float tanHalfFovX, float tanHalfFovY, float zNear);
 // local variable allocation has failed, the output may be wrong!
-char    FX_GenerateBeam_GetFlatDelta@<al>(
-                unsigned int a1@<ebp>,
+char    FX_GenerateBeam_GetFlatDelta(
                 const vector4 *clipMtx,
                 const vector4 *invClipMtx,
                 const float4 *beamWorldBegin,
