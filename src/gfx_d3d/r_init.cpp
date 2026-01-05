@@ -1975,48 +1975,48 @@ char __cdecl R_RecoverLostDevice()
 
 char __cdecl R_ResetDevice()
 {
-    _D3DPRESENT_PARAMETERS_ d3dpp; // [esp+0h] [ebp-74h] BYREF
-    GfxWindowParms wndParms; // [esp+3Ch] [ebp-38h] BYREF
-    tagRECT rc; // [esp+64h] [ebp-10h] BYREF
+  _D3DPRESENT_PARAMETERS_ d3dpp; // [esp+0h] [ebp-74h] BYREF
+  GfxWindowParms wndParms; // [esp+3Ch] [ebp-38h] BYREF
+  tagRECT rc; // [esp+64h] [ebp-10h] BYREF
 
-    wndParms.hwnd = (HWND__ *)dx.windows[0].swapChain;
-    wndParms.x = 0;
-    wndParms.y = 0;
-    wndParms.displayWidth = dx.windows[0].height;
-    wndParms.displayHeight = (int)dx.flushGpuQuery;
-    wndParms.sceneWidth = dx.windows[0].height;
-    wndParms.sceneHeight = (int)dx.flushGpuQuery;
-    wndParms.hz = vidConfig.displayFrequency;
-    wndParms.fullscreen = vidConfig.isFullscreen != 0;
-    wndParms.aaSamples = r_aaSamples->current.integer;
-    R_SetD3DPresentParameters(&d3dpp, &wndParms);
-    if ( d3dpp.Windowed )
-        Com_Printf(8, "Resetting %i x %i window.\n", d3dpp.BackBufferWidth, d3dpp.BackBufferHeight);
-    else
-        Com_Printf(8, "Resetting %i x %i fullscreen.\n", d3dpp.BackBufferWidth, d3dpp.BackBufferHeight);
-    if ( dx.device->Reset(&d3dpp) )
-        return 0;
-    if ( wndParms.fullscreen )
-    {
-        SetWindowPos(wndParms.hwnd, HWND_MESSAGE|0x2, 0, 0, 0, 0, 3u);
-    }
-    else
-    {
-        rc.left = 0;
-        rc.right = wndParms.displayWidth;
-        rc.top = 0;
-        rc.bottom = wndParms.displayHeight;
-        AdjustWindowRectEx(&rc, 0xC80000u, 0, 0);
-        SetWindowPos(wndParms.hwnd, (HWND)0xFFFFFFFE, wndParms.x, wndParms.y, rc.right - rc.left, rc.bottom - rc.top, 0x62u);
-    }
-    if ( !R_CreateForInitOrReset() )
-        R_FatalInitError("Couldn't reinitialize after a lost Direct3D device");
-    R_InitCmdBufSourceState(&gfxCmdBufSourceState, &gfxCmdBufInput, 0);
-    R_InitCmdBufState(&gfxCmdBufState);
-    RB_InitSceneViewport();
-    R_SetRenderTargetSize(&gfxCmdBufSourceState, 2u);
-    R_SetRenderTarget(gfxCmdBufContext, 2u);
-    return 1;
+  wndParms.hwnd = (HWND__ *)dx.windows[0].swapChain;
+  wndParms.x = 0;
+  wndParms.y = 0;
+  wndParms.displayWidth = dx.windows[0].height;
+  wndParms.displayHeight = (int)dx.flushGpuQuery;
+  wndParms.sceneWidth = dx.windows[0].height;
+  wndParms.sceneHeight = (int)dx.flushGpuQuery;
+  wndParms.hz = vidConfig.displayFrequency;
+  wndParms.fullscreen = vidConfig.isFullscreen != 0;
+  wndParms.aaSamples = r_aaSamples->current.integer;
+  R_SetD3DPresentParameters(&d3dpp, &wndParms);
+  if ( d3dpp.Windowed )
+    Com_Printf(8, "Resetting %i x %i window.\n", d3dpp.BackBufferWidth, d3dpp.BackBufferHeight);
+  else
+    Com_Printf(8, "Resetting %i x %i fullscreen.\n", d3dpp.BackBufferWidth, d3dpp.BackBufferHeight);
+  if ( dx.device->Reset(dx.device, &d3dpp) )
+    return 0;
+  if ( wndParms.fullscreen )
+  {
+    SetWindowPos(wndParms.hwnd, HWND_MESSAGE|0x2, 0, 0, 0, 0, 3u);
+  }
+  else
+  {
+    rc.left = 0;
+    rc.right = wndParms.displayWidth;
+    rc.top = 0;
+    rc.bottom = wndParms.displayHeight;
+    AdjustWindowRectEx(&rc, 0xC80000u, 0, 0);
+    SetWindowPos(wndParms.hwnd, (HWND)0xFFFFFFFE, wndParms.x, wndParms.y, rc.right - rc.left, rc.bottom - rc.top, 0x62u);
+  }
+  if ( !R_CreateForInitOrReset() )
+    R_FatalInitError("Couldn't reinitialize after a lost Direct3D device");
+  R_InitCmdBufSourceState(&gfxCmdBufSourceState, &gfxCmdBufInput, 0);
+  R_InitCmdBufState(&gfxCmdBufState);
+  RB_InitSceneViewport();
+  R_SetRenderTargetSize(&gfxCmdBufSourceState, 2u);
+  R_SetRenderTarget(gfxCmdBufContext, 2u);
+  return 1;
 }
 
 void __cdecl R_ComErrorCleanup()

@@ -89,20 +89,20 @@ void __cdecl RB_DrawDebug(const GfxViewParms *viewParms)
 
 const GfxBackEndData *RB_DrawDebugPolys()
 {
-    const GfxBackEndData *result; // eax
+  const GfxBackEndData *result; // eax
 
+  result = backEndData;
+  if ( backEndData->debugGlobals.polySet.polyCount )
+  {
+    if ( tess.indexCount )
+      RB_EndTessSurface();
+    R_Set3D(&gfxCmdBufSourceState);
+    RB_DrawPolyInteriors(&backEndData->debugGlobals.polySet);
+    RB_DrawPolyOutlines(&backEndData->debugGlobals.polySet);
     result = backEndData;
-    if ( backEndData->debugGlobals.polySet.polyCount )
-    {
-        if ( tess.indexCount )
-            RB_EndTessSurface();
-        R_Set3D(&gfxCmdBufSourceState);
-        RB_DrawPolyInteriors(&backEndData->debugGlobals.polySet);
-        RB_DrawPolyOutlines(&backEndData->debugGlobals.polySet);
-        result = backEndData;
-        backEndData->debugGlobals.polySet.polyCount = 0;
-    }
-    return result;
+    backEndData->debugGlobals.polySet.polyCount = 0;
+  }
+  return result;
 }
 
 void __cdecl RB_DrawPolyInteriors(PolySet *polySet)
@@ -507,75 +507,75 @@ void __cdecl RB_DrawDebugSphere(trDebugSphere_t *sphere)
 
 void __cdecl RB_DrawDebugLines(trDebugLine_t *lines, int lineCount, GfxPointVertex *verts)
 {
-    char lineDepthTest; // [esp+3h] [ebp-11h]
-    int vertCount; // [esp+4h] [ebp-10h]
-    int lineIndex; // [esp+Ch] [ebp-8h]
-    char depthTest; // [esp+13h] [ebp-1h]
+  char lineDepthTest; // [esp+3h] [ebp-11h]
+  int vertCount; // [esp+4h] [ebp-10h]
+  int lineIndex; // [esp+Ch] [ebp-8h]
+  char depthTest; // [esp+13h] [ebp-1h]
 
-    if ( lineCount )
+  if ( lineCount )
+  {
+    if ( tess.indexCount )
+      RB_EndTessSurface();
+    R_Set3D(&gfxCmdBufSourceState);
+    depthTest = lines->depthTest != 0;
+    vertCount = 0;
+    for ( lineIndex = 0; lineIndex < lineCount; ++lineIndex )
     {
-        if ( tess.indexCount )
-            RB_EndTessSurface();
-        R_Set3D(&gfxCmdBufSourceState);
-        depthTest = lines->depthTest != 0;
-        vertCount = 0;
-        for ( lineIndex = 0; lineIndex < lineCount; ++lineIndex )
-        {
-            lineDepthTest = lines[lineIndex].depthTest != 0;
-            if ( depthTest != lineDepthTest )
-            {
-                vertCount = RB_EndDebugLines(vertCount / 2, verts);
-                depthTest = lineDepthTest;
-            }
-            vertCount = RB_AddDebugLine(
-                                        lines[lineIndex].start,
-                                        lines[lineIndex].end,
-                                        lines[lineIndex].color,
-                                        depthTest,
-                                        vertCount,
-                                        2725,
-                                        verts);
-        }
-        RB_EndDebugLines(vertCount / 2, verts);
+      lineDepthTest = lines[lineIndex].depthTest != 0;
+      if ( depthTest != lineDepthTest )
+      {
+        vertCount = RB_EndDebugLines(vertCount / 2, verts);
+        depthTest = lineDepthTest;
+      }
+      vertCount = RB_AddDebugLine(
+                    lines[lineIndex].start,
+                    lines[lineIndex].end,
+                    lines[lineIndex].color,
+                    depthTest,
+                    vertCount,
+                    2725,
+                    verts);
     }
+    RB_EndDebugLines(vertCount / 2, verts);
+  }
 }
 
 void __cdecl RB_DrawDebugStrings(trDebugString_t *strings, int stringCount)
 {
-    float v2; // [esp+0h] [ebp-30h]
-    float v3; // [esp+8h] [ebp-28h]
-    float xStep[3]; // [esp+10h] [ebp-20h] BYREF
-    float yStep[3]; // [esp+1Ch] [ebp-14h] BYREF
-    int stringIndex; // [esp+28h] [ebp-8h]
-    GfxColor color; // [esp+2Ch] [ebp-4h] BYREF
+  float v2; // [esp+0h] [ebp-30h]
+  float v3; // [esp+8h] [ebp-28h]
+  float xStep[3]; // [esp+10h] [ebp-20h] BYREF
+  float yStep[3]; // [esp+1Ch] [ebp-14h] BYREF
+  int stringIndex; // [esp+28h] [ebp-8h]
+  GfxColor color; // [esp+2Ch] [ebp-4h] BYREF
 
-    if ( stringCount )
+  if ( stringCount )
+  {
+    if ( tess.indexCount )
+      RB_EndTessSurface();
+    R_Set3D(&gfxCmdBufSourceState);
+    for ( stringIndex = 0; stringIndex < stringCount; ++stringIndex )
     {
-        if ( tess.indexCount )
-            RB_EndTessSurface();
-        R_Set3D(&gfxCmdBufSourceState);
-        for ( stringIndex = 0; stringIndex < stringCount; ++stringIndex )
-        {
-            R_ConvertColorToBytes(strings[stringIndex].color, (unsigned __int8 *)&color);
-            v3 = -strings[stringIndex].scale;
-            xStep[0] = v3 * gfxCmdBufSourceState.shadowLookupMatrix.m[0][3];
-            xStep[1] = v3 * gfxCmdBufSourceState.shadowLookupMatrix.m[1][0];
-            xStep[2] = v3 * gfxCmdBufSourceState.shadowLookupMatrix.m[1][1];
-            v2 = -strings[stringIndex].scale;
-            yStep[0] = v2 * gfxCmdBufSourceState.shadowLookupMatrix.m[1][2];
-            yStep[1] = v2 * gfxCmdBufSourceState.shadowLookupMatrix.m[1][3];
-            yStep[2] = v2 * gfxCmdBufSourceState.shadowLookupMatrix.m[2][0];
-            RB_DrawTextInSpace(
-                strings[stringIndex].text,
-                backEnd.debugFont,
-                strings[stringIndex].xyz,
-                xStep,
-                yStep,
-                color.packed);
-        }
-        if ( tess.indexCount )
-            RB_EndTessSurface();
+      R_ConvertColorToBytes(strings[stringIndex].color, (unsigned __int8 *)&color);
+      LODWORD(v3) = LODWORD(strings[stringIndex].scale) ^ _mask__NegFloat_;
+      xStep[0] = v3 * gfxCmdBufSourceState.viewParms.axis[1][0];
+      xStep[1] = v3 * gfxCmdBufSourceState.viewParms.axis[1][1];
+      xStep[2] = v3 * gfxCmdBufSourceState.viewParms.axis[1][2];
+      LODWORD(v2) = LODWORD(strings[stringIndex].scale) ^ _mask__NegFloat_;
+      yStep[0] = v2 * gfxCmdBufSourceState.viewParms.axis[2][0];
+      yStep[1] = v2 * gfxCmdBufSourceState.viewParms.axis[2][1];
+      yStep[2] = v2 * gfxCmdBufSourceState.viewParms.axis[2][2];
+      RB_DrawTextInSpace(
+        strings[stringIndex].text,
+        backEnd.debugFont,
+        strings[stringIndex].xyz,
+        xStep,
+        yStep,
+        color.packed);
     }
+    if ( tess.indexCount )
+      RB_EndTessSurface();
+  }
 }
 
 void __cdecl RB_AddPlumeStrings(const GfxViewParms *viewParms)
@@ -616,20 +616,20 @@ void __cdecl RB_AddPlumeStrings(const GfxViewParms *viewParms)
 
 void RB_DrawDebugBrushesAndPatches()
 {
-    if ( tess.indexCount )
-        RB_EndTessSurface();
-    R_Set3D(&gfxCmdBufSourceState);
-    if ( !s_DebugBrushesAndPatchesCallback
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_debug.cpp",
-                    495,
-                    0,
-                    "%s",
-                    "s_DebugBrushesAndPatchesCallback") )
-    {
-        __debugbreak();
-    }
-    s_DebugBrushesAndPatchesCallback();
+  if ( tess.indexCount )
+    RB_EndTessSurface();
+  R_Set3D(&gfxCmdBufSourceState);
+  if ( !s_DebugBrushesAndPatchesCallback
+    && !Assert_MyHandler(
+          "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_debug.cpp",
+          495,
+          0,
+          "%s",
+          "s_DebugBrushesAndPatchesCallback") )
+  {
+    __debugbreak();
+  }
+  s_DebugBrushesAndPatchesCallback();
 }
 
 void __cdecl RB_ApplySunLight(const float (*verts)[3], const float *color, float *out_color)

@@ -89,151 +89,151 @@ GfxVertex *__cdecl RB_SetTessQuad(GfxColor color)
 
 unsigned int __cdecl RB_CalcSunSpriteSamples()
 {
-    const char *v1; // eax
-    const char *v2; // eax
-    const char *v3; // eax
-    const char *v4; // eax
-    int v5; // [esp+38h] [ebp-2Ch]
-    int v6; // [esp+3Ch] [ebp-28h]
-    int v7; // [esp+40h] [ebp-24h]
-    int v8; // [esp+44h] [ebp-20h]
-    int v9; // [esp+48h] [ebp-1Ch]
-    int v10; // [esp+4Ch] [ebp-18h]
-    int semaphore; // [esp+50h] [ebp-14h]
-    int v12; // [esp+54h] [ebp-10h]
-    IDirect3DQuery9 *occlusionQuery; // [esp+58h] [ebp-Ch]
-    HRESULT hr; // [esp+5Ch] [ebp-8h]
-    unsigned int sampleCount; // [esp+60h] [ebp-4h] BYREF
+  const char *v1; // eax
+  const char *v2; // eax
+  const char *v3; // eax
+  const char *v4; // eax
+  int v5; // [esp+38h] [ebp-2Ch]
+  int v6; // [esp+3Ch] [ebp-28h]
+  int v7; // [esp+40h] [ebp-24h]
+  int v8; // [esp+44h] [ebp-20h]
+  int v9; // [esp+48h] [ebp-1Ch]
+  int v10; // [esp+4Ch] [ebp-18h]
+  int semaphore; // [esp+50h] [ebp-14h]
+  int v12; // [esp+54h] [ebp-10h]
+  IDirect3DQuery9 *occlusionQuery; // [esp+58h] [ebp-Ch]
+  HRESULT hr; // [esp+5Ch] [ebp-8h]
+  unsigned int sampleCount; // [esp+60h] [ebp-4h] BYREF
 
-    if ( vidConfig.displayWidth < 0x10
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
-                    48,
-                    0,
-                    "%s\n\t(vidConfig.displayWidth) = %i",
-                    "(vidConfig.displayWidth >= 16)",
-                    vidConfig.displayWidth) )
-    {
-        __debugbreak();
-    }
-    if ( vidConfig.displayHeight < 0x10
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
-                    49,
-                    0,
-                    "%s\n\t(vidConfig.displayHeight) = %i",
-                    "(vidConfig.displayHeight >= 16)",
-                    vidConfig.displayHeight) )
-    {
-        __debugbreak();
-    }
-    occlusionQuery = sunFlareArray[0].sunQuery[0];
-    if ( !sunFlareArray[0].sunQuery[0] )
-        return 0;
-    RB_ResetStatTracking(0);
-    if ( tess.indexCount )
-        RB_EndTessSurface();
-    R_AssertDXDeviceOwnership();
-    if ( r_logFile && r_logFile->current.integer )
-        RB_LogPrint("dx.device->BeginScene()\n");
-    semaphore = R_AcquireDXDeviceOwnership(0);
-    v12 = dx.device->BeginScene(dx.device);
-    if ( semaphore )
-        R_ReleaseDXDeviceOwnership();
-    if ( v12 < 0 )
-    {
-        ++g_disableRendering;
-        v1 = R_ErrorDescription(v12);
-        Com_Error(
-            ERR_FATAL,
-            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp (%i) dx.device->BeginScene() failed: %s\n",
-            61,
-            v1);
-    }
-    R_ClearScreenInternal(gfxCmdBufState.prim.device, 2u, colorWhite, 1.0, 0, 0);
-    R_SetCodeConstantFromVec4(&gfxCmdBufSourceState, 0x37u, (float *)colorWhite);
-    R_AssertDXDeviceOwnership();
-    if ( r_logFile && r_logFile->current.integer )
-        RB_LogPrint("occlusionQuery->Issue( (1 << 1) )\n");
-    v9 = R_AcquireDXDeviceOwnership(0);
-    v10 = occlusionQuery->Issue(occlusionQuery, 2u);
-    if ( v9 )
-        R_ReleaseDXDeviceOwnership();
-    if ( v10 < 0 )
-    {
-        ++g_disableRendering;
-        v2 = R_ErrorDescription(v10);
-        Com_Error(
-            ERR_FATAL,
-            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp (%i) occlusionQuery->Issue( (1 << 1) ) failed: %s\n",
-            65,
-            v2);
-    }
-    R_Set2D(&gfxCmdBufSourceState);
-    RB_DrawStretchPic(rgp.additiveMaterial, 0.0, 0.0, 16.0, 16.0, 0.0, 0.0, 1.0, 1.0, 0xFFFFFFFF, GFX_PRIM_STATS_CODE);
-    if ( gfxCmdBufSourceState.scissorViewport.width != 2
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
-                    68,
-                    1,
-                    "%s",
-                    "gfxCmdBufSourceState.viewMode == VIEW_MODE_2D") )
-    {
-        __debugbreak();
-    }
+  if ( vidConfig.displayWidth < 0x10
+    && !Assert_MyHandler(
+          "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
+          48,
+          0,
+          "%s\n\t(vidConfig.displayWidth) = %i",
+          "(vidConfig.displayWidth >= 16)",
+          vidConfig.displayWidth) )
+  {
+    __debugbreak();
+  }
+  if ( vidConfig.displayHeight < 0x10
+    && !Assert_MyHandler(
+          "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
+          49,
+          0,
+          "%s\n\t(vidConfig.displayHeight) = %i",
+          "(vidConfig.displayHeight >= 16)",
+          vidConfig.displayHeight) )
+  {
+    __debugbreak();
+  }
+  occlusionQuery = sunFlareArray[0].sunQuery[0];
+  if ( !sunFlareArray[0].sunQuery[0] )
+    return 0;
+  RB_ResetStatTracking(0);
+  if ( tess.indexCount )
     RB_EndTessSurface();
-    R_AssertDXDeviceOwnership();
-    if ( r_logFile && r_logFile->current.integer )
-        RB_LogPrint("occlusionQuery->Issue( (1 << 0) )\n");
-    v7 = R_AcquireDXDeviceOwnership(0);
-    v8 = ((int (__thiscall *)(IDirect3DQuery9 *, IDirect3DQuery9 *, int))occlusionQuery->Issue)(
-                 occlusionQuery,
-                 occlusionQuery,
-                 1);
-    if ( v7 )
-        R_ReleaseDXDeviceOwnership();
-    if ( v8 < 0 )
-    {
-        ++g_disableRendering;
-        v3 = R_ErrorDescription(v8);
-        Com_Error(
-            ERR_FATAL,
-            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp (%i) occlusionQuery->Issue( (1 << 0) ) failed: %s\n",
-            70,
-            v3);
-    }
-    R_AssertDXDeviceOwnership();
-    if ( r_logFile && r_logFile->current.integer )
-        RB_LogPrint("dx.device->EndScene()\n");
-    v5 = R_AcquireDXDeviceOwnership(0);
-    v6 = dx.device->EndScene(dx.device);
-    if ( v5 )
-        R_ReleaseDXDeviceOwnership();
-    if ( v6 < 0 )
-    {
-        ++g_disableRendering;
-        v4 = R_ErrorDescription(v6);
-        Com_Error(
-            ERR_FATAL,
-            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp (%i) dx.device->EndScene() failed: %s\n",
-            72,
-            v4);
-    }
-    while ( 1 )
-    {
-        hr = ((int (__thiscall *)(IDirect3DQuery9 *, IDirect3DQuery9 *, unsigned int *, int, int))occlusionQuery->GetData)(
-                     occlusionQuery,
-                     occlusionQuery,
-                     &sampleCount,
-                     4,
-                     1);
-        if ( hr != 1 )
-            break;
-        Sleep(0);
-    }
-    if ( hr )
-        return 256;
-    return sampleCount;
+  R_AssertDXDeviceOwnership();
+  if ( r_logFile && r_logFile->current.integer )
+    RB_LogPrint("dx.device->BeginScene()\n");
+  semaphore = R_AcquireDXDeviceOwnership(0);
+  v12 = dx.device->BeginScene(dx.device);
+  if ( semaphore )
+    R_ReleaseDXDeviceOwnership();
+  if ( v12 < 0 )
+  {
+    ++g_disableRendering;
+    v1 = R_ErrorDescription(v12);
+    Com_Error(
+      ERR_FATAL,
+      "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp (%i) dx.device->BeginScene() failed: %s\n",
+      61,
+      v1);
+  }
+  R_ClearScreenInternal(gfxCmdBufState.prim.device, 2u, colorWhite, 1.0, 0, 0);
+  R_SetCodeConstantFromVec4(&gfxCmdBufSourceState, 0x37u, colorWhite);
+  R_AssertDXDeviceOwnership();
+  if ( r_logFile && r_logFile->current.integer )
+    RB_LogPrint("occlusionQuery->Issue( (1 << 1) )\n");
+  v9 = R_AcquireDXDeviceOwnership(0);
+  v10 = occlusionQuery->Issue(occlusionQuery, 2u);
+  if ( v9 )
+    R_ReleaseDXDeviceOwnership();
+  if ( v10 < 0 )
+  {
+    ++g_disableRendering;
+    v2 = R_ErrorDescription(v10);
+    Com_Error(
+      ERR_FATAL,
+      "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp (%i) occlusionQuery->Issue( (1 << 1) ) failed: %s\n",
+      65,
+      v2);
+  }
+  R_Set2D(&gfxCmdBufSourceState);
+  RB_DrawStretchPic(rgp.additiveMaterial, 0.0, 0.0, 16.0, 16.0, 0.0, 0.0, 1.0, 1.0, 0xFFFFFFFF, GFX_PRIM_STATS_CODE);
+  if ( gfxCmdBufSourceState.viewMode != VIEW_MODE_2D
+    && !Assert_MyHandler(
+          "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
+          68,
+          1,
+          "%s",
+          "gfxCmdBufSourceState.viewMode == VIEW_MODE_2D") )
+  {
+    __debugbreak();
+  }
+  RB_EndTessSurface();
+  R_AssertDXDeviceOwnership();
+  if ( r_logFile && r_logFile->current.integer )
+    RB_LogPrint("occlusionQuery->Issue( (1 << 0) )\n");
+  v7 = R_AcquireDXDeviceOwnership(0);
+  v8 = ((int (__thiscall *)(IDirect3DQuery9 *, IDirect3DQuery9 *, int))occlusionQuery->Issue)(
+         occlusionQuery,
+         occlusionQuery,
+         1);
+  if ( v7 )
+    R_ReleaseDXDeviceOwnership();
+  if ( v8 < 0 )
+  {
+    ++g_disableRendering;
+    v3 = R_ErrorDescription(v8);
+    Com_Error(
+      ERR_FATAL,
+      "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp (%i) occlusionQuery->Issue( (1 << 0) ) failed: %s\n",
+      70,
+      v3);
+  }
+  R_AssertDXDeviceOwnership();
+  if ( r_logFile && r_logFile->current.integer )
+    RB_LogPrint("dx.device->EndScene()\n");
+  v5 = R_AcquireDXDeviceOwnership(0);
+  v6 = dx.device->EndScene(dx.device);
+  if ( v5 )
+    R_ReleaseDXDeviceOwnership();
+  if ( v6 < 0 )
+  {
+    ++g_disableRendering;
+    v4 = R_ErrorDescription(v6);
+    Com_Error(
+      ERR_FATAL,
+      "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp (%i) dx.device->EndScene() failed: %s\n",
+      72,
+      v4);
+  }
+  while ( 1 )
+  {
+    hr = ((int (__thiscall *)(IDirect3DQuery9 *, IDirect3DQuery9 *, unsigned int *, int, int))occlusionQuery->GetData)(
+           occlusionQuery,
+           occlusionQuery,
+           &sampleCount,
+           4,
+           1);
+    if ( hr != 1 )
+      break;
+    Sleep(0);
+  }
+  if ( hr )
+    return 256;
+  return sampleCount;
 }
 
 void __cdecl RB_DrawSun(unsigned int localClientNum)

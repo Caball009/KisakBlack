@@ -352,137 +352,137 @@ void __cdecl RB_SetUI3DSamplerAndConstants(GfxCmdBufSourceState *cmdBufSrcState,
 
 void __cdecl RB_UI3D_RenderToTexture(const void *cmds, const GfxUI3DBackend *rbUI3D, const GfxCmdBufInput *input)
 {
-    int v3; // [esp+10h] [ebp-CCh]
-    int v4; // [esp+14h] [ebp-C8h]
-    int v5; // [esp+18h] [ebp-C4h]
-    int v6; // [esp+1Ch] [ebp-C0h]
-    int v7; // [esp+20h] [ebp-BCh]
-    int y; // [esp+24h] [ebp-B8h]
-    int v9; // [esp+28h] [ebp-B4h]
-    int x; // [esp+2Ch] [ebp-B0h]
-    int ui3dTextureWindow; // [esp+70h] [ebp-6Ch] BYREF
-    GfxViewport *viewport; // [esp+74h] [ebp-68h]
-    int i; // [esp+78h] [ebp-64h]
-    int wIdx; // [esp+7Ch] [ebp-60h]
-    const GfxViewport *vp; // [esp+80h] [ebp-5Ch]
-    int vindex; // [esp+84h] [ebp-58h]
-    int scissor_min_y; // [esp+8Ch] [ebp-50h]
-    int scissor_max_y; // [esp+90h] [ebp-4Ch]
-    unsigned __int8 rt; // [esp+97h] [ebp-45h]
-    GfxViewport vpBounds; // [esp+98h] [ebp-44h] BYREF
-    float clearColor[4]; // [esp+A8h] [ebp-34h] BYREF
-    int validWindows[6]; // [esp+B8h] [ebp-24h] BYREF
-    int scissor_min_x; // [esp+D0h] [ebp-Ch]
-    int validWindowsCount; // [esp+D4h] [ebp-8h]
-    int scissor_max_x; // [esp+D8h] [ebp-4h]
+  int v3; // [esp+10h] [ebp-CCh]
+  int v4; // [esp+14h] [ebp-C8h]
+  int v5; // [esp+18h] [ebp-C4h]
+  int v6; // [esp+1Ch] [ebp-C0h]
+  int v7; // [esp+20h] [ebp-BCh]
+  int y; // [esp+24h] [ebp-B8h]
+  int v9; // [esp+28h] [ebp-B4h]
+  int x; // [esp+2Ch] [ebp-B0h]
+  int ui3dTextureWindow; // [esp+70h] [ebp-6Ch] BYREF
+  GfxViewport *viewport; // [esp+74h] [ebp-68h]
+  int i; // [esp+78h] [ebp-64h]
+  int wIdx; // [esp+7Ch] [ebp-60h]
+  const GfxViewport *vp; // [esp+80h] [ebp-5Ch]
+  int vindex; // [esp+84h] [ebp-58h]
+  int scissor_min_y; // [esp+8Ch] [ebp-50h]
+  int scissor_max_y; // [esp+90h] [ebp-4Ch]
+  unsigned __int8 rt; // [esp+97h] [ebp-45h]
+  GfxViewport vpBounds; // [esp+98h] [ebp-44h] BYREF
+  float clearColor[4]; // [esp+A8h] [ebp-34h] BYREF
+  int validWindows[6]; // [esp+B8h] [ebp-24h] BYREF
+  int scissor_min_x; // [esp+D0h] [ebp-Ch]
+  int validWindowsCount; // [esp+D4h] [ebp-8h]
+  int scissor_max_x; // [esp+D8h] [ebp-4h]
 
-    rt = 20;
-    if ( rbUI3D->totalRenderCmds >= 1 )
+  rt = 20;
+  if ( rbUI3D->totalRenderCmds >= 1 )
+  {
+    if ( cmds )
     {
-        if ( cmds )
+      validWindowsCount = RB_UI3D_GetValidWindows(rbUI3D, validWindows);
+      if ( validWindowsCount )
+      {
+        g_ui3dStatus.rendering = 1;
+        if ( g_ui3dStatus.initialized )
         {
-            validWindowsCount = RB_UI3D_GetValidWindows(rbUI3D, validWindows);
-            if ( validWindowsCount )
-            {
-                g_ui3dStatus.rendering = 1;
-                if ( g_ui3dStatus.initialized )
-                {
-                    //PIXBeginNamedEvent(-1, "RB_UI3D_RenderToTexture");
-                    R_InitCmdBufSourceState(&gfxCmdBufSourceState, input, 0);
-                    gfxCmdBufSourceState.input.data = backEndData;
-                    R_InitLocalCmdBufState(&gfxCmdBufState);
-                    R_SetRenderTargetSize(&gfxCmdBufSourceState, 0x14u);
-                    R_SetRenderTarget(gfxCmdBufContext, 0x14u);
-                    scissor_min_x = 4095;
-                    scissor_max_x = 0;
-                    scissor_min_y = 4095;
-                    scissor_max_y = 0;
-                    for ( vindex = 0; vindex < validWindowsCount; ++vindex )
-                    {
-                        wIdx = validWindows[vindex];
-                        vp = &rbUI3D->viewport[wIdx];
-                        if ( vp->x < scissor_min_x )
-                            x = rbUI3D->viewport[wIdx].x;
-                        else
-                            x = scissor_min_x;
-                        scissor_min_x = x;
-                        if ( scissor_max_x < vp->width + vp->x )
-                            v9 = vp->width + vp->x;
-                        else
-                            v9 = scissor_max_x;
-                        scissor_max_x = v9;
-                        if ( vp->y < scissor_min_y )
-                            y = vp->y;
-                        else
-                            y = scissor_min_y;
-                        scissor_min_y = y;
-                        if ( scissor_max_y < vp->height + vp->y )
-                            v7 = vp->height + vp->y;
-                        else
-                            v7 = scissor_max_y;
-                        scissor_max_y = v7;
-                    }
-                    if ( scissor_max_x < scissor_min_x )
-                        v6 = scissor_max_x;
-                    else
-                        v6 = scissor_min_x;
-                    vpBounds.x = v6;
-                    if ( scissor_min_x < scissor_max_x )
-                        v5 = scissor_max_x;
-                    else
-                        v5 = scissor_min_x;
-                    vpBounds.width = v5 - vpBounds.x;
-                    if ( scissor_max_y < scissor_min_y )
-                        v4 = scissor_max_y;
-                    else
-                        v4 = scissor_min_y;
-                    vpBounds.y = v4;
-                    if ( scissor_min_y < scissor_max_y )
-                        v3 = scissor_max_y;
-                    else
-                        v3 = scissor_min_y;
-                    vpBounds.height = v3 - vpBounds.y;
-                    memset(clearColor, 0, sizeof(clearColor));
-                    R_ClearScreen(gfxCmdBufState.prim.device, 1u, clearColor, 1.0, 0, &vpBounds);
-                    for ( i = 0; i < validWindowsCount; ++i )
-                    {
-                        ui3dTextureWindow = validWindows[i];
-                        if ( rgp.heatMapImage )
-                            R_SetCodeImageTexture(&gfxCmdBufSourceState, 0x2Au, rgp.heatMapImage);
-                        else
-                            R_SetCodeImageTexture(&gfxCmdBufSourceState, 0x2Au, rgp.whiteImage);
-                        viewport = &rbUI3D->viewport[ui3dTextureWindow];
-                        R_HW_EnableScissor(
-                            gfxCmdBufContext.state->prim.device,
-                            viewport->x,
-                            viewport->y,
-                            viewport->width,
-                            viewport->height);
-                        R_SetViewportStruct(&gfxCmdBufSourceState, viewport);
-                        R_Set2D(&gfxCmdBufSourceState);
-                        RB_ExecuteRenderCommandsLoop(cmds, &ui3dTextureWindow);
-                    }
-                    R_HW_DisableScissor(gfxCmdBufContext.state->prim.device);
-                    memcpy(gfxCmdBufState.refSamplerState, gfxCmdBufState.refSamplerState, sizeof(gfxCmdBufState));
-                    if ( rbUI3D->blurRadius > 0.0
-                        && stru_B50E9D4.image
-                        && stru_B50E9D4.width == image.width
-                        && stru_B50E9D4.height == image.height )
-                    {
-                        RB_GaussianFilterImage(rbUI3D->blurRadius, 0x14u, 0x15u);
-                        RB_GaussianFilterImage(rbUI3D->blurRadius, 0x15u, 0x14u);
-                    }
-                    g_ui3dStatus.rendering = 0;
-                    //if ( g_DXDeviceThread == GetCurrentThreadId() )
-                        //D3DPERF_EndEvent();
-                }
-                else
-                {
-                    g_ui3dStatus.rendering = 0;
-                }
-            }
+          PIXBeginNamedEvent(-1, "RB_UI3D_RenderToTexture");
+          R_InitCmdBufSourceState(&gfxCmdBufSourceState, input, 0);
+          gfxCmdBufSourceState.input.data = backEndData;
+          R_InitLocalCmdBufState(&gfxCmdBufState);
+          R_SetRenderTargetSize(&gfxCmdBufSourceState, 0x14u);
+          R_SetRenderTarget(gfxCmdBufContext, 0x14u);
+          scissor_min_x = 4095;
+          scissor_max_x = 0;
+          scissor_min_y = 4095;
+          scissor_max_y = 0;
+          for ( vindex = 0; vindex < validWindowsCount; ++vindex )
+          {
+            wIdx = validWindows[vindex];
+            vp = &rbUI3D->viewport[wIdx];
+            if ( vp->x < scissor_min_x )
+              x = rbUI3D->viewport[wIdx].x;
+            else
+              x = scissor_min_x;
+            scissor_min_x = x;
+            if ( scissor_max_x < vp->width + vp->x )
+              v9 = vp->width + vp->x;
+            else
+              v9 = scissor_max_x;
+            scissor_max_x = v9;
+            if ( vp->y < scissor_min_y )
+              y = vp->y;
+            else
+              y = scissor_min_y;
+            scissor_min_y = y;
+            if ( scissor_max_y < vp->height + vp->y )
+              v7 = vp->height + vp->y;
+            else
+              v7 = scissor_max_y;
+            scissor_max_y = v7;
+          }
+          if ( scissor_max_x < scissor_min_x )
+            v6 = scissor_max_x;
+          else
+            v6 = scissor_min_x;
+          vpBounds.x = v6;
+          if ( scissor_min_x < scissor_max_x )
+            v5 = scissor_max_x;
+          else
+            v5 = scissor_min_x;
+          vpBounds.width = v5 - vpBounds.x;
+          if ( scissor_max_y < scissor_min_y )
+            v4 = scissor_max_y;
+          else
+            v4 = scissor_min_y;
+          vpBounds.y = v4;
+          if ( scissor_min_y < scissor_max_y )
+            v3 = scissor_max_y;
+          else
+            v3 = scissor_min_y;
+          vpBounds.height = v3 - vpBounds.y;
+          memset(clearColor, 0, sizeof(clearColor));
+          R_ClearScreen(gfxCmdBufState.prim.device, 1u, clearColor, 1.0, 0, &vpBounds);
+          for ( i = 0; i < validWindowsCount; ++i )
+          {
+            ui3dTextureWindow = validWindows[i];
+            if ( rgp.heatMapImage )
+              R_SetCodeImageTexture(&gfxCmdBufSourceState, 0x2Au, rgp.heatMapImage);
+            else
+              R_SetCodeImageTexture(&gfxCmdBufSourceState, 0x2Au, rgp.whiteImage);
+            viewport = &rbUI3D->viewport[ui3dTextureWindow];
+            R_HW_EnableScissor(
+              gfxCmdBufContext.state->prim.device,
+              viewport->x,
+              viewport->y,
+              viewport->width,
+              viewport->height);
+            R_SetViewportStruct(&gfxCmdBufSourceState, viewport);
+            R_Set2D(&gfxCmdBufSourceState);
+            RB_ExecuteRenderCommandsLoop(cmds, &ui3dTextureWindow);
+          }
+          R_HW_DisableScissor(gfxCmdBufContext.state->prim.device);
+          memcpy(gfxCmdBufState.refSamplerState, gfxCmdBufState.refSamplerState, sizeof(gfxCmdBufState));
+          if ( rbUI3D->blurRadius > 0.0
+            && stru_B50E9D4.image
+            && stru_B50E9D4.width == image.width
+            && stru_B50E9D4.height == image.height )
+          {
+            RB_GaussianFilterImage(rbUI3D->blurRadius, 0x14u, 0x15u);
+            RB_GaussianFilterImage(rbUI3D->blurRadius, 0x15u, 0x14u);
+          }
+          g_ui3dStatus.rendering = 0;
+          if ( g_DXDeviceThread == GetCurrentThreadId() )
+            D3DPERF_EndEvent();
         }
+        else
+        {
+          g_ui3dStatus.rendering = 0;
+        }
+      }
     }
+  }
 }
 
 int __cdecl RB_UI3D_GetValidWindows(const GfxUI3DBackend *rbUI3D, int *validWindowsArray)

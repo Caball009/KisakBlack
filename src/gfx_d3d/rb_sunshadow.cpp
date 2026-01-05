@@ -56,94 +56,94 @@ void __cdecl RB_GetShadowOverlayDepthBounds(float *nearDepth, float *farDepth)
 
 void __cdecl RB_DrawSunShadowOverlay()
 {
-    float clipSpacePoints[9][2]; // [esp+48h] [ebp-A0h] BYREF
-    int pointIsNear[9]; // [esp+94h] [ebp-54h] BYREF
-    float shadowSampleSize; // [esp+B8h] [ebp-30h]
-    const GfxViewInfo *viewInfo; // [esp+BCh] [ebp-2Ch]
-    int pointIndexDst; // [esp+C0h] [ebp-28h]
-    int pointIndexSrc; // [esp+C4h] [ebp-24h]
-    int partitionIndex; // [esp+C8h] [ebp-20h]
-    float y0; // [esp+CCh] [ebp-1Ch]
-    float x; // [esp+D0h] [ebp-18h]
-    float y; // [esp+D4h] [ebp-14h]
-    float h; // [esp+D8h] [ebp-10h]
-    const GfxSunShadow *sunShadow; // [esp+DCh] [ebp-Ch]
-    const GfxSunShadowPartition *partition; // [esp+E0h] [ebp-8h]
-    float w; // [esp+E4h] [ebp-4h]
+  float clipSpacePoints[9][2]; // [esp+48h] [ebp-A0h] BYREF
+  int pointIsNear[9]; // [esp+94h] [ebp-54h] BYREF
+  float shadowSampleSize; // [esp+B8h] [ebp-30h]
+  const GfxViewInfo *viewInfo; // [esp+BCh] [ebp-2Ch]
+  int pointIndexDst; // [esp+C0h] [ebp-28h]
+  int pointIndexSrc; // [esp+C4h] [ebp-24h]
+  int partitionIndex; // [esp+C8h] [ebp-20h]
+  float y0; // [esp+CCh] [ebp-1Ch]
+  float x; // [esp+D0h] [ebp-18h]
+  float y; // [esp+D4h] [ebp-14h]
+  float h; // [esp+D8h] [ebp-10h]
+  const GfxSunShadow *sunShadow; // [esp+DCh] [ebp-Ch]
+  const GfxSunShadowPartition *partition; // [esp+E0h] [ebp-8h]
+  float w; // [esp+E4h] [ebp-4h]
 
-    if ( !backEndData->viewInfoCount
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sunshadow.cpp",
-                    207,
-                    0,
-                    "%s",
-                    "backEndData->viewInfoCount > 0") )
+  if ( !backEndData->viewInfoCount
+    && !Assert_MyHandler(
+          "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sunshadow.cpp",
+          207,
+          0,
+          "%s",
+          "backEndData->viewInfoCount > 0") )
+  {
+    __debugbreak();
+  }
+  viewInfo = backEndData->viewInfo;
+  sunShadow = &backEndData->sunShadow;
+  y0 = FLOAT_4_0;
+  h = (double)vidConfig.displayHeight * 0.5;
+  w = h;
+  RB_SetSunShadowOverlayScaleAndBias(vidConfig.displayHeight, 0);
+  gfxCmdBufSourceState.input.codeImageSamplerStates[8] = 97;
+  R_SetCodeImageTexture(&gfxCmdBufSourceState, 8u, stru_B50E948.image);
+  for ( partitionIndex = 0; partitionIndex < 2; ++partitionIndex )
+    RB_DrawStretchPic(
+      rgp.shadowOverlayMaterial,
+      (float)((float)partitionIndex * w) + 4.0,
+      y0,
+      w,
+      h,
+      0.0,
+      (float)partitionIndex * 0.5,
+      1.0,
+      (float)((float)partitionIndex * 0.5) + 0.5,
+      0xFFFFFFFF,
+      GFX_PRIM_STATS_HUD);
+  RB_EndTessSurface();
+  gfxCmdBufSourceState.input.codeImageSamplerStates[8] = 98;
+  shadowSampleSize = sm_sunSampleSizeNear->current.value;
+  pointIndexDst = 0;
+  for ( partitionIndex = 0; partitionIndex < 2; ++partitionIndex )
+  {
+    x = (float)((float)partitionIndex * w) + 4.0;
+    y = y0;
+    partition = &sunShadow->partition[partitionIndex];
+    R_SunShadowMapBoundingPoly(
+      &sunShadow->partition[partitionIndex].boundingPoly,
+      shadowSampleSize,
+      clipSpacePoints,
+      pointIsNear,
+      (unsigned int)dx.singleSampleDepthStencilSurface);
+    for ( pointIndexSrc = 0; pointIndexSrc < partition->boundingPoly.pointCount; ++pointIndexSrc )
     {
-        __debugbreak();
+      if ( !partitionIndex
+        || !rg.sunShadowFull
+        || pointIsNear[pointIndexSrc]
+        || pointIsNear[(pointIndexSrc + 1) % partition->boundingPoly.pointCount] )
+      {
+        RB_SunShadowOverlayPoint(clipSpacePoints[pointIndexSrc], x, y, w, h, g_overlayPoints[pointIndexDst].xyz);
+        RB_SunShadowOverlayPoint(
+          clipSpacePoints[(pointIndexSrc + 1) % partition->boundingPoly.pointCount],
+          x,
+          y,
+          w,
+          h,
+          g_overlayPoints[pointIndexDst + 1].xyz);
+        *(unsigned int *)g_overlayPoints[pointIndexDst].color = -16711936;
+        *(unsigned int *)g_overlayPoints[pointIndexDst + 1].color = -16711936;
+        pointIndexDst += 2;
+      }
     }
-    viewInfo = backEndData->viewInfo;
-    sunShadow = &backEndData->sunShadow;
-    y0 = 4.0f;
-    h = (double)vidConfig.displayHeight * 0.5;
-    w = h;
-    RB_SetSunShadowOverlayScaleAndBias();
-    gfxCmdBufSourceState.input.codeImageSamplerStates[8] = 97;
-    R_SetCodeImageTexture(&gfxCmdBufSourceState, 8u, stru_B50E948.image);
-    for ( partitionIndex = 0; partitionIndex < 2; ++partitionIndex )
-        RB_DrawStretchPic(
-            rgp.shadowOverlayMaterial,
-            (float)((float)partitionIndex * w) + 4.0,
-            y0,
-            w,
-            h,
-            0.0,
-            (float)partitionIndex * 0.5,
-            1.0,
-            (float)((float)partitionIndex * 0.5) + 0.5,
-            0xFFFFFFFF,
-            GFX_PRIM_STATS_HUD);
+    shadowSampleSize = shadowSampleSize * rg.sunShadowPartitionRatio;
+  }
+  if ( pointIndexDst )
+  {
+    RB_DrawLines2D(pointIndexDst / 2, 1, g_overlayPoints);
     RB_EndTessSurface();
-    gfxCmdBufSourceState.input.codeImageSamplerStates[8] = 98;
-    shadowSampleSize = sm_sunSampleSizeNear->current.value;
-    pointIndexDst = 0;
-    for ( partitionIndex = 0; partitionIndex < 2; ++partitionIndex )
-    {
-        x = (float)((float)partitionIndex * w) + 4.0;
-        y = y0;
-        partition = &sunShadow->partition[partitionIndex];
-        R_SunShadowMapBoundingPoly(
-            &sunShadow->partition[partitionIndex].boundingPoly,
-            shadowSampleSize,
-            (float (*)[9][2])clipSpacePoints,
-            pointIsNear,
-            (unsigned int)dx.singleSampleDepthStencilSurface);
-        for ( pointIndexSrc = 0; pointIndexSrc < partition->boundingPoly.pointCount; ++pointIndexSrc )
-        {
-            if ( !partitionIndex
-                || !rg.sunShadowFull
-                || pointIsNear[pointIndexSrc]
-                || pointIsNear[(pointIndexSrc + 1) % partition->boundingPoly.pointCount] )
-            {
-                RB_SunShadowOverlayPoint(clipSpacePoints[pointIndexSrc], x, y, w, h, g_overlayPoints[pointIndexDst].xyz);
-                RB_SunShadowOverlayPoint(
-                    clipSpacePoints[(pointIndexSrc + 1) % partition->boundingPoly.pointCount],
-                    x,
-                    y,
-                    w,
-                    h,
-                    g_overlayPoints[pointIndexDst + 1].xyz);
-                *(unsigned int *)g_overlayPoints[pointIndexDst].color = -16711936;
-                *(unsigned int *)g_overlayPoints[pointIndexDst + 1].color = -16711936;
-                pointIndexDst += 2;
-            }
-        }
-        shadowSampleSize = shadowSampleSize * rg.sunShadowPartitionRatio;
-    }
-    if ( pointIndexDst )
-    {
-        RB_DrawLines2D(pointIndexDst / 2, 1, g_overlayPoints);
-        RB_EndTessSurface();
-    }
+  }
 }
 
 void __cdecl RB_SunShadowOverlayPoint(const float *xy, float x0, float y0, float w, float h, float *point)
@@ -155,16 +155,16 @@ void __cdecl RB_SunShadowOverlayPoint(const float *xy, float x0, float y0, float
 
 int RB_SetSunShadowOverlayScaleAndBias()
 {
-    float nearDepth; // [esp+18h] [ebp-10h] BYREF
-    float farDepth; // [esp+24h] [ebp-4h] BYREF
+  float nearDepth; // [esp+18h] [ebp-10h] BYREF
+  float farDepth; // [esp+24h] [ebp-4h] BYREF
 
-    RB_GetShadowOverlayDepthBounds(&nearDepth, &farDepth);
-    return R_UpdateCodeConstant(
-                     &gfxCmdBufSourceState,
-                     0x24u,
-                     1.0 / (float)(farDepth - nearDepth),
-                     COERCE_FLOAT(COERCE_UNSIGNED_INT(1.0 / (float)(farDepth - nearDepth)) ^ _mask__NegFloat_) * nearDepth,
-                     1.0,
-                     1.0);
+  RB_GetShadowOverlayDepthBounds(&nearDepth, &farDepth);
+  return R_UpdateCodeConstant(
+           &gfxCmdBufSourceState,
+           0x24u,
+           1.0 / (float)(farDepth - nearDepth),
+           COERCE_FLOAT(COERCE_UNSIGNED_INT(1.0 / (float)(farDepth - nearDepth)) ^ _mask__NegFloat_) * nearDepth,
+           1.0,
+           1.0);
 }
 

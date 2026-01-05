@@ -415,42 +415,42 @@ void RB_EndSurfaceEpilogue()
 
 void RB_DrawTessSurface()
 {
-    GfxViewport scissor; // [esp+0h] [ebp-2Ch] BYREF
-    GfxViewport viewport; // [esp+10h] [ebp-1Ch] BYREF
-    GfxDrawPrimArgs args; // [esp+20h] [ebp-Ch] BYREF
+  GfxViewport scissor; // [esp+0h] [ebp-2Ch] BYREF
+  GfxViewport viewport; // [esp+10h] [ebp-1Ch] BYREF
+  GfxDrawPrimArgs args; // [esp+20h] [ebp-Ch] BYREF
 
-    if ( !tess.indexCount
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_shade.cpp", 475, 0, "%s", "tess.indexCount") )
-    {
-        __debugbreak();
-    }
-    if ( byte_B473FD8 )
-    {
-        R_GetViewport(&gfxCmdBufSourceState, &viewport);
-        R_SetViewport(&gfxCmdBufState, &viewport);
-        R_UpdateViewport(&gfxCmdBufSourceState, &viewport);
-        if ( R_GetScissor(&gfxCmdBufSourceState, &scissor) )
-            R_SetScissor(&gfxCmdBufState, &scissor);
-        else
-            R_ClearScissor(&gfxCmdBufState);
-    }
-    args.vertexCount = tess.vertexCount;
-    args.triCount = tess.indexCount / 3;
-    if ( gfxCmdBufState.prim.vertDeclType
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_shade.cpp",
-                    499,
-                    1,
-                    "%s\n\t(gfxCmdBufState.prim.vertDeclType) = %i",
-                    "(gfxCmdBufState.prim.vertDeclType == VERTDECL_GENERIC)",
-                    gfxCmdBufState.prim.vertDeclType) )
-    {
-        __debugbreak();
-    }
-    args.baseIndex = R_SetIndexData(&gfxCmdBufState.prim, (unsigned __int8 *)tess.indices, tess.indexCount / 3);
-    R_DrawTessTechnique(gfxCmdBufContext, &args);
-    tess.indexCount = 0;
-    tess.vertexCount = 0;
+  if ( !tess.indexCount
+    && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_shade.cpp", 475, 0, "%s", "tess.indexCount") )
+  {
+    __debugbreak();
+  }
+  if ( gfxCmdBufSourceState.viewportIsDirty )
+  {
+    R_GetViewport(&gfxCmdBufSourceState, &viewport);
+    R_SetViewport(&gfxCmdBufState, &viewport);
+    R_UpdateViewport(&gfxCmdBufSourceState, &viewport);
+    if ( R_GetScissor(&gfxCmdBufSourceState, &scissor) )
+      R_SetScissor(&gfxCmdBufState, &scissor);
+    else
+      R_ClearScissor(&gfxCmdBufState);
+  }
+  args.vertexCount = tess.vertexCount;
+  args.triCount = tess.indexCount / 3;
+  if ( gfxCmdBufState.prim.vertDeclType
+    && !Assert_MyHandler(
+          "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_shade.cpp",
+          499,
+          1,
+          "%s\n\t(gfxCmdBufState.prim.vertDeclType) = %i",
+          "(gfxCmdBufState.prim.vertDeclType == VERTDECL_GENERIC)",
+          gfxCmdBufState.prim.vertDeclType) )
+  {
+    __debugbreak();
+  }
+  args.baseIndex = R_SetIndexData(&gfxCmdBufState.prim, tess.indices, tess.indexCount / 3);
+  R_DrawTessTechnique(gfxCmdBufContext, &args);
+  tess.indexCount = 0;
+  tess.vertexCount = 0;
 }
 
 void __cdecl R_DrawTessTechnique(GfxCmdBufContext context, const GfxDrawPrimArgs *args)

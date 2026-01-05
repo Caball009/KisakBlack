@@ -11,6 +11,7 @@
 #include "rb_resource.h"
 #include "r_jpeg.h"
 #include "r_state.h"
+#include "r_singlethreaded_device_pc.h"
 
 unsigned __int8 *__cdecl R_TakeResampledScreenshot(int width, int height, int bytesPerPixel, int headerSize)
 {
@@ -689,75 +690,75 @@ void __cdecl R_BeginCubemapShot(int pixelWidthHeight, int pixelBorder)
 
 int R_CubemapShotSetInitialState()
 {
-    const char *v0; // eax
-    int result; // eax
-    int v2; // [esp+8h] [ebp-Ch]
-    int hr; // [esp+Ch] [ebp-8h]
-    int semaphore; // [esp+10h] [ebp-4h]
+  const char *v0; // eax
+  int result; // eax
+  int v2; // [esp+8h] [ebp-Ch]
+  int hr; // [esp+Ch] [ebp-8h]
+  int semaphore; // [esp+10h] [ebp-4h]
 
-    R_SetRenderTargetSize(&gfxCmdBufSourceState, 2u);
-    R_SetRenderTarget(gfxCmdBufContext, 2u);
-    semaphore = R_AcquireDXDeviceOwnership(0);
-    R_AssertDXDeviceOwnership();
-    if ( r_logFile && r_logFile->current.integer )
-        RB_LogPrint(
-            "dx.device->Clear( 0, 0, 0x00000001l | 0x00000002l | 0x00000004l, ((D3DCOLOR)((((255)&0xff)<<24)|(((255)&0xff)<<16)"
-            "|(((0)&0xff)<<8)|((255)&0xff))), (( 1/(((((( 1/(((((0 || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1)) ? (0x7ffff"
-            "fff) : (-0x7fffffff)) * (((0 || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1))&~1) == 0)))/(0x7fffffff)) == 1) || "
-            "( 1/(((((( 1/(((((( 1/(((-0x7fffffff))/(0x7fffffff)) == 1) || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1)) ? (0x"
-            "7fffffff) : (-0x7fffffff)) * (((( 1/(((-0x7fffffff))/(0x7fffffff)) == 1) || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)"
-            ") == 1))&~1) == 0)))/(0x7fffffff)) == 1) && 1) ? (0x7fffffff) : (-0x7fffffff)) * (((( 1/(((((( 1/(((-0x7fffffff))/"
-            "(0x7fffffff)) == 1) || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1)) ? (0x7fffffff) : (-0x7fffffff)) * (((( 1/((("
-            "-0x7fffffff))/(0x7fffffff)) == 1) || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1))&~1) == 0)))/(0x7fffffff)) == 1"
-            ") && 1)&~1) == 0)))/(0x7fffffff)) == 1)) ? (0x7fffffff) : (-0x7fffffff)) * (((( 1/(((((0 || 0 || ( 1/(((-0x7ffffff"
-            "f))/(0x7fffffff)) == 1)) ? (0x7fffffff) : (-0x7fffffff)) * (((0 || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1))&"
-            "~1) == 0)))/(0x7fffffff)) == 1) || ( 1/(((((( 1/(((((( 1/(((-0x7fffffff))/(0x7fffffff)) == 1) || 0 || ( 1/(((-0x7f"
-            "ffffff))/(0x7fffffff)) == 1)) ? (0x7fffffff) : (-0x7fffffff)) * (((( 1/(((-0x7fffffff))/(0x7fffffff)) == 1) || 0 |"
-            "| ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1))&~1) == 0)))/(0x7fffffff)) == 1) && 1) ? (0x7fffffff) : (-0x7fffffff)) "
-            "* (((( 1/(((((( 1/(((-0x7fffffff))/(0x7fffffff)) == 1) || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1)) ? (0x7fff"
-            "ffff) : (-0x7fffffff)) * (((( 1/(((-0x7fffffff))/(0x7fffffff)) == 1) || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) =="
-            " 1))&~1) == 0)))/(0x7fffffff)) == 1) && 1)&~1) == 0)))/(0x7fffffff)) == 1))&~1) == 0)))/(0x7fffffff)) == 1) ? 0.0f : 1.0f), 0 )\n");
-    v2 = R_AcquireDXDeviceOwnership(0);
-    hr = ((int (__stdcall *)(IDirect3DDevice9 *, unsigned int, unsigned int, int, int, unsigned int, unsigned int))dx.device->Clear)(
-                 dx.device,
-                 0,
-                 0,
-                 7,
-                 -65281,
-                 1.0,
-                 0);
-    if ( v2 )
-        R_ReleaseDXDeviceOwnership();
-    if ( hr < 0 )
-    {
-        ++g_disableRendering;
-        v0 = R_ErrorDescription(hr);
-        Com_Error(
-            ERR_FATAL,
-            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_screenshot.cpp (%i) dx.device->Clear( 0, 0, 0x00000001l | 0x00000002"
-            "l | 0x00000004l, ((D3DCOLOR)((((255)&0xff)<<24)|(((255)&0xff)<<16)|(((0)&0xff)<<8)|((255)&0xff))), (( 1/(((((( 1/("
-            "((((0 || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1)) ? (0x7fffffff) : (-0x7fffffff)) * (((0 || 0 || ( 1/(((-0x7"
-            "fffffff))/(0x7fffffff)) == 1))&~1) == 0)))/(0x7fffffff)) == 1) || ( 1/(((((( 1/(((((( 1/(((-0x7fffffff))/(0x7fffff"
-            "ff)) == 1) || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1)) ? (0x7fffffff) : (-0x7fffffff)) * (((( 1/(((-0x7fffff"
-            "ff))/(0x7fffffff)) == 1) || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1))&~1) == 0)))/(0x7fffffff)) == 1) && 1) ?"
-            " (0x7fffffff) : (-0x7fffffff)) * (((( 1/(((((( 1/(((-0x7fffffff))/(0x7fffffff)) == 1) || 0 || ( 1/(((-0x7fffffff))"
-            "/(0x7fffffff)) == 1)) ? (0x7fffffff) : (-0x7fffffff)) * (((( 1/(((-0x7fffffff))/(0x7fffffff)) == 1) || 0 || ( 1/(("
-            "(-0x7fffffff))/(0x7fffffff)) == 1))&~1) == 0)))/(0x7fffffff)) == 1) && 1)&~1) == 0)))/(0x7fffffff)) == 1)) ? (0x7f"
-            "ffffff) : (-0x7fffffff)) * (((( 1/(((((0 || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1)) ? (0x7fffffff) : (-0x7f"
-            "ffffff)) * (((0 || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1))&~1) == 0)))/(0x7fffffff)) == 1) || ( 1/(((((( 1/"
-            "(((((( 1/(((-0x7fffffff))/(0x7fffffff)) == 1) || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1)) ? (0x7fffffff) : ("
-            "-0x7fffffff)) * (((( 1/(((-0x7fffffff))/(0x7fffffff)) == 1) || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1))&~1) "
-            "== 0)))/(0x7fffffff)) == 1) && 1) ? (0x7fffffff) : (-0x7fffffff)) * (((( 1/(((((( 1/(((-0x7fffffff))/(0x7fffffff))"
-            " == 1) || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1)) ? (0x7fffffff) : (-0x7fffffff)) * (((( 1/(((-0x7fffffff))"
-            "/(0x7fffffff)) == 1) || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1))&~1) == 0)))/(0x7fffffff)) == 1) && 1)&~1) ="
-            "= 0)))/(0x7fffffff)) == 1))&~1) == 0)))/(0x7fffffff)) == 1) ? 0.0f : 1.0f), 0 ) failed: %s\n",
-            1446,
-            v0);
-    }
-    result = 0;
-    if ( semaphore )
-        return R_ReleaseDXDeviceOwnership();
-    return result;
+  R_SetRenderTargetSize(&gfxCmdBufSourceState, 2u);
+  R_SetRenderTarget(gfxCmdBufContext, 2u);
+  semaphore = R_AcquireDXDeviceOwnership(0);
+  R_AssertDXDeviceOwnership();
+  if ( r_logFile && r_logFile->current.integer )
+    RB_LogPrint(
+      "dx.device->Clear( 0, 0, 0x00000001l | 0x00000002l | 0x00000004l, ((D3DCOLOR)((((255)&0xff)<<24)|(((255)&0xff)<<16)"
+      "|(((0)&0xff)<<8)|((255)&0xff))), (( 1/(((((( 1/(((((0 || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1)) ? (0x7ffff"
+      "fff) : (-0x7fffffff)) * (((0 || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1))&~1) == 0)))/(0x7fffffff)) == 1) || "
+      "( 1/(((((( 1/(((((( 1/(((-0x7fffffff))/(0x7fffffff)) == 1) || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1)) ? (0x"
+      "7fffffff) : (-0x7fffffff)) * (((( 1/(((-0x7fffffff))/(0x7fffffff)) == 1) || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)"
+      ") == 1))&~1) == 0)))/(0x7fffffff)) == 1) && 1) ? (0x7fffffff) : (-0x7fffffff)) * (((( 1/(((((( 1/(((-0x7fffffff))/"
+      "(0x7fffffff)) == 1) || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1)) ? (0x7fffffff) : (-0x7fffffff)) * (((( 1/((("
+      "-0x7fffffff))/(0x7fffffff)) == 1) || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1))&~1) == 0)))/(0x7fffffff)) == 1"
+      ") && 1)&~1) == 0)))/(0x7fffffff)) == 1)) ? (0x7fffffff) : (-0x7fffffff)) * (((( 1/(((((0 || 0 || ( 1/(((-0x7ffffff"
+      "f))/(0x7fffffff)) == 1)) ? (0x7fffffff) : (-0x7fffffff)) * (((0 || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1))&"
+      "~1) == 0)))/(0x7fffffff)) == 1) || ( 1/(((((( 1/(((((( 1/(((-0x7fffffff))/(0x7fffffff)) == 1) || 0 || ( 1/(((-0x7f"
+      "ffffff))/(0x7fffffff)) == 1)) ? (0x7fffffff) : (-0x7fffffff)) * (((( 1/(((-0x7fffffff))/(0x7fffffff)) == 1) || 0 |"
+      "| ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1))&~1) == 0)))/(0x7fffffff)) == 1) && 1) ? (0x7fffffff) : (-0x7fffffff)) "
+      "* (((( 1/(((((( 1/(((-0x7fffffff))/(0x7fffffff)) == 1) || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1)) ? (0x7fff"
+      "ffff) : (-0x7fffffff)) * (((( 1/(((-0x7fffffff))/(0x7fffffff)) == 1) || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) =="
+      " 1))&~1) == 0)))/(0x7fffffff)) == 1) && 1)&~1) == 0)))/(0x7fffffff)) == 1))&~1) == 0)))/(0x7fffffff)) == 1) ? 0.0f : 1.0f), 0 )\n");
+  v2 = R_AcquireDXDeviceOwnership(0);
+  hr = ((int (__stdcall *)(IDirect3DDevice9 *, unsigned int, unsigned int, int, int, unsigned int, unsigned int))dx.device->Clear)(
+         dx.device,
+         0,
+         0,
+         7,
+         -65281,
+         1.0,
+         0);
+  if ( v2 )
+    R_ReleaseDXDeviceOwnership();
+  if ( hr < 0 )
+  {
+    ++g_disableRendering;
+    v0 = R_ErrorDescription(hr);
+    Com_Error(
+      ERR_FATAL,
+      "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_screenshot.cpp (%i) dx.device->Clear( 0, 0, 0x00000001l | 0x00000002"
+      "l | 0x00000004l, ((D3DCOLOR)((((255)&0xff)<<24)|(((255)&0xff)<<16)|(((0)&0xff)<<8)|((255)&0xff))), (( 1/(((((( 1/("
+      "((((0 || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1)) ? (0x7fffffff) : (-0x7fffffff)) * (((0 || 0 || ( 1/(((-0x7"
+      "fffffff))/(0x7fffffff)) == 1))&~1) == 0)))/(0x7fffffff)) == 1) || ( 1/(((((( 1/(((((( 1/(((-0x7fffffff))/(0x7fffff"
+      "ff)) == 1) || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1)) ? (0x7fffffff) : (-0x7fffffff)) * (((( 1/(((-0x7fffff"
+      "ff))/(0x7fffffff)) == 1) || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1))&~1) == 0)))/(0x7fffffff)) == 1) && 1) ?"
+      " (0x7fffffff) : (-0x7fffffff)) * (((( 1/(((((( 1/(((-0x7fffffff))/(0x7fffffff)) == 1) || 0 || ( 1/(((-0x7fffffff))"
+      "/(0x7fffffff)) == 1)) ? (0x7fffffff) : (-0x7fffffff)) * (((( 1/(((-0x7fffffff))/(0x7fffffff)) == 1) || 0 || ( 1/(("
+      "(-0x7fffffff))/(0x7fffffff)) == 1))&~1) == 0)))/(0x7fffffff)) == 1) && 1)&~1) == 0)))/(0x7fffffff)) == 1)) ? (0x7f"
+      "ffffff) : (-0x7fffffff)) * (((( 1/(((((0 || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1)) ? (0x7fffffff) : (-0x7f"
+      "ffffff)) * (((0 || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1))&~1) == 0)))/(0x7fffffff)) == 1) || ( 1/(((((( 1/"
+      "(((((( 1/(((-0x7fffffff))/(0x7fffffff)) == 1) || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1)) ? (0x7fffffff) : ("
+      "-0x7fffffff)) * (((( 1/(((-0x7fffffff))/(0x7fffffff)) == 1) || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1))&~1) "
+      "== 0)))/(0x7fffffff)) == 1) && 1) ? (0x7fffffff) : (-0x7fffffff)) * (((( 1/(((((( 1/(((-0x7fffffff))/(0x7fffffff))"
+      " == 1) || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1)) ? (0x7fffffff) : (-0x7fffffff)) * (((( 1/(((-0x7fffffff))"
+      "/(0x7fffffff)) == 1) || 0 || ( 1/(((-0x7fffffff))/(0x7fffffff)) == 1))&~1) == 0)))/(0x7fffffff)) == 1) && 1)&~1) ="
+      "= 0)))/(0x7fffffff)) == 1))&~1) == 0)))/(0x7fffffff)) == 1) ? 0.0f : 1.0f), 0 ) failed: %s\n",
+      1446,
+      v0);
+  }
+  result = 0;
+  if ( semaphore )
+    return R_ReleaseDXDeviceOwnership();
+  return result;
 }
 
 void __cdecl R_EndCubemapShot(CubemapShot shotIndex)
@@ -953,8 +954,8 @@ unsigned int __cdecl convertmantissa(unsigned int i)
 
 void R_CubemapShotRestoreState()
 {
-    R_SetRenderTargetSize(&gfxCmdBufSourceState, 2u);
-    R_SetRenderTarget(gfxCmdBufContext, 2u);
+  R_SetRenderTargetSize(&gfxCmdBufSourceState, 2u);
+  R_SetRenderTarget(gfxCmdBufContext, 2u);
 }
 
 void __cdecl R_SaveCubemapShot(char *filename, CubemapShot shotIndex, float n0, float n1)
