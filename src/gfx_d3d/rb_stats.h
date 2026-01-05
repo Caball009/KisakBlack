@@ -19,3 +19,4 @@ void __cdecl RB_Stats_UpdateMaxs(const GfxFrameStats *frameStatsCur, GfxFrameSta
 void __cdecl RB_DrawPrimHistogramOverlay();
 
 extern GfxFrameStats g_frameStatsCur;
+extern GfxViewStats *g_viewStats;

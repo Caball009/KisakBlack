@@ -208,22 +208,8 @@ struct GfxCmdBuf // sizeof=0x4
 
 struct GfxCmdBufContext // sizeof=0x8
 {                                       // XREF: .rdata:GfxCmdBufContext const gfxCmdBufContext/r
-    //$DE07EA87C257CE593A1DC869AD493ECB ___u0; // XREF: R_ResetDevice+18C/r
-    union// $DE07EA87C257CE593A1DC869AD493ECB // sizeof=0x8
-    {                                       // XREF: R_ResetDevice+18C/r
-        //$3EA432785AEAE4553212959C4AFFD2B6 __s0;
-        struct //$3EA432785AEAE4553212959C4AFFD2B6 // sizeof=0x8
-        {                                       // XREF: $DE07EA87C257CE593A1DC869AD493ECB/r
-            GfxCmdBufSourceState *source;
-            GfxCmdBufState *state;
-        };
-        //GfxCmdBufContext::<unnamed_tag>::<unnamed_type_local> local;
-        struct //GfxCmdBufContext//::<unnamed_tag>::<unnamed_type_local> // sizeof=0x8
-        {                                       // XREF: $DE07EA87C257CE593A1DC869AD493ECB/r
-            GfxCmdBufSourceState *source;
-            GfxCmdBufState *state;
-        } local;
-    };
+    GfxCmdBufSourceState *source;       // ...
+    GfxCmdBufState *state;              // ...
 };
 
 void __cdecl RB_SetInitialState();

@@ -7,10 +7,8 @@
 #include "r_font.h"
 #include "r_rendertarget.h"
 
-struct NVDX_ObjectHandle__ // sizeof=0x4
-{
-    int unused;
-};
+#include <nvapi/nvapi.h>
+#include "r_shader_constant_set.h"
 
 //enum $93E05B02D75CB8D5BD679C8A761DAE10 : __int32
 enum ThreadContext_t : __int32 // not a real enum name
@@ -121,6 +119,181 @@ struct __declspec(align(4)) materialCommands_t // sizeof=0x22A95C
     // padding byte
     // padding byte
     // padding byte
+};
+
+struct GfxCmdStretchComposite // sizeof=0x2C
+{
+    GfxCmdHeader header;
+    GfxImage *image;
+    float x;
+    float y;
+    float w;
+    float h;
+    float s0;
+    float t0;
+    float s1;
+    float t1;
+    GfxColor color;
+};
+
+struct GfxCmdStretchPic // sizeof=0x30
+{
+    GfxCmdHeader header;
+    const Material *material;
+    float x;
+    float y;
+    float w0;
+    float w;
+    float h;
+    float s0;
+    float t0;
+    float s1;
+    float t1;
+    GfxColor color;
+};
+
+struct GfxCmdStretchPicRotateXY // sizeof=0x34
+{
+    GfxCmdHeader header;
+    const Material *material;
+    float x;
+    float y;
+    float w0;
+    float w;
+    float h;
+    float s0;
+    float t0;
+    float s1;
+    float t1;
+    GfxColor color;
+    float rotation;
+};
+
+struct GfxCmdStretchPicRotateST // sizeof=0x34
+{
+    GfxCmdHeader header;
+    const Material *material;
+    float x;
+    float y;
+    float w;
+    float h;
+    float centerS;
+    float centerT;
+    float radiusST;
+    float scaleFinalS;
+    float scaleFinalT;
+    GfxColor color;
+    float rotation;
+};
+
+struct GfxCmdDrawQuadPic // sizeof=0x30
+{
+    GfxCmdHeader header;
+    const Material *material;
+    float verts[4][2];
+    float w;
+    GfxColor color;
+};
+
+struct GfxCmdDrawEmblemLayer // sizeof=0x68
+{
+    GfxCmdHeader header;
+    const Material *material;
+    const GfxImage *image;
+    int colorIdx;
+    float outlineSize;
+    float smoothSize;
+    GfxQuadVertex verts[4];
+};
+
+struct GfxCmdDrawFramed2D // sizeof=0x2C
+{
+    GfxCmdHeader header;
+    float x;
+    float y;
+    float w;
+    float h;
+    float thicknessW;
+    float thicknessH;
+    float thicknessTex;
+    int sides;
+    GfxColor color;
+    const Material *material;
+};
+         
+struct GfxCmdPCCopyImageGenMIP // sizeof=0x10
+{
+    GfxCmdHeader header;
+    void (__cdecl *callback)(void *);
+    GfxImage *image;
+    void *job;
+};
+
+struct GfxCachedSModelSurf // sizeof=0x8
+{                                       // XREF: static_model_leaf_t/r
+    unsigned int baseVertIndex;
+    unsigned __int16 lodIndex;
+    unsigned __int16 smodelIndex;
+};
+
+struct static_model_node_list_t // sizeof=0x8
+{                                       // XREF: static_model_leaf_t/r
+    static_model_node_list_t *prev;     // XREF: SMC_GetFreeBlockOfSize+94/r
+    static_model_node_list_t *next;
+};
+
+union static_model_leaf_t // sizeof=0x8
+{                                       // XREF: static_model_cache_t/r
+    GfxCachedSModelSurf cachedSurf;
+    static_model_node_list_t freenode;
+};
+
+struct ScopedShaderConstantSetUndo // sizeof=0x7C
+{                                       // XREF: R_RenderDrawSurfListMaterial/r
+    GfxCmdBufSourceState *m_sourceState;
+    ShaderConstantSet m_scs;
+
+    ScopedShaderConstantSetUndo(GfxCmdBufSourceState *sourceState, const ShaderConstantSet *cscEA)
+    {
+        this->m_sourceState = sourceState;
+        if (cscEA)
+            RB_SaveCurrentShaderConstantSetValues(&this->m_scs, sourceState, cscEA);
+        else
+            R_InitShaderConstantSet(&this->m_scs);
+    }
+
+    ~ScopedShaderConstantSetUndo()
+    {
+        RB_ApplyShaderConstantSet(this->m_sourceState, &this->m_scs);
+    }
+};
+
+struct GfxCmdResolveComposite // sizeof=0x8
+{
+    GfxCmdHeader header;
+    void (__cdecl *callback)(GfxImage *);
+};
+
+struct GfxCmdSetMaterialColor // sizeof=0x14
+{
+    GfxCmdHeader header;
+    float color[4];
+};
+
+struct GfxCmdSetCustomConstant // sizeof=0x18
+{
+    GfxCmdHeader header;
+    unsigned int type;
+    float vec[4];
+};
+
+struct GfxCmdDrawLines // sizeof=0x28
+{
+    GfxCmdHeader header;
+    __int16 lineCount;
+    unsigned __int8 width;
+    unsigned __int8 dimensions;
+    GfxPointVertex verts[2];
 };
 
 bool __cdecl ValidGamePadButtonIcon(unsigned int letter);
@@ -503,3 +676,5 @@ extern const GfxBackEndData *backEndData;
 
 extern int rb_execCmdsMS;
 extern int rb_swapMS;
+
+extern int time;

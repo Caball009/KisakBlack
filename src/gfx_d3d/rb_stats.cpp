@@ -21,6 +21,7 @@ const unsigned int s_stencilFuncTable_85[8] =
 { 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u };
 
 GfxFrameStats g_frameStatsCur;
+GfxViewStats *g_viewStats;
 int histogramHistory[64][2][16];
 int histogramHistoryIndex;
 
