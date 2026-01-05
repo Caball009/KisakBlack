@@ -24,6 +24,14 @@ struct LodChainState // sizeof=0xC
     void __thiscall UpdateFade(float dt, int localClientNum);
 };
 
+struct __declspec(align(4)) GfxWorldLodInfo // sizeof=0xC
+{
+    float dist;
+    unsigned int firstSurf;
+    unsigned __int16 surfCount;
+    // padding byte
+    // padding byte
+};
 
 void __cdecl SetFadeForSortedSurfaces(float val, int lodInfoIndex, int localClientNum);
 void __cdecl R_WorldLod_Init();

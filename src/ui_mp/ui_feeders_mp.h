@@ -226,8 +226,6 @@ char __cdecl UI_Project_FeederItemColor(
                 int column,
                 float *color,
                 bool onFocus);
-void __cdecl Vec4Set(float *v, float x, float y, float z, float w);
-void __cdecl Vec4Copy(const float *from, float *to);
 char __cdecl UI_FeederItemColor_Contracts(
                 int controllerIndex,
                 int contextIndex,

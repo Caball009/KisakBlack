@@ -1,4 +1,65 @@
 #include "r_image.h"
+#include <universal/com_memory.h>
+#include <xanim/xmodel.h>
+#include <qcommon/threads.h>
+#include "rb_resource.h"
+#include "r_dvars.h"
+#include "r_singlethreaded_device_pc.h"
+#include "rb_logfile.h"
+#include "r_image_load_common.h"
+#include "r_image_load_obj.h"
+#include <database/db_file_load.h>
+#include <qcommon/com_profilemapload.h>
+#include "r_texturemem.h"
+
+#include <algorithm>
+
+const char *g_imageProgNames[29] =
+{
+  "$shadowmap_sun",
+  "$shadowmap_spot",
+  "$floatz",
+  "$post_effect_src",
+  "$post_effect_godrays",
+  "$post_effect_0",
+  "$post_effect_1",
+  "$pingpong_0",
+  "$pingpong_1",
+  "$resolved_scene",
+  "$savedscreen",
+  "$raw",
+  "$model_lighting",
+  "$8bit_swapchain",
+  "$16bit_system",
+  "$8bit_system",
+  "$seethru_decal",
+  "$lut",
+  "$ui3d",
+  "$ui3d_ping_pong",
+  "$missilecam",
+  "$floatz_missilecam",
+  "$composite",
+  "$bloom_mip1",
+  "$bloom_mip2",
+  "$bloom_mip3",
+  "$bloom_mip3_ping",
+  "$bloom_mip3_pong",
+  "$bloom_streak1"
+};
+
+
+//$240FF632105687D15E57E43F247C9BAA imageGlobals;
+struct //$240FF632105687D15E57E43F247C9BAA // sizeof=0x2014
+{                                       // XREF: .data:imageGlobals/r
+    GfxImage *imageHashTable[2048];     // XREF: Image_AllocProg(int,uchar,uchar)+AE/w
+    int picmip;                         // XREF: Image_PicmipForSemantic(uchar,Picmip *):$LN6_197/r
+    int picmipBump;                     // XREF: Image_PicmipForSemantic(uchar,Picmip *):$LN5_202/r
+    int picmipSpec;                     // XREF: Image_PicmipForSemantic(uchar,Picmip *):$LN4_244/r
+    CardMemory totalMemory;             // XREF: Image_TrackTotalMemory(GfxImage *,int,int)+2A/r
+} imageGlobals;
+
+int Image_TrackBytes;
+GfxImage g_imageProgs[29];
 
 void __cdecl Image_TrackTotalMemory(GfxImage *image, int platform, int memory)
 {
@@ -105,7 +166,7 @@ void __cdecl Image_Release(GfxImage *image)
     if ( image->texture.basemap )
     {
         if ( Sys_IsRenderThread() )
-            image->texture.basemap->Release(image->texture.basemap);
+            image->texture.basemap->Release();
         else
             RB_Resource_Release(image->texture.basemap);
         image->texture.basemap = 0;
@@ -277,7 +338,7 @@ void __cdecl R_ShutdownImages()
         if ( image )
         {
             if ( Image_IsProg(image) )
-                v4[v2++] = image;
+                v4[v2++] = (unsigned int)image;
             else
                 Image_Free(imageGlobals.imageHashTable[i]);
         }
@@ -292,7 +353,7 @@ void __cdecl R_ShutdownImages()
 
 bool __cdecl Image_IsProg(GfxImage *image)
 {
-    return image >= g_imageProgs && image < (GfxImage *)&unk_B0657D4;
+    return image >= g_imageProgs && image < &g_imageProgs[30];
 }
 
 void __cdecl Image_Free(GfxImage *image)
@@ -335,7 +396,7 @@ void __cdecl Image_Create2DTexture_PC(
     if ( (imageFlags & 0x40000) != 0 )
         memPool = D3DPOOL_SYSTEMMEM;
     else
-        memPool = usage == 0;
+        memPool = (_D3DPOOL)(usage == 0);
     if ( (imageFlags & 0x100) != 0 )
         memPool = D3DPOOL_SYSTEMMEM;
     if ( !Sys_IsRenderThread()
@@ -354,7 +415,6 @@ void __cdecl Image_Create2DTexture_PC(
         RB_LogPrint("dx.device->CreateTexture( width, height, mipmapCount, usage, imageFormat, memPool, &image->texture.map, 0 )\n");
     v7 = R_AcquireDXDeviceOwnership(0);
     hr = dx.device->CreateTexture(
-                 dx.device,
                  width,
                  height,
                  mipmapCount,
@@ -447,7 +507,6 @@ void __cdecl Image_Create3DTexture_PC(
             "dx.device->CreateVolumeTexture( width, height, depth, mipmapCount, 0, imageFormat, D3DPOOL_MANAGED, &image->texture.volmap, 0 )\n");
     v8 = R_AcquireDXDeviceOwnership(0);
     hr = dx.device->CreateVolumeTexture(
-                 dx.device,
                  width,
                  height,
                  depth,
@@ -520,7 +579,6 @@ void __cdecl Image_CreateCubeTexture_PC(
             "dx.device->CreateCubeTexture( edgeLen, mipmapCount, 0, imageFormat, D3DPOOL_MANAGED, &image->texture.cubemap, 0 )\n");
     v5 = R_AcquireDXDeviceOwnership(0);
     hr = dx.device->CreateCubeTexture(
-                 dx.device,
                  edgeLen,
                  mipmapCount,
                  0,
@@ -623,7 +681,10 @@ LABEL_8:
             if ( !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_image.cpp", 798, 1, v2) )
                 __debugbreak();
 $LN7_167:
-            *picmip = 0;
+            //*picmip = 0;
+            // mov [ecx], ax
+            picmip->platform[0] = 0;
+            picmip->platform[1] = 0;
             break;
     }
 }
@@ -660,7 +721,7 @@ char __cdecl R_DuplicateTexture(GfxImage *dstImage, const GfxImage *srcImage)
     if ( !srcImage || !srcImage->texture.basemap )
         return 0;
     dstImage->texture.basemap = srcImage->texture.basemap;
-    dstImage->texture.basemap->AddRef(dstImage->texture.basemap);
+    dstImage->texture.basemap->AddRef();
     return 1;
 }
 
@@ -696,7 +757,7 @@ void __cdecl Load_Texture(GfxTexture *remoteLoadDef, GfxImage *image)
     image->texture.basemap = 0;
     if ( r_loadForRenderer && r_loadForRenderer->current.enabled )
     {
-        imageFormat = loadDef->format;
+        imageFormat = (_D3DFORMAT)loadDef->format;
         if ( loadDef->resourceSize )
         {
             image->delayLoadPixels = 0;
@@ -855,7 +916,7 @@ GfxImage *__cdecl Image_FindExisting_LoadObj(const char *name)
 
 GfxImage *__cdecl Image_FindExisting_FastFile(const char *name)
 {
-    return DB_FindXAssetHeader(ASSET_TYPE_IMAGE, name, 1, -1).image;
+    return DB_FindXAssetHeader(ASSET_TYPE_IMAGE, (char*)name, 1, -1).image;
 }
 
 GfxImage *__cdecl Image_Register(char *imageName, unsigned __int8 semantic, int imageTrack)
@@ -1092,10 +1153,11 @@ IDirect3DSurface9 *__cdecl Image_GetSurface(GfxImage *image)
     if ( r_logFile && r_logFile->current.integer )
         RB_LogPrint("image->texture.map->GetSurfaceLevel( 0, &surface )\n");
     semaphore = R_AcquireDXDeviceOwnership(0);
-    hr = ((int (__stdcall *)(unsigned int, unsigned int, unsigned int))image->texture.basemap->__vftable[1].AddRef)(
-                 (GfxTexture)image->texture.basemap,
-                 0,
-                 &surface);
+    //hr = ((int (__stdcall *)(unsigned int, unsigned int, unsigned int))image->texture.basemap->__vftable[1].AddRef)(
+    //             (GfxTexture)image->texture.basemap,
+    //             0,
+    //             &surface);
+    hr = image->texture.map->GetSurfaceLevel(0, &surface);
     if ( semaphore )
         R_ReleaseDXDeviceOwnership();
     if ( hr < 0 )
@@ -1359,10 +1421,26 @@ GfxImage *R_InitCodeImages()
     return result;
 }
 
+const char *g_platform_name[2] = { "current", " min_pc" };
+const char *imageTypeName[10] =
+{
+  "misc  ",
+  "debug ",
+  "$tex+?",
+  "ui    ",
+  "lmap  ",
+  "light ",
+  "f/x   ",
+  "hud   ",
+  "model ",
+  "world "
+};
+
+
 void __cdecl R_ImageList_Output()
 {
     const char *v0; // eax
-    char *fmt; // [esp+Ch] [ebp-4318h]
+    const char *fmt; // [esp+Ch] [ebp-4318h]
     GfxImage *image; // [esp+A8h] [ebp-427Ch]
     int v3; // [esp+ACh] [ebp-4278h]
     unsigned __int8 dst[80]; // [esp+B4h] [ebp-4270h] BYREF
@@ -1377,11 +1455,12 @@ void __cdecl R_ImageList_Output()
     v5[1] = 0;
     memset(dst, 0, sizeof(dst));
     R_GetImageList(&imageList);
-    std::_Sort<GfxImage * *,int,int (__cdecl *)(GfxImage *,GfxImage *)>(
-        imageList.image,
-        &imageList.image[imageList.count],
-        (signed int)(4 * imageList.count) >> 2,
-        imagecompare);
+    //std::_Sort<GfxImage * *,int,int (__cdecl *)(GfxImage *,GfxImage *)>(
+    //    imageList.image,
+    //    &imageList.image[imageList.count],
+    //    (signed int)(4 * imageList.count) >> 2,
+    //    imagecompare);
+    std::sort(&imageList.image[0], &imageList.image[imageList.count], imagecompare);
     Com_Printf(8, "\n-reqrd w*h-");
     Com_Printf(8, "-fmt-    ");
     for ( i = 0; i < 2; ++i )
@@ -1510,63 +1589,53 @@ bool __cdecl imagecompare(GfxImage *image1, GfxImage *image2)
     return 1;
 }
 
+enum MapType : __int32
+{                                       // ...
+    MAPTYPE_NONE = 0x0,
+    MAPTYPE_INVALID1 = 0x1,
+    MAPTYPE_INVALID2 = 0x2,
+    MAPTYPE_2D = 0x3,
+    MAPTYPE_3D = 0x4,
+    MAPTYPE_CUBE = 0x5,
+    MAPTYPE_COUNT = 0x6,
+};
+
 _D3DFORMAT __cdecl R_ImagePixelFormat(GfxImage *image)
 {
-    const char *v2; // eax
-    unsigned __int8 mapType; // [esp+0h] [ebp-40h]
+    MapType mapType; // [esp+0h] [ebp-40h]
     _D3DSURFACE_DESC surfaceDesc; // [esp+4h] [ebp-3Ch] BYREF
     _D3DVOLUME_DESC volumeDesc; // [esp+24h] [ebp-1Ch] BYREF
 
-    mapType = image->mapType;
-    if ( mapType == 3 )
+    mapType = (MapType)image->mapType;
+
+    if (image->mapType == MAPTYPE_2D)
     {
-        if ( !image->texture.basemap
-            && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_image.cpp",
-                        1748,
-                        0,
-                        "%s",
-                        "image->texture.map") )
-        {
-            __debugbreak();
-        }
-        goto LABEL_8;
-    }
-    if ( mapType != 4 )
-    {
-        if ( mapType != 5 )
-        {
-            v2 = va("unhandled case %i for %s", image->mapType, image->name);
-            if ( !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_image.cpp", 1763, 1, v2) )
-                __debugbreak();
-            return 0;
-        }
-        if ( !image->texture.basemap
-            && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_image.cpp",
-                        1753,
-                        0,
-                        "%s",
-                        "image->texture.cubemap") )
-        {
-            __debugbreak();
-        }
-LABEL_8:
-        image->texture.basemap->__vftable[1].QueryInterface(image->texture.basemap, 0, (void **)&surfaceDesc);
+        iassert(image->texture.map);
+
+        image->texture.map->GetLevelDesc(0, &surfaceDesc);
         return surfaceDesc.Format;
     }
-    if ( !image->texture.basemap
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_image.cpp",
-                    1758,
-                    0,
-                    "%s",
-                    "image->texture.volmap") )
+
+    if (mapType == MAPTYPE_3D)
     {
-        __debugbreak();
+        iassert(image->texture.volmap);
+        image->texture.volmap->GetLevelDesc(0, &volumeDesc);
+        return volumeDesc.Format;
     }
-    image->texture.basemap->__vftable[1].QueryInterface(image->texture.basemap, 0, (void **)&volumeDesc);
-    return volumeDesc.Format;
+    if (mapType == MAPTYPE_CUBE)
+    {
+        iassert(image->texture.cubemap);
+        image->texture.cubemap->GetLevelDesc(0, &surfaceDesc);
+        return surfaceDesc.Format;
+    }
+
+    iassert(0);
+    //if (!alwaysfails)
+    //{
+    //    MyAssertHandler(".\\r_image.cpp", 1403, 1, va("unhandled case %i for %s", image->mapType, image->name));
+    //}
+
+    return (_D3DFORMAT)0;
 }
 
 void __cdecl R_DownsampleMipMapBilinear(

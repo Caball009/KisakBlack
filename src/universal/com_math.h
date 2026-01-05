@@ -241,6 +241,8 @@ float __cdecl Vec4Normalize(float *v);
 float __cdecl Vec4LengthSq(const float *v);
 bool __cdecl Vec4IsNormalized(const float *v);
 float __cdecl Vec4Dot(const float *a, const float *b);
+void __cdecl Vec4Set(float *v, float x, float y, float z, float w);
+void __cdecl Vec4Copy(const float *from, float *to);
 
 float AngleNormalize180(float angle);
 
@@ -348,4 +350,6 @@ constexpr float identityMatrix44[4][4] =
 };
 
 constexpr float quatZRot[4] = { 0.0, 0.0, 1.0, 0.0 };
+
+constexpr float c_fadeRate = 1.0;
 

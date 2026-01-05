@@ -1,5 +1,49 @@
 #include "r_xsurface.h"
 
+void __cdecl XSurfaceTransfer_Position_GfxPackedVertex_(GfxPackedVertex *out, const XVertexInfo_s *v)
+{
+    out->xyz[0] = v->offset[0];
+    out->xyz[1] = v->offset[1];
+    out->xyz[2] = v->offset[2];
+}
+
+void __cdecl XSurfaceTransfer_BinormalSign_GfxPackedVertex_(GfxPackedVertex *out, const XVertexInfo_s *v)
+{
+    float v2; // [esp+0h] [ebp-14h]
+    float binormal[3]; // [esp+8h] [ebp-Ch] BYREF
+
+    Vec3Cross(v->normal, v->tangent, binormal);
+    if ((float)((float)((float)(binormal[0] * v->binormal[0]) + (float)(binormal[1] * v->binormal[1]))
+        + (float)(binormal[2] * v->binormal[2])) < 0.0)
+        v2 = -1.0f;
+    else
+        v2 = 1.0f;
+    out->binormalSign = v2;
+}
+
+void __cdecl XSurfaceTransfer_NormalTangent_GfxPackedVertex_(GfxPackedVertex *out, const XVertexInfo_s *v)
+{
+    out->normal = Vec3PackUnitVec(v->normal);
+    out->tangent = Vec3PackUnitVec(v->tangent);
+}
+
+void __cdecl XSurfaceTransfer_Texcoord_GfxPackedVertex_(
+    GfxPackedVertex *out,
+    const XVertexInfo_s *v,
+    const float *texCoordAv)
+{
+    float texCoord[2]; // [esp+4h] [ebp-8h] BYREF
+
+    texCoord[0] = v->texCoordX - *texCoordAv;
+    texCoord[1] = v->texCoordY - texCoordAv[1];
+    out->texCoord = Vec2PackTexCoords(texCoord);
+}
+
+void __cdecl XSurfaceTransfer_Color_GfxPackedVertex_(GfxPackedVertex *out, const XVertexInfo_s *v)
+{
+    out->color.packed = *(_DWORD *)v->color;
+}
+
 int __cdecl XSurfaceGetNumVerts(const XSurface *surface)
 {
     if ( !surface
@@ -34,13 +78,13 @@ void __cdecl XSurfaceGetVerts(const XSurface *surf, float *pVert, float *pTexCoo
     {
         if ( pNormal )
         {
-            Vec3UnpackUnitVec((const PackedUnitVec)packedNormal->packed, pNormal);
+            Vec3UnpackUnitVec(*packedNormal, pNormal);
             packedNormal += 8;
             pNormal += 3;
         }
         if ( pTexCoord )
         {
-            Vec2UnpackTexCoords((PackedTexCoords)packedTexCoord->packed, pTexCoord);
+            Vec2UnpackTexCoords(*packedTexCoord, pTexCoord);
             packedTexCoord += 8;
             pTexCoord += 2;
         }

@@ -1,4 +1,10 @@
 #include "rb_shade.h"
+#include "r_singlethreaded_device_pc.h"
+#include "r_dvars.h"
+#include "rb_logfile.h"
+#include "rb_pixelcost.h"
+#include "r_state.h"
+#include "r_shade.h"
 
 void __cdecl RB_ClearPixelShader()
 {
@@ -24,9 +30,9 @@ void __cdecl R_HW_SetPixelShader(IDirect3DDevice9 *device, const MaterialPixelSh
         RB_LogPrint("device->SetPixelShader( mtlShader ? mtlShader->prog.ps : 0 )\n");
     semaphore = R_AcquireDXDeviceOwnership(0);
     if ( mtlShader )
-        v2 = device->SetPixelShader(device, mtlShader->prog.ps);
+        v2 = device->SetPixelShader(mtlShader->prog.ps);
     else
-        v2 = device->SetPixelShader(device, 0);
+        v2 = device->SetPixelShader(0);
     hr = v2;
     if ( semaphore )
         R_ReleaseDXDeviceOwnership();
@@ -67,9 +73,9 @@ void __cdecl R_HW_SetVertexShader(IDirect3DDevice9 *device, const MaterialVertex
         RB_LogPrint("device->SetVertexShader( mtlShader ? mtlShader->prog.vs : 0 )\n");
     semaphore = R_AcquireDXDeviceOwnership(0);
     if ( mtlShader )
-        v2 = device->SetVertexShader(device, mtlShader->prog.vs);
+        v2 = device->SetVertexShader(mtlShader->prog.vs);
     else
-        v2 = device->SetVertexShader(device, 0);
+        v2 = device->SetVertexShader(0);
     hr = v2;
     if ( semaphore )
         R_ReleaseDXDeviceOwnership();
@@ -128,10 +134,11 @@ void __cdecl R_SetVertexDecl(GfxCmdBufPrimState *primState, const MaterialVertex
             if ( r_logFile && r_logFile->current.integer )
                 RB_LogPrint("device->SetVertexDeclaration( decl )\n");
             semaphore = R_AcquireDXDeviceOwnership(0);
-            hr = ((int (__thiscall *)(IDirect3DDevice9 *, IDirect3DDevice9 *, IDirect3DVertexDeclaration9 *))device->SetVertexDeclaration)(
-                         device,
-                         device,
-                         v3);
+            //hr = ((int (__thiscall *)(IDirect3DDevice9 *, IDirect3DDevice9 *, IDirect3DVertexDeclaration9 *))device->SetVertexDeclaration)(
+            //             device,
+            //             device,
+            //             v3);
+            hr = device->SetVertexDeclaration(v3);
             if ( semaphore )
                 R_ReleaseDXDeviceOwnership();
             if ( hr < 0 )
@@ -162,17 +169,17 @@ void __cdecl R_BeginPixMaterial(GfxCmdBufState *state)
         {
             if ( state->pixTechnique )
             {
-                PIXEndNamedEvent();
+                //PIXEndNamedEvent();
                 state->pixTechnique = 0;
             }
-            if ( state->pixMaterial )
-                PIXEndNamedEvent();
+            //if ( state->pixMaterial )
+                //PIXEndNamedEvent();
             //PIXBeginNamedEvent(-1, material->info.name);
         }
         if ( state->pixTechnique != technique )
         {
-            if ( state->pixTechnique )
-                PIXEndNamedEvent();
+            //if ( state->pixTechnique )
+            //    PIXEndNamedEvent();
             //PIXBeginNamedEvent(-1, technique->name);
         }
         state->pixMaterial = material;
@@ -193,10 +200,10 @@ void __cdecl R_EndPixMaterial(GfxCmdBufState *state)
 
 void __cdecl R_EndPixMaterialInternal(GfxCmdBufState *state)
 {
-    if ( state->pixTechnique )
-        PIXEndNamedEvent();
-    if ( state->pixMaterial )
-        PIXEndNamedEvent();
+    //if ( state->pixTechnique )
+    //    PIXEndNamedEvent();
+    //if ( state->pixMaterial )
+    //    PIXEndNamedEvent();
     state->pixTechnique = 0;
     state->pixMaterial = 0;
 }
@@ -210,7 +217,7 @@ void __cdecl R_SetPixPrimarySortKey(GfxCmdBufState *state, unsigned int primaryS
         R_EndPixMaterialInternal(state);
         state->pixPrimarySortKey = primarySortKey;
         v2 = va("key: %d", state->pixPrimarySortKey);
-        PIXSetMarker(-1, v2);
+        //PIXSetMarker(-1, v2);
     }
 }
 
@@ -252,10 +259,10 @@ void __cdecl R_EndPixMaterials(GfxCmdBufState *state)
     {
         __debugbreak();
     }
-    if ( state->pixTechnique )
-        PIXEndNamedEvent();
-    if ( state->pixMaterial )
-        PIXEndNamedEvent();
+    //if ( state->pixTechnique )
+    //    PIXEndNamedEvent();
+    //if ( state->pixMaterial )
+    //    PIXEndNamedEvent();
     state->pixTechnique = 0;
     state->pixMaterial = 0;
     state->pixCombine = 0;
@@ -447,7 +454,7 @@ void RB_DrawTessSurface()
   {
     __debugbreak();
   }
-  args.baseIndex = R_SetIndexData(&gfxCmdBufState.prim, tess.indices, tess.indexCount / 3);
+  args.baseIndex = R_SetIndexData(&gfxCmdBufState.prim, (unsigned char*)tess.indices, tess.indexCount / 3);
   R_DrawTessTechnique(gfxCmdBufContext, &args);
   tess.indexCount = 0;
   tess.vertexCount = 0;

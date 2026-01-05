@@ -1,4 +1,24 @@
 #include "rb_showcollision.h"
+#include "r_dvars.h"
+#include <qcommon/cm_showcollision.h>
+#include "rb_backend.h"
+#include "rb_shade.h"
+#include "rb_stats.h"
+#include <physics/phys_render.h>
+#include "rb_debug.h"
+
+int showCollisionContentMasks[10] = { 0, 210624, 65536, 8192, 128, 512, 131072, 1024, 64, 4096 };
+
+const float frustumSidePlanes[5][4] =
+{
+  { -1.0, 0.0, 0.0, 1.0 },
+  { 1.0, 0.0, 0.0, 1.0 },
+  { 0.0, -1.0, 0.0, 1.0 },
+  { 0.0, 1.0, 0.0, 1.0 },
+  { 0.0, 0.0, 1.0, 1.0 }
+};
+
+GfxPointVertex debugLineVerts[2725];
 
 void __cdecl RB_ShowCollision(const GfxViewParms *viewParms)
 {
@@ -20,8 +40,7 @@ void __cdecl RB_ShowCollision(const GfxViewParms *viewParms)
         frustumPlanes[5].normal[0] = -1.0 * frustumPlanes[4].normal[0];
         frustumPlanes[5].normal[1] = -1.0 * frustumPlanes[4].normal[1];
         frustumPlanes[5].normal[2] = -1.0 * frustumPlanes[4].normal[2];
-        frustumPlanes[5].dist = COERCE_FLOAT(LODWORD(frustumPlanes[4].dist) ^ _mask__NegFloat_)
-                                                    - r_showCollisionDist->current.value;
+        frustumPlanes[5].dist = (-(frustumPlanes[4].dist)) - r_showCollisionDist->current.value;
         if ( (float)(-1.0 * frustumPlanes[4].normal[0]) == 1.0 )
         {
             v3 = 0;

@@ -11,6 +11,19 @@ struct GfxDrawPrimArgs // sizeof=0xC
     int baseIndex;                      // XREF: R_DrawPointLitSurfs+81/w
 };
 
+struct GfxModelWaterSurface // sizeof=0x2C
+{
+    IDirect3DIndexBuffer9 *ib;
+    IDirect3DVertexBuffer9 *vb0;
+    IDirect3DVertexBuffer9 *vb1;
+    unsigned int baseVertex0;
+    unsigned int baseVertex1;
+    float interpolate;
+    int vertCount;
+    int triCount;
+    float origin[3];
+};
+
 void __cdecl RB_ShowTess(GfxCmdBufContext context, const float *center, const char *tessName, const float *color);
 void __cdecl R_SetVertexDeclTypeNormal(GfxCmdBufState *state, MaterialVertexDeclType vertDeclType);
 void __cdecl R_SetVertexDeclTypeWorld(GfxCmdBufState *state);

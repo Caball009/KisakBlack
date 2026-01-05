@@ -1,4 +1,13 @@
 #include "rb_superflare.h"
+#include "r_dvars.h"
+#include "rb_logfile.h"
+#include "rb_corona.h"
+#include "rb_shade.h"
+#include "rb_stats.h"
+#include <physics/phys_render.h>
+
+IDirect3DQuery9 *SuperFlareQuery[5][2][4][4];
+bool SuperFlareQueryIssued[5][4][4];
 
 void __cdecl RB_AllocSuperFlareQueries()
 {
@@ -83,7 +92,7 @@ void __cdecl RB_DrawSuperFlareOccluders(const GfxViewInfo *viewInfo)
     if ( r_superFlare_enable->current.enabled )
     {
         //PIXBeginNamedEvent(-1, "RB_SuperFlareVisibility");
-        FilterInfo = &viewInfo->genericFilter;
+        FilterInfo = (GfxGenericFilter *)&viewInfo->genericFilter;
         for ( iFilter = 0; iFilter < 3; ++iFilter )
         {
             for ( iPass = 0; iPass < 16; ++iPass )
@@ -157,9 +166,7 @@ void __cdecl RB_DrawSuperFlareOccluders(const GfxViewInfo *viewInfo)
                             RB_SetIdentity();
                             RB_DrawSuperFlareOccluder(FilterInfo, iFilter, iPass);
                             RB_EndTessSurface();
-                            SuperFlareQuery[iFrame][iOccluder][viewInfo->localClientNum][iPass]->Issue(
-                                SuperFlareQuery[iFrame][iOccluder][viewInfo->localClientNum][iPass],
-                                1u);
+                            SuperFlareQuery[iFrame][iOccluder][viewInfo->localClientNum][iPass]->Issue(1);
                             SuperFlareQueryIssued[iFrame][viewInfo->localClientNum][iPass] = 1;
                         }
                     }
@@ -197,32 +204,44 @@ void __cdecl RB_DrawSuperFlareOccluder(GfxGenericFilter *FilterInfo, int iFilter
     position = FilterInfo->passParam[iFilter][iPass][0];
     position_4 = FilterInfo->passParam[iFilter][iPass][1];
     position_8 = FilterInfo->passParam[iFilter][iPass][2];
-    if ( position == 0.0 && position_4 == 0.0 && position_8 == 0.0 )
+    if (position == 0.0 && position_4 == 0.0 && position_8 == 0.0)
     {
         position = FilterInfo->sunPosition[0];
         position_4 = FilterInfo->sunPosition[1];
         position_8 = FilterInfo->sunPosition[2];
     }
     radius = FilterInfo->passParam[iFilter][iPass][5];
-    transformedPosition = (float)((float)((float)(position * *(float *)(gfxCmdBufSourceState.sceneDef.time + 128))
-                                                                            + (float)(position_4 * *(float *)(gfxCmdBufSourceState.sceneDef.time + 144)))
-                                                            + (float)(position_8 * *(float *)(gfxCmdBufSourceState.sceneDef.time + 160)))
-                                            + *(float *)(gfxCmdBufSourceState.sceneDef.time + 176);
-    transformedPosition_4 = (float)((float)((float)(position * *(float *)(gfxCmdBufSourceState.sceneDef.time + 132))
-                                                                                + (float)(position_4 * *(float *)(gfxCmdBufSourceState.sceneDef.time + 148)))
-                                                                + (float)(position_8 * *(float *)(gfxCmdBufSourceState.sceneDef.time + 164)))
-                                                + *(float *)(gfxCmdBufSourceState.sceneDef.time + 180);
-    transformedPosition_8 = (float)((float)((float)(position * *(float *)(gfxCmdBufSourceState.sceneDef.time + 136))
-                                                                                + (float)(position_4 * *(float *)(gfxCmdBufSourceState.sceneDef.time + 152)))
-                                                                + (float)(position_8 * *(float *)(gfxCmdBufSourceState.sceneDef.time + 168)))
-                                                + *(float *)(gfxCmdBufSourceState.sceneDef.time + 184);
-    transformedPosition_12 = (float)((float)((float)(position * *(float *)(gfxCmdBufSourceState.sceneDef.time + 140))
-                                                                                 + (float)(position_4 * *(float *)(gfxCmdBufSourceState.sceneDef.time + 156)))
-                                                                 + (float)(position_8 * *(float *)(gfxCmdBufSourceState.sceneDef.time + 172)))
-                                                 + *(float *)(gfxCmdBufSourceState.sceneDef.time + 188);
-    if ( radius < 0.0 )
-        radius = fabs(radius) * transformedPosition_12;
-    sizeX = (float)((float)dword_B473FD4 * (float)(radius / transformedPosition_12)) / (float)dword_B473FD0;
+    transformedPosition = (float)((float)((float)(position * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[0][0])
+        + (float)(position_4
+            * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[1][0]))
+        + (float)(position_8 * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[2][0]))
+        + gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[3][0];
+    transformedPosition_4 = (float)((float)((float)(position
+        * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[0][1])
+        + (float)(position_4
+            * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[1][1]))
+        + (float)(position_8 * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[2][1]))
+        + gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[3][1];
+    transformedPosition_8 = (float)((float)((float)(position
+        * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[0][2])
+        + (float)(position_4
+            * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[1][2]))
+        + (float)(position_8 * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[2][2]))
+        + gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[3][2];
+    transformedPosition_12 = (float)((float)((float)(position
+        * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[0][3])
+        + (float)(position_4
+            * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[1][3]))
+        + (float)(position_8 * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[2][3]))
+        + gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[3][3];
+
+    if (radius < 0.0)
+    {
+        //radius = COERCE_FLOAT(LODWORD(radius) & _mask__AbsFloat_) * transformedPosition_12;
+        radius = (-(radius)) * transformedPosition_12;
+    }
+
+    sizeX = (float)((float)gfxCmdBufSourceState.renderTargetHeight * (float)(radius / transformedPosition_12)) / (float)gfxCmdBufSourceState.renderTargetWidth;
     vert = RB_SetSuperFlareQuads();
     v3 = (float)(radius / transformedPosition_12) * transformedPosition_12;
     vert->xyzw[0] = transformedPosition;

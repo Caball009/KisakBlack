@@ -1,8 +1,12 @@
 #include "r_world_lod.h"
+#include <universal/q_shared.h>
+#include "r_init.h"
+#include <universal/com_memory.h>
 
 unsigned __int8 *s_lodVals;
+LodChainState *s_lodState[1];
 
-void __thiscall LodChainState::Init(LodChainState *this, const GfxWorldLodChain *lodChain, int localClientNum)
+void __thiscall LodChainState::Init(const GfxWorldLodChain *lodChain, int localClientNum)
 {
     int i; // [esp+10h] [ebp-4h]
 
@@ -14,7 +18,7 @@ void __thiscall LodChainState::Init(LodChainState *this, const GfxWorldLodChain 
         SetFadeForSortedSurfaces(0.0, i + this->m_lodChain->firstLodInfo, localClientNum);
 }
 
-void __thiscall LodChainState::UpdateLevel(LodChainState *this, int newLevel, int localClientNum)
+void __thiscall LodChainState::UpdateLevel(int newLevel, int localClientNum)
 {
     __int64 v3; // rax
     float val; // [esp+Ch] [ebp-10h]
@@ -23,7 +27,7 @@ void __thiscall LodChainState::UpdateLevel(LodChainState *this, int newLevel, in
     if ( newLevel != this->m_curLevel )
     {
         if ( this->m_lastLevel != this->m_curLevel )
-            LodChainState::UpdateFade(this, 1000.0, localClientNum);
+            LodChainState::UpdateFade(1000.0, localClientNum);
         this->m_lastLevel = this->m_curLevel;
         this->m_curLevel = newLevel;
         v3 = this->m_curLevel - this->m_lastLevel;
@@ -67,7 +71,7 @@ void __thiscall LodChainState::UpdateLevel(LodChainState *this, int newLevel, in
     }
 }
 
-void __thiscall LodChainState::UpdateFade(LodChainState *this, float dt, int localClientNum)
+void __thiscall LodChainState::UpdateFade(float dt, int localClientNum)
 {
     int m_lastLevel; // [esp+10h] [ebp-10h]
     int savedLastLevel; // [esp+14h] [ebp-Ch]
@@ -186,11 +190,15 @@ void __cdecl R_WorldLod_Init()
     for ( clientIdx = 0; clientIdx < 1; ++clientIdx )
     {
         s_lodState[clientIdx] = (LodChainState *)Hunk_Alloc(12 * rgp.world->worldLodChainCount, "R_WorldLod_Init", 23);
-        for ( i = 0; i < rgp.world->worldLodChainCount; ++i )
-            LodChainState::Init(&s_lodState[clientIdx][i], &rgp.world->worldLodChains[i], clientIdx);
+        for (i = 0; i < rgp.world->worldLodChainCount; ++i)
+        {
+            //LodChainState::Init(&s_lodState[clientIdx][i], &rgp.world->worldLodChains[i], clientIdx);
+            s_lodState[clientIdx][i].Init(&rgp.world->worldLodChains[i], clientIdx);
+        }
     }
 }
 
+float s_lastTime = -c_fadeRate * 2.0f;;
 void __cdecl R_WorldLod_FrameUpdate(float curTime, float *camPos, int localClientNum)
 {
     float v3; // [esp+8h] [ebp-10h]
@@ -210,11 +218,11 @@ void __cdecl R_WorldLod_FrameUpdate(float curTime, float *camPos, int localClien
     else
         v3 = 0.0f;
     for ( i = 0; i < rgp.world->worldLodChainCount; ++i )
-        UpdateChain((int)&savedregs, i, camPos, v3, localClientNum);
+        UpdateChain(i, camPos, v3, localClientNum);
 }
 
 // local variable allocation has failed, the output may be wrong!
-void    UpdateChain(int a1@<ebp>, int index, const float *inputCamPos, float dt, int localClientNum)
+void    UpdateChain(int index, const float *inputCamPos, float dt, int localClientNum)
 {
     int v5; // [esp+Ch] [ebp-A8h]
     bool v6; // [esp+13h] [ebp-A1h]

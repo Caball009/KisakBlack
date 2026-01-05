@@ -2395,22 +2395,6 @@ $LN7_73:
     return result;
 }
 
-void __cdecl Vec4Set(float *v, float x, float y, float z, float w)
-{
-    *v = x;
-    v[1] = y;
-    v[2] = z;
-    v[3] = w;
-}
-
-void __cdecl Vec4Copy(const float *from, float *to)
-{
-    *to = *from;
-    to[1] = from[1];
-    to[2] = from[2];
-    to[3] = from[3];
-}
-
 char __cdecl UI_FeederItemColor_Contracts(
                 int controllerIndex,
                 int contextIndex,

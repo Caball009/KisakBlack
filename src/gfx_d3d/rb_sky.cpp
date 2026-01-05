@@ -1,4 +1,16 @@
 #include "rb_sky.h"
+#include "rb_shade.h"
+#include "r_singlethreaded_device_pc.h"
+#include "r_dvars.h"
+#include "rb_logfile.h"
+#include "r_state.h"
+#include "r_foliage.h"
+#include "r_state_utils.h"
+#include "rb_stats.h"
+#include "rb_corona.h"
+#include "rb_pixelcost.h"
+
+SunFlareDynamic sunFlareArray[4];
 
 double __cdecl R_UpdateOverTime(float fCurrent, float fGoal, int frametime)
 {
@@ -137,7 +149,7 @@ unsigned int __cdecl RB_CalcSunSpriteSamples()
   if ( r_logFile && r_logFile->current.integer )
     RB_LogPrint("dx.device->BeginScene()\n");
   semaphore = R_AcquireDXDeviceOwnership(0);
-  v12 = dx.device->BeginScene(dx.device);
+  v12 = dx.device->BeginScene();
   if ( semaphore )
     R_ReleaseDXDeviceOwnership();
   if ( v12 < 0 )
@@ -151,12 +163,12 @@ unsigned int __cdecl RB_CalcSunSpriteSamples()
       v1);
   }
   R_ClearScreenInternal(gfxCmdBufState.prim.device, 2u, colorWhite, 1.0, 0, 0);
-  R_SetCodeConstantFromVec4(&gfxCmdBufSourceState, 0x37u, colorWhite);
+  R_SetCodeConstantFromVec4(&gfxCmdBufSourceState, 0x37u, (float*)colorWhite);
   R_AssertDXDeviceOwnership();
   if ( r_logFile && r_logFile->current.integer )
     RB_LogPrint("occlusionQuery->Issue( (1 << 1) )\n");
   v9 = R_AcquireDXDeviceOwnership(0);
-  v10 = occlusionQuery->Issue(occlusionQuery, 2u);
+  v10 = occlusionQuery->Issue(2);
   if ( v9 )
     R_ReleaseDXDeviceOwnership();
   if ( v10 < 0 )
@@ -186,10 +198,11 @@ unsigned int __cdecl RB_CalcSunSpriteSamples()
   if ( r_logFile && r_logFile->current.integer )
     RB_LogPrint("occlusionQuery->Issue( (1 << 0) )\n");
   v7 = R_AcquireDXDeviceOwnership(0);
-  v8 = ((int (__thiscall *)(IDirect3DQuery9 *, IDirect3DQuery9 *, int))occlusionQuery->Issue)(
-         occlusionQuery,
-         occlusionQuery,
-         1);
+  //v8 = ((int (__thiscall *)(IDirect3DQuery9 *, IDirect3DQuery9 *, int))occlusionQuery->Issue)(
+  //       occlusionQuery,
+  //       occlusionQuery,
+  //       1);
+  v8 = occlusionQuery->Issue(1);
   if ( v7 )
     R_ReleaseDXDeviceOwnership();
   if ( v8 < 0 )
@@ -206,7 +219,7 @@ unsigned int __cdecl RB_CalcSunSpriteSamples()
   if ( r_logFile && r_logFile->current.integer )
     RB_LogPrint("dx.device->EndScene()\n");
   v5 = R_AcquireDXDeviceOwnership(0);
-  v6 = dx.device->EndScene(dx.device);
+  v6 = dx.device->EndScene();
   if ( v5 )
     R_ReleaseDXDeviceOwnership();
   if ( v6 < 0 )
@@ -221,12 +234,13 @@ unsigned int __cdecl RB_CalcSunSpriteSamples()
   }
   while ( 1 )
   {
-    hr = ((int (__thiscall *)(IDirect3DQuery9 *, IDirect3DQuery9 *, unsigned int *, int, int))occlusionQuery->GetData)(
-           occlusionQuery,
-           occlusionQuery,
-           &sampleCount,
-           4,
-           1);
+    //hr = ((int (__thiscall *)(IDirect3DQuery9 *, IDirect3DQuery9 *, unsigned int *, int, int))occlusionQuery->GetData)(
+    //       occlusionQuery,
+    //       occlusionQuery,
+    //       &sampleCount,
+    //       4,
+    //       1);
+      hr = occlusionQuery->GetData(&sampleCount, 4, 1);
     if ( hr != 1 )
       break;
     Sleep(0);
@@ -259,14 +273,14 @@ void __cdecl RB_DrawSun(unsigned int localClientNum)
     }
     if ( !r_drawSun->current.enabled )
     {
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_16;
     }
     if ( !rgp.world->sun.hasValidData )
     {
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_16;
     }
     sunFlare = &sunFlareArray[localClientNum];
@@ -290,55 +304,59 @@ void __cdecl RB_DrawSunQuerySprite(SunFlareDynamic *sunFlare)
     int queryIndex; // [esp+58h] [ebp-4h]
 
     //PIXBeginNamedEvent(-1, "RB_DrawSunQuerySprite");
-    if ( !sunFlare
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp", 322, 0, "%s", "sunFlare") )
+    if (!sunFlare
+        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp", 322, 0, "%s", "sunFlare"))
     {
         __debugbreak();
     }
     queryIndex = r_glob.backEndFrameCount % 2;
-    if ( (unsigned int)(r_glob.backEndFrameCount % 2) >= 2
+    if ((unsigned int)(r_glob.backEndFrameCount % 2) >= 2
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
-                    325,
-                    0,
-                    "queryIndex doesn't index ARRAY_COUNT( sunFlare->sunQuery )\n\t%i not in [0, %i)",
-                    r_glob.backEndFrameCount % 2,
-                    2) )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
+            325,
+            0,
+            "queryIndex doesn't index ARRAY_COUNT( sunFlare->sunQuery )\n\t%i not in [0, %i)",
+            r_glob.backEndFrameCount % 2,
+            2))
     {
         __debugbreak();
     }
-    if ( !sunFlare->sunQuery[queryIndex] )
+    if (!sunFlare->sunQuery[queryIndex])
     {
         RB_UpdateSunVisibilityWithoutQuery(sunFlare);
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
-        goto LABEL_33;
+        //if (g_DXDeviceThread != GetCurrentThreadId())
+        //    return;
+        //goto LABEL_33;
+        return;
     }
     RB_SetTessTechnique(rgp.additiveMaterial, 4u);
     R_TrackPrims(&gfxCmdBufState.prim, GFX_PRIM_STATS_FX);
     RB_SetIdentity();
-    RB_TessSunBillboard(16.0 / (float)dword_B473FD0, 16.0 / (float)dword_B473FD4, (GfxColor)-16777216);
-    if ( sunFlare->sunQueryIssued[queryIndex] )
+    RB_TessSunBillboard(
+        16.0 / (float)gfxCmdBufSourceState.renderTargetWidth,
+        16.0 / (float)gfxCmdBufSourceState.renderTargetHeight,
+        (GfxColor)-16777216);
+    if (sunFlare->sunQueryIssued[queryIndex])
     {
         drawnSampleCount = RB_HW_ReadOcclusionQuery(sunFlare->sunQuery[queryIndex]);
-        if ( drawnSampleCount == -1 )
+        if (drawnSampleCount == -1)
             sunFlare->error = 1;
         sunSpriteSamples = dx.sunSpriteSamples;
-        if ( !dx.sunSpriteSamples
+        if (!dx.sunSpriteSamples
             && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
-                        362,
-                        0,
-                        "%s\n\t(sunSpriteSamples) = %i",
-                        "(sunSpriteSamples > 0)",
-                        0) )
+                "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
+                362,
+                0,
+                "%s\n\t(sunSpriteSamples) = %i",
+                "(sunSpriteSamples > 0)",
+                0))
         {
             __debugbreak();
         }
-        if ( drawnSampleCount > sunSpriteSamples )
+        if (drawnSampleCount > sunSpriteSamples)
             sunFlare->error = 1;
         lastVisibilitya = (double)drawnSampleCount / (double)sunSpriteSamples;
-        if ( (float)(1.0 - lastVisibilitya) < 0.0 )
+        if ((float)(1.0 - lastVisibilitya) < 0.0)
             v2 = 1.0f;
         else
             v2 = (double)drawnSampleCount / (double)sunSpriteSamples;
@@ -348,10 +366,10 @@ void __cdecl RB_DrawSunQuerySprite(SunFlareDynamic *sunFlare)
     {
         lastVisibility = 0.0f;
     }
-    if ( !sunFlare->error )
+    if (!sunFlare->error)
         sunFlare->lastVisibility = lastVisibility;
     sunFlare->error = 0;
-    if ( pixelCostMode == GFX_PIXEL_COST_MODE_MEASURE_COST || pixelCostMode == GFX_PIXEL_COST_MODE_MEASURE_MSEC )
+    if (pixelCostMode == GFX_PIXEL_COST_MODE_MEASURE_COST || pixelCostMode == GFX_PIXEL_COST_MODE_MEASURE_MSEC)
     {
         RB_EndTessSurface();
     }
@@ -359,12 +377,61 @@ void __cdecl RB_DrawSunQuerySprite(SunFlareDynamic *sunFlare)
     {
         RB_HW_BeginOcclusionQuery(sunFlare->sunQuery[queryIndex]);
         RB_EndTessSurface();
-        sunFlare->sunQuery[queryIndex]->Issue(sunFlare->sunQuery[queryIndex], 1u);
+        sunFlare->sunQuery[queryIndex]->Issue(1);
         sunFlare->sunQueryIssued[queryIndex] = 1;
     }
-    //if ( g_DXDeviceThread == GetCurrentThreadId() )
-LABEL_33:
-        //D3DPERF_EndEvent();
+    //if (g_DXDeviceThread == GetCurrentThreadId())
+    //    LABEL_33:
+    D3DPERF_EndEvent();
+}
+
+GfxVertex *__cdecl RB_SetTessQuad_0(GfxColor color)
+{
+    unsigned __int16 vertCount; // [esp+10h] [ebp-8h]
+    GfxVertex *vert; // [esp+14h] [ebp-4h]
+
+    if (tess.vertexCount
+        && !Assert_MyHandler(
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
+            156,
+            0,
+            "%s",
+            "tess.vertexCount == 0"))
+    {
+        __debugbreak();
+    }
+    if (tess.indexCount
+        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp", 157, 0, "%s", "tess.indexCount == 0"))
+    {
+        __debugbreak();
+    }
+    vertCount = tess.vertexCount;
+    tess.indices[tess.indexCount] = LOWORD(tess.vertexCount) + 3;
+    tess.indices[tess.indexCount + 1] = vertCount;
+    tess.indices[tess.indexCount + 2] = vertCount + 2;
+    tess.indices[tess.indexCount + 3] = vertCount + 2;
+    tess.indices[tess.indexCount + 4] = vertCount;
+    tess.indices[tess.indexCount + 5] = vertCount + 1;
+    vert = &tess.verts[vertCount];
+    vert->normal.packed = 0x3FFE7F7F;
+    vert->texCoord[0] = 0.0f;
+    vert->texCoord[1] = 0.0f;
+    vert->color = color;
+    vert[1].normal.packed = 0x3FFE7F7F;
+    vert[1].texCoord[0] = 1.0f;
+    vert[1].texCoord[1] = 0.0f;
+    vert[1].color = color;
+    vert[2].normal.packed = 0x3FFE7F7F;
+    vert[2].texCoord[0] = 1.0f;
+    vert[2].texCoord[1] = 1.0f;
+    vert[2].color = color;
+    vert[3].normal.packed = 0x3FFE7F7F;
+    vert[3].texCoord[0] = 0.0f;
+    vert[3].texCoord[1] = 1.0f;
+    vert[3].color = color;
+    tess.vertexCount += 4;
+    tess.indexCount += 6;
+    return vert;
 }
 
 void __cdecl RB_TessSunBillboard(float widthInClipSpace, float heightInClipSpace, GfxColor color)
@@ -531,7 +598,7 @@ void __cdecl RB_AddSunEffects(SunFlareDynamic *sunFlare)
                                                         + (float)(rgp.world->sun.sunFxPosition[1]
                                                                         * *(float *)(gfxCmdBufSourceState.sceneDef.time + 276)))
                                         + (float)(rgp.world->sun.sunFxPosition[2] * *(float *)(gfxCmdBufSourceState.sceneDef.time + 280));
-    if ( sunFlare->lastDot > 0.0 )
+    //if ( sunFlare->lastDot > 0.0 )
         //BLOPS_NULLSUB();
 }
 
@@ -570,18 +637,77 @@ void __cdecl RB_DrawSunPostEffects(unsigned int localClientNum, float sunVisibil
         {
             RB_DrawSunFlare(sunFlare, frameTime);
             RB_DrawBlindAndGlare(sunFlare, frameTime);
-            if ( GetCurrentThreadId() != g_DXDeviceThread )
-                return;
+            //if ( GetCurrentThreadId() != g_DXDeviceThread )
+            //    return;
         }
-        else if ( g_DXDeviceThread != GetCurrentThreadId() )
-        {
-            return;
-        }
+        //else if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //{
+        //    return;
+        //}
         goto LABEL_18;
     }
     //if ( GetCurrentThreadId() == g_DXDeviceThread )
 LABEL_18:
         //D3DPERF_EndEvent();
+}
+
+double __cdecl R_UpdateOverTime_0(float fCurrent, float fGoal, int iFadeInTime, int iFadeOutTime, int frametime)
+{
+  if ( frametime < 0
+    && !Assert_MyHandler(
+          "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
+          122,
+          0,
+          "%s\n\t(frametime) = %i",
+          "(frametime >= 0)",
+          frametime) )
+  {
+    __debugbreak();
+  }
+  if ( iFadeInTime < 0
+    && !Assert_MyHandler(
+          "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
+          123,
+          0,
+          "%s\n\t(iFadeInTime) = %i",
+          "(iFadeInTime >= 0)",
+          iFadeInTime) )
+  {
+    __debugbreak();
+  }
+  if ( iFadeOutTime < 0
+    && !Assert_MyHandler(
+          "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
+          124,
+          0,
+          "%s\n\t(iFadeOutTime) = %i",
+          "(iFadeOutTime >= 0)",
+          iFadeOutTime) )
+  {
+    __debugbreak();
+  }
+  if ( !frametime )
+    return fGoal;
+  if ( fGoal <= fCurrent )
+  {
+    if ( fCurrent > fGoal )
+    {
+      if ( iFadeOutTime <= 0 )
+        return fGoal;
+      fCurrent = fCurrent - (float)((float)((float)frametime * 1.0) / (float)iFadeOutTime);
+      if ( fGoal > fCurrent )
+        return fGoal;
+    }
+  }
+  else
+  {
+    if ( iFadeInTime <= 0 )
+      return fGoal;
+    fCurrent = (float)((float)((float)frametime * 1.0) / (float)iFadeInTime) + fCurrent;
+    if ( fCurrent > fGoal )
+      return fGoal;
+  }
+  return fCurrent;
 }
 
 void __cdecl RB_DrawSunFlare(SunFlareDynamic *sunFlare, int frameTime)
@@ -598,22 +724,22 @@ void __cdecl RB_DrawSunFlare(SunFlareDynamic *sunFlare, int frameTime)
     }
     if ( R_StereoActivated() )
     {
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_36;
     }
     if ( !rgp.world->sun.flareMaterial )
     {
-        if ( GetCurrentThreadId() != g_DXDeviceThread )
-            return;
+        //if ( GetCurrentThreadId() != g_DXDeviceThread )
+        //    return;
 LABEL_36:
         //D3DPERF_EndEvent();
         return;
     }
     if ( rgp.world->sun.flareMinDot >= sunFlare->lastDot )
     {
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_36;
     }
     if ( sunFlare->lastDot < rgp.world->sun.flareMaxDot )

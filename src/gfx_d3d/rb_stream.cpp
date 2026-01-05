@@ -1,5 +1,9 @@
 #include "rb_stream.h"
 
+#include <cstring>
+
+StreamBackendGlob streamBackendGlob;
+
 void __cdecl RB_StreamInit()
 {
     memset((unsigned __int8 *)&streamBackendGlob, 0, 0x210u);

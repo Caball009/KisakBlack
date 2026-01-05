@@ -1,4 +1,7 @@
 #include "r_xsurface_optimize.h"
+#include <qcommon/threads.h>
+#include "rb_resource.h"
+#include <xanim/xmodel_utils.h>
 
 void __cdecl XModelOptimizeCallback(XModel *data)
 {
@@ -107,16 +110,17 @@ void __cdecl XSurfaceOptimizeRigid(XModel *model, XSurface *surface)
     if ( !surface->vb0 )
     {
         vertexBytes = 32 * surface->vertCount;
-        hr = dx.device->CreateVertexBuffer(dx.device, vertexBytes, 8u, 0, D3DPOOL_DEFAULT, &vb, 0);
+        hr = dx.device->CreateVertexBuffer(vertexBytes, 8u, 0, D3DPOOL_DEFAULT, &vb, 0);
         if ( hr >= 0 )
         {
-            hr = ((int (__thiscall *)(IDirect3DVertexBuffer9 *, IDirect3DVertexBuffer9 *, unsigned int, unsigned int, void **, unsigned int))vb->Lock)(
-                         vb,
-                         vb,
-                         0,
-                         0,
-                         &vertexBuffer,
-                         0);
+            //hr = ((int (__thiscall *)(IDirect3DVertexBuffer9 *, IDirect3DVertexBuffer9 *, unsigned int, unsigned int, void **, unsigned int))vb->Lock)(
+            //             vb,
+            //             vb,
+            //             0,
+            //             0,
+            //             &vertexBuffer,
+            //             0);
+            hr = vb->Lock(0, 0, &vertexBuffer, 0);
             if ( hr >= 0 )
             {
                 surface->vb0 = vb;
@@ -125,7 +129,7 @@ void __cdecl XSurfaceOptimizeRigid(XModel *model, XSurface *surface)
             }
             else
             {
-                vb->Release(vb);
+                vb->Release();
             }
         }
     }

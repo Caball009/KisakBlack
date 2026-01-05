@@ -271,7 +271,6 @@ void __cdecl RB_DrawCoronaSprite(Corona *corona, const Material *material, GfxCo
     RB_TessCoronaBillboard(corona, color, radius, query);
     RB_EndTessSurface();
 }
-
 void __cdecl RB_TessCoronaBillboard(Corona *corona, GfxColor color, float radius, int query)
 {
     float v4; // [esp+0h] [ebp-8Ch]
@@ -293,25 +292,34 @@ void __cdecl RB_TessCoronaBillboard(Corona *corona, GfxColor color, float radius
     position[0] = info->origin[0];
     position[1] = info->origin[1];
     position[2] = info->origin[2];
-    transformedPosition = (float)((float)((float)(position[0] * *(float *)(gfxCmdBufSourceState.sceneDef.time + 128))
-                                                                            + (float)(position[1] * *(float *)(gfxCmdBufSourceState.sceneDef.time + 144)))
-                                                            + (float)(position[2] * *(float *)(gfxCmdBufSourceState.sceneDef.time + 160)))
-                                            + *(float *)(gfxCmdBufSourceState.sceneDef.time + 176);
-    transformedPosition_4 = (float)((float)((float)(position[0] * *(float *)(gfxCmdBufSourceState.sceneDef.time + 132))
-                                                                                + (float)(position[1] * *(float *)(gfxCmdBufSourceState.sceneDef.time + 148)))
-                                                                + (float)(position[2] * *(float *)(gfxCmdBufSourceState.sceneDef.time + 164)))
-                                                + *(float *)(gfxCmdBufSourceState.sceneDef.time + 180);
-    transformedPosition_8 = (float)((float)((float)(position[0] * *(float *)(gfxCmdBufSourceState.sceneDef.time + 136))
-                                                                                + (float)(position[1] * *(float *)(gfxCmdBufSourceState.sceneDef.time + 152)))
-                                                                + (float)(position[2] * *(float *)(gfxCmdBufSourceState.sceneDef.time + 168)))
-                                                + *(float *)(gfxCmdBufSourceState.sceneDef.time + 184);
-    transformedPosition_12 = (float)((float)((float)(position[0] * *(float *)(gfxCmdBufSourceState.sceneDef.time + 140))
-                                                                                 + (float)(position[1] * *(float *)(gfxCmdBufSourceState.sceneDef.time + 156)))
-                                                                 + (float)(position[2] * *(float *)(gfxCmdBufSourceState.sceneDef.time + 172)))
-                                                 + *(float *)(gfxCmdBufSourceState.sceneDef.time + 188);
+    transformedPosition = (float)((float)((float)(position[0]
+        * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[0][0])
+        + (float)(position[1]
+            * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[1][0]))
+        + (float)(position[2] * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[2][0]))
+        + gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[3][0];
+    transformedPosition_4 = (float)((float)((float)(position[0]
+        * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[0][1])
+        + (float)(position[1]
+            * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[1][1]))
+        + (float)(position[2] * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[2][1]))
+        + gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[3][1];
+    transformedPosition_8 = (float)((float)((float)(position[0]
+        * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[0][2])
+        + (float)(position[1]
+            * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[1][2]))
+        + (float)(position[2] * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[2][2]))
+        + gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[3][2];
+    transformedPosition_12 = (float)((float)((float)(position[0]
+        * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[0][3])
+        + (float)(position[1]
+            * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[1][3]))
+        + (float)(position[2] * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[2][3]))
+        + gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[3][3];
     sizeY = radius / transformedPosition_12;
-    sizeX = (float)((float)dword_B473FD4 * (float)(radius / transformedPosition_12)) / (float)dword_B473FD0;
-    if ( rg.renderHiResShot )
+    sizeX = (float)((float)gfxCmdBufSourceState.renderTargetHeight * (float)(radius / transformedPosition_12))
+        / (float)gfxCmdBufSourceState.renderTargetWidth;
+    if (rg.renderHiResShot)
     {
         sizeX = (float)rg.hiResShotTiles * sizeX;
         sizeY = (float)rg.hiResShotTiles * sizeY;
@@ -352,9 +360,10 @@ void __cdecl RB_TessCoronaBillboard(Corona *corona, GfxColor color, float radius
     Vec4DivideByW(vert[1].xyzw, vert[1].xyzw);
     Vec4DivideByW(vert[2].xyzw, vert[2].xyzw);
     Vec4DivideByW(vert[3].xyzw, vert[3].xyzw);
-    if ( !query )
+    if (!query)
     {
-        v4 = Vec3DistanceSq((const float *)(gfxCmdBufSourceState.sceneDef.time + 256), position);
+        v4 = Vec3DistanceSq(gfxCmdBufSourceState.viewParms3D->origin, position);
+        //distance = fsqrt(v4);
         distance = sqrtf(v4);
         vert->xyzw[3] = distance;
         vert[1].xyzw[3] = distance;
@@ -671,13 +680,13 @@ void __cdecl RB_FreeCoronaSpriteQuery(Corona *corona)
 }
 
 void __cdecl RB_DrawWaypoint(
-                Material *material,
-                GfxColor color,
-                float *origin,
-                float radius,
-                bool screenSize,
-                bool alignBottom,
-                bool forceNear)
+    Material *material,
+    GfxColor color,
+    float *origin,
+    float radius,
+    bool screenSize,
+    bool alignBottom,
+    bool forceNear)
 {
     float transformedPosition; // [esp+3Ch] [ebp-38h]
     float transformedPosition_4; // [esp+40h] [ebp-34h]
@@ -690,37 +699,46 @@ void __cdecl RB_DrawWaypoint(
     float position_8; // [esp+6Ch] [ebp-8h]
     GfxVertex *vert; // [esp+70h] [ebp-4h]
 
-    if ( R_StreamTouchMaterialAndCheck(material, 0) )
+    if (R_StreamTouchMaterialAndCheck(material, 0))
     {
         RB_SetIdentity();
         RB_SetTessTechnique(material, 4u);
         R_TrackPrims(&gfxCmdBufState.prim, GFX_PRIM_STATS_FX);
         position_4 = origin[1];
         position_8 = origin[2];
-        transformedPosition = (float)((float)((float)(*origin * *(float *)(gfxCmdBufSourceState.sceneDef.time + 128))
-                                                                                + (float)(position_4 * *(float *)(gfxCmdBufSourceState.sceneDef.time + 144)))
-                                                                + (float)(position_8 * *(float *)(gfxCmdBufSourceState.sceneDef.time + 160)))
-                                                + *(float *)(gfxCmdBufSourceState.sceneDef.time + 176);
-        transformedPosition_4 = (float)((float)((float)(*origin * *(float *)(gfxCmdBufSourceState.sceneDef.time + 132))
-                                                                                    + (float)(position_4 * *(float *)(gfxCmdBufSourceState.sceneDef.time + 148)))
-                                                                    + (float)(position_8 * *(float *)(gfxCmdBufSourceState.sceneDef.time + 164)))
-                                                    + *(float *)(gfxCmdBufSourceState.sceneDef.time + 180);
-        transformedPosition_8 = (float)((float)((float)(*origin * *(float *)(gfxCmdBufSourceState.sceneDef.time + 136))
-                                                                                    + (float)(position_4 * *(float *)(gfxCmdBufSourceState.sceneDef.time + 152)))
-                                                                    + (float)(position_8 * *(float *)(gfxCmdBufSourceState.sceneDef.time + 168)))
-                                                    + *(float *)(gfxCmdBufSourceState.sceneDef.time + 184);
-        transformedPosition_12 = (float)((float)((float)(*origin * *(float *)(gfxCmdBufSourceState.sceneDef.time + 140))
-                                                                                     + (float)(position_4 * *(float *)(gfxCmdBufSourceState.sceneDef.time + 156)))
-                                                                     + (float)(position_8 * *(float *)(gfxCmdBufSourceState.sceneDef.time + 172)))
-                                                     + *(float *)(gfxCmdBufSourceState.sceneDef.time + 188);
-        if ( screenSize )
+        transformedPosition = (float)((float)((float)(*origin
+            * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[0][0])
+            + (float)(position_4
+                * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[1][0]))
+            + (float)(position_8 * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[2][0]))
+            + gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[3][0];
+        transformedPosition_4 = (float)((float)((float)(*origin
+            * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[0][1])
+            + (float)(position_4
+                * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[1][1]))
+            + (float)(position_8 * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[2][1]))
+            + gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[3][1];
+        transformedPosition_8 = (float)((float)((float)(*origin
+            * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[0][2])
+            + (float)(position_4
+                * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[1][2]))
+            + (float)(position_8 * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[2][2]))
+            + gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[3][2];
+        transformedPosition_12 = (float)((float)((float)(*origin
+            * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[0][3])
+            + (float)(position_4
+                * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[1][3]))
+            + (float)(position_8 * gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[2][3]))
+            + gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix.m[3][3];
+        if (screenSize)
             radius = radius * transformedPosition_12;
         sizeY = (float)(2.0 * radius) / transformedPosition_12;
-        sizeX = (float)((float)dword_B473FD4 * sizeY) / (float)dword_B473FD0;
-        if ( material && material->textureCount )
+        sizeX = (float)((float)gfxCmdBufSourceState.renderTargetHeight * sizeY)
+            / (float)gfxCmdBufSourceState.renderTargetWidth;
+        if (material && material->textureCount)
             sizeY = (float)((float)material->textureTable->u.image->height / (float)material->textureTable->u.image->width)
-                        * sizeY;
-        if ( rg.renderHiResShot )
+            * sizeY;
+        if (rg.renderHiResShot)
         {
             sizeX = (float)rg.hiResShotTiles * sizeX;
             sizeY = (float)rg.hiResShotTiles * sizeY;
@@ -755,7 +773,7 @@ void __cdecl RB_DrawWaypoint(
         vert[3].xyzw[0] = vert[3].xyzw[0] - (float)(sizeX * transformedPosition_12);
         vert[3].xyzw[1] = vert[3].xyzw[1] - (float)(sizeY * transformedPosition_12);
         vert[3].xyzw[2] = vert[3].xyzw[2] + (float)(0.000049999999 * transformedPosition_12);
-        if ( alignBottom )
+        if (alignBottom)
         {
             vert->xyzw[1] = vert->xyzw[1] + offset_4;
             vert[1].xyzw[1] = vert[1].xyzw[1] + offset_4;
@@ -766,7 +784,7 @@ void __cdecl RB_DrawWaypoint(
         Vec4DivideByW(vert[1].xyzw, vert[1].xyzw);
         Vec4DivideByW(vert[2].xyzw, vert[2].xyzw);
         Vec4DivideByW(vert[3].xyzw, vert[3].xyzw);
-        if ( forceNear && vert->xyzw[2] > 0.0 )
+        if (forceNear && vert->xyzw[2] > 0.0)
         {
             vert->xyzw[2] = 0.0f;
             vert[1].xyzw[2] = 0.0f;
@@ -774,8 +792,7 @@ void __cdecl RB_DrawWaypoint(
             vert[3].xyzw[2] = 0.0f;
         }
         RB_EndTessSurface();
-        if ( tess.indexCount )
+        if (tess.indexCount)
             RB_EndTessSurface();
     }
 }
-

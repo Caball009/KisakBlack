@@ -359,56 +359,56 @@ void __cdecl RB_GenerateGaussianFilter2D(
 
 void __cdecl RB_FilterImage(GfxImageFilter *filter)
 {
-  int passIndex; // [esp+2Ch] [ebp-Ch]
+    int passIndex; // [esp+2Ch] [ebp-Ch]
 
-  if ( !filter
-    && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_imagefilter.cpp", 394, 0, "%s", "filter") )
-  {
-    __debugbreak();
-  }
-  if ( filter->passCount <= 0
-    && !Assert_MyHandler(
-          "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_imagefilter.cpp",
-          395,
-          0,
-          "%s\n\t(filter->passCount) = %i",
-          "(filter->passCount > 0)",
-          filter->passCount) )
-  {
-    __debugbreak();
-  }
-  if ( !filter->sourceImage
-    && !Assert_MyHandler(
-          "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_imagefilter.cpp",
-          396,
-          0,
-          "%s",
-          "filter->sourceImage") )
-  {
-    __debugbreak();
-  }
-  if ( tess.indexCount )
-    RB_EndTessSurface();
-  for ( passIndex = 0; passIndex < filter->passCount; ++passIndex )
-  {
-    RB_FilterPingPong(filter, passIndex);
-    RB_SetupFilterPass(&filter->passes[passIndex]);
-    R_Set2D(&gfxCmdBufSourceState);
-    RB_DrawStretchPic(
-      filter->passes[passIndex].material,
-      0.0,
-      0.0,
-      (float)gfxCmdBufSourceState_renderTargetWidth,
-      (float)gfxCmdBufSourceState_renderTargetHeight,
-      0.0,
-      0.0,
-      filter->passes[passIndex].srcWidth,
-      filter->passes[passIndex].srcHeight,
-      0xFFFFFFFF,
-      GFX_PRIM_STATS_CODE);
-    RB_EndTessSurface();
-  }
-  BG_EvalVehicleName((jpeg_decompress_struct *)filter);
+    if (!filter
+        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_imagefilter.cpp", 394, 0, "%s", "filter"))
+    {
+        __debugbreak();
+    }
+    if (filter->passCount <= 0
+        && !Assert_MyHandler(
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_imagefilter.cpp",
+            395,
+            0,
+            "%s\n\t(filter->passCount) = %i",
+            "(filter->passCount > 0)",
+            filter->passCount))
+    {
+        __debugbreak();
+    }
+    if (!filter->sourceImage
+        && !Assert_MyHandler(
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_imagefilter.cpp",
+            396,
+            0,
+            "%s",
+            "filter->sourceImage"))
+    {
+        __debugbreak();
+    }
+    if (tess.indexCount)
+        RB_EndTessSurface();
+    for (passIndex = 0; passIndex < filter->passCount; ++passIndex)
+    {
+        RB_FilterPingPong(filter, passIndex);
+        RB_SetupFilterPass(&filter->passes[passIndex]);
+        R_Set2D(&gfxCmdBufSourceState);
+        RB_DrawStretchPic(
+            filter->passes[passIndex].material,
+            0.0,
+            0.0,
+            (float)gfxCmdBufSourceState.renderTargetWidth,
+            (float)gfxCmdBufSourceState.renderTargetHeight,
+            0.0,
+            0.0,
+            filter->passes[passIndex].srcWidth,
+            filter->passes[passIndex].srcHeight,
+            0xFFFFFFFF,
+            GFX_PRIM_STATS_CODE);
+        RB_EndTessSurface();
+    }
+    //BG_EvalVehicleName((jpeg_decompress_struct *)filter);
 }
 
 void __cdecl RB_SetupFilterPass(const GfxImageFilterPass *filterPass)
@@ -428,7 +428,7 @@ void __cdecl RB_SetupFilterPass(const GfxImageFilterPass *filterPass)
     __debugbreak();
   }
   for ( constIndex = 0; constIndex < filterPass->tapHalfCount; ++constIndex )
-    R_SetCodeConstantFromVec4(&gfxCmdBufSourceState, constIndex + 36, filterPass->tapOffsetsAndWeights[constIndex]);
+    R_SetCodeConstantFromVec4(&gfxCmdBufSourceState, constIndex + 36, (float*)filterPass->tapOffsetsAndWeights[constIndex]);
 }
 
 void __cdecl RB_FilterPingPong(const GfxImageFilter *filter, int passIndex)

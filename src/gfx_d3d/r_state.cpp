@@ -3615,7 +3615,6 @@ void __cdecl R_Set_Texture_SeeThruDecal(GfxCmdBufSourceState *source)
 
 // bad sp value at call has been detected, the output may be wrong!
 void    R_DrawCall(
-                int a1@<ebp>,
                 void (__cdecl *callback)(const void *, GfxCmdBufSourceState *, GfxCmdBufState *, GfxCmdBufSourceState *, GfxCmdBufState *),
                 const void *userData,
                 GfxCmdBufSourceState *source,

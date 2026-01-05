@@ -1,4 +1,24 @@
 #include "rb_tess.h"
+#include "r_dvars.h"
+#include "r_debug.h"
+#include "r_shade.h"
+#include "r_state.h"
+#include "rb_stats.h"
+#include "r_foliage.h"
+#include "r_model_lighting.h"
+#include "rb_logfile.h"
+#include "rb_shade.h"
+#include "r_state_utils.h"
+#include "r_xsurface.h"
+#include "r_draw_material.h"
+#include "r_draw_xmodel.h"
+#include <ik/ik_math.h>
+#include "r_water_sim.h"
+#include "r_draw_staticmodel.h"
+#include "r_draw_bsp.h"
+#include "rb_draw3d.h"
+
+GfxScaledPlacement s_manualObjectPlacement;
 
 void __cdecl RB_ShowTess(GfxCmdBufContext context, const float *center, const char *tessName, const float *color)
 {
@@ -103,7 +123,7 @@ void __cdecl RB_ShowTess(GfxCmdBufContext context, const float *center, const ch
     }
     data = context.source->input.data;
     v5 = va("%s:%s=%s", tessName, infoIdString, infoString);
-    R_AddDebugString(&data->debugGlobals, offsetCenter, color, TEXT_SIZE, v5);
+    R_AddDebugString((DebugGlobals*)&data->debugGlobals, offsetCenter, color, TEXT_SIZE, v5);
 }
 
 void __cdecl R_SetVertexDeclTypeNormal(GfxCmdBufState *state, MaterialVertexDeclType vertDeclType)
@@ -127,13 +147,12 @@ void __cdecl R_SetVertexDeclTypeModelSkinned(const XSurface *surf, GfxCmdBufStat
 
 void __cdecl R_SetObjectIdentityPlacement(GfxCmdBufSourceState *source)
 {
-    if ( (GfxScaledPlacement *)source->viewMode != &g_drawConsts.identityPlacement )
+    if (source->objectPlacement != &g_drawConsts.identityPlacement)
     {
-        source->viewMode = (GfxViewMode)&g_drawConsts.identityPlacement;
+        source->objectPlacement = &g_drawConsts.identityPlacement;
         R_ChangeObjectPlacementRemote(source, &g_drawConsts.identityPlacement);
     }
 }
-
 unsigned int __cdecl R_TessCodeMeshList(const GfxDrawSurfListArgs *listArgs, GfxCmdBufContext prepassContext)
 {
     GfxDepthRangeType depthRangeType; // [esp+8h] [ebp-64h]
@@ -171,7 +190,7 @@ unsigned int __cdecl R_TessCodeMeshList(const GfxDrawSurfListArgs *listArgs, Gfx
     }
     R_SetObjectIdentityPlacement(context.source);
     R_ChangeDepthHackNearClip(context.source, 0.0);
-    depthRangeType = (context.source->scissorViewport.y != 0) - 1;
+    depthRangeType = (GfxDepthRangeType)((context.source->scissorViewport.y != 0) - 1);
     if ( depthRangeType != context.state->depthRangeType )
         R_ChangeDepthRange(context.state, depthRangeType);
     data = context.source->input.data;
@@ -218,7 +237,8 @@ unsigned int __cdecl R_TessCodeMeshList(const GfxDrawSurfListArgs *listArgs, Gfx
         context.state->prim.frameStats.fxIndexCount += 3 * codeMesh->triCount;
         if ( ++drawSurfIndex == drawSurfCount )
             break;
-        drawSurf.fields = (GfxDrawSurfFields)drawSurfList[drawSurfIndex];
+        //drawSurf.fields = (GfxDrawSurfFields)drawSurfList[drawSurfIndex];
+        drawSurf.packed = drawSurfList[drawSurfIndex].packed;
     }
     while ( (drawSurf.packed & 0xFFFFFFFFF00F0000uLL) == drawSurfKey );
     if ( args.triCount )
@@ -324,7 +344,7 @@ unsigned int __cdecl R_TessRopeMeshList(const GfxDrawSurfListArgs *listArgs, Gfx
     drawSurf.fields = drawSurfList->fields;
     R_SetObjectIdentityPlacement(context.source);
     R_ChangeDepthHackNearClip(context.source, 0.0);
-    depthRangeType = (context.source->scissorViewport.y != 0) - 1;
+    depthRangeType = (GfxDepthRangeType)((context.source->scissorViewport.y != 0) - 1);
     if ( depthRangeType != context.state->depthRangeType )
         R_ChangeDepthRange(context.state, depthRangeType);
     data = context.source->input.data;
@@ -393,7 +413,8 @@ unsigned int __cdecl R_TessRopeMeshList(const GfxDrawSurfListArgs *listArgs, Gfx
         context.state->prim.frameStats.fxIndexCount += 3 * codeMesh->triCount;
         if ( ++drawSurfIndex == drawSurfCount )
             break;
-        drawSurf.fields = (GfxDrawSurfFields)drawSurfList[drawSurfIndex];
+        //drawSurf.fields = (GfxDrawSurfFields)drawSurfList[drawSurfIndex];
+        drawSurf.packed = drawSurfList[drawSurfIndex].packed;
     }
     while ( (drawSurf.packed & 0xFFFFFFFFF00F0000uLL) == drawSurfKey );
     if ( args.triCount )
@@ -442,7 +463,7 @@ unsigned int __cdecl R_TessGlassMeshList(const GfxDrawSurfListArgs *listArgs, Gf
     drawSurf.fields = drawSurfList->fields;
     R_SetObjectIdentityPlacement(context.source);
     R_ChangeDepthHackNearClip(context.source, 0.0);
-    depthRangeType = (context.source->scissorViewport.y != 0) - 1;
+    depthRangeType = (GfxDepthRangeType)((context.source->scissorViewport.y != 0) - 1);
     if ( depthRangeType != context.state->depthRangeType )
         R_ChangeDepthRange(context.state, depthRangeType);
     data = context.source->input.data;
@@ -489,7 +510,8 @@ unsigned int __cdecl R_TessGlassMeshList(const GfxDrawSurfListArgs *listArgs, Gf
         context.state->prim.frameStats.fxIndexCount += 3 * codeMesh->triCount;
         if ( ++drawSurfIndex == drawSurfCount )
             break;
-        drawSurf.fields = (GfxDrawSurfFields)drawSurfList[drawSurfIndex];
+        //drawSurf.fields = (GfxDrawSurfFields)drawSurfList[drawSurfIndex];
+        drawSurf.packed = drawSurfList[drawSurfIndex].packed;
     }
     while ( (drawSurf.packed & 0xFFFFFFFFF00F0000uLL) == drawSurfKey );
     if ( args.triCount )
@@ -501,6 +523,7 @@ unsigned int __cdecl R_TessGlassMeshList(const GfxDrawSurfListArgs *listArgs, Gf
     return drawSurfIndex;
 }
 
+float g_ftDecalFadePower = 2.0f;
 unsigned int __cdecl R_TessMarkMeshList(const GfxDrawSurfListArgs *listArgs, GfxCmdBufContext prepassContext)
 {
     int packed_low; // eax
@@ -567,19 +590,19 @@ unsigned int __cdecl R_TessMarkMeshList(const GfxDrawSurfListArgs *listArgs, Gfx
     R_SetObjectIdentityPlacement(context.source);
     R_ChangeDepthHackNearClip(context.source, 0.0);
     data = context.source->input.data;
-    meshData = &data->markMesh;
+    meshData = (GfxMeshData*)&data->markMesh;
     markType = data->markMeshes[LOWORD(drawSurf.packed)].modelTypeAndSurf & 0xC0;
     v9 = markType == 64 || markType == 192;
-    declType = 2 - v9;
+    declType = (MaterialVertexDeclType)(2 - v9);
     R_SetVertexDeclTypeNormal(context.state, declType);
-    depthRangeType = (context.source->scissorViewport.y != 0) - 1;
+    depthRangeType = (GfxDepthRangeType)((context.source->scissorViewport.y != 0) - 1);
     if ( depthRangeType != context.state->depthRangeType )
         R_ChangeDepthRange(context.state, depthRangeType);
     R_SetMeshStream(context.state, meshData);
     if ( prepassContext.state )
     {
         R_SetVertexDeclTypeNormal(prepassContext.state, declType);
-        v12 = (context.source->scissorViewport.y != 0) - 1;
+        v12 = (GfxDepthRangeType)((context.source->scissorViewport.y != 0) - 1);
         if ( v12 != prepassContext.state->depthRangeType )
             R_ChangeDepthRange(prepassContext.state, v12);
         R_SetMeshStream(prepassContext.state, meshData);
@@ -758,7 +781,8 @@ unsigned int __cdecl R_TessMarkMeshList(const GfxDrawSurfListArgs *listArgs, Gfx
             context.state->prim.frameStats.fxIndexCount += 3 * markMesha->triCount;
             if ( ++drawSurfIndex == drawSurfCount )
                 break;
-            drawSurf.fields = (GfxDrawSurfFields)drawSurfList[drawSurfIndex];
+            //drawSurf.fields = (GfxDrawSurfFields)drawSurfList[drawSurfIndex];
+            drawSurf.packed = drawSurfList[drawSurfIndex].packed;
         }
         while ( __PAIR64__(HIDWORD(drawSurf.packed), *(unsigned int *)&drawSurfSubMask.fields & *(unsigned int *)&drawSurf.fields) == drawSurfSubKey );
     }
@@ -795,95 +819,95 @@ unsigned int __cdecl R_TessParticleCloudList(const GfxDrawSurfListArgs *listArgs
 
     context = listArgs->context;
     commonSource = listArgs->context.source;
-    if ( prepassContext.state
+    if (prepassContext.state
         && commonSource != prepassContext.source
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                    1230,
-                    0,
-                    "%s",
-                    "prepassContext.local.state == NULL || commonSource == prepassContext.local.source") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+            1230,
+            0,
+            "%s",
+            "prepassContext.local.state == NULL || commonSource == prepassContext.local.source"))
     {
         __debugbreak();
     }
     info = listArgs->info;
-    if ( r_logFile->current.integer )
+    if (r_logFile->current.integer)
     {
         v2 = va("--- RB_TessParticleCloud( %s ) ---\n", context.state->material->info.name);
         RB_LogPrint(v2);
     }
     drawSurf.fields = info->drawSurfs[listArgs->firstDrawSurfIndex].fields;
     data = commonSource->input.data;
-    if ( (unsigned int)LOWORD(drawSurf.packed) >= data->cloudCount
+    if ((unsigned int)LOWORD(drawSurf.packed) >= data->cloudCount
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                    1247,
-                    0,
-                    "drawSurf.fields.objectId doesn't index data->cloudCount\n\t%i not in [0, %i)",
-                    LOWORD(drawSurf.packed),
-                    data->cloudCount) )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+            1247,
+            0,
+            "drawSurf.fields.objectId doesn't index data->cloudCount\n\t%i not in [0, %i)",
+            LOWORD(drawSurf.packed),
+            data->cloudCount))
     {
         __debugbreak();
     }
     cloud = &data->clouds[LOWORD(drawSurf.packed)];
     R_SetParticleCloudConstants(commonSource, cloud);
     R_SetupPassCriticalPixelShaderArgs(context);
-    R_ChangeDepthHackNearClip(commonSource, 0.0);
+    R_ChangeDepthHackNearClip(commonSource, 0);
     R_SetVertexDeclTypeNormal(context.state, VERTDECL_PARTICLECLOUD);
-    depthRangeType = (commonSource->scissorViewport.y != 0) - 1;
-    if ( depthRangeType != context.state->depthRangeType )
+    depthRangeType = (GfxDepthRangeType)((commonSource->cameraView != 0) - 1);
+    if (depthRangeType != context.state->depthRangeType)
         R_ChangeDepthRange(context.state, depthRangeType);
     offset = data->clouds[LOWORD(drawSurf.packed)].offset;
     count = data->clouds[LOWORD(drawSurf.packed)].count;
-    if ( (!count || count + offset > 0x400)
+    if ((!count || count + offset > 0x400)
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                    1267,
-                    0,
-                    "%s",
-                    "count && ((offset+count) <= PARTICLE_CLOUD_QUADS)") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+            1267,
+            0,
+            "%s",
+            "count && ((offset+count) <= PARTICLE_CLOUD_QUADS)"))
     {
         __debugbreak();
     }
-    if ( data->clouds[LOWORD(drawSurf.packed)].gaussian )
+    if (data->clouds[LOWORD(drawSurf.packed)].gaussian)
         offset += 1024;
-    if ( context.state->prim.indexBuffer != gfxBuf.particleCloudIndexBuffer )
+    if (context.state->prim.indexBuffer != gfxBuf.particleCloudIndexBuffer)
         R_ChangeIndices(&context.state->prim, gfxBuf.particleCloudIndexBuffer);
     R_SetStreamSource(&context.state->prim, gfxBuf.particleCloudVertexBuffer, 0, 8u);
-    if ( (const GfxParticleCloud *)commonSource->viewMode != cloud )
+    if ((const GfxParticleCloud *)commonSource->objectPlacement != cloud)
     {
-        commonSource->viewMode = (GfxViewMode)cloud;
+        commonSource->objectPlacement = &cloud->placement;
         R_ChangeObjectPlacementRemote(commonSource, &cloud->placement);
     }
     R_SetupPassPerObjectArgs(context);
     R_SetupPassPerPrimArgs(context);
     args.baseIndex = 6 * offset;
     args.vertexCount = 4 * count;
-    if ( data->clouds[LOWORD(drawSurf.packed)].gaussian )
+    if (data->clouds[LOWORD(drawSurf.packed)].gaussian)
         args.vertexCount += 4096;
     else
         args.vertexCount = 4096;
     args.triCount = 2 * count;
     context.state->prim.frameStats.fxIndexCount += 6 * count;
     RB_TrackImmediatePrims(&context.state->prim, GFX_PRIM_STATS_FX);
-    if ( !context.state->prim.primStats
+    if (!context.state->prim.primStats
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                    1332,
-                    0,
-                    "%s",
-                    "context.state->prim.primStats") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+            1332,
+            0,
+            "%s",
+            "context.state->prim.primStats"))
     {
         __debugbreak();
     }
     R_DrawIndexedPrimitive(&context.state->prim, &args);
-    if ( !context.state->prim.primStats
+    if (!context.state->prim.primStats
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                    1344,
-                    0,
-                    "%s",
-                    "context.state->prim.primStats") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+            1344,
+            0,
+            "%s",
+            "context.state->prim.primStats"))
     {
         __debugbreak();
     }
@@ -985,7 +1009,8 @@ void __cdecl RB_CreateParticleCloud2dAxis(const GfxParticleCloud *cloud, const f
     if ( *viewUp >= 0.001 || viewUp[1] >= 0.001 )
     {
         viewRight_4 = -1.0 * *viewUp;
-        (*viewAxis)[0] = COERCE_FLOAT(LODWORD(-1.0f) ^ _mask__NegFloat_) * viewUp[1];
+        //(*viewAxis)[0] = COERCE_FLOAT(LODWORD(-1.0f) ^ _mask__NegFloat_) * viewUp[1];
+        (*viewAxis)[0] = (-(-1.0f) ) * viewUp[1];
         (*viewAxis)[1] = viewRight_4;
         v6 = viewUp[1];
         (*viewAxis)[2] = *viewUp;
@@ -1158,8 +1183,8 @@ void __cdecl R_DrawXModelSkinnedUncached(GfxCmdBufContext context, XSurface *xsu
 }
 
 unsigned int __cdecl R_TessXModelSkinnedDrawSurfList(
-                const GfxDrawSurfListArgs *listArgs,
-                GfxCmdBufContext prepassContext)
+    const GfxDrawSurfListArgs *listArgs,
+    GfxCmdBufContext prepassContext)
 {
     int updated; // eax
     int v3; // eax
@@ -1167,8 +1192,8 @@ unsigned int __cdecl R_TessXModelSkinnedDrawSurfList(
     unsigned int packed_high; // ecx
     int v6; // eax
     float z; // [esp+34h] [ebp-ACh]
-    float value; // [esp+38h] [ebp-A8h]
-    GfxScaledPlacement *remotePlacement; // [esp+54h] [ebp-8Ch]
+    float y; // [esp+38h] [ebp-A8h]
+    const GfxScaledPlacement *remotePlacement; // [esp+54h] [ebp-8Ch]
     GfxCmdBufContext context; // [esp+68h] [ebp-78h]
     unsigned int baseGfxEntIndex; // [esp+70h] [ebp-70h]
     const GfxDrawSurfListInfo *info; // [esp+74h] [ebp-6Ch]
@@ -1197,14 +1222,14 @@ unsigned int __cdecl R_TessXModelSkinnedDrawSurfList(
     updatedBurnFadeConstant = 0;
     context = listArgs->context;
     commonSource = listArgs->context.source;
-    if ( prepassContext.state
+    if (prepassContext.state
         && commonSource != prepassContext.source
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                    1610,
-                    0,
-                    "%s",
-                    "prepassContext.local.state == NULL || commonSource == prepassContext.local.source") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+            1610,
+            0,
+            "%s",
+            "prepassContext.local.state == NULL || commonSource == prepassContext.local.source"))
     {
         __debugbreak();
     }
@@ -1214,20 +1239,20 @@ unsigned int __cdecl R_TessXModelSkinnedDrawSurfList(
     drawSurfCount = info->drawSurfCount - listArgs->firstDrawSurfIndex;
     drawSurfList = &info->drawSurfs[listArgs->firstDrawSurfIndex];
     drawSurf.fields = drawSurfList->fields;
-    remotePlacement = (GfxScaledPlacement *)commonSource->sceneDef.viewOffset;
-    if ( (GfxCmdBufSourceState *)commonSource->viewMode != (GfxCmdBufSourceState *)commonSource->sceneDef.viewOffset )
+    remotePlacement = &commonSource->skinnedPlacement;
+    if (commonSource->objectPlacement != &commonSource->skinnedPlacement)
     {
-        commonSource->viewMode = (GfxViewMode)remotePlacement;
+        commonSource->objectPlacement = remotePlacement;
         R_ChangeObjectPlacementRemote(commonSource, remotePlacement);
     }
     updatedFade = R_UpdateCodeConstant(commonSource, 0x75u, 1.0, 1.0, 1.0, 1.0);
     RB_TrackImmediatePrims(&context.state->prim, GFX_PRIM_STATS_XMODELSKINNED);
     drawSurfIndex = 0;
-    if ( info->cameraView )
+    if (info->cameraView)
     {
         modelSurf = (const GfxModelSkinnedSurface *)((char *)data + 4 * LOWORD(drawSurf.packed));
         baseGfxEntIndex = modelSurf->info.gfxEntIndex;
-        if ( modelSurf->info.gfxEntIndex )
+        if (modelSurf->info.gfxEntIndex)
         {
             depthHackFlags = data->gfxEnts[baseGfxEntIndex].renderFxFlags & 2;
             materialTime = data->gfxEnts[baseGfxEntIndex].materialTime;
@@ -1245,211 +1270,207 @@ unsigned int __cdecl R_TessXModelSkinnedDrawSurfList(
             materialTime = 0.0f;
             currTextureOverride = -1;
         }
-        if ( RB_DrawSurf_Uses_ShaderConstantSet(&drawSurf) )
+        if (RB_DrawSurf_Uses_ShaderConstantSet(&drawSurf))
         {
             updatedBurnFadeConstant = 0;
         }
         else
         {
             updatedBurnFadeConstant = R_UpdateCodeConstant(
-                                                                    commonSource,
-                                                                    0x72u,
-                                                                    curDestructibleBurnAmount,
-                                                                    r_burnedDestructibleColor->current.value,
-                                                                    curDestructibleFadeAmount,
-                                                                    0.0);
-            if ( r_swrk_override_enable->current.enabled )
-                value = r_swrk_override_wetness->current.value;
+                commonSource,
+                0x72u,
+                curDestructibleBurnAmount,
+                r_burnedDestructibleColor->current.value,
+                curDestructibleFadeAmount,
+                0.0);
+            if (r_swrk_override_enable->current.enabled)
+            {
+                y = r_swrk_override_wetness->current.value;
+            }
             else
-                value = fabs(curWetness);
-            if ( curWetness >= 0.0 )
+            {
+                //LODWORD(y) = LODWORD(curWetness) & _mask__AbsFloat_;
+                y = -curWetness;
+            }
+            if (curWetness >= 0.0)
                 z = 0.0f;
             else
                 z = 1.0f;
-            updated = R_UpdateCodeConstant(commonSource, 0x76u, curDestructibleBurnAmount, value, z, 0.0);
+            updated = R_UpdateCodeConstant(commonSource, 0x76u, curDestructibleBurnAmount, y, z, 0.0);
             updatedBurnFadeConstant |= updated;
         }
         v3 = R_UpdateMaterialTime(
-                     commonSource,
-                     materialTime,
-                     curDestructibleBurnAmount,
-                     curDestructibleFadeAmount,
-                     curWetness);
+            commonSource,
+            materialTime,
+            curDestructibleBurnAmount,
+            curDestructibleFadeAmount,
+            curWetness);
         setupVertexShader = updatedFade | updatedBurnFadeConstant | v3;
         R_SetupPassCriticalPixelShaderArgs(context);
-        if ( setupVertexShader )
+        if (setupVertexShader)
             R_SetupPassVertexShaderArgs(context);
-        R_ChangeDepthHackNearClip(commonSource, *(float *)&depthHackFlags);
+        R_ChangeDepthHackNearClip(commonSource, depthHackFlags);
         R_SetVertexDeclTypeModelSkinned(modelSurf->xsurf, context.state);
-        if ( depthHackFlags != context.state->depthRangeType )
+        if (depthHackFlags != context.state->depthRangeType)
             R_ChangeDepthRange(context.state, (GfxDepthRangeType)depthHackFlags);
-        if ( baseTechType == 10 )
+        if (baseTechType == 10)
         {
             R_SetupPassPerObjectArgs(context);
-            if ( prepassContext.state )
+            if (prepassContext.state)
             {
                 R_SetupPassCriticalPixelShaderArgs(prepassContext);
-                if ( setupVertexShader )
+                if (setupVertexShader)
                     R_SetupPassVertexShaderArgs(prepassContext);
                 R_SetVertexDeclTypeModelSkinned(modelSurf->xsurf, prepassContext.state);
-                if ( depthHackFlags != prepassContext.state->depthRangeType )
+                if (depthHackFlags != prepassContext.state->depthRangeType)
                     R_ChangeDepthRange(prepassContext.state, (GfxDepthRangeType)depthHackFlags);
                 R_SetupPassPerObjectArgs(prepassContext);
                 R_SetupPassPerPrimArgs(prepassContext);
             }
-            if ( currTextureOverride >= 0 )
+            if (currTextureOverride >= 0)
                 R_TextureOverride(data, context, modelSurf->info.dobjModelIndex, currTextureOverride);
             drawSurfMask.packed = -234946560;
             drawSurfKey = drawSurf.packed & 0xFFFFFFFFF1FF0000uLL;
-            while ( 1 )
+            do
             {
-                if ( prepassContext.state )
+                if (prepassContext.state)
                     R_DrawXModelSkinnedModelSurf(prepassContext, modelSurf);
                 R_SetModelLightingCoordsForSource(modelSurf->info.lightingHandle, commonSource);
                 R_SetReflectionProbe(context, (drawSurf.packed >> 25) & 7);
                 R_SetupPassPerPrimArgs(context);
                 R_DrawXModelSkinnedModelSurf(context, modelSurf);
-                if ( ++drawSurfIndex == drawSurfCount )
+                if (++drawSurfIndex == drawSurfCount)
                     break;
-                drawSurf.fields = (GfxDrawSurfFields)drawSurfList[drawSurfIndex];
-                if ( (drawSurfMask.packed & drawSurf.packed) != drawSurfKey )
+                //drawSurf.fields = (GfxDrawSurfFields)drawSurfList[drawSurfIndex];
+                drawSurf.packed = drawSurfList[drawSurfIndex].packed;
+                if ((drawSurfMask.packed & drawSurf.packed) != drawSurfKey)
                     break;
                 v4 = 4 * LOWORD(drawSurf.packed);
                 modelSurf = (const GfxModelSkinnedSurface *)&data->surfsBuffer[v4];
-                if ( *(unsigned __int16 *)&data->surfsBuffer[v4 + 14] != baseGfxEntIndex )
-                {
-                    if ( R_DrawXModelSurfCheckBreak(
-                                 modelSurf->info.gfxEntIndex,
-                                 data,
-                                 depthHackFlags,
-                                 materialTime,
-                                 curDestructibleBurnAmount,
-                                 curDestructibleFadeAmount,
-                                 curWetness,
-                                 1,
-                                 currTextureOverride,
-                                 drawOutlineFlags) )
-                    {
-                        break;
-                    }
-                }
-            }
+            } while (*(unsigned __int16 *)&data->surfsBuffer[v4 + 14] == baseGfxEntIndex
+                || !R_DrawXModelSurfCheckBreak(
+                    modelSurf->info.gfxEntIndex,
+                    data,
+                    depthHackFlags,
+                    materialTime,
+                    curDestructibleBurnAmount,
+                    curDestructibleFadeAmount,
+                    curWetness,
+                    1,
+                    currTextureOverride,
+                    drawOutlineFlags));
         }
         else
         {
-            if ( prepassContext.state
+            if (prepassContext.state
                 && !Assert_MyHandler(
-                            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                            1798,
-                            0,
-                            "%s",
-                            "prepassContext.local.state == NULL") )
+                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+                    1798,
+                    0,
+                    "%s",
+                    "prepassContext.local.state == NULL"))
             {
                 __debugbreak();
             }
-            if ( baseTechType == 10
+            if (baseTechType == 10
                 && !Assert_MyHandler(
-                            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                            1799,
-                            0,
-                            "%s",
-                            "baseTechType != TECHNIQUE_LIT") )
+                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+                    1799,
+                    0,
+                    "%s",
+                    "baseTechType != TECHNIQUE_LIT"))
             {
                 __debugbreak();
             }
             R_SetupPassPerObjectArgs(context);
             R_SetupPassPerPrimArgs(context);
-            if ( currTextureOverride >= 0 )
+            if (currTextureOverride >= 0)
                 R_TextureOverride(data, context, modelSurf->info.dobjModelIndex, currTextureOverride);
             drawSurfMask.packed = -267452416;
             drawSurfKey = drawSurf.packed & 0xFFFFFFFFF00F0000uLL;
-            while ( 1 )
+            do
             {
                 R_DrawXModelSkinnedModelSurf(context, modelSurf);
-                if ( ++drawSurfIndex == drawSurfCount )
+                if (++drawSurfIndex == drawSurfCount)
                     break;
                 packed_high = HIDWORD(drawSurfList[drawSurfIndex].packed);
-                *(unsigned int *)&drawSurf.fields = drawSurfList[drawSurfIndex].fields;
+                //*(_DWORD *)&drawSurf.fields = drawSurfList[drawSurfIndex].fields;
+                drawSurf.packed = drawSurfList[drawSurfIndex].packed;
                 HIDWORD(drawSurf.packed) = packed_high;
-                if ( __PAIR64__(
-                             HIDWORD(drawSurfMask.packed) & packed_high,
-                             *(unsigned int *)&drawSurfMask.fields & *(unsigned int *)&drawSurf.fields) != drawSurfKey )
+                if (__PAIR64__(
+                    HIDWORD(drawSurfMask.packed) & packed_high,
+                    *(_DWORD *)&drawSurfMask.fields & *(_DWORD *)&drawSurf.fields) != drawSurfKey)
                     break;
                 v6 = 4 * LOWORD(drawSurf.packed);
                 modelSurf = (const GfxModelSkinnedSurface *)&data->surfsBuffer[v6];
-                if ( *(unsigned __int16 *)&data->surfsBuffer[v6 + 14] != baseGfxEntIndex )
-                {
-                    if ( R_DrawXModelSurfCheckBreak(
-                                 modelSurf->info.gfxEntIndex,
-                                 data,
-                                 depthHackFlags,
-                                 materialTime,
-                                 curDestructibleBurnAmount,
-                                 curDestructibleFadeAmount,
-                                 curWetness,
-                                 1,
-                                 currTextureOverride,
-                                 drawOutlineFlags) )
-                    {
-                        break;
-                    }
-                }
-            }
+            } while (*(unsigned __int16 *)&data->surfsBuffer[v6 + 14] == baseGfxEntIndex
+                || !R_DrawXModelSurfCheckBreak(
+                    modelSurf->info.gfxEntIndex,
+                    data,
+                    depthHackFlags,
+                    materialTime,
+                    curDestructibleBurnAmount,
+                    curDestructibleFadeAmount,
+                    curWetness,
+                    1,
+                    currTextureOverride,
+                    drawOutlineFlags));
         }
     }
     else
     {
-        if ( prepassContext.state
+        if (prepassContext.state
             && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                        1852,
-                        0,
-                        "%s",
-                        "prepassContext.local.state == NULL") )
+                "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+                1852,
+                0,
+                "%s",
+                "prepassContext.local.state == NULL"))
         {
             __debugbreak();
         }
-        if ( baseTechType == 10
+        if (baseTechType == 10
             && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                        1853,
-                        0,
-                        "%s",
-                        "baseTechType != TECHNIQUE_LIT") )
+                "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+                1853,
+                0,
+                "%s",
+                "baseTechType != TECHNIQUE_LIT"))
         {
             __debugbreak();
         }
         modelSurf = (const GfxModelSkinnedSurface *)((char *)data + 4 * LOWORD(drawSurf.packed));
-        if ( modelSurf->info.gfxEntIndex )
+        if (modelSurf->info.gfxEntIndex)
             materialTime = data->gfxEnts[modelSurf->info.gfxEntIndex].materialTime;
         else
             materialTime = 0.0f;
         setupVertexShader = R_UpdateMaterialTime(commonSource, materialTime, 0.0, 0.0, 0.0);
         R_SetupPassCriticalPixelShaderArgs(context);
-        if ( setupVertexShader )
+        if (setupVertexShader)
             R_SetupPassVertexShaderArgs(context);
-        R_ChangeDepthHackNearClip(commonSource, 0.0);
+        R_ChangeDepthHackNearClip(commonSource, 0);
         R_SetVertexDeclTypeModelSkinned(modelSurf->xsurf, context.state);
-        if ( context.state->depthRangeType != GFX_DEPTH_RANGE_FULL )
+        if (context.state->depthRangeType != GFX_DEPTH_RANGE_FULL)
             R_ChangeDepthRange(context.state, GFX_DEPTH_RANGE_FULL);
         R_SetupPassPerObjectArgs(context);
         R_SetupPassPerPrimArgs(context);
         drawSurfMask.packed = -267452416;
         drawSurfKey = drawSurf.packed & 0xFFFFFFFFF00F0000uLL;
-        while ( 1 )
+        while (1)
         {
             R_DrawXModelSkinnedModelSurf(context, modelSurf);
-            if ( ++drawSurfIndex == drawSurfCount )
+            if (++drawSurfIndex == drawSurfCount)
                 break;
-            drawSurf.fields = (GfxDrawSurfFields)drawSurfList[drawSurfIndex];
-            if ( (drawSurfMask.packed & drawSurf.packed) != drawSurfKey )
+            //drawSurf.fields = (GfxDrawSurfFields)drawSurfList[drawSurfIndex];
+            drawSurf.packed = drawSurfList[drawSurfIndex].packed;
+            if ((drawSurfMask.packed & drawSurf.packed) != drawSurfKey)
                 break;
             modelSurf = (const GfxModelSkinnedSurface *)((char *)data + 4 * LOWORD(drawSurf.packed));
         }
     }
     RB_EndTrackImmediatePrims(&context.state->prim);
-    if ( !drawSurfIndex
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp", 1937, 0, "%s", "drawSurfIndex") )
+    if (!drawSurfIndex
+        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp", 1937, 0, "%s", "drawSurfIndex"))
     {
         __debugbreak();
     }
@@ -1457,8 +1478,8 @@ unsigned int __cdecl R_TessXModelSkinnedDrawSurfList(
 }
 
 unsigned int __cdecl R_TessXModelRigidDrawSurfList(
-                const GfxDrawSurfListArgs *listArgs,
-                GfxCmdBufContext prepassContext)
+    const GfxDrawSurfListArgs *listArgs,
+    GfxCmdBufContext prepassContext)
 {
     const char *v2; // eax
     int updated; // eax
@@ -1486,21 +1507,21 @@ unsigned int __cdecl R_TessXModelRigidDrawSurfList(
     updatedBurnFadeConstant = 0;
     context = listArgs->context;
     commonSource = listArgs->context.source;
-    if ( prepassContext.state
+    if (prepassContext.state
         && commonSource != prepassContext.source
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                    1966,
-                    0,
-                    "%s",
-                    "prepassContext.local.state == NULL || commonSource == prepassContext.local.source") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+            1966,
+            0,
+            "%s",
+            "prepassContext.local.state == NULL || commonSource == prepassContext.local.source"))
     {
         __debugbreak();
     }
     data = commonSource->input.data;
     info = listArgs->info;
     baseTechType = info->baseTechType;
-    if ( r_logFile->current.integer )
+    if (r_logFile->current.integer)
     {
         v2 = va("--- RB_TessXModelRigid( %s ) ---\n", context.state->material->info.name);
         RB_LogPrint(v2);
@@ -1508,31 +1529,31 @@ unsigned int __cdecl R_TessXModelRigidDrawSurfList(
     drawSurfCount = info->drawSurfCount - listArgs->firstDrawSurfIndex;
     drawSurfList = &info->drawSurfs[listArgs->firstDrawSurfIndex];
     drawSurf.fields = drawSurfList->fields;
-    commonSource->viewMode = (GfxViewMode)&s_manualObjectPlacement;
+    commonSource->objectPlacement = &s_manualObjectPlacement;
     updatedFade = R_UpdateCodeConstant(commonSource, 0x75u, 1.0, 1.0, 1.0, 1.0);
     RB_TrackImmediatePrims(&context.state->prim, GFX_PRIM_STATS_XMODELRIGID);
-    if ( !context.state->prim.primStats
+    if (!context.state->prim.primStats
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                    1991,
-                    0,
-                    "%s",
-                    "context.state->prim.primStats") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+            1991,
+            0,
+            "%s",
+            "context.state->prim.primStats"))
     {
         __debugbreak();
     }
-    if ( info->cameraView )
+    if (info->cameraView)
     {
         modelSurf = (const GfxModelRigidSurface *)((char *)data + 4 * LOWORD(drawSurf.packed));
         gfxEntIndex = modelSurf->surf.info.gfxEntIndex;
-        if ( modelSurf->surf.info.gfxEntIndex )
+        if (modelSurf->surf.info.gfxEntIndex)
         {
             depthHackFlags = data->gfxEnts[gfxEntIndex].renderFxFlags & 2;
             materialTime = data->gfxEnts[gfxEntIndex].materialTime;
             curDestructibleFadeAmount = data->gfxEnts[gfxEntIndex].destructibleFadeAmount;
             curDestructibleBurnAmount = data->gfxEnts[gfxEntIndex].destructibleBurnAmount;
             curWetness = data->gfxEnts[gfxEntIndex].wetness;
-            if ( data->gfxEnts[gfxEntIndex].textureOverrideIndex != -1 )
+            if (data->gfxEnts[gfxEntIndex].textureOverrideIndex != -1)
                 R_TextureOverride(
                     data,
                     context,
@@ -1547,71 +1568,71 @@ unsigned int __cdecl R_TessXModelRigidDrawSurfList(
             curDestructibleFadeAmount = 0.0f;
             curWetness = 0.0f;
         }
-        if ( RB_DrawSurf_Uses_ShaderConstantSet(&drawSurf) )
+        if (RB_DrawSurf_Uses_ShaderConstantSet(&drawSurf))
         {
             updatedBurnFadeConstant = 0;
         }
         else
         {
             updatedBurnFadeConstant = R_UpdateCodeConstant(
-                                                                    commonSource,
-                                                                    0x72u,
-                                                                    curDestructibleBurnAmount,
-                                                                    r_burnedDestructibleColor->current.value,
-                                                                    curDestructibleFadeAmount,
-                                                                    0.0);
+                commonSource,
+                0x72u,
+                curDestructibleBurnAmount,
+                r_burnedDestructibleColor->current.value,
+                curDestructibleFadeAmount,
+                0.0);
             updated = R_UpdateCodeConstant(commonSource, 0x76u, curDestructibleBurnAmount, 0.0, 0.0, 0.0);
             updatedBurnFadeConstant |= updated;
         }
         v4 = R_UpdateMaterialTime(
-                     commonSource,
-                     materialTime,
-                     curDestructibleBurnAmount,
-                     curDestructibleFadeAmount,
-                     curWetness);
+            commonSource,
+            materialTime,
+            curDestructibleBurnAmount,
+            curDestructibleFadeAmount,
+            curWetness);
         setupVertexShader = updatedFade | updatedBurnFadeConstant | v4;
         R_SetupPassCriticalPixelShaderArgs(context);
-        if ( setupVertexShader )
+        if (setupVertexShader)
             R_SetupPassVertexShaderArgs(context);
-        R_ChangeDepthHackNearClip(commonSource, *(float *)&depthHackFlags);
+        R_ChangeDepthHackNearClip(commonSource, depthHackFlags);
         R_SetVertexDeclTypeModelSkinned(modelSurf->surf.xsurf, context.state);
-        if ( depthHackFlags != context.state->depthRangeType )
+        if (depthHackFlags != context.state->depthRangeType)
             R_ChangeDepthRange(context.state, (GfxDepthRangeType)depthHackFlags);
-        if ( baseTechType == 10 )
+        if (baseTechType == 10)
         {
-            if ( prepassContext.state )
+            if (prepassContext.state)
             {
                 R_SetupPassCriticalPixelShaderArgs(prepassContext);
-                if ( setupVertexShader )
+                if (setupVertexShader)
                     R_SetupPassVertexShaderArgs(prepassContext);
                 R_SetVertexDeclTypeModelSkinned(modelSurf->surf.xsurf, prepassContext.state);
-                if ( depthHackFlags != prepassContext.state->depthRangeType )
+                if (depthHackFlags != prepassContext.state->depthRangeType)
                     R_ChangeDepthRange(prepassContext.state, (GfxDepthRangeType)depthHackFlags);
             }
-            if ( prepassContext.state )
+            if (prepassContext.state)
                 R_SetupPassPerObjectArgs(prepassContext);
             R_SetupPassPerObjectArgs(context);
-            drawSurfIndex = R_DrawXModelSurfLit(drawSurfList, drawSurfCount, context, prepassContext, info);
+            drawSurfIndex = R_DrawXModelSurfLit(drawSurfList, drawSurfCount, context);
         }
         else
         {
-            if ( prepassContext.state
+            if (prepassContext.state
                 && !Assert_MyHandler(
-                            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                            2108,
-                            0,
-                            "%s",
-                            "prepassContext.local.state == NULL") )
+                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+                    2108,
+                    0,
+                    "%s",
+                    "prepassContext.local.state == NULL"))
             {
                 __debugbreak();
             }
-            if ( baseTechType == 10
+            if (baseTechType == 10
                 && !Assert_MyHandler(
-                            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                            2109,
-                            0,
-                            "%s",
-                            "baseTechType != TECHNIQUE_LIT") )
+                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+                    2109,
+                    0,
+                    "%s",
+                    "baseTechType != TECHNIQUE_LIT"))
             {
                 __debugbreak();
             }
@@ -1621,37 +1642,37 @@ unsigned int __cdecl R_TessXModelRigidDrawSurfList(
     }
     else
     {
-        if ( prepassContext.state
+        if (prepassContext.state
             && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                        2118,
-                        0,
-                        "%s",
-                        "prepassContext.local.state == NULL") )
+                "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+                2118,
+                0,
+                "%s",
+                "prepassContext.local.state == NULL"))
         {
             __debugbreak();
         }
-        if ( baseTechType == 10
+        if (baseTechType == 10
             && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                        2119,
-                        0,
-                        "%s",
-                        "baseTechType != TECHNIQUE_LIT") )
+                "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+                2119,
+                0,
+                "%s",
+                "baseTechType != TECHNIQUE_LIT"))
         {
             __debugbreak();
         }
         R_SetupPassCriticalPixelShaderArgs(context);
-        R_ChangeDepthHackNearClip(commonSource, 0.0);
+        R_ChangeDepthHackNearClip(commonSource, 0);
         R_SetVertexDeclTypeNormal(context.state, VERTDECL_PACKED);
-        if ( context.state->depthRangeType != GFX_DEPTH_RANGE_FULL )
+        if (context.state->depthRangeType != GFX_DEPTH_RANGE_FULL)
             R_ChangeDepthRange(context.state, GFX_DEPTH_RANGE_FULL);
         R_SetupPassPerObjectArgs(context);
         drawSurfIndex = R_DrawXModelSurf(drawSurfList, drawSurfCount, context);
     }
     RB_EndTrackImmediatePrims(&context.state->prim);
-    if ( !drawSurfIndex
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp", 2146, 0, "%s", "drawSurfIndex") )
+    if (!drawSurfIndex
+        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp", 2146, 0, "%s", "drawSurfIndex"))
     {
         __debugbreak();
     }
@@ -1662,8 +1683,8 @@ unsigned int __cdecl R_TessXModelWaterList(const GfxDrawSurfListArgs *listArgs, 
 {
     GfxCmdBufState *state; // edx
     const char *v3; // eax
-    GfxCmdBufSourceState *ActiveWorldMatrix; // eax
-    GfxCmdBufSourceState *matrix; // [esp+28h] [ebp-90h]
+    GfxMatrix *ActiveWorldMatrix; // eax
+    GfxMatrix *matrix; // [esp+28h] [ebp-90h]
     float origin[3]; // [esp+2Ch] [ebp-8Ch] BYREF
     unsigned int offset1; // [esp+38h] [ebp-80h]
     unsigned int offset0; // [esp+3Ch] [ebp-7Ch]
@@ -1685,19 +1706,19 @@ unsigned int __cdecl R_TessXModelWaterList(const GfxDrawSurfListArgs *listArgs, 
     context.source = listArgs->context.source;
     context.state = state;
     commonSource = context.source;
-    if ( prepassContext.state
+    if (prepassContext.state
         && commonSource != prepassContext.source
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                    2162,
-                    0,
-                    "%s",
-                    "prepassContext.local.state == NULL || commonSource == prepassContext.local.source") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+            2162,
+            0,
+            "%s",
+            "prepassContext.local.state == NULL || commonSource == prepassContext.local.source"))
     {
         __debugbreak();
     }
     info = listArgs->info;
-    if ( r_logFile->current.integer )
+    if (r_logFile->current.integer)
     {
         v3 = va("--- R_TessXModelWaterList( %s ) ---\n", context.state->material->info.name);
         RB_LogPrint(v3);
@@ -1706,33 +1727,33 @@ unsigned int __cdecl R_TessXModelWaterList(const GfxDrawSurfListArgs *listArgs, 
     drawSurfList = &info->drawSurfs[listArgs->firstDrawSurfIndex];
     drawSurf.fields = drawSurfList->fields;
     data = commonSource->input.data;
-    if ( !commonSource->scissorViewport.y
+    if (!commonSource->cameraView
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                    2180,
-                    0,
-                    "%s",
-                    "commonSource->cameraView") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+            2180,
+            0,
+            "%s",
+            "commonSource->cameraView"))
     {
         __debugbreak();
     }
     drawSurfMask.packed = 0xFFF807FFF00F0000uLL;
     drawSurfKey = drawSurf.packed & 0xFFF807FFF00F0000uLL;
-    commonSource->viewMode = (GfxViewMode)&s_manualObjectPlacement;
+    commonSource->objectPlacement = &s_manualObjectPlacement;
     R_UpdateMaterialTime(commonSource, 0.0, 0.0, 0.0, 0.0);
-    if ( context.state->depthRangeType )
+    if (context.state->depthRangeType)
         R_ChangeDepthRange(context.state, GFX_DEPTH_RANGE_SCENE);
     R_SetupPassVertexShaderArgs(context);
     R_SetupPassCriticalPixelShaderArgs(context);
     R_SetVertexDeclTypeNormal(context.state, VERTDECL_WATER);
     RB_TrackImmediatePrims(&context.state->prim, GFX_PRIM_STATS_CODE);
-    if ( !context.state->prim.primStats
+    if (!context.state->prim.primStats
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                    2210,
-                    0,
-                    "%s",
-                    "context.state->prim.primStats") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+            2210,
+            0,
+            "%s",
+            "context.state->prim.primStats"))
     {
         __debugbreak();
     }
@@ -1740,34 +1761,34 @@ unsigned int __cdecl R_TessXModelWaterList(const GfxDrawSurfListArgs *listArgs, 
     do
     {
         modelSurf = (const GfxModelWaterSurface *)((char *)data + 4 * LOWORD(drawSurf.packed));
-        matrix = R_GetActiveWorldMatrix(commonSource);
+        matrix = R_GetActiveWorldMatrix(commonSource)->matrices.matrix;
         MatrixIdentity33(axis);
-        origin[0] = modelSurf->origin[0] - commonSource->skinnedPlacement.base.origin[0];
-        origin[1] = modelSurf->origin[1] - commonSource->skinnedPlacement.base.origin[1];
-        origin[2] = modelSurf->origin[2] - commonSource->skinnedPlacement.base.origin[2];
-        ikMatrixSet44((float (*)[4])matrix, origin, axis, 1.0);
+        origin[0] = modelSurf->origin[0] - commonSource->eyeOffset[0];
+        origin[1] = modelSurf->origin[1] - commonSource->eyeOffset[1];
+        origin[2] = modelSurf->origin[2] - commonSource->eyeOffset[2];
+        ikMatrixSet44(matrix->m, origin, axis, 1.0);
         args.baseIndex = 0;
         args.triCount = modelSurf->triCount;
         args.vertexCount = modelSurf->vertCount;
         offset0 = 16 * modelSurf->baseVertex0;
         offset1 = 16 * modelSurf->baseVertex1;
-        if ( context.state->prim.indexBuffer != modelSurf->ib )
+        if (context.state->prim.indexBuffer != modelSurf->ib)
             R_ChangeIndices(&context.state->prim, modelSurf->ib);
         R_SetDoubleStreamSource(&context.state->prim, modelSurf->vb0, offset0, 0x10u, modelSurf->vb1, offset1, 0x10u);
         R_SetWaterSimulationConstants(commonSource, modelSurf->interpolate);
         R_SetupPassPerObjectArgs(context);
         R_SetupPassPerPrimArgs(context);
         R_DrawIndexedPrimitive(&context.state->prim, &args);
-        if ( r_showTess->current.integer )
+        if (r_showTess->current.integer)
         {
-            ActiveWorldMatrix = R_GetActiveWorldMatrix(commonSource);
-            RB_ShowTess(context, ActiveWorldMatrix->matrices.matrix[0].m[3], "XMRigid", colorWhite);
+            ActiveWorldMatrix = R_GetActiveWorldMatrix(commonSource)->matrices.matrix;
+            RB_ShowTess(context, ActiveWorldMatrix->m[3], "XMRigid", colorWhite);
         }
-        if ( ++drawSurfIndex == drawSurfCount )
+        if (++drawSurfIndex == drawSurfCount)
             break;
-        drawSurf.fields = (GfxDrawSurfFields)drawSurfList[drawSurfIndex];
-    }
-    while ( (drawSurfMask.packed & drawSurf.packed) == drawSurfKey );
+        //drawSurf.fields = (GfxDrawSurfFields)drawSurfList[drawSurfIndex];
+        drawSurf.packed = drawSurfList[drawSurfIndex].packed;
+    } while ((drawSurfMask.packed & drawSurf.packed) == drawSurfKey);
     RB_EndTrackImmediatePrims(&context.state->prim);
     return drawSurfIndex;
 }
@@ -1798,8 +1819,8 @@ void __cdecl R_SetDoubleStreamSource(
 }
 
 unsigned int __cdecl R_TessXModelRigidSkinnedDrawSurfList(
-                const GfxDrawSurfListArgs *listArgs,
-                GfxCmdBufContext prepassContext)
+    const GfxDrawSurfListArgs *listArgs,
+    GfxCmdBufContext prepassContext)
 {
     const char *v2; // eax
     GfxScaledPlacement *remotePlacement; // [esp+20h] [ebp-78h]
@@ -1824,49 +1845,49 @@ unsigned int __cdecl R_TessXModelRigidSkinnedDrawSurfList(
 
     context = listArgs->context;
     commonSource = listArgs->context.source;
-    if ( prepassContext.state
+    if (prepassContext.state
         && commonSource != prepassContext.source
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                    2306,
-                    0,
-                    "%s",
-                    "prepassContext.state == NULL || commonSource == prepassContext.source") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+            2306,
+            0,
+            "%s",
+            "prepassContext.state == NULL || commonSource == prepassContext.source"))
     {
         __debugbreak();
     }
     data = commonSource->input.data;
     info = listArgs->info;
     baseTechType = info->baseTechType;
-    if ( r_logFile->current.integer )
+    if (r_logFile->current.integer)
     {
         v2 = va("--- R_TessXModelRigidSkinnedDrawSurfList( %s ) ---\n", context.state->material->info.name);
         RB_LogPrint(v2);
     }
     drawSurfCount = info->drawSurfCount - listArgs->firstDrawSurfIndex;
     drawSurfList = &info->drawSurfs[listArgs->firstDrawSurfIndex];
-    if ( !info->cameraView )
+    if (!info->cameraView)
     {
         R_SetupPassCriticalPixelShaderArgs(context);
-        R_ChangeDepthHackNearClip(commonSource, 0.0);
-        if ( context.state->depthRangeType != GFX_DEPTH_RANGE_FULL )
+        R_ChangeDepthHackNearClip(commonSource, 0);
+        if (context.state->depthRangeType != GFX_DEPTH_RANGE_FULL)
             R_ChangeDepthRange(context.state, GFX_DEPTH_RANGE_FULL);
     }
     R_SetVertexDeclTypeNormal(context.state, VERTDECL_PACKED);
     setupPixelShader = 1;
     drawSurfSubMask.packed = -65536;
-    if ( baseTechType != 10 )
-        *(unsigned int *)&drawSurfSubMask.fields = -267452416;
+    if (baseTechType != 10)
+        *(_DWORD *)&drawSurfSubMask.fields = -267452416;
     drawSurf.fields = drawSurfList->fields;
     drawSurfKey = drawSurfList->packed & 0xFFFFFFFFF00F0000uLL;
     RB_TrackImmediatePrims(&context.state->prim, GFX_PRIM_STATS_XMODELRIGID);
-    if ( !context.state->prim.primStats
+    if (!context.state->prim.primStats
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                    2347,
-                    0,
-                    "%s",
-                    "context.state->prim.primStats") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+            2347,
+            0,
+            "%s",
+            "context.state->prim.primStats"))
     {
         __debugbreak();
     }
@@ -1877,12 +1898,12 @@ unsigned int __cdecl R_TessXModelRigidSkinnedDrawSurfList(
         do
         {
             modelSurf = (const GfxModelRigidSurface *)((char *)data + 4 * LOWORD(drawSurf.packed));
-            if ( info->cameraView )
+            if (info->cameraView)
             {
                 gfxEntIndex = modelSurf->surf.info.gfxEntIndex;
-                if ( modelSurf->surf.info.gfxEntIndex )
+                if (modelSurf->surf.info.gfxEntIndex)
                 {
-                    depthHackFlags = data->gfxEnts[gfxEntIndex].renderFxFlags & 2;
+                    depthHackFlags = (GfxDepthRangeType)(data->gfxEnts[gfxEntIndex].renderFxFlags & 2);
                     materialTime = data->gfxEnts[gfxEntIndex].materialTime;
                 }
                 else
@@ -1891,44 +1912,43 @@ unsigned int __cdecl R_TessXModelRigidSkinnedDrawSurfList(
                     materialTime = 0.0f;
                 }
                 setupVertexShader = R_UpdateMaterialTime(commonSource, materialTime, 0.0, 0.0, 0.0);
-                if ( setupVertexShader | setupPixelShader )
+                if (setupVertexShader | setupPixelShader)
                     R_SetupPassCriticalPixelShaderArgs(context);
-                if ( setupVertexShader )
+                if (setupVertexShader)
                     R_SetupPassVertexShaderArgs(context);
-                R_ChangeDepthHackNearClip(commonSource, *(float *)&depthHackFlags);
-                if ( baseTechType == 10 )
+                R_ChangeDepthHackNearClip(commonSource, depthHackFlags);
+                if (baseTechType == 10)
                 {
                     R_SetModelLightingCoordsForSource(modelSurf->surf.info.lightingHandle, commonSource);
                     R_SetReflectionProbe(context, (drawSurf.packed >> 25) & 7);
                 }
-                if ( depthHackFlags != context.state->depthRangeType )
+                if (depthHackFlags != context.state->depthRangeType)
                     R_ChangeDepthRange(context.state, depthHackFlags);
                 setupPixelShader = 0;
             }
-            remotePlacement = &modelSurf->placement;
-            if ( (GfxScaledPlacement *)commonSource->viewMode != &modelSurf->placement )
+            remotePlacement = (GfxScaledPlacement *)&modelSurf->placement;
+            if (commonSource->objectPlacement != &modelSurf->placement)
             {
-                commonSource->viewMode = (GfxViewMode)remotePlacement;
+                commonSource->objectPlacement = remotePlacement;
                 R_ChangeObjectPlacementRemote(commonSource, remotePlacement);
             }
             R_SetupPassPerObjectArgs(context);
             R_SetupPassPerPrimArgs(context);
             R_DrawXModelSkinnedUncached(context, modelSurf->surf.xsurf, modelSurf->surf.xsurf->verts0);
-            if ( ++drawSurfIndex == drawSurfCount )
+            if (++drawSurfIndex == drawSurfCount)
                 break;
-            drawSurf.fields = (GfxDrawSurfFields)drawSurfList[drawSurfIndex];
-        }
-        while ( (drawSurfSubMask.packed & drawSurf.packed) == drawSurfSubKey );
-    }
-    while ( drawSurfIndex != drawSurfCount
-             && __PAIR64__(HIDWORD(drawSurf.packed), *(unsigned int *)&drawSurf.fields & 0xF00F0000) == drawSurfKey );
+            //drawSurf.fields = (GfxDrawSurfFields)drawSurfList[drawSurfIndex];
+            drawSurf.packed = drawSurfList[drawSurfIndex].packed;
+        } while ((drawSurfSubMask.packed & drawSurf.packed) == drawSurfSubKey);
+    } while (drawSurfIndex != drawSurfCount
+        && __PAIR64__(HIDWORD(drawSurf.packed), *(_DWORD *)&drawSurf.fields & 0xF00F0000) == drawSurfKey);
     RB_EndTrackImmediatePrims(&context.state->prim);
     return drawSurfIndex;
 }
 
 unsigned int __cdecl R_TessStaticModelRigidDrawSurfList(
-                const GfxDrawSurfListArgs *listArgs,
-                GfxCmdBufContext prepassContext)
+    const GfxDrawSurfListArgs *listArgs,
+    GfxCmdBufContext prepassContext)
 {
     const char *v2; // eax
     GfxDepthRangeType v4; // [esp+4h] [ebp-28h]
@@ -1941,71 +1961,71 @@ unsigned int __cdecl R_TessStaticModelRigidDrawSurfList(
 
     context = listArgs->context;
     commonSource = listArgs->context.source;
-    if ( prepassContext.state
+    if (prepassContext.state
         && commonSource != prepassContext.source
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                    2450,
-                    0,
-                    "%s",
-                    "prepassContext.local.state == NULL || commonSource == prepassContext.local.source") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+            2450,
+            0,
+            "%s",
+            "prepassContext.local.state == NULL || commonSource == prepassContext.local.source"))
     {
         __debugbreak();
     }
     info = listArgs->info;
-    if ( r_logFile->current.integer )
+    if (r_logFile->current.integer)
     {
         v2 = va("--- R_TessStaticModelRigidDrawSurfList( %s ) ---\n", context.state->material->info.name);
         RB_LogPrint(v2);
     }
     baseTechType = info->baseTechType;
     R_SetupPassCriticalPixelShaderArgs(context);
-    R_SetGameTime(context.source, context.source->materialTime);
+    R_SetGameTime(context.source, context.source->sceneDef.floatTime);
     R_SetupPassVertexShaderArgs(context);
-    if ( prepassContext.state )
+    if (prepassContext.state)
         R_SetupPassVertexShaderArgs(prepassContext);
-    commonSource->viewMode = (GfxViewMode)&s_manualObjectPlacement;
-    R_ChangeDepthHackNearClip(commonSource, 0.0);
+    commonSource->objectPlacement = &s_manualObjectPlacement;
+    R_ChangeDepthHackNearClip(commonSource, 0);
     R_SetVertexDeclTypeNormal(context.state, VERTDECL_PACKED);
-    depthRangeType = (commonSource->scissorViewport.y != 0) - 1;
-    if ( depthRangeType != context.state->depthRangeType )
+    depthRangeType = (GfxDepthRangeType)((commonSource->cameraView != 0) - 1);
+    if (depthRangeType != context.state->depthRangeType)
         R_ChangeDepthRange(context.state, depthRangeType);
-    if ( prepassContext.state )
+    if (prepassContext.state)
     {
         R_SetupPassCriticalPixelShaderArgs(prepassContext);
         R_SetVertexDeclTypeNormal(prepassContext.state, VERTDECL_PACKED);
-        v4 = (commonSource->scissorViewport.y != 0) - 1;
-        if ( v4 != prepassContext.state->depthRangeType )
+        v4 = (GfxDepthRangeType)((commonSource->cameraView != 0) - 1);
+        if (v4 != prepassContext.state->depthRangeType)
             R_ChangeDepthRange(prepassContext.state, v4);
     }
-    primDrawSurfPos = &commonSource->input.data->primDrawSurfsBuf[(unsigned __int16)*(unsigned int *)&info->drawSurfs[listArgs->firstDrawSurfIndex].fields];
+    primDrawSurfPos = &commonSource->input.data->primDrawSurfsBuf[(unsigned __int16)*(_DWORD *)&info->drawSurfs[listArgs->firstDrawSurfIndex].fields];
     RB_TrackImmediatePrims(&context.state->prim, GFX_PRIM_STATS_SMODELRIGID);
-    if ( !context.state->prim.primStats
+    if (!context.state->prim.primStats
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                    2499,
-                    0,
-                    "%s",
-                    "context.state->prim.primStats") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+            2499,
+            0,
+            "%s",
+            "context.state->prim.primStats"))
     {
         __debugbreak();
     }
-    if ( baseTechType == 10 )
+    if (baseTechType == 10)
     {
-        if ( prepassContext.state )
+        if (prepassContext.state)
             R_SetupPassPerObjectArgs(prepassContext);
         R_SetupPassPerObjectArgs(context);
         R_DrawStaticModelSurfLit(primDrawSurfPos, context, prepassContext, info);
     }
     else
     {
-        if ( prepassContext.state
+        if (prepassContext.state
             && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                        2516,
-                        0,
-                        "%s",
-                        "prepassContext.local.state == NULL") )
+                "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+                2516,
+                0,
+                "%s",
+                "prepassContext.local.state == NULL"))
         {
             __debugbreak();
         }
@@ -2017,8 +2037,8 @@ unsigned int __cdecl R_TessStaticModelRigidDrawSurfList(
 }
 
 unsigned int __cdecl R_TessStaticModelSkinnedDrawSurfList(
-                const GfxDrawSurfListArgs *listArgs,
-                GfxCmdBufContext prepassContext)
+    const GfxDrawSurfListArgs *listArgs,
+    GfxCmdBufContext prepassContext)
 {
     const char *v2; // eax
     GfxDepthRangeType depthRangeType; // [esp+0h] [ebp-20h]
@@ -2030,43 +2050,43 @@ unsigned int __cdecl R_TessStaticModelSkinnedDrawSurfList(
 
     context = listArgs->context;
     commonSource = listArgs->context.source;
-    if ( prepassContext.state
+    if (prepassContext.state
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                    2546,
-                    0,
-                    "%s",
-                    "prepassContext.state == NULL") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+            2546,
+            0,
+            "%s",
+            "prepassContext.state == NULL"))
     {
         __debugbreak();
     }
     info = listArgs->info;
-    if ( r_logFile->current.integer )
+    if (r_logFile->current.integer)
     {
         v2 = va("--- R_TessStaticModelSkinnedDrawSurfList( %s ) ---\n", context.state->material->info.name);
         RB_LogPrint(v2);
     }
     R_SetupPassCriticalPixelShaderArgs(context);
     baseTechType = info->baseTechType;
-    commonSource->viewMode = (GfxViewMode)&s_manualObjectPlacement;
-    R_ChangeDepthHackNearClip(commonSource, 0.0);
+    commonSource->objectPlacement = &s_manualObjectPlacement;
+    R_ChangeDepthHackNearClip(commonSource, 0);
     R_SetVertexDeclTypeNormal(context.state, VERTDECL_PACKED);
-    depthRangeType = (commonSource->scissorViewport.y != 0) - 1;
-    if ( depthRangeType != context.state->depthRangeType )
+    depthRangeType = (GfxDepthRangeType)((commonSource->cameraView != 0) - 1);
+    if (depthRangeType != context.state->depthRangeType)
         R_ChangeDepthRange(context.state, depthRangeType);
-    primDrawSurfPos = &commonSource->input.data->primDrawSurfsBuf[(unsigned __int16)*(unsigned int *)&info->drawSurfs[listArgs->firstDrawSurfIndex].fields];
+    primDrawSurfPos = &commonSource->input.data->primDrawSurfsBuf[(unsigned __int16)*(_DWORD *)&info->drawSurfs[listArgs->firstDrawSurfIndex].fields];
     RB_TrackImmediatePrims(&context.state->prim, GFX_PRIM_STATS_SMODELRIGID);
-    if ( !context.state->prim.primStats
+    if (!context.state->prim.primStats
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                    2567,
-                    0,
-                    "%s",
-                    "context.state->prim.primStats") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+            2567,
+            0,
+            "%s",
+            "context.state->prim.primStats"))
     {
         __debugbreak();
     }
-    if ( baseTechType == 10 )
+    if (baseTechType == 10)
         R_DrawStaticModelSkinnedSurfLit(primDrawSurfPos, context, info);
     else
         R_DrawStaticModelSkinnedSurf(primDrawSurfPos, context, info);
@@ -2086,33 +2106,33 @@ unsigned int __cdecl R_TessStaticModelPreTessList(const GfxDrawSurfListArgs *lis
 
     context = listArgs->context;
     commonSource = listArgs->context.source;
-    if ( prepassContext.state
+    if (prepassContext.state
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                    2602,
-                    0,
-                    "%s",
-                    "prepassContext.state == NULL") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+            2602,
+            0,
+            "%s",
+            "prepassContext.state == NULL"))
     {
         __debugbreak();
     }
     info = listArgs->info;
-    if ( r_logFile->current.integer )
+    if (r_logFile->current.integer)
     {
         v2 = va("--- RB_TessStaticModelCached( %s ) ---\n", context.state->material->info.name);
         RB_LogPrint(v2);
     }
     R_SetupPassCriticalPixelShaderArgs(context);
     baseTechType = info->baseTechType;
-    R_ChangeDepthHackNearClip(commonSource, 0.0);
+    R_ChangeDepthHackNearClip(commonSource, 0);
     R_SetObjectIdentityPlacement(commonSource);
     R_SetVertexDeclTypeNormal(context.state, VERTDECL_STATICMODELCACHE);
-    depthRangeType = (commonSource->scissorViewport.y != 0) - 1;
-    if ( depthRangeType != context.state->depthRangeType )
+    depthRangeType = (GfxDepthRangeType)((commonSource->cameraView != 0) - 1);
+    if (depthRangeType != context.state->depthRangeType)
         R_ChangeDepthRange(context.state, depthRangeType);
-    primDrawSurfPos = &commonSource->input.data->primDrawSurfsBuf[(unsigned __int16)*(unsigned int *)&info->drawSurfs[listArgs->firstDrawSurfIndex].fields];
+    primDrawSurfPos = &commonSource->input.data->primDrawSurfsBuf[(unsigned __int16)*(_DWORD *)&info->drawSurfs[listArgs->firstDrawSurfIndex].fields];
     R_TrackPrims(&context.state->prim, GFX_PRIM_STATS_SMODELCACHED);
-    if ( baseTechType == 10 )
+    if (baseTechType == 10)
         R_DrawStaticModelPreTessSurfLit(primDrawSurfPos, context);
     else
         R_DrawStaticModelPreTessSurf(primDrawSurfPos, context);
@@ -2132,33 +2152,33 @@ unsigned int __cdecl R_TessStaticModelCachedList(const GfxDrawSurfListArgs *list
 
     context = listArgs->context;
     commonSource = listArgs->context.source;
-    if ( prepassContext.state
+    if (prepassContext.state
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                    2658,
-                    0,
-                    "%s",
-                    "prepassContext.state == NULL") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+            2658,
+            0,
+            "%s",
+            "prepassContext.state == NULL"))
     {
         __debugbreak();
     }
     info = listArgs->info;
-    if ( r_logFile->current.integer )
+    if (r_logFile->current.integer)
     {
         v2 = va("--- RB_TessStaticModelCached( %s ) ---\n", context.state->material->info.name);
         RB_LogPrint(v2);
     }
     R_SetupPassCriticalPixelShaderArgs(context);
     baseTechType = info->baseTechType;
-    R_ChangeDepthHackNearClip(commonSource, 0.0);
+    R_ChangeDepthHackNearClip(commonSource, 0);
     R_SetObjectIdentityPlacement(commonSource);
     R_SetVertexDeclTypeNormal(context.state, VERTDECL_STATICMODELCACHE);
-    depthRangeType = (commonSource->scissorViewport.y != 0) - 1;
-    if ( depthRangeType != context.state->depthRangeType )
+    depthRangeType = (GfxDepthRangeType)((commonSource->cameraView != 0) - 1);
+    if (depthRangeType != context.state->depthRangeType)
         R_ChangeDepthRange(context.state, depthRangeType);
-    primDrawSurfPos = &commonSource->input.data->primDrawSurfsBuf[(unsigned __int16)*(unsigned int *)&info->drawSurfs[listArgs->firstDrawSurfIndex].fields];
+    primDrawSurfPos = &commonSource->input.data->primDrawSurfsBuf[(unsigned __int16)*(_DWORD *)&info->drawSurfs[listArgs->firstDrawSurfIndex].fields];
     R_TrackPrims(&context.state->prim, GFX_PRIM_STATS_SMODELCACHED);
-    if ( baseTechType == 10 )
+    if (baseTechType == 10)
         R_DrawStaticModelCachedSurfLit(primDrawSurfPos, context);
     else
         R_DrawStaticModelCachedSurf(primDrawSurfPos, context);
@@ -2178,14 +2198,14 @@ unsigned int __cdecl R_TessTrianglesList(const GfxDrawSurfListArgs *listArgs, Gf
 
     context = listArgs->context;
     commonSource = listArgs->context.source;
-    if ( prepassContext.state
+    if (prepassContext.state
         && context.source != prepassContext.source
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                    2740,
-                    0,
-                    "%s",
-                    "prepassContext.local.state == NULL || context.local.source == prepassContext.local.source") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+            2740,
+            0,
+            "%s",
+            "prepassContext.local.state == NULL || context.local.source == prepassContext.local.source"))
     {
         __debugbreak();
     }
@@ -2193,27 +2213,27 @@ unsigned int __cdecl R_TessTrianglesList(const GfxDrawSurfListArgs *listArgs, Gf
     baseTechType = info->baseTechType;
     R_SetupPassCriticalPixelShaderArgs(context);
     R_SetObjectIdentityPlacement(commonSource);
-    R_ChangeDepthHackNearClip(commonSource, 0.0);
+    R_ChangeDepthHackNearClip(commonSource, 0);
     R_SetVertexDeclTypeWorld(context.state);
-    depthRangeType = (commonSource->scissorViewport.y != 0) - 1;
-    if ( depthRangeType != context.state->depthRangeType )
+    depthRangeType = (GfxDepthRangeType)((commonSource->cameraView != 0) - 1);
+    if (depthRangeType != context.state->depthRangeType)
         R_ChangeDepthRange(context.state, depthRangeType);
-    if ( prepassContext.state )
+    if (prepassContext.state)
     {
         R_SetupPassCriticalPixelShaderArgs(prepassContext);
         R_SetVertexDeclTypeWorld(prepassContext.state);
-        v3 = (commonSource->scissorViewport.y != 0) - 1;
-        if ( v3 != prepassContext.state->depthRangeType )
+        v3 = (GfxDepthRangeType)((commonSource->cameraView != 0) - 1);
+        if (v3 != prepassContext.state->depthRangeType)
             R_ChangeDepthRange(prepassContext.state, v3);
     }
-    primDrawSurfPos = &commonSource->input.data->primDrawSurfsBuf[(unsigned __int16)*(unsigned int *)&info->drawSurfs[listArgs->firstDrawSurfIndex].fields];
+    primDrawSurfPos = &commonSource->input.data->primDrawSurfsBuf[(unsigned __int16)*(_DWORD *)&info->drawSurfs[listArgs->firstDrawSurfIndex].fields];
     R_TrackPrims(&context.state->prim, GFX_PRIM_STATS_WORLD);
-    if ( baseTechType == 10 )
+    if (baseTechType == 10)
     {
         R_SetTerrainScorchTextures(listArgs->context.source, listArgs->context.state->material);
         R_SetupPassPerObjectArgs(context);
         R_SetupPassPerPrimArgs(context);
-        if ( prepassContext.state )
+        if (prepassContext.state)
         {
             R_SetupPassPerObjectArgs(prepassContext);
             R_SetupPassPerPrimArgs(prepassContext);
@@ -2277,13 +2297,13 @@ unsigned int __cdecl R_TessTrianglesPreTessList(const GfxDrawSurfListArgs *listA
 
     context = listArgs->context;
     commonSource = listArgs->context.source;
-    if ( prepassContext.state
+    if (prepassContext.state
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                    2828,
-                    0,
-                    "%s",
-                    "prepassContext.state == NULL") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+            2828,
+            0,
+            "%s",
+            "prepassContext.state == NULL"))
     {
         __debugbreak();
     }
@@ -2292,18 +2312,18 @@ unsigned int __cdecl R_TessTrianglesPreTessList(const GfxDrawSurfListArgs *listA
     R_SetupPassCriticalPixelShaderArgs(context);
     baseTechType = info->baseTechType;
     R_SetObjectIdentityPlacement(commonSource);
-    R_ChangeDepthHackNearClip(commonSource, 0.0);
+    R_ChangeDepthHackNearClip(commonSource, 0);
     R_SetVertexDeclTypeWorld(context.state);
-    depthRangeType = (commonSource->scissorViewport.y != 0) - 1;
-    if ( depthRangeType != context.state->depthRangeType )
+    depthRangeType = (GfxDepthRangeType)((commonSource->cameraView != 0) - 1);
+    if (depthRangeType != context.state->depthRangeType)
         R_ChangeDepthRange(context.state, depthRangeType);
     data = commonSource->input.data;
     ib = data->preTessIb->buffer;
-    if ( context.state->prim.indexBuffer != ib )
+    if (context.state->prim.indexBuffer != ib)
         R_ChangeIndices(&context.state->prim, ib);
-    primDrawSurfPos = &data->primDrawSurfsBuf[(unsigned __int16)*(unsigned int *)&info->drawSurfs[listArgs->firstDrawSurfIndex].fields];
+    primDrawSurfPos = &data->primDrawSurfsBuf[(unsigned __int16)*(_DWORD *)&info->drawSurfs[listArgs->firstDrawSurfIndex].fields];
     R_TrackPrims(&context.state->prim, GFX_PRIM_STATS_WORLD);
-    if ( baseTechType == 10 )
+    if (baseTechType == 10)
         R_DrawBspDrawSurfsLitPreTess(primDrawSurfPos, context);
     else
         R_DrawBspDrawSurfsPreTess(primDrawSurfPos, context);
@@ -2318,9 +2338,9 @@ unsigned int __cdecl R_TessBModel(const GfxDrawSurfListArgs *listArgs, GfxCmdBuf
     int vertexCount; // [esp+20h] [ebp-12Ch]
     const GfxScaledPlacement *remotePlacement; // [esp+28h] [ebp-124h]
     GfxDepthRangeType v7; // [esp+38h] [ebp-114h]
-    GfxDepthRangeType state_4; // [esp+40h] [ebp-10Ch]
+    GfxDepthRangeType depthRangeType; // [esp+40h] [ebp-10Ch]
     int baseIndex; // [esp+44h] [ebp-108h]
-    signed __int32 changed; // [esp+48h] [ebp-104h]
+    int changed; // [esp+48h] [ebp-104h]
     float fade; // [esp+4Ch] [ebp-100h]
     float burn; // [esp+50h] [ebp-FCh]
     GfxCmdBufContext context; // [esp+54h] [ebp-F8h] BYREF
@@ -2350,14 +2370,14 @@ unsigned int __cdecl R_TessBModel(const GfxDrawSurfListArgs *listArgs, GfxCmdBuf
     context.source = listArgs->context.source;
     context.state = state;
     commonSource = context.source;
-    if ( prepassContext.state
+    if (prepassContext.state
         && commonSource != prepassContext.source
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                    2939,
-                    0,
-                    "%s",
-                    "prepassContext.local.state == NULL || commonSource == prepassContext.local.source") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+            2939,
+            0,
+            "%s",
+            "prepassContext.local.state == NULL || commonSource == prepassContext.local.source"))
     {
         __debugbreak();
     }
@@ -2368,27 +2388,27 @@ unsigned int __cdecl R_TessBModel(const GfxDrawSurfListArgs *listArgs, GfxCmdBuf
     R_SetupPassCriticalPixelShaderArgs(context);
     data = commonSource->input.data;
     baseTechType = info->baseTechType;
-    R_ChangeDepthHackNearClip(commonSource, 0.0);
+    R_ChangeDepthHackNearClip(commonSource, 0);
     R_SetVertexDeclTypeWorld(context.state);
-    state_4 = (commonSource->scissorViewport.y != 0) - 1;
-    if ( state_4 != context.state->depthRangeType )
-        R_ChangeDepthRange(context.state, state_4);
-    if ( prepassContext.state )
+    depthRangeType = (GfxDepthRangeType)((commonSource->cameraView != 0) - 1);
+    if (depthRangeType != context.state->depthRangeType)
+        R_ChangeDepthRange(context.state, depthRangeType);
+    if (prepassContext.state)
     {
         R_SetupPassCriticalPixelShaderArgs(prepassContext);
         R_SetVertexDeclTypeWorld(prepassContext.state);
-        v7 = (commonSource->scissorViewport.y != 0) - 1;
-        if ( v7 != prepassContext.state->depthRangeType )
+        v7 = (GfxDepthRangeType)((commonSource->cameraView != 0) - 1);
+        if (v7 != prepassContext.state->depthRangeType)
             R_ChangeDepthRange(prepassContext.state, v7);
         R_SetupPassPerObjectArgs(prepassContext);
     }
     drawSurf.fields = drawSurfList->fields;
     drawSurfMask.packed = -267452416;
     drawSurfSubMask.packed = -65536;
-    if ( baseTechType != 10 )
+    if (baseTechType != 10)
     {
-        *(unsigned int *)&drawSurfSubMask.fields &= 0xF1FFFFFF;
-        *(unsigned int *)&drawSurfSubMask.fields &= 0xFE0FFFFF;
+        *(_DWORD *)&drawSurfSubMask.fields &= 0xF1FFFFFF;
+        *(_DWORD *)&drawSurfSubMask.fields &= 0xFE0FFFFF;
         R_SetupPassPerObjectArgs(context);
     }
     drawSurfKey = drawSurfMask.packed & drawSurf.packed;
@@ -2396,7 +2416,7 @@ unsigned int __cdecl R_TessBModel(const GfxDrawSurfListArgs *listArgs, GfxCmdBuf
     drawSurfIndex = 0;
     do
     {
-        if ( baseTechType == 10 )
+        if (baseTechType == 10)
         {
             R_SetLightmap(context, (drawSurf.packed >> 20) & 0x1F);
             R_SetReflectionProbe(context, (drawSurf.packed >> 25) & 7);
@@ -2415,29 +2435,26 @@ unsigned int __cdecl R_TessBModel(const GfxDrawSurfListArgs *listArgs, GfxCmdBuf
             bmodelSurf = (const BModelSurface *)((char *)data + 4 * LOWORD(drawSurf.packed));
             surf = bmodelSurf->surf;
             tris = &surf->tris;
-            if ( !surf->tris.triCount
-                && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp", 3038, 0, "%s", "tris->triCount") )
+            if (!surf->tris.triCount
+                && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp", 3038, 0, "%s", "tris->triCount"))
             {
                 __debugbreak();
             }
-            changed = ((signed __int32)(commonSource->viewMode - (unsigned int)bmodelSurf->placement) >> 5)
-                            | (LODWORD(bmodelSurf->bmodelFadeAmt) - LODWORD(fade))
-                            | (LODWORD(bmodelSurf->bmodelBurnAmt) - LODWORD(burn))
-                            | ((char *)bmodelSurf->shaderConstSet - (char *)constantSet);
-            if ( 3 * tris->triCount + gfxBuf.dynamicIndexBuffer->used > gfxBuf.dynamicIndexBuffer->total )
+            changed = (commonSource->objectPlacement - bmodelSurf->placement)
+                | (LODWORD(bmodelSurf->bmodelFadeAmt) - LODWORD(fade))
+                | (LODWORD(bmodelSurf->bmodelBurnAmt) - LODWORD(burn))
+                | ((char *)bmodelSurf->shaderConstSet - (char *)constantSet);
+            if (3 * tris->triCount + gfxBuf.dynamicIndexBuffer->used > gfxBuf.dynamicIndexBuffer->total)
             {
-                if ( args.triCount > 0 )
+                if (args.triCount > 0)
                     R_DrawBModelPrim(&prepassContext, &context, &args);
                 args.triCount = 0;
                 changed = 1;
             }
-            baseIndex = R_SetIndexData(
-                                        &context.state->prim,
-                                        (unsigned __int8 *)&g_worldDraw->indices[tris->baseIndex],
-                                        tris->triCount);
-            if ( changed | (baseVertex - tris->firstVertex) | (args.baseIndex + 3 * args.triCount - baseIndex) )
+            baseIndex = R_SetIndexData(&context.state->prim, (unsigned char*)&g_worldDraw->indices[tris->baseIndex], tris->triCount);
+            if (changed | (baseVertex - tris->firstVertex) | (args.baseIndex + 3 * args.triCount - baseIndex))
             {
-                if ( args.triCount > 0 )
+                if (args.triCount > 0)
                     R_DrawBModelPrim(&prepassContext, &context, &args);
                 args.triCount = 0;
                 args.baseIndex = baseIndex;
@@ -2446,13 +2463,13 @@ unsigned int __cdecl R_TessBModel(const GfxDrawSurfListArgs *listArgs, GfxCmdBuf
                 burn = bmodelSurf->bmodelBurnAmt;
                 fade = bmodelSurf->bmodelFadeAmt;
                 updatedConstant = R_UpdateCodeConstant(
-                                                        commonSource,
-                                                        0x72u,
-                                                        burn,
-                                                        r_burnedDestructibleColor->current.value,
-                                                        fade,
-                                                        0.0);
-                if ( bmodelSurf->shaderConstSet )
+                    commonSource,
+                    0x72u,
+                    burn,
+                    r_burnedDestructibleColor->current.value,
+                    fade,
+                    0.0);
+                if (bmodelSurf->shaderConstSet)
                     constantSet = bmodelSurf->shaderConstSet;
                 else
                     constantSet = 0;
@@ -2461,56 +2478,55 @@ unsigned int __cdecl R_TessBModel(const GfxDrawSurfListArgs *listArgs, GfxCmdBuf
                 v3 = RB_ApplyShaderConstantSet(commonSource, constantSet);
                 updatedConstant |= v3;
                 R_SetupPassCriticalPixelShaderArgs(context);
-                if ( updatedConstant )
+                if (updatedConstant)
                     R_SetupPassVertexShaderArgs(context);
                 remotePlacement = bmodelSurf->placement;
-                if ( (GfxScaledPlacement *)commonSource->viewMode != bmodelSurf->placement )
+                if (commonSource->objectPlacement != bmodelSurf->placement)
                 {
-                    commonSource->viewMode = (GfxViewMode)remotePlacement;
+                    commonSource->objectPlacement = remotePlacement;
                     R_ChangeObjectPlacementRemote(commonSource, remotePlacement);
                 }
                 R_SetStreamsForBspSurface(&context.state->prim, tris);
                 R_SetupPassPerPrimArgs(context);
-                if ( prepassContext.state )
+                if (prepassContext.state)
                 {
                     R_SetStreamsForBspSurface(&prepassContext.state->prim, tris);
                     R_SetupPassPerPrimArgs(prepassContext);
-                    if ( !Assert_MyHandler(
-                                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                                    3129,
-                                    0,
-                                    "prepass dynamic indices not supported here") )
+                    if (!Assert_MyHandler(
+                        "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+                        3129,
+                        0,
+                        "prepass dynamic indices not supported here"))
                         __debugbreak();
                 }
             }
             args.triCount += tris->triCount;
-            if ( args.vertexCount < tris->vertexCount )
+            if (args.vertexCount < tris->vertexCount)
                 vertexCount = tris->vertexCount;
             else
                 vertexCount = args.vertexCount;
             args.vertexCount = vertexCount;
-            if ( !context.state->prim.primStats
+            if (!context.state->prim.primStats
                 && !Assert_MyHandler(
-                            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
-                            3141,
-                            0,
-                            "%s",
-                            "context.state->prim.primStats") )
+                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_tess.cpp",
+                    3141,
+                    0,
+                    "%s",
+                    "context.state->prim.primStats"))
             {
                 __debugbreak();
             }
             context.state->prim.frameStats.geoIndexCount += 3 * tris->triCount;
             context.state->prim.primStats->dynamicIndexCount += 3 * tris->triCount;
             context.state->prim.primStats->dynamicVertexCount += tris->vertexCount;
-            if ( ++drawSurfIndex == drawSurfCount )
+            if (++drawSurfIndex == drawSurfCount)
                 break;
-            drawSurf.fields = (GfxDrawSurfFields)drawSurfList[drawSurfIndex];
-        }
-        while ( (drawSurfSubMask.packed & drawSurf.packed) == drawSurfSubKey );
-        if ( args.triCount > 0 )
+            //drawSurf.fields = (GfxDrawSurfFields)drawSurfList[drawSurfIndex];
+            drawSurf.packed = drawSurfList[drawSurfIndex].packed;
+        } while ((drawSurfSubMask.packed & drawSurf.packed) == drawSurfSubKey);
+        if (args.triCount > 0)
             R_DrawBModelPrim(&prepassContext, &context, &args);
-    }
-    while ( drawSurfIndex != drawSurfCount && (drawSurfMask.packed & drawSurf.packed) == drawSurfKey );
+    } while (drawSurfIndex != drawSurfCount && (drawSurfMask.packed & drawSurf.packed) == drawSurfKey);
     RB_ApplyShaderConstantSet(commonSource, &savedConstantSet);
     context.state->prim.primStats = 0;
     return drawSurfIndex;

@@ -306,7 +306,7 @@ GfxRenderTarget gfxRenderTargets[44];
 GfxDrawConsts g_drawConsts;
 r_backEndGlobals_t backEnd;
 materialCommands_t tess;
-const GfxBackEndData *backEndData;
+GfxBackEndData *backEndData;
 
 int rb_execCmdsMS;
 int rb_swapMS;
@@ -700,33 +700,31 @@ void __cdecl RB_SplitScreenTexCoords(float x, float y, float w, float h, float *
     *t1 = ya + ha;
 }
 
-void __fastcall R_ResolveIntZ_PC(bool a1)
+void R_ResolveIntZ_PC()
 {
+    BOOL v0; // ecx
     bool v1; // al
     NVDX_ObjectHandle__ *v2; // ecx
     float dummy[3]; // [esp+4h] [ebp-10h] BYREF
     NvAPI_Status status; // [esp+10h] [ebp-4h]
 
-    if ( !dx.supportsIntZ )
+    iassert(dx.supportsIntZ);
+
+    if (dx.nvInitialized)
     {
-        v1 = Assert_MyHandler(
-                     "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
-                     1220,
-                     0,
-                     "%s",
-                     "dx.supportsIntZ");
-        a1 = v1;
-        if ( !v1 )
-            __debugbreak();
-    }
-    if ( dx.nvInitialized )
-    {
-        if ( !dx.nvDepthBufferHandle || !dx.nvFloatZBufferHandle )
-            R_GetIntZHandles((NVDX_ObjectHandle__ *)a1);
-        if ( NvAPI_D3D9_StretchRect(dx.device, dx.nvDepthBufferHandle, 0, dx.nvFloatZBufferHandle, 0, D3DTEXF_POINT) )
+        if (!dx.nvDepthBufferHandle || !dx.nvFloatZBufferHandle)
+            R_GetIntZHandles((NVDX_ObjectHandle__ *)v0);
+
+        if (NvAPI_D3D9_StretchRect(dx.device, dx.nvDepthBufferHandle, 0, dx.nvFloatZBufferHandle, 0, D3DTEXF_POINT))
         {
             R_GetIntZHandles(v2);
-            status = NvAPI_D3D9_StretchRect(dx.device, dx.nvDepthBufferHandle, 0, dx.nvFloatZBufferHandle, 0, D3DTEXF_POINT);
+            status = NvAPI_D3D9_StretchRect(
+                dx.device,
+                dx.nvDepthBufferHandle,
+                0,
+                dx.nvFloatZBufferHandle,
+                0,
+                D3DTEXF_POINT);
         }
     }
     else
@@ -739,7 +737,7 @@ void __fastcall R_ResolveIntZ_PC(bool a1)
         dx.device->DrawPrimitiveUP(D3DPT_POINTLIST, 1u, dummy, 12u);
         gfxCmdBufContext.state->samplerTexture[0] = 0;
         R_ClearAllStreamSources(&gfxCmdBufContext.state->prim);
-        if ( gfxCmdBufContext.state->prim.indexBuffer )
+        if (gfxCmdBufContext.state->prim.indexBuffer)
             R_ChangeIndices(&gfxCmdBufContext.state->prim, 0);
     }
 }
@@ -4850,7 +4848,7 @@ void __cdecl RB_ResetStatTracking(int viewIndex)
         rg.stats = 0;
 }
 
-void __cdecl RB_BeginFrame(const GfxBackEndData *data)
+void __cdecl RB_BeginFrame(GfxBackEndData *data)
 {
     const char *v1; // eax
     int semaphore; // [esp+0h] [ebp-Ch]
@@ -5287,7 +5285,7 @@ void __cdecl RB_Draw3D()
                 Name = va("RB_Draw3D c=%d v=%d/%d", viewInfoa->localClientNum, v, data->viewInfoCount);
                 //PIXBeginNamedEvent(-1, Name);
                 RB_ResetStatTracking(v);
-                RB_Draw3DInternal(viewInfoa);
+                RB_Draw3DInternal((GfxViewInfo *)viewInfoa);
                 //if ( GetCurrentThreadId() == g_DXDeviceThread )
                     //D3DPERF_EndEvent();
             }
@@ -5297,7 +5295,7 @@ void __cdecl RB_Draw3D()
             v0 = va("RB_Draw3D c=%d v=%d/%d", viewInfo->localClientNum, data->viewInfoIndex, data->viewInfoCount);
             //PIXBeginNamedEvent(-1, v0);
             RB_ResetStatTracking(data->viewInfoIndex);
-            RB_Draw3DInternal(viewInfo);
+            RB_Draw3DInternal((GfxViewInfo*)viewInfo);
             //if ( GetCurrentThreadId() == g_DXDeviceThread )
                 //D3DPERF_EndEvent();
         }
@@ -5671,7 +5669,7 @@ void __cdecl RB_RenderCommandFrame(const GfxBackEndData *data)
     }
     Name = va("exec cmds c=%d v=%d", clientNum, viewInfoIdx);
     //PIXBeginNamedEvent(-1, Name);
-    RB_BeginFrame(data);
+    RB_BeginFrame((GfxViewInfo *)data);
     RB_DrawComposites();
     RB_Draw3D();
     drawType = backEndData->drawType;

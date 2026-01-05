@@ -1,4 +1,16 @@
 #include "rb_resource.h"
+#include "r_singlethreaded_device_pc.h"
+#include <qcommon/threads.h>
+#include <universal/timing.h>
+#include "r_image.h"
+#include "r_image_load_common.h"
+#include <universal/com_memory.h>
+#include "r_image_load_obj.h"
+
+FastCriticalSection resourceLock;
+r_resource_action resourceActions[16384];
+
+volatile int numResourceActions;
 
 void __cdecl RB_Resource_Lock()
 {
@@ -289,7 +301,7 @@ unsigned __int8 *RB_Resource_Update_Internal()
                 image = (GfxImage *)action->resource;
                 data = (unsigned __int8 *)action->data;
                 mipCount = action->p1;
-                imageFormat = action->p2;
+                imageFormat = (_D3DFORMAT)(action->p2);
                 flags = action->p3;
                 mapType = image->mapType;
                 if ( mapType == 3 )
@@ -325,7 +337,7 @@ unsigned __int8 *RB_Resource_Update_Internal()
                         if ( faceCount == 1 )
                             v4 = D3DCUBEMAP_FACE_POSITIVE_X;
                         else
-                            v4 = Image_CubemapFace(faceIndex);
+                            v4 = (_D3DCUBEMAP_FACES)Image_CubemapFace(faceIndex);
                         for ( mipLevel = 0; mipLevel < mipCount; ++mipLevel )
                         {
                             Image_UploadData(image, imageFormat, v4, mipLevel, data);
@@ -344,7 +356,7 @@ unsigned __int8 *RB_Resource_Update_Internal()
                             data += Image_GetCardMemoryAmountForMipLevel(imageFormat, v3, v2, v1);
                         }
                     }
-                    image->texture.basemap->PreLoad(image->texture.basemap);
+                    image->texture.basemap->PreLoad();
                     Z_VirtualFree(action->data, 20);
                 }
                 goto LABEL_2;
@@ -383,22 +395,21 @@ unsigned __int8 *RB_Resource_Update_Internal()
                 goto LABEL_2;
             case 7:
                 dx.device->CreateVertexDeclaration(
-                    dx.device,
                     (const _D3DVERTEXELEMENT9 *)action->data,
                     (IDirect3DVertexDeclaration9 **)action->resource);
                 goto LABEL_2;
             case 8:
                 dx.device->CreateVertexShader(
-                    dx.device,
-                    (const unsigned int *)action->data,
+                    (const DWORD *)action->data,
                     (IDirect3DVertexShader9 **)action->resource);
                 goto LABEL_2;
             case 9:
-                ((void (__thiscall *)(IDirect3DDevice9 *, IDirect3DDevice9 *, void *, void *))dx.device->CreatePixelShader)(
-                    dx.device,
-                    dx.device,
-                    action->data,
-                    action->resource);
+                //((void (__thiscall *)(IDirect3DDevice9 *, IDirect3DDevice9 *, void *, void *))dx.device->CreatePixelShader)(
+                //    dx.device,
+                //    dx.device,
+                //    action->data,
+                //    action->resource);
+                dx.device->CreatePixelShader((const DWORD*)action->data, (IDirect3DPixelShader9 **)action->resource);
                 goto LABEL_2;
             case 0xA:
                 Load_VertexBuffer((IDirect3DVertexBuffer9 **)action->resource, (unsigned __int8 *)action->data, action->p1);
@@ -437,12 +448,12 @@ LABEL_2:
     numResourceActions = 0;
     RB_Resource_Unlock();
     result = (unsigned __int8 *)GetCurrentThreadId();
-    if ( result == (unsigned __int8 *)g_DXDeviceThread )
-    {
-        result = 0;
-        if ( !HIDWORD(g_DXDeviceThread) )
-            return (unsigned __int8 *)//D3DPERF_EndEvent();
-    }
+    //if ( result == (unsigned __int8 *)g_DXDeviceThread )
+    //{
+    //    result = 0;
+    //    if ( !HIDWORD(g_DXDeviceThread) )
+    //        return (unsigned __int8 *)//D3DPERF_EndEvent();
+    //}
     return result;
 }
 

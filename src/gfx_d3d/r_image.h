@@ -1,5 +1,24 @@
 #pragma once
 
+#include "r_material.h"
+
+struct ImageList // sizeof=0x4004
+{                                       // XREF: ?R_SumOfUsedImages@@YAXPAUImage_MemUsage@@@Z/r
+                                        // ?R_ImageList_Output@@YAXXZ/r ...
+    unsigned int count;                 // XREF: R_SumOfUsedImages(Image_MemUsage *)+B1/r
+                                        // R_ImageList_Output(void)+73/r ...
+    GfxImage *image[4096];              // XREF: R_SumOfUsedImages(Image_MemUsage *)+C3/r
+                                        // R_ImageList_Output(void)+A8/w ...
+};
+
+struct Image_MemUsage // sizeof=0xC
+{                                       // XREF: trStatistics_t/r
+    int total;                          // XREF: CG_DrawFPS(int,ScreenPlacement const *,float,meminfo_t *)+8B6/r
+    int lightmap;
+    int minspec;                        // XREF: CG_DrawFPS(int,ScreenPlacement const *,float,meminfo_t *)+90D/r
+                                        // CG_DrawFPS(int,ScreenPlacement const *,float,meminfo_t *)+920/r ...
+};
+
 void __cdecl Image_TrackTotalMemory(GfxImage *image, int platform, int memory);
 bool __cdecl Image_IsCodeImage(int track);
 void __cdecl R_GetImageList(ImageList *imageList);
@@ -58,6 +77,10 @@ GfxImage *__cdecl Image_FindExisting(const char *name);
 GfxImage *__cdecl Image_FindExisting_LoadObj(const char *name);
 GfxImage *__cdecl Image_FindExisting_FastFile(const char *name);
 GfxImage *__cdecl Image_Register(char *imageName, unsigned __int8 semantic, int imageTrack);
+inline GfxImage *__cdecl Image_Register(const char *imageName, unsigned __int8 semantic, int imageTrack)
+{
+    return Image_Register((char *)imageName, semantic, imageTrack);
+}
 GfxImage *__cdecl Image_Register_LoadObj(char *imageName, unsigned __int8 semantic, unsigned __int8 imageTrack);
 GfxImage *__cdecl Image_Register_FastFile(const char *imageName);
 void __cdecl R_ReleaseLostImages();

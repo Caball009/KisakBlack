@@ -1,4 +1,19 @@
 #include "rb_debug.h"
+#include "rb_shade.h"
+#include "r_state_utils.h"
+#include "rb_stats.h"
+#include <physics/phys_render.h>
+#include "r_debug.h"
+
+bool s_addingDebugLines;
+bool s_lastDepthTest;
+void(__cdecl *s_DebugBrushesAndPatchesCallback)();
+
+GfxPointVertex g_debugLineVerts[2725];
+GfxPointVertex g_debugPolyVerts[2725];
+GfxPointVertex g_debugExternLineVerts[2725];
+GfxPointVertex *s_gfxverts;
+int s_lineVertCount;
 
 int __cdecl RB_AddDebugLine(
                 const float *start,
@@ -241,6 +256,8 @@ void __cdecl RB_DrawDebugSpheres(trDebugSphere_t *spheres, int sphereCount)
         RB_DrawDebugSphere(&spheres[sortedList[i]]);
 }
 
+unsigned __int8 tech = 4;
+
 void __cdecl RB_DrawDebugSphere(trDebugSphere_t *sphere)
 {
     float *v1; // eax
@@ -304,9 +321,9 @@ void __cdecl RB_DrawDebugSphere(trDebugSphere_t *sphere)
     float v59; // [esp+657Ch] [ebp-4h]
 
     v39 = 482;
-    v51 = 0.5f7700002;
-    v52 = 0.5f7700002;
-    v53 = 0.5f7700002;
+    v51 = 0.57700002f;
+    v52 = 0.57700002f;
+    v53 = 0.57700002f;
     v42 = 0.0f;
     v25 = Vec3DistanceSq(&gfxCmdBufSourceState.viewParms.axis[2][2], sphere->center);
     v30 = (float)(sphere->radius * sphere->radius) > v25;
@@ -430,7 +447,7 @@ void __cdecl RB_DrawDebugSphere(trDebugSphere_t *sphere)
         v34 = v42 * sphere->color[2];
         R_ConvertColorToBytes(&colorFloat, colorBytes);
         v50[vertexCount] = *(unsigned int *)colorBytes;
-        v7 = &v36[vertexCount];
+        v7 = (unsigned int*)&v36[vertexCount];
         *v7 = 0;
         v7[1] = 0;
         ++vertexCount;
@@ -557,11 +574,13 @@ void __cdecl RB_DrawDebugStrings(trDebugString_t *strings, int stringCount)
     for ( stringIndex = 0; stringIndex < stringCount; ++stringIndex )
     {
       R_ConvertColorToBytes(strings[stringIndex].color, (unsigned __int8 *)&color);
-      LODWORD(v3) = LODWORD(strings[stringIndex].scale) ^ _mask__NegFloat_;
+      //LODWORD(v3) = LODWORD(strings[stringIndex].scale) ^ _mask__NegFloat_;
+      v3 = -(strings[stringIndex].scale);
       xStep[0] = v3 * gfxCmdBufSourceState.viewParms.axis[1][0];
       xStep[1] = v3 * gfxCmdBufSourceState.viewParms.axis[1][1];
       xStep[2] = v3 * gfxCmdBufSourceState.viewParms.axis[1][2];
-      LODWORD(v2) = LODWORD(strings[stringIndex].scale) ^ _mask__NegFloat_;
+      //LODWORD(v2) = LODWORD(strings[stringIndex].scale) ^ _mask__NegFloat_;
+      v2= -(strings[stringIndex].scale);
       yStep[0] = v2 * gfxCmdBufSourceState.viewParms.axis[2][0];
       yStep[1] = v2 * gfxCmdBufSourceState.viewParms.axis[2][1];
       yStep[2] = v2 * gfxCmdBufSourceState.viewParms.axis[2][2];
@@ -599,15 +618,16 @@ void __cdecl RB_AddPlumeStrings(const GfxViewParms *viewParms)
                                                                                                                             - (float)((float)((float)dt * 2.0)
                                                                                                                                             / (float)backEndData->debugGlobals.plumes[plumeIndex].duration);
             v1 = (float)((float)((float)dt * 0.012566371) + (float)plumeIndex);
-            __libm_sse2_sin(v3);
-            *(float *)&v1 = v1;
-            wiggle = *(float *)&v1 * 4.0;
-            LODWORD(v3) = viewParms->axis[1];
-            HIDWORD(v3) = &backEndData->debugGlobals.plumes[plumeIndex];
-            org[0] = (float)((float)(*(float *)&v1 * 4.0) * viewParms->axis[1][0]) + *(float *)HIDWORD(v3);
-            org[1] = (float)((float)(*(float *)&v1 * 4.0) * viewParms->axis[1][1]) + *(float *)(HIDWORD(v3) + 4);
-            org[2] = (float)((float)(*(float *)&v1 * 4.0) * viewParms->axis[1][2]) + *(float *)(HIDWORD(v3) + 8);
-            org[2] = (float)((float)dt * 0.064000003) + org[2];
+            //__libm_sse2_sin(v3);
+            //*(float *)&v1 = v1;
+            //wiggle = *(float *)&v1 * 4.0;
+            wiggle = sin(v1) * 4.0;
+            //LODWORD(v3) = viewParms->axis[1];
+            //HIDWORD(v3) = &backEndData->debugGlobals.plumes[plumeIndex];
+            org[0] = (float)((float)(viewParms->axis[1][0] * 4.0) * viewParms->axis[1][0]) + backEndData->debugGlobals.plumes[plumeIndex].origin[0];
+            org[1] = (float)((float)(viewParms->axis[1][0] * 4.0) * viewParms->axis[1][1]) + backEndData->debugGlobals.plumes[plumeIndex].origin[1];
+            org[2] = (float)((float)(viewParms->axis[1][0] * 4.0) * viewParms->axis[1][2]) + backEndData->debugGlobals.plumes[plumeIndex].origin[2];
+            org[2] = (float)((float)dt * 0.064f) + org[2];
             v2 = va("%i", backEndData->debugGlobals.plumes[plumeIndex].score);
             R_AddDebugString(&backEndData->debugGlobals, org, backEndData->debugGlobals.plumes[plumeIndex].color, 0.5, v2);
         }
@@ -678,6 +698,8 @@ void __cdecl RB_ApplySunLight(const float (*verts)[3], const float *color, float
     out_color[2] = intensity * out_color[2];
 }
 
+unsigned int _S1_15;
+const Material *material;
 void __cdecl RB_BeginCollisionPolygons(bool faceDepthTest, bool faceBlend)
 {
     if ( (_S1_15 & 1) == 0 )

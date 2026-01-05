@@ -6,6 +6,7 @@
 #include "rb_shade.h"
 #include "r_image.h"
 #include "rb_draw3d.h"
+#include "r_state_utils.h"
 
 void __cdecl RB_TouchAllImages()
 {
@@ -29,7 +30,7 @@ void __cdecl RB_TouchAllImages()
     if ( r_logFile && r_logFile->current.integer )
       RB_LogPrint("dx.device->BeginScene()\n");
     v4 = R_AcquireDXDeviceOwnership(0);
-    hr = dx.device->BeginScene(dx.device);
+    hr = dx.device->BeginScene();
     if ( v4 )
       R_ReleaseDXDeviceOwnership();
     if ( hr < 0 )
@@ -46,7 +47,7 @@ void __cdecl RB_TouchAllImages()
   if ( tess.indexCount )
     RB_EndTessSurface();
   R_GetImageList(&imageList);
-  qsort(imageList.image, imageList.count, 4u, RB_CompareTouchImages);
+  qsort(imageList.image, imageList.count, 4u, (_CoreCrtNonSecureSearchSortCompareFunction)RB_CompareTouchImages);
   v9 = 0;
   for ( i = 0; i < imageList.count && imageList.image[i]->semantic; ++i )
   {
@@ -60,7 +61,8 @@ void __cdecl RB_TouchAllImages()
     if ( r_logFile && r_logFile->current.integer )
       RB_LogPrint("dx.device->EndScene()\n");
     v2 = R_AcquireDXDeviceOwnership(0);
-    v3 = ((int (__thiscall *)(IDirect3DDevice9 *, IDirect3DDevice9 *))dx.device->EndScene)(dx.device, dx.device);
+    //v3 = ((int (__thiscall *)(IDirect3DDevice9 *, IDirect3DDevice9 *))dx.device->EndScene)(dx.device, dx.device);
+    v3 = dx.device->EndScene();
     if ( v2 )
       R_ReleaseDXDeviceOwnership();
     if ( v3 < 0 )

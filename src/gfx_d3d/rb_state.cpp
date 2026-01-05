@@ -5,6 +5,7 @@
 #include "r_state.h"
 #include "r_rendertarget.h"
 #include "rb_backend.h"
+#include "r_singlethreaded_device_pc.h"
 
 GfxCmdBufState gfxCmdBufState;
 GfxCmdBufInput gfxCmdBufInput;

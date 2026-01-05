@@ -1,5 +1,8 @@
 #pragma once
 
+#include <xanim/xmodel.h>
+#include <xanim/xanim.h>
+
 void __cdecl XModelOptimizeCallback(XModel *data);
 void __cdecl XModelOptimize(XModel *model);
 void __cdecl _XModelOptimize(XModel *model);

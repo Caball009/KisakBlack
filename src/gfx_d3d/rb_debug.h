@@ -1,5 +1,6 @@
 #pragma once
 #include "rb_backend.h"
+#include "r_material.h"
 
 struct __declspec(align(4)) materialCommands_t // sizeof=0x22A95C
 {                                       // XREF: .data:materialCommands_t tess/r

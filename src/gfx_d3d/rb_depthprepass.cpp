@@ -1,30 +1,30 @@
 #include "rb_depthprepass.h"
+#include "r_dvars.h"
+#include "r_state_utils.h"
+#include "r_state.h"
+#include "r_adszscale.h"
+#include "rb_draw3d.h"
+#include "rb_backend.h"
+#include "r_foliage.h"
+#include "r_wind.h"
 
 void    R_DepthPrepass(
-                int a1@<ebp>,
                 unsigned __int8 renderTargetId,
                 const GfxViewInfo *viewInfo,
                 GfxCmdBuf *cmdBuf)
 {
-    void *v4; // esp
-    GfxCmdBufSourceState v5; // [esp-1AA0h] [ebp-1AACh] BYREF
-    unsigned int v6[3]; // [esp+0h] [ebp-Ch] BYREF
-    _UNKNOWN *retaddr; // [esp+Ch] [ebp+0h]
+    GfxCmdBufSourceState state; // [sp+50h] [-F00h] BYREF
 
-    v6[0] = a1;
-    v6[1] = retaddr;
-    v4 = alloca(6816);
     if ( !r_reflectionProbeGenerate->current.enabled )
     {
-        R_InitCmdBufSourceState(&v5, &viewInfo->input, 1);
-        R_SetRenderTargetSize(&v5, renderTargetId);
-        R_SetViewportStruct(&v5, &viewInfo->cullViewInfo.sceneViewport);
-        R_SetADSZScaleConstants(viewInfo->localClientNum, &v5);
+        R_InitCmdBufSourceState(&state, &viewInfo->input, 1);
+        R_SetRenderTargetSize(&state, renderTargetId);
+        R_SetViewportStruct(&state, &viewInfo->cullViewInfo.sceneViewport);
+        R_SetADSZScaleConstants(viewInfo->localClientNum, &state);
         R_DrawCall(
-            (int)v6,
             (void (__cdecl *)(const void *, GfxCmdBufSourceState *, GfxCmdBufState *, GfxCmdBufSourceState *, GfxCmdBufState *))R_DepthPrepassCallback,
             viewInfo,
-            &v5,
+            &state,
             viewInfo,
             0,
             &viewInfo->cullViewInfo.viewParms,
@@ -63,13 +63,13 @@ void __cdecl R_DepthPrepassCallback(const GfxViewInfo *userData, GfxCmdBufContex
         }
         else
         {
-            if ( !dword_B50E834[5 * (viewInfo->isMissileCamera ? 23 : 7)]
+            if (!gfxRenderTargets[viewInfo->isMissileCamera ? 23 : 7].surface.color
                 && !Assert_MyHandler(
-                            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_depthprepass.cpp",
-                            213,
-                            0,
-                            "%s",
-                            "R_HaveFloatZ(viewInfo->isMissileCamera)") )
+                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_depthprepass.cpp",
+                    213,
+                    0,
+                    "%s",
+                    "R_HaveFloatZ(viewInfo->isMissileCamera)"))
             {
                 __debugbreak();
             }

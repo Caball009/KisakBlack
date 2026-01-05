@@ -1,4 +1,5 @@
 #pragma once
+#include <win32/win_common.h>
 
 enum FF_DIR : __int32
 {                                       // XREF: XZoneName/r
