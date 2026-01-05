@@ -91,6 +91,38 @@ struct GfxCmdDrawPoints // sizeof=0x18
     GfxPointVertex verts[1];
 };
 
+struct r_backEndGlobals_t // sizeof=0x28C
+{                                       // XREF: .data:r_backEndGlobals_t backEnd/r
+    int glowCount;
+    GfxImage *glowImage;
+    GfxImage *godRaysImage;
+    Font_s *debugFont;                  // XREF: RB_RegisterBackendAssets(void)+12/w
+                                        // RB_DrawDebugStrings+128/r ...
+    GfxFrameStats frameStatsMax;        // XREF: RB_ResetStatTracking(int)+3/o
+                                        // RB_Stats_f(void)+5E/o ...
+};
+
+struct __declspec(align(4)) materialCommands_t // sizeof=0x22A95C
+{                                       // XREF: .data:materialCommands_t tess/r
+    GfxVertex verts[5450];              // XREF: RB_SetPolyVert(float const * const,GfxColor,int)+44/w
+                                        // RB_SetPolyVert(float const * const,GfxColor,int)+52/w ...
+    unsigned __int16 indices[1048576];  // XREF: RB_SetTessQuad+75/w
+                                        // RB_SetTessQuad+87/w ...
+    MaterialVertexDeclType vertDeclType;
+    unsigned int vertexSize;
+    int indexCount;                     // XREF: RB_CheckTessOverflow(int,int)+78/r
+                                        // RB_SetFrameBufferAlpha+20/r ...
+    int vertexCount;                    // XREF: RB_CheckTessOverflow(int,int):loc_857149/r
+                                        // RB_SetTessQuad+6/r ...
+    int firstVertex;                    // XREF: RB_BeginSurface(Material const *,uchar):loc_AC70D1/w
+    int lastVertex;                     // XREF: RB_BeginSurface(Material const *,uchar)+10B/w
+    bool finishedFilling;               // XREF: RB_EndSurfacePrologue:loc_AC71E2/w
+                                        // RB_EndSurfaceEpilogue+6B/w
+    // padding byte
+    // padding byte
+    // padding byte
+};
+
 bool __cdecl ValidGamePadButtonIcon(unsigned int letter);
 void __cdecl RB_CopyBackendStats();
 void __cdecl RB_SetIdentity();
@@ -464,6 +496,10 @@ void __cdecl R_ResolveSection(GfxCmdBufContext context, GfxImage *image);
 
 
 extern GfxRenderTarget gfxRenderTargets[44];
+extern GfxDrawConsts g_drawConsts;
+extern r_backEndGlobals_t backEnd;
+extern materialCommands_t tess;
+extern const GfxBackEndData *backEndData;
 
 extern int rb_execCmdsMS;
 extern int rb_swapMS;

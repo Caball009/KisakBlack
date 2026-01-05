@@ -1,5 +1,58 @@
 #pragma once
 
+#include <universal/q_shared.h>
+#include <gfx_d3d/fxprimitives.h>
+#include <qcommon/cm_trace.h>
+#include <gfx_d3d/r_workercmds_common.h>
+#include <cgame_mp/cg_local_mp.h>
+
+enum FxUpdateResult : __int32
+{                                       // XREF: FX_UpdateEffectPartialForClass/r
+                                        // FX_UpdateElement/r ...
+    FX_UPDATE_REMOVE = 0x0,
+    FX_UPDATE_KEEP   = 0x1,
+};
+
+struct FxUpdateElem // sizeof=0x7C
+{                                       // XREF: FX_UpdateElement/r
+                                        // FX_UpdateTrailElement/r
+    struct FxEffect *effect;
+    int elemIndex;
+    int atRestFraction;                 // XREF: FX_UpdateElement:loc_5EC147/r
+                                        // FX_UpdateElement+29B/r
+    orientation_t orient;
+    int randomSeed;
+    int sequence;
+    float msecLifeSpan;
+    int msecElemBegin;                  // XREF: FX_UpdateElement+19D/r
+    int msecElemEnd;
+    int msecUpdateBegin;                // XREF: FX_UpdateElement+19A/r
+    int msecUpdateEnd;                  // XREF: FX_UpdateElement:loc_5EC1A6/r
+    float msecElapsed;
+    float normTimeUpdateEnd;
+    float *elemOrigin;
+    float *elemBaseVel;                 // XREF: FX_UpdateElement+13E/w
+                                        // FX_UpdateTrailElement+D7/w
+    float posWorld[3];                  // XREF: FX_UpdateElement+1A2/o
+    bool onGround;                      // XREF: FX_UpdateElement+14A/w
+                                        // FX_UpdateElement+23E/r ...
+    // padding byte
+    // padding byte
+    // padding byte
+    int physObjId;                      // XREF: FX_UpdateElement+147/w
+                                        // FX_UpdateTrailElement+DA/w
+};
+
+struct FxCameraUpdate // sizeof=0x3C
+{                                       // XREF: ?CG_InitView@@YAXH@Z/r
+                                        // ?CG_DrawActiveFrame@@YAHHHW4DemoType@@W4CubemapShot@@HH@Z/r ...
+    float vieworg[3];
+    float viewaxis[3][3];               // XREF: CG_DrawActiveFrame(int,int,DemoType,CubemapShot,int,int)+FFC/o
+    float tanHalfFovX;                  // XREF: CG_DrawActiveFrame(int,int,DemoType,CubemapShot,int,int)+1013/w
+    float tanHalfFovY;                  // XREF: CG_DrawActiveFrame(int,int,DemoType,CubemapShot,int,int)+1023/w
+    float zfar;                         // XREF: CG_DrawActiveFrame(int,int,DemoType,CubemapShot,int,int)+102D/w
+};
+
 void __cdecl FX_TrailElem_CompressBasis(const float (*inBasis)[3], char (*outBasis)[3]);
 bool __cdecl FX_IsDemoPlaying();
 void __cdecl FX_SpawnAllFutureLooping(

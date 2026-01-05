@@ -1,4 +1,7 @@
 #include "r_debug_alloc.h"
+#include <universal/assertive.h>
+#include <universal/com_memory.h>
+#include "r_warn.h"
 
 void __cdecl R_DebugAlloc(void **memPtr, int size, const char *name)
 {

@@ -1,4 +1,5 @@
 #include "r_devgui.h"
+#include <qcommon/cmd.h>
 
 void __cdecl R_CreateDevGui()
 {

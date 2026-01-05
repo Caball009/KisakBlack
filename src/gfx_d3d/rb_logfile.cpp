@@ -1,4 +1,15 @@
 #include "rb_logfile.h"
+#include <universal/dvar.h>
+#include "r_dvars.h"
+#include <cstdio>
+#include <ctime>
+#include <universal/assertive.h>
+#include <universal/q_shared.h>
+
+struct
+{
+    FILE *fp;
+} r_logFileGlob;
 
 void __cdecl RB_UpdateLogging()
 {
@@ -271,9 +282,7 @@ void __cdecl RB_LogPrintState_0(int stateBits0, int changedBits0)
     {
         RB_LogBlendOp("%s( ", (stateBits0 & 0x7000000) >> 24);
         RB_LogBlend("%s, ", (stateBits0 & 0xF0000) >> 16);
-        RB_LogBlend(
-            "%s )\n",
-            (int)((unsigned int)&cg_bgsAnim.animScriptData.scriptItems[416].commands[0].tagName & stateBits0) >> 20);
+        RB_LogBlend("%s )\n", (stateBits0 & 0xF00000) >> 20);
     }
     else
     {

@@ -81,7 +81,7 @@ struct GfxSceneEntityCull // sizeof=0x40
 
 union GfxSceneEntityInfo // sizeof=0x4
 {                                       // XREF: GfxSceneEntity/r
-    const cpose_t *pose;
+    cpose_t *pose;
     unsigned __int16 *cachedLightingHandle;
 };
 

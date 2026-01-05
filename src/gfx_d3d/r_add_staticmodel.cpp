@@ -10,6 +10,25 @@
 #include "r_add_bsp.h"
 #include "r_primarylights.h"
 #include <physics/rope.h>
+#include <EffectsCore/fx_beam.h>
+#include "r_debug.h"
+#include "r_warn.h"
+#include "r_add_cmdbuf.h"
+#include "r_foliage.h"
+#include "r_draw_method.h"
+#include <qcommon/threads.h>
+#include "r_light.h"
+#include "r_pretess.h"
+#include "r_xsurface.h"
+#include <universal/com_files.h>
+
+GfxLodParms *g_lodParms;
+
+int g_dumpStaticModelFileHandle;
+int g_dumpStaticModelCount;
+char g_dumpStaticModelFilePath[20] = "staticModelInfo.csv";
+
+
 
 void __cdecl R_AddDelayedStaticModelDrawSurf(
                 GfxDelayedCmdBuf *delayedCmdBuf,
@@ -325,8 +344,8 @@ void __cdecl R_AddAllStaticModelSurfacesCamera(
                     }
                 }
             }
-            v17[0] = mins;
-            v17[1] = mins + 3;
+            v17[0] = (unsigned int)mins;
+            v17[1] = (unsigned int)(mins + 3);
             v18 = *(float *)v17[v51];
             v19 = *(float *)(v17[v52] + 4);
             v20 = *(float *)(v17[v56] + 8);
@@ -430,7 +449,7 @@ void __cdecl R_AddAllStaticModelSurfacesCamera(
                     v63 = 1;
                     *((unsigned int *)dest + ((unsigned int)smodelIndex >> 4)) |= lod << (2 * (smodelIndex & 0xF));
                     StaticModelId = R_GetStaticModelId(smodelIndex, lod);
-                    v50 = &v57[8 * StaticModelId.surfType + 2 * lod];
+                    v50 = (uint16*) & v57[8 * StaticModelId.surfType + 2 * lod];
                     list = staticModelLodList[StaticModelId.surfType - 2][lod];
                     count = (unsigned __int16)*v50;
                     list[count++] = StaticModelId.objectId;
@@ -677,7 +696,8 @@ void __cdecl R_SkinStaticModelsCameraForLod_Internal(
         region = material->cameraRegion;
         if ( region != 3 )
         {
-            drawSurf.fields = (GfxDrawSurfFields)material->info.drawSurf;
+            //drawSurf.fields = (GfxDrawSurfFields)material->info.drawSurf;
+            drawSurf.packed = material->info.drawSurf.packed;
             HIDWORD(drawSurf.packed) = (primaryLightIndex << 11)
                                                              | ((surfType & 0xF) << 19)
                                                              | HIDWORD(drawSurf.packed) & 0xFF8007FF;
@@ -957,6 +977,8 @@ void __cdecl R_StaticModelWriteInfoHeader(int fileHandle)
     FS_Write(&dest, &v2[strlen(&dest)] - v2, fileHandle);
 }
 
+unsigned int _S1_16 = 0;
+float radius2pixels;
 void __cdecl R_StaticModelWriteInfo(int fileHandle, const GfxStaticModelDrawInst *smodelDrawInst, float dist)
 {
     long double len; // [esp+4Ch] [ebp-1028h]

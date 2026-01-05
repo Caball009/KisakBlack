@@ -5,21 +5,6 @@
 
 #include <client_mp/cl_main_mp.h>
 
-const int iEdgePairs[12][2] =
-{
-  { 0, 1 },
-  { 0, 2 },
-  { 0, 4 },
-  { 1, 3 },
-  { 1, 5 },
-  { 2, 3 },
-  { 2, 6 },
-  { 3, 7 },
-  { 4, 5 },
-  { 4, 6 },
-  { 5, 7 },
-  { 6, 7 }
-};
 
 thread_local int gTls_isSverThread; // ??
 

@@ -148,23 +148,14 @@ struct GfxCodeMatrices // sizeof=0x800
     GfxMatrix matrix[32];
 };
 
-struct GfxCmdBufSourceState // sizeof=0x1A60
+struct GfxCmdBufSourceState // sizeof=0x1A90
 {                                       // XREF: .data:GfxCmdBufSourceState gfxCmdBufSourceState/r
     GfxCodeMatrices matrices;
-    //$26AC422158757CD6FC73CEC8E4188A45 ___u1;
-    union //$26AC422158757CD6FC73CEC8E4188A45 // sizeof=0xFA0
-    {                                       // XREF: RB_EndSceneRendering:loc_A72FBF/o
-        GfxCmdBufInput input;
-        //$63D949703416AACBAFF1A0E6428E7228 __s1;
-        struct
-        {
-            GfxViewParms viewParms;
-        };
-    };
-                                        // XREF: RB_EndSceneRendering:loc_A72FBF/o
+    GfxCmdBufInput input;               // XREF: RB_ShowFbColorDebug_Feedback+D2/o
+                                        // RB_ShowFbColorDebug_Feedback+166/o ...
+    GfxViewParms viewParms;             // XREF: RB_EndSceneRendering:loc_A72FBF/o
                                         // RB_EndSceneRendering+10C/o ...
-    GfxMatrix shadowLookupMatrix;       // XREF: RB_DrawDebugStrings+7F/o
-                                        // RB_DrawDebugStrings+D6/o
+    GfxMatrix shadowLookupMatrix;
     unsigned __int16 constVersions[226];
     unsigned __int16 matrixVersions[8];
     // padding byte
@@ -179,31 +170,30 @@ struct GfxCmdBufSourceState // sizeof=0x1A60
     // padding byte
     // padding byte
     // padding byte
-    float eyeOffset[4];
+    float eyeOffset[4];                 // XREF: RB_SetIdentity(void)+41/w
+                                        // RB_SetIdentity(void)+51/w ...
     unsigned int shadowableLightForShadowLookupMatrix;
     const GfxScaledPlacement *objectPlacement;
-    const GfxViewParms *viewParms3D;
+    const GfxViewParms *viewParms3D;    // XREF: RB_TessCoronaBillboard+9/r
+                                        // RB_TessCoronaBillboard+432/r ...
     unsigned int depthHackFlags;
     GfxScaledPlacement skinnedPlacement;
-                                        // XREF: RB_SetIdentity(void)+41/w
-                                        // RB_SetIdentity(void)+51/w ...
     int cameraView;
-    GfxViewMode viewMode;
-    GfxSceneDef sceneDef;               // XREF: RB_TessCoronaBillboard+9/r
-                                        // RB_TessCoronaBillboard+432/r ...
-    GfxViewport sceneViewport;
-    GfxViewport scissorViewport;        // XREF: RB_EndSceneRendering+C9/r
+    GfxViewMode viewMode;               // XREF: RB_EndSceneRendering+C9/r
                                         // RB_EndSceneRendering+D2/r ...
-    float materialTime;                 // XREF: RB_WaterSheetingFX(GfxViewInfo const *)+4C/r
+    GfxSceneDef sceneDef;               // XREF: RB_DrawCoronas(int)+C7/r
+                                        // RB_DrawCoronas(int):loc_A8C158/r ...
+    GfxViewport sceneViewport;          // XREF: RB_InitSceneViewport(void)+3/w
+                                        // RB_InitSceneViewport(void)+D/w ...
+    GfxViewport scissorViewport;
+    float materialTime;
     float destructibleBurnAmount;
     float destructibleFadeAmount;
     float wetness;
     GfxViewportBehavior viewportBehavior;
-                                        // XREF: RB_InitSceneViewport(void)+3/w
-    int renderTargetWidth;              // XREF: RB_InitSceneViewport(void)+D/w
-    int renderTargetHeight;             // XREF: RB_InitSceneViewport(void)+1C/w
-    bool viewportIsDirty;               // XREF: RB_InitSceneViewport(void)+27/w
-                                        // RB_BlurScreen:loc_B28109/r
+    int renderTargetWidth;
+    int renderTargetHeight;
+    bool viewportIsDirty;
     bool scissorEnabled;
     // padding byte
     // padding byte
@@ -243,3 +233,6 @@ void __cdecl RB_BindDefaultImages();
 void __cdecl RB_InitImages();
 
 extern GfxCmdBufState gfxCmdBufState;
+extern GfxCmdBufInput gfxCmdBufInput;
+extern GfxCmdBufSourceState gfxCmdBufSourceState;
+extern GfxCmdBufContext gfxCmdBufContext;

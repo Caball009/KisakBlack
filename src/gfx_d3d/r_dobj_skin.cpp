@@ -40,7 +40,7 @@ void __cdecl R_SkinSceneDObj(
         __debugbreak();
     if ( localSceneEnt->cull.state < 4 )
     {
-        if ( _InterlockedCompareExchange((volatile signed __int32 *)&sceneEnt->cull, 3, 2) == 2 )
+        if ( _InterlockedCompareExchange((volatile unsigned __int32 *)&sceneEnt->cull, 3, 2) == 2 )
         {
             surfaceCount = R_SkinSceneDObjModels(localSceneEnt, obj, boneMatrix);
             R_FlagXModelAsSkinned(localSceneEnt, surfaceCount);

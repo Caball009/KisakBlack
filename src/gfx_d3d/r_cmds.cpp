@@ -1,4 +1,28 @@
 #include "r_cmds.h"
+#include <qcommon/cmd.h>
+#include <qcommon/threads.h>
+#include "r_material.h"
+#include "r_screenshot.h"
+
+cmd_function_s R_Cmd_Screenshot_VAR;
+cmd_function_s R_Cmd_ScreenshotJpeg_VAR;
+cmd_function_s R_ImageList_f_VAR;
+cmd_function_s R_Cmd_ApplyPicmip_VAR;
+cmd_function_s R_Cmd_ReloadMaterialTextures_VAR;
+cmd_function_s R_Cmd_LoadSun_VAR;
+cmd_function_s R_Cmd_SaveSun_VAR;
+cmd_function_s R_MaterialList_f_VAR;
+cmd_function_s R_MaterialEdit_f_VAR;
+cmd_function_s R_MaterialParameterEdit_f_VAR;
+cmd_function_s R_MaterialParameterTweak_f_VAR;
+cmd_function_s R_ModelList_f_VAR;
+cmd_function_s RB_Stats_f_VAR;
+cmd_function_s R_StaticModelCacheStats_f_VAR;
+cmd_function_s R_StaticModelCacheFlush_f_VAR;
+
+static void BLOPS_NULLSUB()
+{
+}
 
 void __cdecl R_RegisterCmds()
 {

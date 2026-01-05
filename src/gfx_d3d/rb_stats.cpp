@@ -1,5 +1,29 @@
 #include "rb_stats.h"
 
+const int drawPrimHistogramLimit[15] =
+{ 10, 25, 50, 100, 200, 300, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000 };
+
+const char *primStatsLabel[10] =
+{
+  "world",
+  "smodel cached",
+  "smodel rigid",
+  "xmodel rigid",
+  "xmodel skinned",
+  "bmodel",
+  "fx",
+  "hud & 2d",
+  "debug",
+  "code"
+};
+
+const unsigned int s_stencilFuncTable_85[8] =
+{ 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u };
+
+GfxFrameStats g_frameStatsCur;
+int histogramHistory[64][2][16];
+int histogramHistoryIndex;
+
 void __cdecl R_TrackPrims(GfxCmdBufPrimState *state, GfxPrimStatsTarget target)
 {
     if ( state->backupPrimStats
@@ -366,7 +390,7 @@ void __cdecl RB_DrawPrimHistogramOverlay()
         fontHeight = (float)R_TextHeight(backEnd.debugFont);
         countWidth = (float)R_TextWidth("8888 ", 5, backEnd.debugFont);
         x1 = (float)((float)R_TextWidth("8888:", 5, backEnd.debugFont) + 48.0) + 4.0;
-        y = FLOAT_48_0;
+        y = 48.0f;
         wMax = (float)((float)((float)(360.0 - 48.0) / 2.0) - countWidth) - 4.0;
         black.packed = -16777216;
         colorNow[0].packed = -49088;
@@ -398,7 +422,7 @@ void __cdecl RB_DrawPrimHistogramOverlay()
                 totalPrims[viewStatsIndex] += curCount;
                 if ( curCount )
                 {
-                    v4.packed = (unsigned int)colorNow[subTotalIndex];
+                    v4.packed = colorNow[subTotalIndex].packed;
                     v3 = (float)(y + fontHeight) - 1.0;
                     t1 = x;
                     s1 = backEnd.debugFont;

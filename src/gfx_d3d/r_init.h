@@ -939,8 +939,8 @@ void R_Register();
 void R_InitGlobalStructs();
 void __cdecl R_ShutdownStreams();
 void __cdecl R_ShutdownInternal();
-int R_ShutdownDirect3D();
-int R_ShutdownDirect3DInternal();
+void R_ShutdownDirect3D();
+void R_ShutdownDirect3DInternal();
 void R_UnloadGraphicsAssets();
 void __cdecl R_Shutdown(int destroyWindow);
 void __cdecl R_UnloadWorld();
@@ -967,6 +967,10 @@ extern GfxMetrics gfxMetrics;
 extern GfxGlobals r_glob;
 
 extern GfxWorldDpvsStatic *g_worldDpvs;
+extern GfxWorldDraw *g_worldDraw;
 extern GfxWorldDpvsPlanes *g_worldDpvsPlanes;
+extern GfxAssets gfxAssets;
 
 extern int g_disableRendering;
+
+extern bool g_allocateMinimalResources;

@@ -1,4 +1,13 @@
 #include "rb_corona.h"
+#include "rb_pixelcost.h"
+#include "rb_shade.h"
+#include "rb_stats.h"
+#include "rb_logfile.h"
+#include "r_dvars.h"
+#include "r_stream.h"
+
+CoronaState coronaState[4];
+int coronaTimeLastUpdated;
 
 void __cdecl RB_DrawCoronas(unsigned int localClientNum)
 {
@@ -28,8 +37,8 @@ void __cdecl RB_DrawCoronas(unsigned int localClientNum)
     state = &coronaState[localClientNum];
     if ( pixelCostMode == GFX_PIXEL_COST_MODE_MEASURE_COST || pixelCostMode == GFX_PIXEL_COST_MODE_MEASURE_MSEC )
     {
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_52;
     }
     if ( coronaTimeLastUpdated && coronaTimeLastUpdated <= gfxCmdBufSourceState.scissorViewport.height )
@@ -97,6 +106,7 @@ LABEL_52:
         //D3DPERF_EndEvent();
 }
 
+unsigned int id;
 GfxLightCorona *__cdecl RB_FindBestCoronaToSpawn(CoronaState *state)
 {
     int j; // [esp+4h] [ebp-10h]
@@ -505,13 +515,14 @@ void __cdecl RB_DrawCoronaQuerySprite(Corona *corona)
                 corona->targetVisibility = targetVisibility;
             RB_HW_BeginOcclusionQuery(corona->query[queryIndex]);
             RB_DrawCoronaSprite(corona, rgp.additiveMaterial, (GfxColor)-16777216, 10.0, 1);
-            corona->query[queryIndex]->Issue(corona->query[queryIndex], 1u);
+            corona->query[queryIndex]->Issue(1u);
             RB_HW_BeginOcclusionQuery(corona->queryMax[queryIndex]);
             RB_DrawCoronaSprite(corona, rgp.additiveMaterialNoDepth, (GfxColor)-16777216, 10.0, 1);
-            ((void (__thiscall *)(IDirect3DQuery9 *, IDirect3DQuery9 *, int))corona->queryMax[queryIndex]->Issue)(
-                corona->queryMax[queryIndex],
-                corona->queryMax[queryIndex],
-                1);
+            //((void (__thiscall *)(IDirect3DQuery9 *, IDirect3DQuery9 *, int))corona->queryMax[queryIndex]->Issue)(
+            //    corona->queryMax[queryIndex],
+            //    corona->queryMax[queryIndex],
+            //    1);
+            corona->queryMax[queryIndex]->Issue(1);
             corona->queryIssued[queryIndex] = 1;
         }
         else
@@ -523,9 +534,11 @@ void __cdecl RB_DrawCoronaQuerySprite(Corona *corona)
 
 void __cdecl RB_HW_BeginOcclusionQuery(IDirect3DQuery9 *query)
 {
-    if ( !query && !Assert_MyHandler("c:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_query_d3d.h", 34, 0, "%s", "query") )
-        __debugbreak();
-    ((void (__thiscall *)(IDirect3DQuery9 *, IDirect3DQuery9 *, int))query->Issue)(query, query, 2);
+    //if ( !query && !Assert_MyHandler("c:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_query_d3d.h", 34, 0, "%s", "query") )
+    //    __debugbreak();
+    iassert(query);
+    query->Issue(2);
+    //((void (__thiscall *)(IDirect3DQuery9 *, IDirect3DQuery9 *, int))query->Issue)(query, query, 2);
 }
 
 unsigned int __cdecl RB_HW_ReadOcclusionQuery(IDirect3DQuery9 *query)
@@ -535,7 +548,7 @@ unsigned int __cdecl RB_HW_ReadOcclusionQuery(IDirect3DQuery9 *query)
 
     while ( 1 )
     {
-        hr = query->GetData(query, &pixelCount, 4u, 1u);
+        hr = query->GetData(&pixelCount, 4u, 1u);
         if ( hr != 1 )
             break;
         Sleep(0);

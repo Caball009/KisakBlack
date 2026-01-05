@@ -1,4 +1,11 @@
 #include "rb_imagetouch.h"
+#include "r_singlethreaded_device_pc.h"
+#include "r_init.h"
+#include "r_dvars.h"
+#include "rb_logfile.h"
+#include "rb_shade.h"
+#include "r_image.h"
+#include "rb_draw3d.h"
 
 void __cdecl RB_TouchAllImages()
 {
@@ -22,7 +29,7 @@ void __cdecl RB_TouchAllImages()
         if ( r_logFile && r_logFile->current.integer )
             RB_LogPrint("dx.device->BeginScene()\n");
         v4 = R_AcquireDXDeviceOwnership(0);
-        hr = dx.device->BeginScene(dx.device);
+        hr = dx.device->BeginScene();
         if ( v4 )
             R_ReleaseDXDeviceOwnership();
         if ( hr < 0 )

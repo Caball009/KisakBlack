@@ -1,4 +1,39 @@
 #pragma once
+#include <d3d9.h>
+
+struct __declspec(align(4)) CinematicHunk // sizeof=0x18
+{                                       // XREF: CinematicGlob/r
+                                        // CinematicGlob/r ...
+    void *base;                         // XREF: R_Cinematic_Advance+2EE/r
+                                        // R_Cinematic_InitBinkTextures+165/w ...
+    void *atFront;                      // XREF: R_Cinematic_AreHunksOpen+3/o
+                                        // R_Cinematic_HunksClose+3/o ...
+    void *atBack;                       // XREF: R_Cinematic_Advance+30A/r
+                                        // R_Cinematic_InitBinkTextures+227/w
+    void *end;
+    void *lastAllocPtr;                 // XREF: R_Cinematic_Advance+2D2/r
+                                        // R_Cinematic_Advance+32F/r ...
+    bool fragmented;
+    // padding byte
+    // padding byte
+    // padding byte
+};
+
+struct CinematicTextureSet // sizeof=0x290
+{
+    GfxImage imageY[2];
+    GfxImage imageCr[2];
+    GfxImage imageCb[2];
+    GfxImage imageA[2];
+    GfxImage drawImageY;
+    GfxImage drawImageCr;
+    GfxImage drawImageCb;
+    GfxImage drawImageA;
+    void *Ytexture[2];
+    void *cRtexture[2];
+    void *cBtexture[2];
+    void *Atexture[2];
+};
 
 void __cdecl R_CinematicInitSound(const _GUID *guid);
 void __cdecl Unlock_Bink_textures2(IDirect3DDevice9 *d3d_device, BINKTEXTURESET *set_textures);

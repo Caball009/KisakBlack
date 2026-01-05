@@ -1,4 +1,10 @@
 #include "r_adszscale.h"
+#include "rb_state.h"
+#include "r_foliage.h"
+
+int activeAdsZScale;
+
+float adsZScale[2][1] = { { 1.0 }, { 1.0 } };
 
 void __cdecl R_StartADSZScaleFrame()
 {

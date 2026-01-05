@@ -1,6 +1,12 @@
 #include "rb_backend.h"
+#include "rb_stats.h"
 
 GfxRenderTarget gfxRenderTargets[44];
+
+GfxDrawConsts g_drawConsts;
+r_backEndGlobals_t backEnd;
+materialCommands_t tess;
+const GfxBackEndData *backEndData;
 
 int rb_execCmdsMS;
 int rb_swapMS;

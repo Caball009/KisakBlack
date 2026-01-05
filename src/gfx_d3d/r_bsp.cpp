@@ -1,4 +1,21 @@
 #include "r_bsp.h"
+#include <universal/com_memory.h>
+#include "r_bsp_load_obj.h"
+#include "r_dvars.h"
+#include "rb_light.h"
+#include "r_world_lod.h"
+#include "r_foliage.h"
+#include "r_sky.h"
+#include "r_skybox.h"
+#include "r_model_lighting.h"
+#include "rb_corona.h"
+#include "r_vertexstream2.h"
+#include "r_staticmodelcache.h"
+#include "r_reflection_probe.h"
+#include "r_model.h"
+
+GfxWorld s_world;
+int g_pmemLocation;
 
 MaterialUsage *__cdecl R_GetMaterialUsageData(Material *material)
 {
@@ -120,10 +137,9 @@ void __cdecl R_UpdateLightsFromDvars()
 {
     SunLightParseParams sunParse; // [esp+10h] [ebp-C0h] BYREF
 
-    if ( !sm_enable->current.enabled
-        && (*(float *)(r_lightTweakSunDirection.integer + 24) != *(float *)(r_lightTweakSunDirection.integer + 56)
-         || *(float *)(r_lightTweakSunDirection.integer + 28) != *(float *)(r_lightTweakSunDirection.integer + 60)
-         || *(float *)(r_lightTweakSunDirection.integer + 32) != *(float *)(r_lightTweakSunDirection.integer + 64)) )
+    if (r_lightTweakSunDirection->reset.vector[0] != r_lightTweakSunDirection->current.vector[0]
+        || r_lightTweakSunDirection->reset.vector[1] != r_lightTweakSunDirection->current.vector[1]
+        || r_lightTweakSunDirection->reset.vector[2] != r_lightTweakSunDirection->current.vector[2])
     {
         Dvar_SetFloat((dvar_s *)sm_sunSampleSizeNear, 1.0);
     }
@@ -133,27 +149,18 @@ void __cdecl R_UpdateLightsFromDvars()
 
 void __cdecl R_CopyParseParamsFromDvars(SunLightParseParams *sunParse)
 {
-    int v1; // [esp+Ch] [ebp-4h]
-
     memcpy(sunParse, &rgp.world->sunParse, sizeof(SunLightParseParams));
     sunParse->sunSettings[0].sunDiffuseColor[0] = r_lightTweakSunColor->current.value;
     sunParse->sunSettings[0].sunDiffuseColor[1] = r_lightTweakSunColor->current.vector[1];
     sunParse->sunSettings[0].sunDiffuseColor[2] = r_lightTweakSunColor->current.vector[2];
     sunParse->sunSettings[0].sunDiffuseColor[3] = r_lightTweakSunLight->current.value;
-    if ( r_lightTweakSunDirection.integer == -24
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_bsp.cpp",
-                    145,
-                    0,
-                    "%s",
-                    "r_lightTweakSunDirection->current.vector") )
-    {
-        __debugbreak();
-    }
-    v1 = r_lightTweakSunDirection.integer + 24;
-    sunParse->sunSettings[0].angles[0] = *(float *)(r_lightTweakSunDirection.integer + 24);
-    sunParse->sunSettings[0].angles[1] = *(float *)(v1 + 4);
-    sunParse->sunSettings[0].angles[2] = *(float *)(v1 + 8);
+
+    iassert(r_lightTweakSunDirection->current.vector);
+
+    sunParse->sunSettings[0].angles[0] = r_lightTweakSunDirection->current.vector[0];
+    sunParse->sunSettings[0].angles[1] = r_lightTweakSunDirection->current.vector[1];
+    sunParse->sunSettings[0].angles[2] = r_lightTweakSunDirection->current.vector[2];
+
 }
 
 void __cdecl R_LoadWorld(char *name, int *checksum, int savegame, int location)
@@ -208,17 +215,8 @@ void __cdecl R_CopyParseParamsToDvars(const SunLightParseParams *sunParse, int s
     unsigned int saveDirection_4; // [esp+18h] [ebp-8h]
     float saveDirection_8; // [esp+1Ch] [ebp-4h]
 
-    if ( (*(unsigned int *)(r_lightTweakSunDirection.integer + 12) & 0x1000) == 0
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_bsp.cpp",
-                    262,
-                    0,
-                    "%s\n\t(r_lightTweakSunDirection->name) = %s",
-                    "(r_lightTweakSunDirection->flags & (1 << 12))",
-                    *(const char **)r_lightTweakSunDirection.integer) )
-    {
-        __debugbreak();
-    }
+    iassert(r_lightTweakSunDirection->flags & (1 << 12));
+
     saveDirection = *(unsigned int *)(r_lightTweakSunDirection.integer + 24);
     saveDirection_4 = *(unsigned int *)(r_lightTweakSunDirection.integer + 28);
     saveDirection_8 = *(float *)(r_lightTweakSunDirection.integer + 32);
@@ -271,7 +269,7 @@ void __cdecl R_SetWorldPtr_LoadObj(const char *name)
 
 void __cdecl R_SetWorldPtr_FastFile(const char *name)
 {
-    rgp.world = DB_FindXAssetHeader(ASSET_TYPE_GFXWORLD, name, 1, -1).gfxWorld;
+    rgp.world = DB_FindXAssetHeader(ASSET_TYPE_GFXWORLD, (char*)name, 1, -1).gfxWorld;
     rgp.needSortMaterials = 1;
 }
 
@@ -280,7 +278,7 @@ void R_RegisterSkyboxModel()
     if ( rgp.world->skyBoxModel )
     {
         if ( *rgp.world->skyBoxModel )
-            R_RegisterSkyboxModel(rgp.world->skyBoxModel);
+            R_RegisterSkyboxModel((char*)rgp.world->skyBoxModel);
     }
 }
 

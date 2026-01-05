@@ -17,3 +17,5 @@ void __cdecl RB_Stats_AccumulatePrimStats(const GfxPrimStats *primStats, GfxPrim
 void __cdecl RB_Stats_SummarizePrimStats(const char *label, const GfxPrimStats *primStats);
 void __cdecl RB_Stats_UpdateMaxs(const GfxFrameStats *frameStatsCur, GfxFrameStats *frameStatsMax);
 void __cdecl RB_DrawPrimHistogramOverlay();
+
+extern GfxFrameStats g_frameStatsCur;

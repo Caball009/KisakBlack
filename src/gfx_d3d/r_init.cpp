@@ -39,6 +39,21 @@
 #include <universal/com_buildinfo.h>
 #include "r_cmds.h"
 #include "r_state.h"
+#include "r_model.h"
+#include "r_vertexstream2.h"
+#include "r_foliage.h"
+#include "r_skybox.h"
+#include "r_cinematic.h"
+#include "rb_imagetouch.h"
+#include "r_setstate_d3d.h"
+#include <cgame/cg_scr_main.h>
+#include <universal/com_workercmds.h>
+#include <mjpeg/yuv.h>
+#include <win32/win_common.h>
+#include "rb_resource.h"
+#include "r_state_utils.h"
+
+int g_destroy_window;
 
 GfxConfiguration gfxCfg;
 vidConfig_t vidConfig;
@@ -49,6 +64,7 @@ GfxMetrics gfxMetrics;
 GfxGlobals r_glob;
 GfxDrawConsts g_drawConsts;
 GfxWorldDpvsStatic *g_worldDpvs;
+GfxWorldDraw *g_worldDraw;
 GfxWorldDpvsPlanes *g_worldDpvsPlanes;
 
 bool g_allocateMinimalResources;
@@ -1715,51 +1731,48 @@ void __cdecl R_ShutdownInternal()
     }
 }
 
-int R_ShutdownDirect3D()
+void R_ShutdownDirect3D()
 {
-    return R_ShutdownDirect3DInternal();
+    R_ShutdownDirect3DInternal();
 }
 
-int R_ShutdownDirect3DInternal()
+void R_ShutdownDirect3DInternal()
 {
-    int result; // eax
-
     R_FreeWaterSimulationBuffers();
-    if ( useFastFile->current.enabled )
+    if (useFastFile->current.enabled)
         R_UnloadGraphicsAssets();
     R_Cinematic_Shutdown();
     R_ReleaseForShutdownOrReset();
-    while ( dx.windows[0].hwnd )
+    while (dx.windows[0].hwnd)
     {
-        if ( !dx.windows[(int)--dx.windows[0].hwnd].swapChain
+        if (!dx.windows[(int)--dx.windows[0].hwnd].swapChain
             && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_init.cpp",
-                        3029,
-                        0,
-                        "%s",
-                        "dx.windows[dx.windowCount].hwnd") )
+                "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_init.cpp",
+                3029,
+                0,
+                "%s",
+                "dx.windows[dx.windowCount].hwnd"))
         {
             __debugbreak();
         }
-        if ( IsWindow((HWND)dx.windows[(int)dx.windows[0].hwnd].swapChain) )
+        if (IsWindow((HWND)dx.windows[(int)dx.windows[0].hwnd].swapChain))
             DestroyWindow((HWND)dx.windows[(int)dx.windows[0].hwnd].swapChain);
         dx.windows[(int)dx.windows[0].hwnd].swapChain = 0;
     }
     R_AssertDXDeviceOwnership();
-    result = 0;
-    if ( dx.device )
+    if (dx.device)
     {
         NvAPI_Stereo_DestroyHandle(dx.nvStereoHandle);
         dx.nvStereoHandle = 0;
-        result = ((int (__thiscall *)(IDirect3DDevice9 *, IDirect3DDevice9 *))dx.device->Release)(dx.device, dx.device);
+        //((void(__thiscall *)(IDirect3DDevice9 *, IDirect3DDevice9 *))dx.device->Release)(dx.device, dx.device);
+        dx.device->Release();
         dx.device = 0;
     }
-    if ( dx.d3d9 )
+    if (dx.d3d9)
     {
-        result = dx.d3d9->Release(dx.d3d9);
+        dx.d3d9->Release();
         dx.d3d9 = 0;
     }
-    return result;
 }
 
 void R_UnloadGraphicsAssets()
@@ -1793,7 +1806,7 @@ void __cdecl R_UnloadWorld()
         __debugbreak();
     }
     if ( rgp.world )
-        Sys_Error("Cannot unload bsp while it is in use");
+        Sys_Error((char*)"Cannot unload bsp while it is in use");
 }
 
 void __cdecl R_BeginRegistrationInternal()
@@ -1981,7 +1994,7 @@ char __cdecl R_ResetDevice()
         Com_Printf(8, "Resetting %i x %i window.\n", d3dpp.BackBufferWidth, d3dpp.BackBufferHeight);
     else
         Com_Printf(8, "Resetting %i x %i fullscreen.\n", d3dpp.BackBufferWidth, d3dpp.BackBufferHeight);
-    if ( dx.device->Reset(dx.device, &d3dpp) )
+    if ( dx.device->Reset(&d3dpp) )
         return 0;
     if ( wndParms.fullscreen )
     {
@@ -2025,7 +2038,7 @@ void __cdecl R_ComErrorCleanup()
         if ( r_logFile && r_logFile->current.integer )
             RB_LogPrint("dx.device->EndScene()\n");
         semaphore = R_AcquireDXDeviceOwnership(0);
-        hr = dx.device->EndScene(dx.device);
+        hr = dx.device->EndScene();
         if ( semaphore )
             R_ReleaseDXDeviceOwnership();
         if ( hr < 0 )

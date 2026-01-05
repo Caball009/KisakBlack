@@ -1,4 +1,8 @@
 #include "rb_compositing.h"
+#include "rb_draw3d.h"
+#include "r_state.h"
+#include "r_state_utils.h"
+#include "rb_backend.h"
 
 void __cdecl RB_DrawComposites()
 {
@@ -14,8 +18,8 @@ void __cdecl RB_DrawComposites()
         R_Set2D(&gfxCmdBufSourceState);
         RB_ExecuteRenderCommandsLoop(cmds, 0);
         memcpy(gfxCmdBufState.refSamplerState, gfxCmdBufState.refSamplerState, sizeof(gfxCmdBufState));
-        if ( GetCurrentThreadId() != g_DXDeviceThread )
-            return;
+        //if ( GetCurrentThreadId() != g_DXDeviceThread )
+        //    return;
         goto LABEL_5;
     }
     //if ( GetCurrentThreadId() == g_DXDeviceThread )

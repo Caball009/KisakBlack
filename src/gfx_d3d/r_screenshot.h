@@ -18,6 +18,15 @@ enum CubemapShot : __int32
     CUBEMAPSHOT_DOWN  = 0x6,
     CUBEMAPSHOT_COUNT = 0x7,
 };
+inline CubemapShot &operator++(CubemapShot &e) {
+    e = static_cast<CubemapShot>(static_cast<int>(e) + 1);
+    return e;
+}
+inline CubemapShot &operator++(CubemapShot &e, int i)
+{
+    ++e;
+    return e;
+}
 
 struct DiskGfxReflectionProbeVolumeData // sizeof=0x60
 {                                       // XREF: DiskGfxReflectionProbe/r

@@ -1,4 +1,5 @@
 #include "r_char_tech_util.h"
+#include "r_dvars.h"
 
 char __cdecl TechLit_NeedsCharredTech(const GfxDrawSurf *drawSurf)
 {

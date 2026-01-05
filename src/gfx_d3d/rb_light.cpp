@@ -1,4 +1,22 @@
 #include "rb_light.h"
+#include <qcommon/threads.h>
+#include "r_dvars.h"
+#include "r_debug.h"
+#include <universal/com_memory.h>
+#include <cgame_mp/cg_ents_mp.h>
+#include <qcommon/com_bsp.h>
+#include <universal/com_files.h>
+#include <libs/libtomcrypt-1.17/src/headers/tomcrypt_argchk.h>
+#include <libs/libtomcrypt-1.17/src/headers/tomcrypt_hash.h>
+#include <libs/libtomcrypt-1.17/src/headers/tomcrypt_cipher.h>
+
+unsigned int lightPointCount;
+tlAtomicMutex lightGridMutex;
+htab **LightGridHashtable;
+htab *LightGridMemory;
+unsigned int nextAvailable;
+int s_lightGridRowDelta;
+int s_lightGridSliceDelta;
 
 void __cdecl R_ShowLightVisCachePoints(const float *viewOrigin, const DpvsPlane *clipPlanes, int clipPlaneCount)
 {
@@ -61,7 +79,7 @@ void __cdecl R_ShowLightVisCachePoints(const float *viewOrigin, const DpvsPlane 
                                             color = (float *)colorGreen;
                                         else
                                             color = (float *)colorYellow;
-                                        R_AddDebugString(&frontEndDataOut->debugGlobals, origin, color, 1.0, ".");
+                                        R_AddDebugString(&frontEndDataOut->debugGlobals, origin, color, 1.0, (char*)".");
                                     }
                                 }
                             }
@@ -79,7 +97,7 @@ bool __cdecl R_SortedHistoryEntry(
                 unsigned __int16 z,
                 GfxSortedHistoryAdd addMode)
 {
-    int Target[5]; // [esp+0h] [ebp-2Ch] BYREF
+    volatile unsigned int Target[5]; // [esp+0h] [ebp-2Ch] BYREF
     htab *added; // [esp+14h] [ebp-18h]
     bool result; // [esp+1Bh] [ebp-11h]
     unsigned __int16 gsp[3]; // [esp+1Ch] [ebp-10h] BYREF
@@ -88,7 +106,8 @@ bool __cdecl R_SortedHistoryEntry(
     gsp[0] = x;
     gsp[1] = y;
     gsp[2] = z;
-    tlAtomicMutex::Lock(&lightGridMutex);
+    //tlAtomicMutex::Lock(&lightGridMutex);
+    lightGridMutex.Lock();
     if ( findhash((const unsigned __int16 (*)[3])gsp) )
     {
         result = 1;
@@ -203,7 +222,7 @@ void __cdecl R_ApplyLightGridColorsPatch(const GfxModelLightingPatch *patch, uns
     GfxDecodedLightGridColors accumulatedColors; // [esp+420h] [ebp-380h] BYREF
 
     if ( patch->useHeroLighting )
-        v2 = patch->heroPos;
+        v2 = (float*)patch->heroPos;
     else
         v2 = 0;
     heroPos = v2;
@@ -475,18 +494,18 @@ unsigned __int8 __cdecl R_GetPrimaryLightFromGrid(
 }
 
 unsigned __int8 __cdecl R_LightGridLookup(
-                const GfxLightGrid *lightGrid,
-                const float *samplePos,
-                float *cornerWeight,
-                const GfxLightGridEntry **cornerEntry,
-                unsigned int *defaultGridEntry)
+    const GfxLightGrid *lightGrid,
+    const float *samplePos,
+    float *cornerWeight,
+    const GfxLightGridEntry **cornerEntry,
+    unsigned int *defaultGridEntry)
 {
     float v6; // [esp+20h] [ebp-68h]
     float v7; // [esp+24h] [ebp-64h]
     float v8; // [esp+28h] [ebp-60h]
     bool v9; // [esp+2Eh] [ebp-5Ah]
     unsigned __int8 v10; // [esp+2Fh] [ebp-59h]
-    int localEntry; // [esp+3Ch] [ebp-4Ch] BYREF
+    GfxLightGridEntry localEntry; // [esp+3Ch] [ebp-4Ch] BYREF
     unsigned int pos[3]; // [esp+40h] [ebp-48h] BYREF
     bool honorSuppression; // [esp+4Fh] [ebp-39h]
     const GfxLightGridEntry *entry; // [esp+50h] [ebp-38h]
@@ -506,14 +525,14 @@ unsigned __int8 __cdecl R_LightGridLookup(
     pos[1] = ((int)v7 + 0x20000) >> 5;
     v6 = floor(samplePos[2]);
     pos[2] = ((int)v6 + 0x20000) >> 6;
-    if ( (lightGrid->rowAxis || lightGrid->colAxis != 1)
+    if ((lightGrid->rowAxis || lightGrid->colAxis != 1)
         && (lightGrid->rowAxis != 1 || lightGrid->colAxis)
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_light.cpp",
-                    1934,
-                    1,
-                    "%s",
-                    "(lightGrid->rowAxis == 0 && lightGrid->colAxis == 1) || (lightGrid->rowAxis == 1 && lightGrid->colAxis == 0)") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_light.cpp",
+            1934,
+            1,
+            "%s",
+            "(lightGrid->rowAxis == 0 && lightGrid->colAxis == 1) || (lightGrid->rowAxis == 1 && lightGrid->colAxis == 0)"))
     {
         __debugbreak();
     }
@@ -537,41 +556,36 @@ unsigned __int8 __cdecl R_LightGridLookup(
     ++pos[lightGrid->rowAxis];
     R_GetLightGridSampleEntryQuad(lightGrid, pos, cornerEntry + 4, defaultGridEntry);
     --pos[lightGrid->rowAxis];
-    if ( r_vc_makelog->current.integer )
+    if (r_vc_makelog->current.integer)
         R_UpdateVisHistory(lightGrid, pos);
     primaryLightIndex = 0;
     bestPrimaryLightWeight = 0.0f;
     honorSuppression = 0;
     cornerIndex = 0;
     cornerTraceBit = 1;
-    while ( cornerIndex < 8 )
+    while (cornerIndex < 8)
     {
         remoteEntry = cornerEntry[cornerIndex];
-        if ( !remoteEntry )
+        if (!remoteEntry)
             goto LABEL_10;
-        if ( cornerWeight[cornerIndex] < 0.001 )
+        if (cornerWeight[cornerIndex] < 0.001)
         {
             cornerEntry[cornerIndex] = 0;
             goto LABEL_10;
         }
-        localEntry = (int)*remoteEntry;
-        entry = (const GfxLightGridEntry *)&localEntry;
-        suppressEntry = !R_IsValidLightGridSample(
-                                             lightGrid,
-                                             (const GfxLightGridEntry *)&localEntry,
-                                             cornerIndex,
-                                             pos,
-                                             samplePos);
+        localEntry = *remoteEntry;
+        entry = &localEntry;
+        suppressEntry = !R_IsValidLightGridSample(lightGrid, &localEntry, cornerIndex, pos, samplePos);
         suppressEntryLog[cornerIndex] = suppressEntry;
-        if ( suppressEntry )
+        if (suppressEntry)
         {
-            if ( honorSuppression )
+            if (honorSuppression)
             {
                 cornerEntry[cornerIndex] = 0;
                 goto LABEL_10;
             }
         }
-        else if ( !honorSuppression )
+        else if (!honorSuppression)
         {
             honorSuppression = 1;
             bestPrimaryLightWeight = cornerWeight[cornerIndex];
@@ -580,9 +594,9 @@ unsigned __int8 __cdecl R_LightGridLookup(
             goto LABEL_10;
         }
         v10 = entry->primaryLightIndex;
-        if ( primaryLightIndex )
+        if (primaryLightIndex)
         {
-            if ( v10 )
+            if (v10)
                 v9 = primaryLightIndex == 255 || v10 != 255 && cornerWeight[cornerIndex] > bestPrimaryLightWeight;
             else
                 v9 = 0;
@@ -591,16 +605,16 @@ unsigned __int8 __cdecl R_LightGridLookup(
         {
             v9 = 1;
         }
-        if ( v9 )
+        if (v9)
         {
             bestPrimaryLightWeight = cornerWeight[cornerIndex];
             primaryLightIndex = entry->primaryLightIndex;
         }
-LABEL_10:
+    LABEL_10:
         ++cornerIndex;
         cornerTraceBit *= 2;
     }
-    if ( r_showLightGrid->current.enabled )
+    if (r_showLightGrid->current.enabled)
         R_ShowLightGrid(lightGrid, pos, samplePos, cornerEntry, suppressEntryLog, honorSuppression);
     return primaryLightIndex;
 }
@@ -752,10 +766,10 @@ void __cdecl R_UpdateVisHistory(const GfxLightGrid *lightGrid, const unsigned in
 
 void AllocAllMemoryNeeded()
 {
-    if ( !LightGridHashtable )
-        LightGridHashtable = (htab **)Z_VirtualAlloc(4194332, "initLightGridPoints", 0);
-    if ( !LightGridMemory )
-        LightGridMemory = (htab *)Z_VirtualAlloc((int)&cls.rankedServers[711].game[35], "initLightGridMemory", 0);
+    if (!LightGridHashtable)
+        LightGridHashtable = (htab **)Z_VirtualAlloc(0x40001C, "initLightGridPoints", 0);
+    if (!LightGridMemory)
+        LightGridMemory = (htab *)Z_VirtualAlloc(0x1000000, "initLightGridMemory", 0);
 }
 
 void __cdecl R_GetLightGridSampleEntryQuad(
@@ -1002,12 +1016,12 @@ bool __cdecl R_IsValidLightGridSample(
 }
 
 unsigned int __cdecl R_GetLightingAtPoint(
-                const GfxLightGrid *remoteLightGrid,
-                const float *samplePos,
-                unsigned int nonSunPrimaryLightIndex,
-                unsigned __int16 dest,
-                GfxModelLightExtrapolation extrapolateBehavior,
-                bool useHeroLighting)
+    const GfxLightGrid *remoteLightGrid,
+    const float *samplePos,
+    unsigned int nonSunPrimaryLightIndex,
+    unsigned __int16 dest,
+    GfxModelLightExtrapolation extrapolateBehavior,
+    bool useHeroLighting)
 {
     float v7; // [esp+Ch] [ebp-F4h]
     float v8; // [esp+10h] [ebp-F0h]
@@ -1015,7 +1029,7 @@ unsigned int __cdecl R_GetLightingAtPoint(
     float v10; // [esp+18h] [ebp-E8h]
     unsigned __int16 colorsIndex; // [esp+1Eh] [ebp-E2h]
     unsigned int i; // [esp+20h] [ebp-E0h]
-    int localEntry; // [esp+48h] [ebp-B8h] BYREF
+    GfxLightGridEntry localEntry; // [esp+48h] [ebp-B8h] BYREF
     unsigned int pos[3]; // [esp+4Ch] [ebp-B4h]
     float cornerWeight[8]; // [esp+58h] [ebp-A8h] BYREF
     const GfxLightGridEntry *entry; // [esp+78h] [ebp-88h]
@@ -1035,18 +1049,18 @@ unsigned int __cdecl R_GetLightingAtPoint(
     float sampleWeight[8]; // [esp+DCh] [ebp-24h] BYREF
     const ComPrimaryLight *remoteLight; // [esp+FCh] [ebp-4h]
 
-    if ( !remoteLightGrid
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_light.cpp", 2287, 0, "%s", "remoteLightGrid") )
+    if (!remoteLightGrid
+        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_light.cpp", 2287, 0, "%s", "remoteLightGrid"))
     {
         __debugbreak();
     }
     lightGrid = remoteLightGrid;
     primaryLightIndex = R_LightGridLookup(remoteLightGrid, samplePos, cornerWeight, cornerEntry, &defaultGridEntry);
-    if ( primaryLightIndex == 255 )
+    if (primaryLightIndex == 255)
     {
         primaryLightIndex = LOBYTE(lightGrid->sunPrimaryLightIndex);
     }
-    else if ( lightGrid->hasLightRegions && primaryLightIndex != lightGrid->sunPrimaryLightIndex )
+    else if (lightGrid->hasLightRegions && primaryLightIndex != lightGrid->sunPrimaryLightIndex)
     {
         primaryLightIndex = nonSunPrimaryLightIndex;
     }
@@ -1061,30 +1075,30 @@ unsigned int __cdecl R_GetLightingAtPoint(
     maxWeight = 0.0f;
     primaryVisibleWeight = 0.0f;
     primaryOccludedWeight = 0.0f;
-    for ( cornerIndex = 0; cornerIndex < 8; ++cornerIndex )
+    for (cornerIndex = 0; cornerIndex < 8; ++cornerIndex)
     {
         remoteEntry = cornerEntry[cornerIndex];
-        if ( remoteEntry )
+        if (remoteEntry)
         {
-            localEntry = (int)*remoteEntry;
-            entry = (const GfxLightGridEntry *)&localEntry;
-            if ( BYTE2(localEntry) == primaryLightIndex )
+            localEntry = *remoteEntry;
+            entry = &localEntry;
+            if (localEntry.primaryLightIndex == primaryLightIndex)
             {
                 primaryVisibleWeight = primaryVisibleWeight + cornerWeight[cornerIndex];
             }
-            else if ( !entry->primaryLightIndex || entry->primaryLightIndex == 255 && primaryLightIndex )
+            else if (!entry->primaryLightIndex || entry->primaryLightIndex == 255 && primaryLightIndex)
             {
                 remoteLight = Com_GetPrimaryLight(primaryLightIndex);
                 light = remoteLight;
-                if ( R_CanLightInfluenceLightGridCorner(lightGrid, remoteLight, samplePos, cornerIndex) )
+                if (R_CanLightInfluenceLightGridCorner(lightGrid, remoteLight, samplePos, cornerIndex))
                     primaryOccludedWeight = primaryOccludedWeight + cornerWeight[cornerIndex];
             }
             maxWeight = maxWeight + cornerWeight[cornerIndex];
             v10 = cornerWeight[cornerIndex];
             colorsIndex = entry->colorsIndex;
-            for ( i = 0; i < sampleCount; ++i )
+            for (i = 0; i < sampleCount; ++i)
             {
-                if ( sampleColors[i] == colorsIndex )
+                if (sampleColors[i] == colorsIndex)
                 {
                     sampleWeight[i] = sampleWeight[i] + v10;
                     goto LABEL_10;
@@ -1093,43 +1107,43 @@ unsigned int __cdecl R_GetLightingAtPoint(
             sampleColors[sampleCount] = colorsIndex;
             sampleWeight[sampleCount++] = v10;
         }
-LABEL_10:
+    LABEL_10:
         ;
     }
-    if ( maxWeight < 0.0
+    if (maxWeight < 0.0
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_light.cpp",
-                    2339,
-                    0,
-                    "%s\n\t(maxWeight) = %g",
-                    "(maxWeight >= 0.0f)",
-                    maxWeight) )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_light.cpp",
+            2339,
+            0,
+            "%s\n\t(maxWeight) = %g",
+            "(maxWeight >= 0.0f)",
+            maxWeight))
     {
         __debugbreak();
     }
-    if ( primaryVisibleWeight < 0.0
+    if (primaryVisibleWeight < 0.0
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_light.cpp",
-                    2340,
-                    0,
-                    "%s\n\t(primaryVisibleWeight) = %g",
-                    "(primaryVisibleWeight >= 0.0f)",
-                    primaryVisibleWeight) )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_light.cpp",
+            2340,
+            0,
+            "%s\n\t(primaryVisibleWeight) = %g",
+            "(primaryVisibleWeight >= 0.0f)",
+            primaryVisibleWeight))
     {
         __debugbreak();
     }
-    if ( !sampleCount )
+    if (!sampleCount)
         return R_ExtrapolateLightingAtPoint(lightGrid, heroPos, dest, extrapolateBehavior, defaultGridEntry);
-    if ( maxWeight <= 0.0
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_light.cpp", 2349, 1, "%s", "maxWeight > 0.0f") )
+    if (maxWeight <= 0.0
+        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_light.cpp", 2349, 1, "%s", "maxWeight > 0.0f"))
     {
         __debugbreak();
     }
-    if ( primaryLightIndex )
+    if (primaryLightIndex)
     {
-        if ( primaryOccludedWeight == 0.0 )
+        if (primaryOccludedWeight == 0.0)
         {
-            if ( primaryVisibleWeight != 0.0 )
+            if (primaryVisibleWeight != 0.0)
                 primaryVisibleWeight = 1.0f;
         }
         else
@@ -1141,12 +1155,12 @@ LABEL_10:
     {
         primaryVisibleWeight = 0.0f;
     }
-    if ( sampleCount == 1 )
+    if (sampleCount == 1)
         R_SetLightGridColorsFromIndex(lightGrid, sampleColors[0], heroPos, primaryVisibleWeight, dest);
     else
         R_BlendAndSetLightGridColors(
             lightGrid,
-            (unsigned __int8 *)sampleColors,
+            (unsigned char*)sampleColors,
             sampleWeight,
             sampleCount,
             heroPos,
@@ -1509,35 +1523,36 @@ void __cdecl R_SetLightGridSampleDeltas(int rowStride, int sliceStride)
     s_lightGridSliceDelta = sliceStride - 3 * rowStride;
 }
 
-void __cdecl R_InitLightVisHistory(char *bspName)
+void __cdecl R_InitLightVisHistory(const char *bspName)
 {
-    int Target[5]; // [esp+0h] [ebp-70h] BYREF
+    LONG Target[5]; // [esp+0h] [ebp-70h] BYREF
     unsigned __int16 gsp[3]; // [esp+14h] [ebp-5Ch] BYREF
     unsigned int i; // [esp+1Ch] [ebp-54h]
     char filename[68]; // [esp+20h] [ebp-50h] BYREF
     unsigned __int16 (*buffer)[3]; // [esp+68h] [ebp-8h] BYREF
     int count; // [esp+6Ch] [ebp-4h]
 
-    if ( r_vc_makelog->current.integer == 2 )
+    if (r_vc_makelog->current.integer == 2)
     {
         AllocAllMemoryNeeded();
-        R_LightVisHistoryFilename(bspName, filename);
+        R_LightVisHistoryFilename((char*)bspName, filename);
         count = FS_ReadFile(filename, (void **)&buffer);
-        if ( count >= 0 )
+        if (count >= 0)
         {
-            if ( !(count % 6u) )
+            if (!(count % 6u))
             {
-                if ( count > (int)&off_600000 )
-                    count = (int)&off_600000;
-                tlAtomicMutex::Lock(&lightGridMutex);
-                for ( i = 0; i < count / 6u; ++i )
+                if (count > 0x600000)
+                    count = 0x600000;
+                //tlAtomicMutex::Lock(&lightGridMutex);
+                lightGridMutex.Lock();
+                for (i = 0; i < count / 6u; ++i)
                 {
                     gsp[0] = buffer[i][0];
                     gsp[1] = buffer[i][1];
                     gsp[2] = buffer[i][2];
                     addHash((const unsigned __int16 (*)[3])gsp);
                 }
-                if ( !--lightGridMutex.LockCount )
+                if (!--lightGridMutex.LockCount)
                 {
                     Target[0] = 0;
                     InterlockedExchange(Target, 0);
@@ -1558,7 +1573,7 @@ void __cdecl R_LightVisHistoryFilename(char *bspName, char *filename)
     }
     Com_StripExtension(bspName, filename);
     if ( strlen(filename) + 5 >= 0x40 )
-        Com_Error(ERR_DROP, &byte_D8C390, filename);
+        Com_Error(ERR_DROP, "light grid log filename '%s.grid' is too long", filename);
     strcat(filename, ".grid");
 }
 
@@ -1630,8 +1645,8 @@ int __cdecl find_hash(const char *a1)
 
     if ( !a1 )
         crypt_argchk(
-            "name != NULL",
-            "C:\\projects_pc\\cod\\codsrc\\libs\\libtomcrypt-1.17\\src\\misc\\crypt\\crypt_find_hash.c",
+            (char*)"name != NULL",
+            (char*)"C:\\projects_pc\\cod\\codsrc\\libs\\libtomcrypt-1.17\\src\\misc\\crypt\\crypt_find_hash.c",
             26);
     result = 0;
     v2 = (const char **)hash_descriptor;

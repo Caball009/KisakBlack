@@ -321,6 +321,22 @@ struct GfxScaledPlacement // sizeof=0x20
 
 union GfxColor // sizeof=0x4
 {                                                                             // XREF: RB_AddWaypoint+286/w
+    operator unsigned int()
+    {
+        return packed;
+    }
+    GfxColor()
+    {
+        packed = 0;
+    }
+    GfxColor(int i)
+    {
+        packed = i;
+    }
+    GfxColor(unsigned int i)
+    {
+        packed = i;
+    }
     unsigned int packed;
     unsigned __int8 array[4];
 };

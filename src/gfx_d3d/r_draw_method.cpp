@@ -1,4 +1,7 @@
 #include "r_draw_method.h"
+#include "r_dvars.h"
+
+GfxDrawMethod gfxDrawMethod;
 
 void __cdecl R_InitDrawMethod()
 {
@@ -183,9 +186,9 @@ void __cdecl R_UpdateDrawMethod(GfxBackEndData *data)
         for ( surfType = 0; surfType < 0x10; ++surfType )
         {
             v2 = surfType < 2 || surfType == 6;
-            fadeType = v2;
+            fadeType = (GfxFadeType)v2;
             v1 = surfType == 9 || surfType == 7 || surfType == 2;
-            charType = v1;
+            charType = (GfxTechCharredType)v1;
             data->primaryLightTechType[surfType][0][0][primaryLightIndex] = gfxDrawMethod.litTechType[surfType][lightType][0][0];
             data->primaryLightTechType[surfType][0][1][primaryLightIndex] = gfxDrawMethod.litTechType[surfType][lightType][0][charType];
             data->primaryLightTechType[surfType][1][0][primaryLightIndex] = gfxDrawMethod.litTechType[surfType][lightType][fadeType][0];

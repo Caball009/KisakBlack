@@ -1,4 +1,14 @@
 #include "r_draw_bsp.h"
+#include "rb_tess.h"
+#include "r_vertexstream2.h"
+#include "r_state.h"
+#include "rb_shade.h"
+#include "r_dvars.h"
+#include "r_shade.h"
+
+int g_layerDataStride[18] = { 0, 0, 0, 8, 12, 16, 20, 24, 24, 28, 32, 32, 36, 40, 0, 0, 16, 0 };
+int g_stream2Stride[18] = { 0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0 };
+
 
 void __cdecl R_SetStreamsForBspSurface(GfxCmdBufPrimState *state, const srfTriangles_t *tris)
 {

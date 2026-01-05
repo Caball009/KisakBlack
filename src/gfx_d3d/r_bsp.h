@@ -1,6 +1,8 @@
 #pragma once
 #include "r_material.h"
 #include "r_dpvs.h"
+#include "r_reflection_probe.h"
+#include "rb_light.h"
 
 struct GfxShadowGeometry // sizeof=0xC
 {
@@ -226,6 +228,53 @@ struct GfxCell // sizeof=0x38
     unsigned __int8 *reflectionProbes;
 };
 
+struct GfxWorldVertexData // sizeof=0x8
+{                                       // XREF: GfxWorldDraw/r
+    GfxWorldVertex *vertices;           // XREF: R_LoadSurfaces+151/w
+    IDirect3DVertexBuffer9 *worldVb;    // XREF: R_LoadSurfaces+C0F/o
+};
+
+struct GfxWorldVertexLayerData // sizeof=0x8
+{                                       // XREF: GfxWorldDraw/r
+    unsigned __int8 *data;              // XREF: R_LoadSurfaces+10B/w
+    IDirect3DVertexBuffer9 *layerVb;    // XREF: R_LoadSurfaces+C29/o
+};
+
+struct GfxWorldDraw // sizeof=0xC0
+{                                       // XREF: GfxWorld/r
+    unsigned int reflectionProbeCount;  // XREF: R_GetReflectionProbePosition(uint,float * const)+7/r
+                                        // R_CreateDefaultProbes+3/w ...
+    GfxReflectionProbe *reflectionProbes;
+                                        // XREF: R_GetReflectionProbePosition(uint,float * const)+38/r
+                                        // R_CreateDefaultProbes+1E/w ...
+    GfxTexture *reflectionProbeTextures;
+                                        // XREF: R_CreateDefaultProbes+34/w
+                                        // R_LoadReflectionProbes+6B/w ...
+    int lightmapCount;                  // XREF: R_LoadLightmaps+107/w
+                                        // R_LoadLightmaps+1190/w ...
+    GfxLightmapArray *lightmaps;        // XREF: R_LoadLightmaps+241/w
+                                        // R_LoadLightmaps+540/r ...
+    GfxTexture *lightmapPrimaryTextures; // XREF: R_LoadLightmaps+11F3/w
+    GfxTexture *lightmapSecondaryTextures; // XREF: R_LoadLightmaps+1210/w
+    GfxTexture *lightmapSecondaryTexturesB;
+                                        // XREF: R_LoadLightmaps+122E/w
+    GfxImage *terrainScorchImages[31];
+    unsigned int vertexCount;           // XREF: R_LoadSurfaces+B0/w
+                                        // R_LoadSurfaces+4F2/r ...
+    GfxWorldVertexData vd;              // XREF: R_LoadSurfaces+151/w
+                                        // R_LoadSurfaces+C08/r ...
+    unsigned int vertexLayerDataSize;   // XREF: R_LoadSurfaces+102/w
+                                        // R_LoadSurfaces+C1C/r ...
+    GfxWorldVertexLayerData vld;        // XREF: R_LoadSurfaces+10B/w
+                                        // R_LoadSurfaces+C23/r ...
+    unsigned int vertexStream2DataSize; // XREF: R_CalculateVertexStream2Usage+6/w
+                                        // R_CalculateVertexStream2Usage+28E/w
+    int indexCount;                     // XREF: R_LoadSurfaces+443/w
+                                        // R_LoadSurfaces+475/r ...
+    unsigned __int16 *indices;          // XREF: R_LoadSurfaces+4AC/w
+                                        // R_FinalizeSurfVerts+176/r ...
+};
+
 struct GfxWorld // sizeof=0x43C
 {                                       // XREF: .data:GfxWorld s_world/r
     const char *name;                   // XREF: R_LoadWorldInternal(char const *)+92/w
@@ -386,3 +435,5 @@ void __cdecl R_ReloadWorld();
 unsigned int __cdecl R_GetDebugReflectionProbeLocs(float (*locArray)[3], unsigned int maxCount);
 void __cdecl R_BspGenerateReflections();
 void __cdecl R_RegisterSkyboxModel(char *xmodelName);
+
+extern GfxWorld s_world;

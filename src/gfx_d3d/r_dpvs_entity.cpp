@@ -1,4 +1,7 @@
 #include "r_dpvs_entity.h"
+#include "r_model_pose.h"
+#include <cgame/cg_pose_utils.h>
+#include "r_dobj_skin.h"
 
 void __cdecl R_AddEntitySurfacesInFrustumCmd(unsigned __int16 *data)
 {
@@ -196,7 +199,7 @@ void __cdecl R_ForceAddEntitySurfacesInFrustumCmd(GfxSceneEntity *sceneEnt, unsi
     GfxSceneEntity *localSceneEnt; // [esp+8h] [ebp-4h] BYREF
     int savedregs; // [esp+Ch] [ebp+0h] BYREF
 
-    boneMatrix = R_UpdateSceneEntBounds((GfxSceneEntity *)&savedregs, sceneEnt, &localSceneEnt, &obj, 1);
+    boneMatrix = R_UpdateSceneEntBounds(sceneEnt, &localSceneEnt, &obj, 1);
     if ( boneMatrix )
     {
         if ( !localSceneEnt

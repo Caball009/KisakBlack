@@ -1,4 +1,36 @@
 #include "rb_pixelcost.h"
+#include "r_init.h"
+#include "rb_corona.h"
+#include "r_foliage.h"
+
+struct $24C327571DE1B1A743908CE1FB1197BD // sizeof=0x10030
+{                                       // XREF: .data:pixelCostGlob/r
+    GfxPixelCostMode savedMode;
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    long double msecOverhead;
+    unsigned __int64 timeBegin;
+    long double msecElapsed;            // XREF: R_PixelCost_EndSurface(GfxCmdBufContext)+A3/r
+                                        // RB_PixelCost_AccumulateMsec+6/r
+    int frameIndex;                     // XREF: R_PixelCost_EndSurface(GfxCmdBufContext)+11F/r
+                                        // RB_PixelCost_AccumulateMsec+64/r
+    int expectedCount;                  // XREF: R_PixelCost_BeginSurface(GfxCmdBufContext):loc_B08CDD/r
+                                        // R_PixelCost_BeginSurface(GfxCmdBufContext)+76/w ...
+    int recordCount;                    // XREF: R_PixelCost_BeginSurface(GfxCmdBufContext):loc_B08DB4/r
+                                        // RB_PixelCost_DoesPrimMatch+6/r ...
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    GfxPixelCostRecord records[2048];   // XREF: RB_PixelCost_GetCostForRecordIndex+35/r
+                                        // RB_PixelCost_ResetPrim+C/o ...
+};
+
+$24C327571DE1B1A743908CE1FB1197BD pixelCostGlob;
+
+GfxPixelCostMode pixelCostMode;
 
 const Material *__cdecl R_PixelCost_GetAccumulationMaterial(const Material *material)
 {
@@ -113,10 +145,10 @@ void __cdecl R_PixelCost_SetConstant(GfxCmdBufSourceState *source, int cost)
     }
     else
     {
-        weights[0] = FLOAT_0_094156861;
-        weights[1] = FLOAT_0_031411767;
+        weights[0] = 0.094156861f;
+        weights[1] = 0.031411767f;
         weights[2] = 0.0f;
-        weights[3] = FLOAT_0_0039607841;
+        weights[3] = 0.0039607841f;
     }
     R_SetCodeConstantFromVec4(source, 0x22u, weights);
 }
@@ -252,9 +284,7 @@ void __cdecl R_PixelCost_EndSurface(GfxCmdBufContext context)
 
     if ( pixelCostMode == GFX_PIXEL_COST_MODE_MEASURE_COST )
     {
-        gfxAssets.pixelCountQuery[r_glob.backEndFrameCount % 4]->Issue(
-            gfxAssets.pixelCountQuery[r_glob.backEndFrameCount % 4],
-            1u);
+        gfxAssets.pixelCountQuery[r_glob.backEndFrameCount % 4]->Issue(1u);
         //BLOPS_NULLSUB();
         pixelCount = RB_HW_ReadOcclusionQuery(gfxAssets.pixelCountQuery[r_glob.backEndFrameCount % 4]);
         if ( pixelCount )

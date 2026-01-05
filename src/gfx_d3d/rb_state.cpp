@@ -4,6 +4,7 @@
 #include "r_init.h"
 #include "r_state.h"
 #include "r_rendertarget.h"
+#include "rb_backend.h"
 
 GfxCmdBufState gfxCmdBufState;
 GfxCmdBufInput gfxCmdBufInput;

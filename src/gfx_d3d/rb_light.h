@@ -30,6 +30,18 @@ struct GfxLightGridEntry // sizeof=0x4
     unsigned __int8 needsTrace;
 };
 
+struct GfxLightGridRow // sizeof=0xC
+{                                       // XREF: R_CompressLightGridRow_Version15/r
+    unsigned __int16 colStart;          // XREF: R_CompressLightGridRow_Version15+21/w
+                                        // R_CompressLightGridRow_Version15+3B/r ...
+    unsigned __int16 colCount;          // XREF: R_CompressLightGridRow_Version15+44/w
+    unsigned __int16 zStart;            // XREF: R_CompressLightGridRow_Version15+4E/w
+                                        // R_CompressLightGridRow_Version15+59/r ...
+    unsigned __int16 zCount;            // XREF: R_CompressLightGridRow_Version15+62/w
+    unsigned int firstEntry;            // XREF: R_CompressLightGridRow_Version15+B/w
+                                        // R_CompressLightGridRow_Version15+7D/r
+};
+
 struct GfxLightGrid // sizeof=0x38
 {                                       // XREF: GfxWorld/r
     bool hasLightRegions;               // XREF: R_LoadLightRegions+41/w

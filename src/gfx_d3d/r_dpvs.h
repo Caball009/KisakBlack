@@ -400,3 +400,6 @@ void __cdecl R_ExtraCam_RestoreDpvsData(int localClientNum, unsigned __int8 *buf
 void __cdecl R_PerMap_DpvsGlobInit();
 unsigned int __cdecl R_CalcReflectionProbeIndex(const GfxWorld *world, const float *origin);
 int __cdecl R_CellForPoint(const GfxWorld *world, const float *origin);
+
+
+extern DpvsGlob dpvsGlob;

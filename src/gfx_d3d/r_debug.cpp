@@ -1,4 +1,9 @@
 #include "r_debug.h"
+#include <win32/win_common.h>
+#include "r_debug_alloc.h"
+
+PolySet persistentPolySet;
+DebugGlobals debugGlobals;
 
 void __cdecl R_AddDebugPolygon(
                 DebugGlobals *debugGlobalsEntry,
@@ -191,19 +196,19 @@ void __cdecl R_AddDebugBox(DebugGlobals *debugGlobalsEntry, const float *mins, c
     unsigned int ia; // [esp+8h] [ebp-64h]
     float v[8][3]; // [esp+Ch] [ebp-60h] BYREF
 
-    for ( i = 0; i < 8; ++i )
+    for (i = 0; i < 8; ++i)
     {
-        for ( j = 0; j < 3; ++j )
+        for (j = 0; j < 3; ++j)
         {
-            if ( (i & (1 << j)) != 0 )
+            if ((i & (1 << j)) != 0)
                 v4 = maxs[j];
             else
                 v4 = mins[j];
             v[i][j] = v4;
         }
     }
-    for ( ia = 0; ia < 0xC; ++ia )
-        R_AddDebugLine(debugGlobalsEntry, v[iEdgePairs[ia][0]], v[dword_D7F394[2 * ia]], color, 0);
+    for (ia = 0; ia < 0xC; ++ia)
+        R_AddDebugLine(debugGlobalsEntry, v[iEdgePairs[ia][0]], v[iEdgePairs[ia][1]], color, 0);
 }
 
 void __cdecl R_AddDebugString(
@@ -230,7 +235,7 @@ void __cdecl R_AddDebugString(
         pDebugString->color[2] = color[2];
         pDebugString->color[3] = color[3];
         pDebugString->scale = scale;
-        strncpy((unsigned __int8 *)pDebugString->text, (unsigned __int8 *)string, 0x5Fu);
+        strncpy((char *)pDebugString->text, (const char *)string, 0x5Fu);
         pDebugString->text[95] = 0;
         ++debugGlobalsEntry->stringCount;
         Sys_LeaveCriticalSection(CRITSECT_DEBUG_LINE);

@@ -1,4 +1,82 @@
 #include "r_draw_material.h"
+#include "r_draw_method.h"
+#include "r_char_tech_util.h"
+#include "r_draw_shadowablelight.h"
+#include "rb_pixelcost.h"
+
+unsigned __int8 gNvFloatZTech_Intz[70] =
+{
+  80u,
+  81u,
+  82u,
+  83u,
+  84u,
+  85u,
+  86u,
+  87u,
+  88u,
+  89u,
+  90u,
+  91u,
+  92u,
+  93u,
+  94u,
+  95u,
+  96u,
+  97u,
+  98u,
+  99u,
+  100u,
+  101u,
+  102u,
+  103u,
+  104u,
+  105u,
+  106u,
+  107u,
+  38u,
+  39u,
+  40u,
+  41u,
+  42u,
+  43u,
+  44u,
+  45u,
+  46u,
+  47u,
+  48u,
+  49u,
+  50u,
+  51u,
+  52u,
+  53u,
+  54u,
+  55u,
+  56u,
+  57u,
+  58u,
+  59u,
+  59u,
+  61u,
+  61u,
+  63u,
+  63u,
+  65u,
+  65u,
+  67u,
+  67u,
+  69u,
+  69u,
+  71u,
+  71u,
+  108u,
+  109u,
+  110u,
+  111u,
+  112u,
+  113u,
+  114u
+};
 
 unsigned __int8 __cdecl RemoveSunShadowTech(unsigned __int8 srcTech)
 {
@@ -91,7 +169,7 @@ LABEL_38:
             break;
         case 0xAu:
             needsCharredTech = TechLit_NeedsCharredTech(&drawSurf);
-            fadeType = R_GfxDrawSurf_GetFade(&drawSurf) != 0;
+            fadeType = (GfxFadeType)(R_GfxDrawSurf_GetFade(&drawSurf) != 0);
             data = context.source->input.data;
             if ( (unsigned __int8)(drawSurf.packed >> 43) >= data->shadowableLightCount
                 && !Assert_MyHandler(

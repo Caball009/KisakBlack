@@ -1,4 +1,10 @@
 #include "rb_imagefilter.h"
+#include "rb_backend.h"
+#include "rb_shade.h"
+#include "r_state_utils.h"
+#include "r_foliage.h"
+#include "rb_draw3d.h"
+#include "r_state.h"
 
 void __cdecl RB_GaussianFilterImage(float radius, unsigned __int8 srcRenderTargetId, unsigned __int8 dstRenderTargetId)
 {
@@ -12,32 +18,32 @@ void __cdecl RB_GaussianFilterImage(float radius, unsigned __int8 srcRenderTarge
 
     //PIXBeginNamedEvent(-1, "RB_GaussianFilterImage");
     RB_VirtualToSceneRadius(radius, &radiusX, &radiusY);
-    srcWidth = (unsigned __int16)word_B50E83C[10 * srcRenderTargetId];
-    srcHeight = (unsigned __int16)word_B50E83E[10 * srcRenderTargetId];
-    dstWidth = (unsigned __int16)word_B50E83C[10 * dstRenderTargetId];
-    dstHeight = (unsigned __int16)word_B50E83E[10 * dstRenderTargetId];
+    srcWidth = gfxRenderTargets[srcRenderTargetId].width;
+    srcHeight = gfxRenderTargets[srcRenderTargetId].height;
+    dstWidth = gfxRenderTargets[dstRenderTargetId].width;
+    dstHeight = gfxRenderTargets[dstRenderTargetId].height;
     filter.sourceImage = gfxRenderTargets[srcRenderTargetId].image;
     filter.finalTarget = dstRenderTargetId;
     filter.passCount = RB_GenerateGaussianFilterChain(
-                                             radiusX,
-                                             radiusY,
-                                             srcWidth,
-                                             srcHeight,
-                                             dstWidth,
-                                             dstHeight,
-                                             32,
-                                             filter.passes);
-    if ( filter.passCount )
+        radiusX,
+        radiusY,
+        srcWidth,
+        srcHeight,
+        dstWidth,
+        dstHeight,
+        32,
+        filter.passes);
+    if (!filter.passCount)
     {
-        RB_FilterImage(&filter);
-        if ( GetCurrentThreadId() != g_DXDeviceThread )
-            return;
-    }
-    else if ( g_DXDeviceThread != GetCurrentThreadId() )
-    {
+        //if (GetCurrentThreadId() != (_DWORD)g_DXDeviceThread || dword_A8402BC)
+        //    return;
+    LABEL_9:
+        //D3DPERF_EndEvent();
         return;
     }
-    //D3DPERF_EndEvent();
+    RB_FilterImage(&filter);
+    //if (GetCurrentThreadId() == (_DWORD)g_DXDeviceThread && !dword_A8402BC)
+    //    goto LABEL_9;
 }
 
 void __cdecl RB_VirtualToSceneRadius(float radius, float *radiusX, float *radiusY)
@@ -84,7 +90,7 @@ int __cdecl RB_GenerateGaussianFilterChain(
             v9 = radiusX;
         passRadius = v9;
         if ( v9 > 1.3895605 )
-            passRadius = FLOAT_1_3895605;
+            passRadius = 1.3895605f;
         radiusX = (float)(sqrtf(
                                                 fabs((float)(radiusX * radiusX) - (float)(passRadius * passRadius)))
                                         * (float)dstWidth)
@@ -130,7 +136,7 @@ int __cdecl RB_GenerateGaussianFilterChain(
         {
             if ( radiusY > 6.4977503 )
             {
-                passRadius = FLOAT_6_4977503;
+                passRadius = 6.4977503f;
                 radiusY = sqrtf((float)(radiusY * radiusY) - 42.22076);
             }
             else
@@ -145,7 +151,7 @@ int __cdecl RB_GenerateGaussianFilterChain(
         {
             if ( radiusX >= 6.4977503 )
             {
-                passRadius = FLOAT_6_4977503;
+                passRadius = 6.4977503f;
                 radiusX = sqrtf((float)(radiusX * radiusX) - 42.22076);
             }
             else
@@ -221,105 +227,74 @@ int __cdecl RB_PickSymmetricFilterMaterial(int halfTapCount, const Material **ma
 }
 
 int __cdecl RB_GaussianFilterPoints1D(
-                float pixels,
-                int srcRes,
-                int dstRes,
-                int tapLimit,
-                float *tapOffsets,
-                float *tapWeights)
+    float pixels,
+    int srcRes,
+    int dstRes,
+    int tapLimit,
+    float *tapOffsets,
+    float *tapWeights)
 {
-    float v6; // xmm0_4
-    long double v8; // [esp+8h] [ebp-40h]
-    long double v9; // [esp+8h] [ebp-40h]
-    int tapHalfCount; // [esp+1Ch] [ebp-2Ch]
-    int tapIndex; // [esp+20h] [ebp-28h]
-    int tapIndexa; // [esp+20h] [ebp-28h]
-    float offset; // [esp+28h] [ebp-20h]
-    float totalWeight; // [esp+2Ch] [ebp-1Ch]
-    float gaussianExponent; // [esp+30h] [ebp-18h]
-    float weight; // [esp+34h] [ebp-14h]
-    float weight_4; // [esp+38h] [ebp-10h]
-    float sample; // [esp+40h] [ebp-8h]
-    float sample_4; // [esp+44h] [ebp-4h]
+    const char *v6; // eax
+    double v7; // st7
+    float v9; // [esp+8h] [ebp-58h]
+    float v10; // [esp+Ch] [ebp-54h]
+    float v11; // [esp+10h] [ebp-50h]
+    float v12; // [esp+14h] [ebp-4Ch]
+    float v13; // [esp+20h] [ebp-40h]
+    float v14; // [esp+24h] [ebp-3Ch]
+    int tapHalfCount; // [esp+34h] [ebp-2Ch]
+    int tapIndex; // [esp+38h] [ebp-28h]
+    int tapIndexa; // [esp+38h] [ebp-28h]
+    int resolutionRatio; // [esp+3Ch] [ebp-24h]
+    float totalWeight; // [esp+44h] [ebp-1Ch]
+    float gaussianExponent; // [esp+48h] [ebp-18h]
+    float weight; // [esp+4Ch] [ebp-14h]
+    float weightScale; // [esp+54h] [ebp-Ch]
+    float sample; // [esp+58h] [ebp-8h]
+    float sample_4; // [esp+5Ch] [ebp-4h]
 
-    if ( pixels <= 0.0
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_imagefilter.cpp",
-                    99,
-                    0,
-                    "%s\n\t(pixels) = %g",
-                    "(pixels > 0)",
-                    pixels) )
-    {
-        __debugbreak();
-    }
-    if ( dstRes <= 0
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_imagefilter.cpp",
-                    100,
-                    0,
-                    "%s\n\t(dstRes) = %i",
-                    "(dstRes > 0)",
-                    dstRes) )
-    {
-        __debugbreak();
-    }
-    if ( srcRes < dstRes
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_imagefilter.cpp",
-                    101,
-                    0,
-                    "srcRes >= dstRes\n\t%i, %i",
-                    srcRes,
-                    dstRes) )
-    {
-        __debugbreak();
-    }
-    *((float *)&v8 + 1) = (float)srcRes / (float)dstRes;
-    if ( ((int)(*((float *)&v8 + 1) + 9.313225746154785e-10) & 1) != 0 )
-        LODWORD(v8) = 0;
+    iassert((pixels > 0));
+    iassert((dstRes > 0));
+    iassert(srcRes >= dstRes);
+
+    resolutionRatio = (int)((float)srcRes / (float)dstRes);
+
+    iassert(abs(srcRes - resolutionRatio * dstRes) < resolutionRatio);
+
+    if ((resolutionRatio & 1) != 0)
+        v13 = 0.0f;
     else
-        *(float *)&v8 = 0.5f;
-    offset = *(float *)&v8;
-    gaussianExponent = -0.5 / (float)(pixels * pixels);
+        v13 = 0.5f;
+    gaussianExponent = -0.5f / (pixels * pixels);
     totalWeight = 0.0f;
-    for ( tapIndex = 0; tapIndex < tapLimit; ++tapIndex )
+    for (tapIndex = 0; tapIndex < tapLimit; ++tapIndex)
     {
-        sample = (float)(2 * tapIndex) + offset;
-        sample_4 = (float)(2 * tapIndex + 1) + offset;
-        __libm_sse2_exp(v8);
-        weight = (float)(gaussianExponent * sample) * sample;
-        __libm_sse2_exp(v9);
-        weight_4 = (float)(gaussianExponent * sample_4) * sample_4;
-        if ( !tapIndex && offset == 0.0 )
-            weight = weight * 0.5;
-        tapWeights[tapIndex] = weight + weight_4;
-        if ( tapWeights[tapIndex] == 0.0 )
-            v6 = (float)((float)(sample + sample_4) * 0.5) / (float)srcRes;
+        sample = (float)(2 * tapIndex) + v13;
+        sample_4 = (float)(2 * tapIndex + 1) + v13;
+        v12 = sample * (sample * gaussianExponent);
+        v11 = exp(v12);
+        weight = v11;
+        v10 = sample_4 * (sample_4 * gaussianExponent);
+        v9 = exp(v10);
+        if (!tapIndex && v13 == 0.0f)
+            weight = v11 * 0.5f;
+        tapWeights[tapIndex] = weight + v9;
+        if (tapWeights[tapIndex] == 0.0f)
+            v7 = (sample + sample_4) * 0.5f / (float)srcRes;
         else
-            v6 = (float)((float)(sample * weight) + (float)(sample_4 * weight_4))
-                 / (float)((float)srcRes * tapWeights[tapIndex]);
-        tapOffsets[tapIndex] = v6;
+            v7 = (sample * weight + sample_4 * v9) / ((float)srcRes * tapWeights[tapIndex]);
+        tapOffsets[tapIndex] = v7;
         totalWeight = totalWeight + tapWeights[tapIndex];
     }
-    if ( totalWeight > 0.001 )
+    if (totalWeight > 0.001f)
     {
-        if ( totalWeight <= 0.0
-            && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_imagefilter.cpp",
-                        136,
-                        0,
-                        "%s\n\t(totalWeight) = %g",
-                        "(totalWeight > 0)",
-                        totalWeight) )
-        {
-            __debugbreak();
-        }
+        iassert(totalWeight > 0);
         tapHalfCount = tapLimit;
-        for ( tapIndexa = tapLimit - 1; tapIndexa >= 0; --tapIndexa )
+        for (tapIndexa = tapLimit - 1; tapIndexa >= 0; --tapIndexa)
         {
-            tapWeights[tapIndexa] = tapWeights[tapIndexa] * (float)(0.5 / totalWeight);
-            if ( tapWeights[tapIndexa] < 0.0099999998 )
+            weightScale = 0.5f / totalWeight;
+            tapWeights[tapIndexa] = tapWeights[tapIndexa] * weightScale;
+            if (tapWeights[tapIndexa] < 0.01f)
                 tapHalfCount = tapIndexa + 1;
         }
     }
@@ -423,8 +398,8 @@ void __cdecl RB_FilterImage(GfxImageFilter *filter)
             filter->passes[passIndex].material,
             0.0,
             0.0,
-            (float)dword_B473FD0,
-            (float)dword_B473FD4,
+            (float)filter->passes[passIndex].dstWidth,
+            (float)filter->passes[passIndex].dstHeight,
             0.0,
             0.0,
             filter->passes[passIndex].srcWidth,
@@ -453,7 +428,7 @@ void __cdecl RB_SetupFilterPass(const GfxImageFilterPass *filterPass)
         __debugbreak();
     }
     for ( constIndex = 0; constIndex < filterPass->tapHalfCount; ++constIndex )
-        R_SetCodeConstantFromVec4(&gfxCmdBufSourceState, constIndex + 36, filterPass->tapOffsetsAndWeights[constIndex]);
+        R_SetCodeConstantFromVec4(&gfxCmdBufSourceState, constIndex + 36, (float*)filterPass->tapOffsetsAndWeights[constIndex]);
 }
 
 void __cdecl RB_FilterPingPong(const GfxImageFilter *filter, int passIndex)

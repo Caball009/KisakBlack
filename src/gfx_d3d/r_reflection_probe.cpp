@@ -1,4 +1,25 @@
 #include "r_reflection_probe.h"
+#include "r_bsp.h"
+#include "r_dvars.h"
+#include <qcommon/com_bsp_load_obj.h>
+#include <universal/com_memory.h>
+#include <win32/win_main.h>
+#include "r_workercmds_common.h"
+#include "r_bsp_load_obj.h"
+#include <EffectsCore/fx_update.h>
+#include "r_image.h"
+#include "r_image_load_obj.h"
+#include <universal/com_files.h>
+#include <universal/q_parse.h>
+
+const char *fields_5[6] = { "name", "black_level", "white_level", "gamma", "saturation", NULL };
+
+const dvar_t *r_reflectionProbeRegenerateAll;
+const dvar_t *r_reflectionProbeGenerateExit;
+
+int s_numColorCorrectionDataEntries;
+
+ColorCorrectionData s_colorCorrectionDataEntries[1024];
 
 void __cdecl R_GetReflectionProbePosition(unsigned int index, float *pos)
 {
@@ -238,38 +259,30 @@ void __cdecl R_GenerateReflectionRawDataAll(DiskGfxReflectionProbe *probeRawData
     for ( probeIndex = 0; probeIndex < probeCount; ++probeIndex )
     {
         if ( generateProbe[probeIndex] )
-            R_GenerateReflectionRawData((int)&savedregs, &probeRawData[probeIndex]);
+            R_GenerateReflectionRawData(&probeRawData[probeIndex]);
     }
 }
 
-void    R_GenerateReflectionRawData(int a1@<ebp>, DiskGfxReflectionProbe *probeRawData)
+void    R_GenerateReflectionRawData(DiskGfxReflectionProbe *probeRawData)
 {
     void *v2; // esp
     float zfar; // [esp+0h] [ebp-185B0h]
     FxCmd v4; // [esp+10h] [ebp-185A0h] BYREF
     FxCameraUpdate v5; // [esp+44h] [ebp-1856Ch] BYREF
     CubemapShot i; // [esp+80h] [ebp-18530h]
-    refdef_s v7; // [esp+84h] [ebp-1852Ch] BYREF
-    int v8; // [esp+1859Ch] [ebp-14h]
-    int v9; // [esp+185A0h] [ebp-10h]
-    int v10; // [esp+185A4h] [ebp-Ch]
-    void *v11; // [esp+185A8h] [ebp-8h]
-    void *retaddr; // [esp+185B0h] [ebp+0h]
+    refdef_s dst; // [esp+18h] [ebp-40A0h] BYREF
 
-    v10 = a1;
-    v11 = retaddr;
-    v2 = alloca(99744);
-    v9 = 256;
-    v8 = 0;
-    memset((unsigned __int8 *)&v7, 0, sizeof(v7));
-    v7.vieworg[0] = probeRawData->origin[0];
-    v7.vieworg[1] = probeRawData->origin[1];
-    v7.vieworg[2] = probeRawData->origin[2];
-    v7.localClientNum = 0;
-    v7.time = 0;
-    v7.blurRadius = 0.0f;
-    v7.useScissorViewport = 0;
-    R_InitPrimaryLights(v7.primaryLights);
+    memset(&dst, 0, sizeof(dst));
+    dst.vieworg[0] = probeRawData->origin[0];
+    dst.vieworg[1] = probeRawData->origin[1];
+    dst.vieworg[2] = probeRawData->origin[2];
+    dst.localClientNum = 0;
+    dst.time = 0;
+    dst.blurRadius = 0.0;
+    dst.useScissorViewport = 0;
+
+    R_InitPrimaryLights(dst.primaryLights);
+
     for ( i = CUBEMAPSHOT_RIGHT; i < CUBEMAPSHOT_COUNT; ++i )
     {
         R_BeginCubemapShot(256, 0);
@@ -278,16 +291,16 @@ void    R_GenerateReflectionRawData(int a1@<ebp>, DiskGfxReflectionProbe *probeR
         R_ClearClientCmdList2D();
         R_ClearScene(0);
         FX_BeginUpdate(0);
-        R_CalcCubeMapViewValues(&v7, i, 256);
-        R_SetLodOrigin(&v7);
+        R_CalcCubeMapViewValues(&dst, i, 256);
+        R_SetLodOrigin(&dst);
         zfar = R_GetFarPlaneDist();
-        FX_GetCameraUpdateFromRefdefAndZFar(&v5, &v7, zfar);
+        FX_GetCameraUpdateFromRefdefAndZFar(&v5, &dst, zfar);
         FX_SetNextUpdateCamera(0, &v5);
         FX_FillUpdateCmd(0, &v4);
         R_UpdateSpotLightEffect(&v4);
         R_UpdateNonDependentEffects(&v4);
         R_UpdateRemainingEffects(&v4);
-        R_RenderScene(&v7, 0);
+        R_RenderScene(&dst, 0);
         R_EndFrame();
         R_IssueRenderCommands(3u);
         R_EndCubemapShot(i);
@@ -434,7 +447,7 @@ void R_LoadColorCorrectionData()
     int fileSize; // [esp+8h] [ebp-8h]
     int f; // [esp+Ch] [ebp-4h] BYREF
 
-    fileSize = FS_FOpenFileByMode("reflections/reflections.csv", &f, FS_READ);
+    fileSize = FS_FOpenFileByMode((char*)"reflections/reflections.csv", &f, FS_READ);
     if ( fileSize >= 0 )
     {
         Hunk_CheckTempMemoryHighClear();
@@ -450,7 +463,7 @@ void R_LoadColorCorrectionData()
     }
     else
     {
-        Com_PrintError(1, (char *)&byte_D74920, "reflections/reflections.csv");
+        Com_PrintError(1, (char *)"R_LoadColorCorrectionData: failed to open '%s'", "reflections/reflections.csv");
     }
 }
 
@@ -478,7 +491,7 @@ void __cdecl R_ParseColorCorrectionData(const char *buf, const char *filename)
                 break;
             if ( s_numColorCorrectionDataEntries == 1024 )
             {
-                Com_PrintError(1, (char *)&byte_D749D0, filename, 1024, filename);
+                Com_PrintError(1, (char *)"R_ParseColorCorrectionData: file '%s' max color correction entries [%d] exceeded. Ignoring the rest of the file '%s'", filename, 1024, filename);
                 return;
             }
             ccd = &s_colorCorrectionDataEntries[s_numColorCorrectionDataEntries++];
@@ -493,7 +506,7 @@ void __cdecl R_ParseColorCorrectionData(const char *buf, const char *filename)
                 __debugbreak();
             }
             if ( strlen(token->token) >= 0x40 )
-                Com_PrintError(1, (char *)&byte_D74970, filename, token, 64);
+                Com_PrintError(1, (char *)"R_ParseColorCorrectionData: file '%s' truncating name because '%s' is too longer than %d.", filename, token, 64); // too longer
             I_strncpyz(ccd->name, token->token, 64);
             ccd->black_level = Com_ParseFloatOnLine(&buf);
             ccd->white_level = Com_ParseFloatOnLine(&buf);
@@ -515,7 +528,7 @@ char __cdecl R_VerifyFieldNames(const char **buf, const char *filename)
         token = Com_Parse(buf);
         if ( I_stricmp(fields_5[fieldIndex], token->token) )
         {
-            Com_PrintError(1, (char *)&byte_D74A70, filename, fieldIndex, token, fields_5[fieldIndex]);
+            Com_PrintError(1, (char *)"R_ParseColorCorrectionData: file '%s' column header %d was '%s' instead of '%s'", filename, fieldIndex, token, fields_5[fieldIndex]);
             return 0;
         }
     }
@@ -591,7 +604,7 @@ void __cdecl R_GenerateReflectionImages(
                 for ( sideIndex = 0; sideIndex < 6; ++sideIndex )
                 {
                     v5 = probeVolumeData->volumePlanes[sideIndex];
-                    v6 = probeRawData[probeIndex].probeVolumes[probeVolumeCount].volumePlanes[sideIndex];
+                    v6 = (float*)probeRawData[probeIndex].probeVolumes[probeVolumeCount].volumePlanes[sideIndex];
                     *v5 = *v6;
                     v5[1] = v6[1];
                     v5[2] = v6[2];

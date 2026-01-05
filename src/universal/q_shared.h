@@ -375,6 +375,8 @@ static const float colorLtOrange[4] = { 0.75, 0.52499998f, 0.0, 1.0 }; // idb
 static const float colorWhiteFaded[4] = { 1.0, 1.0, 1.0, 0.75 }; // idb
 static const float colorGreenFaded[4] = { 0.0, 1.0, 0.0, 0.75 }; // idb
 static const float colorRedFaded[4] = { 0.75, 0.25, 0.0, 0.75 }; // idb
+static const float colorDkRed[4] = { 0.25, 0.0, 0.0, 1.0 };
+
 
 #define	MAX_GENTITIES		(1024) // 0x400
 
@@ -469,6 +471,22 @@ void __cdecl OrientationConcatenate(const orientation_t *orFirst, const orientat
 void __cdecl OrientationInvert(const orientation_t *orient, orientation_t *out);
 bool __cdecl Com_IsLegacyXModelName(const char *name);
 double __cdecl CMD_GetAnalogButtonValue(usercmd_s *cmd, unsigned int whichBit);
+
+static const int iEdgePairs[12][2] =
+{
+  { 0, 1 },
+  { 0, 2 },
+  { 0, 4 },
+  { 1, 3 },
+  { 1, 5 },
+  { 2, 3 },
+  { 2, 6 },
+  { 3, 7 },
+  { 4, 5 },
+  { 4, 6 },
+  { 5, 7 },
+  { 6, 7 }
+};
 
 extern const dvar_s *useFastFile;
 extern const dvar_s *sys_smp_allowed;
