@@ -1,13 +1,52 @@
 #pragma once
+#include "glass.h"
 
-void __thiscall GlassServer::SetState(GlassServer *this, GlassState::State st, float *pos, float *dir);
-void __thiscall GlassesServer::Init(GlassesServer *this);
-void __thiscall GlassesServer::Shutdown(GlassesServer *this);
-void __thiscall GlassesServer::Update(GlassesServer *this);
-void __cdecl GlassesServer::ShatterAllCmd();
-void __thiscall GlassesServer::ShatterAll(GlassesServer *this);
-void __cdecl GlassesServer::ResetAllCmd();
-void __thiscall GlassesServer::ResetAll(GlassesServer *this);
+struct GlassServer // sizeof=0x2C
+{                                       // XREF: GlassesServer/r
+    GlassState state;
+    Glass *glass;
+    int stateChangeTime;
+    float health;
+    float crackedDamageRate;
+    float hitPos[3];
+    float hitDir[3];
+
+    void SetState(GlassState::State st, float *pos, float *dir);
+};
+
+struct GlassesServer // sizeof=0xABF8
+{                                       // XREF: .data:GlassesServer svGlasses/r
+    int nextShatterTime;
+    int shatterIntervalsMS;
+    bool inited;                        // XREF: _dynamic_initializer_for__svGlasses__+6/w
+    // padding byte
+    // padding byte
+    // padding byte
+    unsigned int numGlasses;            // XREF: GlassSv_AreaGlasses(float const * const,float const * const,Glass const * * const,uint)+D/r
+                                        // GlassSv_AreaGlasses(float const * const,float const * const,Glass const * * const,uint):loc_9A00C1/r ...
+    GlassServer glasses[1000];          // XREF: GlassSv_AreaGlasses(float const * const,float const * const,Glass const * * const,uint)+58/o
+                                        // GlassSv_PointTrace(pointtrace_t const *,trace_t *)+61/o ...
+    const dvar_s *damageMultiplier;     // XREF: GlassSv_Damage(uint,int,int,float const * const,float const * const)+70/r
+                                        // GlassSv_Damage(uint,int,int,float const * const,float const * const)+146/r
+    const dvar_s *crackedDamageRateRange;
+                                        // XREF: GlassServer::SetState(GlassState::State,float const * const,float const * const)+2B/r
+                                        // GlassServer::SetState(GlassState::State,float const * const,float const * const)+38/r
+    void __thiscall Init();
+    void __thiscall Shutdown();
+    void __thiscall Update();
+    static void __cdecl ShatterAllCmd();
+    void __thiscall ShatterAll();
+    static void __cdecl ResetAllCmd();
+    void __thiscall ResetAll();
+    void __thiscall WriteSnapshotToClient(msg_t *msg, int sinceTime);
+};
+
+struct gentity_s;
+struct moveclip_t;
+struct movectrace_tlip_t;
+struct pointtrace_t;
+struct msg_t;
+
 void __cdecl GlassSv_Init();
 void __cdecl GlassSv_Shutdown();
 void __cdecl GlassSv_Update();
@@ -29,6 +68,5 @@ void __cdecl GlassSv_RadiusDamage(
                 int mod);
 void __cdecl GlassSv_Touch(unsigned int glassId, gentity_s *other);
 void __cdecl GlassSv_PredictTouch(gentity_s *other);
-void __thiscall GlassesServer::WriteSnapshotToClient(GlassesServer *this, msg_t *msg, int sinceTime);
 void __cdecl GlassSv_WriteSnapshotToClient(msg_t *msg, int sinceTime);
 void __cdecl GlassSv_WriteGameState(msg_t *msg);

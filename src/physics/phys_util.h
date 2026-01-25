@@ -29,10 +29,9 @@ struct nuge // sizeof=0x0
         float delta_t,
         phys_vec3 *t_vel,
         phys_vec3 *a_vel);
-    void __cdecl calc_sphere_inertia(float radius, phys_vec3 *unit_inertia, float *volume);
-    void __cdecl calc_box_inertia(const phys_vec3 *dim, phys_vec3 *unit_inertia, float *volume);
-    void __cdecl calc_bound_sphere(const phys_vec3 *vert_list, int vert_count, float *radius, phys_vec3 *com);
-    void __cdecl calc_bound_box(const phys_vec3 *vert_list, int vert_count, phys_vec3 *dim, phys_vec3 *com);
-    void __cdecl tensor_transform_principle(const phys_vec3 *diag, const phys_mat44 *mat, phys_mat44 *tensor);
-
+    static void __cdecl calc_sphere_inertia(float radius, phys_vec3 *unit_inertia, float *volume);
+    static void __cdecl calc_box_inertia(const phys_vec3 *dim, phys_vec3 *unit_inertia, float *volume);
+    static void __cdecl calc_bound_sphere(const phys_vec3 *vert_list, int vert_count, float *radius, phys_vec3 *com);
+    static void __cdecl calc_bound_box(const phys_vec3 *vert_list, int vert_count, phys_vec3 *dim, phys_vec3 *com);
+    static void __cdecl tensor_transform_principle(const phys_vec3 *diag, const phys_mat44 *mat, phys_mat44 *tensor);
 };

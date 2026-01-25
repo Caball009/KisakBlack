@@ -750,3 +750,6 @@ int __cdecl collide_segment(const float *p0, const float *p1, col_context_t *con
 char __cdecl CM_TestPointInBrushModel(const float *point, unsigned int brushmodel, const float *trans);
 char __cdecl CM_GetWaterForce(const float *pt, float *dir, float *force);
 char __cdecl CM_GetHeliHeight(const float *pt, float checkdist, float *result);
+
+
+static const float traceOffsets_0[5][2] = { { 0.0, 0.0 }, { 1.0, 1.0 }, { -1.0, 1.0 }, { 1.0, -1.0 }, { -1.0, -1.0 } };

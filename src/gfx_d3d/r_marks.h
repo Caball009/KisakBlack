@@ -324,7 +324,6 @@ char    R_MarkFragments_AnimatedXModel_VertList(
                 const DObjAnimMat *baseBone,
                 GfxMarkContext *markContext,
                 XSurface *surface);
-void __cdecl Vec3AddScalar(const float *a, float s, float *sum);
 char __cdecl R_MarkFragments_StaticModels(MarkInfo *markInfo);
 char __cdecl R_MarkFragments_EntirelyRigidXModel(
                 MarkInfo *markInfo,

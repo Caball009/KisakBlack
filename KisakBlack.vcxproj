@@ -1749,6 +1749,7 @@
     <ClInclude Include="src\gfx_d3d\r_xsurface.h" />
     <ClInclude Include="src\gfx_d3d\r_xsurface_load_obj.h" />
     <ClInclude Include="src\gfx_d3d\r_xsurface_optimize.h" />
+    <ClInclude Include="src\glass\glass.h" />
     <ClInclude Include="src\glass\glass_allocator.h" />
     <ClInclude Include="src\glass\glass_client.h" />
     <ClInclude Include="src\glass\glass_load_obj.h" />

@@ -2,6 +2,8 @@
 #include <universal/com_math.h>
 #include <physics/phys_local.h>
 #include <gfx_d3d/r_material.h>
+#include <gfx_d3d/fxprimitives.h>
+#include <gfx_d3d/r_dpvs.h>
 
 struct ray2_t // sizeof=0x14
 {                                       // XREF: GlassShard::Outline::Vertex/r
@@ -33,6 +35,26 @@ struct __declspec(align(16)) GlassPhysics // sizeof=0xA0
     // padding byte
     // padding byte
     // padding byte
+
+    void CreateAxis(
+        float *position,
+        const float (*axis)[3],
+        float *tVel,
+        float *aVel,
+        float mass,
+        float *localBBoxMin,
+        float *localBBoxMax);
+    void AddForce(float *worldPos, float *impulse);
+    void SetVelocity(float *t_vel);
+    void SetAngularVelocity(float *a_vel);
+    void Step(float deltaTime);
+    void tensor_transform_principle(
+        const phys_vec3 *diag,
+        const phys_mat44 *mat,
+        phys_mat44 *tensor);
+    void IntegrateVelocity(float deltaTime);
+    void IntegratePos(float deltaTime);
+    void GetPosition(float *position, float (*axis)[3]);
 };
 
 struct GlassDef // sizeof=0x3C
@@ -73,12 +95,74 @@ struct ShardGroup // sizeof=0x54
     unsigned __int16 lightingHandle;
     GfxLightingInfo lightingInfo;
     unsigned __int16 *renderIndices;
+
+    void __thiscall Init(unsigned int p, const GlassDef *gd);
+    void __thiscall Reset();
+    void __thiscall Add(GlassShard *shard);
+    void __thiscall Remove(GlassShard *shard);
+    void __thiscall RemoveGlassShards(unsigned int glassIndex);
+    void __thiscall UpdateBBox();
+    void __thiscall Update(float deltaTime);
+    void __thiscall GenerateVerts(bool firstView, unsigned int localClientNum);
+    void __thiscall FreeRenderMemory();
+    r_double_index_t *__thiscall AllocateIndices(int numIndices);
+    GfxPackedVertex *__thiscall AllocateVerts(int numVerts, unsigned __int16 *vertsBaseIndex);
+    void __thiscall ExplosionEvent(
+        const float *origin,
+        float damageInner,
+        float damageOuter,
+        float radius,
+        int mod);
+    int __thiscall TracePoint(float *p0, const float *p1);
+};
+
+struct GlassShardMeshVertex // sizeof=0x2
+{
+    unsigned __int8 pos;
+    unsigned __int8 norm;
 };
 
 struct GlassShard // sizeof=0x90
 {
+    enum RemoveReason : __int32
+    {                                       // XREF: ?Remove@GlassShard@@QAEXW4RemoveReason@1@_N@Z/r
+        REMOVE_HIT_BOTTOM           = 0x0,
+        REMOVE_OUT_OF_SHARDS        = 0x1,
+        REMOVE_OUT_OF_VERTEX_MEMORY = 0x2,
+        REMOVE_OUT_OF_SHARD_MEMORY  = 0x3,
+        REMOVE_OUT_OF_PHYSICS       = 0x4,
+        REMOVE_ROLLBACK_TIME        = 0x5,
+        NUM_REMOVE_REASONS          = 0x6,
+        REMOVE_DONT_TRACK           = 0x7,
+    };
+
+    struct Outline;
+    struct Triangles // sizeof=0x108
+    {                                       // XREF: ?Create@GlassShard@@QAE_NPBUGlass@@@Z/r
+        const struct Outline *outline;
+        unsigned __int8 triangleIndices[256];
+        unsigned int nIndices;
+
+        Triangles(const struct GlassShard::Outline *ol);
+        double CalcCross(int idx1, int idx2, int idx3);
+        char AddTri(
+            unsigned __int8 v1,
+            unsigned __int8 v2,
+            unsigned __int8 v3);
+        char Triangulate();
+    };
+
     struct Outline
     {
+        struct EdgeDistance // sizeof=0x14
+        {                                       // XREF: ?TracePoint@GlassShard@@QAE_NQBM00M00@Z/r
+            unsigned int edgeIndex;             // XREF: GlassShard::TracePoint(float const * const,float const * const,float const * const,float,float const * const,float const * const)+67B/r
+                                                // GlassShard::TracePoint(float const * const,float const * const,float const * const,float,float const * const,float const * const)+A8A/r
+            float edgeParam;                    // XREF: GlassShard::TracePoint(float const * const,float const * const,float const * const,float,float const * const,float const * const)+675/r
+                                                // GlassShard::TracePoint(float const * const,float const * const,float const * const,float,float const * const,float const * const)+A84/r
+            float dist;                         // XREF: GlassShard::TracePoint(float const * const,float const * const,float const * const,float,float const * const,float const * const)+570/r
+            float closestPoint[2];              // XREF: GlassShard::TracePoint(float const * const,float const * const,float const * const,float,float const * const,float const * const)+602/r
+        };
         struct Vertex
         {
             ray2_t edge;
@@ -86,6 +170,8 @@ struct GlassShard // sizeof=0x90
             // padding byte
             // padding byte
             // padding byte
+
+            void operator=(const GlassShard::Outline::Vertex *other);
         };
         GlassShard::Outline::Vertex *verts; // XREF: GlassClient::Outlines::InitShards(GlassShard const *,GlassShard * * const,int)+4F/w
                                             // GlassShard::Create(Glass const *)+35/w ...
@@ -98,6 +184,46 @@ struct GlassShard // sizeof=0x90
         bool isClosed;                      // XREF: GlassClient::Outlines::InitShards(GlassShard const *,GlassShard * * const,int)+63/w
                                             // GlassShard::Create(Glass const *)+49/w ...
         // padding byte
+
+        void MarkAllEdge(bool e);
+
+        int Init(Vertex *ptr,unsigned __int8 num);
+        int SetPointers(unsigned __int8 *ptr);
+        GlassShard::Outline *operator=(GlassShard::Outline *o);
+        double Length();
+        inline float Area()
+        {
+            return this->area;
+        }
+        Vertex *Add(const float *pos);
+        Vertex *Add(float *dir, float len);
+
+        char CloseOutline();
+
+        void GetBBox(float *mn, float *mx);
+        double Extent();
+        void Recenter(bool flip, float *offset);
+        bool HasNarrowAngle();
+        bool IsNarrow();
+        void Reverse();
+        int GetNumIntersections(
+            const float *start,
+            const float *dir,
+            float *nearestDist,
+            int *nearestedge);
+        char DoesIntersect(
+            const float *start,
+            const float *dir,
+            float len,
+            float padding);
+        void GetNearestDistances(
+            const float *p,
+            EdgeDistance *dists,
+            int nDists);
+        void Verify();
+
+        static void Defrag(GlassShard *ptr);
+        void Defrag();
     };
 
     struct __declspec(align(4)) Mesh // sizeof=0x10
@@ -112,6 +238,19 @@ struct GlassShard // sizeof=0x90
         // padding byte
         // padding byte
         // padding byte
+
+        void Clear();
+        void SetTriangles(
+            unsigned __int8 *ptr,
+            unsigned __int8 *triangles,
+            unsigned int numTriIdxs);
+        int SetPointers(PackedUnitVec *ptr);
+        void Init(
+            const GlassShard::Outline *outline,
+            float thickness,
+            const float *tangt);
+        static void __cdecl InitVertexList(unsigned __int8 numOutlineVerts, GlassShardMeshVertex *verts);
+        static unsigned int __cdecl GetMemorySize(unsigned int numOutineVerts);
     };
 
     GlassShard *groupNext;
@@ -134,187 +273,111 @@ struct GlassShard // sizeof=0x90
     bool remove;
     bool inGroupChange;
     bool delayedDrop;
+
+
+    void Init();
+    void Destroy();
+    double EdgeRatio();
+    void UnEdge();
+    char Create(const Glass *glass);
+    bool CanSplit(float maxShardSize, float minShardSize);
+    bool CanSplit(bool shatter);
+    int Shatter(GlassShard **newShards, int maxNewShards);
+    void InitPhysics(
+        GlassShard **newShards,
+        int numNewShards,
+        float glassExtent,
+        const float *pos,
+        const float *dir);
+    void InitMesh();
+    char AllocateMemory(
+        unsigned int nHull,
+        const Triangles *triangles);
+    void FreeMemory();
+    void Defrag();
+    void ToWorldPos(float *pLocal, float *pWorld, bool is3D);
+    void ToWorldDir(float *dLocal, float *dWorld, bool is3D);
+    void ToLocal(float *pos, float *dir, float *localPos, float *localDir);
+    bool Intersect(float *pos, float *dir, float *hitPoint);
+    void ExplosionEvent(
+        const float *expOrigin,
+        float damageInner,
+        float damageOuter,
+        float radius,
+        int mod);
+    char TracePoint(
+        float *p0,
+        const float *p1,
+        float *dir,
+        float length,
+        const float *mins,
+        float *maxs);
+    void GetLocalBBox(float *mins, float *maxs);
+    void UpdateBBox();
+    void Update(float deltaTime);
+    void ChangeGroup();
+    void Remove(RemoveReason reason, bool delay);
+    void GenerateVerts(
+        bool highLod,
+        GfxPackedVertex *baseVerts,
+        unsigned __int16 vertsBaseIndex,
+        unsigned __int16 *idxOut);
+    int Split(
+        GlassShard **newShards,
+        float minShardSize,
+        unsigned int startEdge,
+        float startEdgeParam);
+    int Chip(
+        const Outline::EdgeDistance *dist,
+        const float *hitPoint,
+        GlassShard **newShards,
+        float minShardSize);
+    int InitSplitShards(
+        Outline *outline1,
+        Outline *outline2,
+        GlassShard **newShards,
+        float minShardSize);
+    char Init(
+        const GlassShard *other,
+        Outline *newOutline,
+        float *offset);
+    double GetMass();
+    bool InitPhysicsObj(bool enableCollisions);
+    void DestroyPhysicsObj();
+    void DisableCollisions();
+    void AddForce(float *pos, const float *forceIn);
+    void SetVelocity(float *t_vel, float *a_vel);
+    bool LeaveOnEdge(float stickiness);
+    bool IsOnBottomEdge();
+    void Recenter();
+    char InitPhysics(
+        bool enableCollisions,
+        const float *hitPos,
+        const float *hitDir,
+        float glassSize,
+        float stickiness);
+    void DrawOutline();
+    static void __cdecl Defrag(GlassShard *ptr);
+    static void __cdecl Defrag(void *ptr);
+
+    static int splitFailCount[8];
+    static int lastFreeMemorySize;
+    static int removeReasonsCount[7];
 };
 
+struct TempOutline : GlassShard::Outline // sizeof=0x610
+{                                       // XREF: ?Create@GlassShard@@QAE_NPBUGlass@@@Z/r
+    GlassShard::Outline::Vertex v[64];  // XREF: GlassClient::Outlines::InitShards(GlassShard const *,GlassShard * * const,int)+49/o
+};
 
-void __cdecl GlassShard::Defrag(GlassShard *ptr);
-void __userpurge GlassPhysics::CreateAxis(
-                GlassPhysics *this@<ecx>,
-                int a2@<ebp>,
-                float *position,
-                const float (*axis)[3],
-                float *tVel,
-                float *aVel,
-                float mass,
-                float *localBBoxMin,
-                float *localBBoxMax);
-void __userpurge GlassPhysics::AddForce(GlassPhysics *this@<ecx>, int a2@<ebp>, float *worldPos, float *impulse);
-void __thiscall GlassPhysics::SetVelocity(GlassPhysics *this, float *t_vel);
-void __thiscall GlassPhysics::SetAngularVelocity(GlassPhysics *this, float *a_vel);
-void __thiscall GlassPhysics::Step(GlassPhysics *this, float deltaTime);
-void __userpurge GlassPhysics::tensor_transform_principle(
-                GlassPhysics *this@<ecx>,
-                int a2@<ebp>,
-                const phys_vec3 *diag,
-                const phys_mat44 *mat,
-                phys_mat44 *tensor);
-void __userpurge GlassPhysics::IntegrateVelocity(GlassPhysics *this@<ecx>, int a2@<ebp>, float deltaTime);
-void __userpurge GlassPhysics::IntegratePos(GlassPhysics *this@<ecx>, int a2@<ebp>, float deltaTime);
-void __thiscall GlassPhysics::GetPosition(GlassPhysics *this, float *position, float (*axis)[3]);
-int __thiscall GlassShard::Outline::Init(
-                GlassShard::Outline *this,
-                GlassShard::Outline::Vertex *ptr,
-                unsigned __int8 num);
-int __thiscall GlassShard::Outline::SetPointers(GlassShard::Outline *this, unsigned __int8 *ptr);
-GlassShard::Outline *__thiscall GlassShard::Outline::operator=(GlassShard::Outline *this, GlassShard::Outline *o);
-double __thiscall GlassShard::Outline::Length(GlassShard::Outline *this);
-GlassShard::Outline::Vertex *__thiscall GlassShard::Outline::Add(GlassShard::Outline *this, const float *pos);
-GlassShard::Outline::Vertex *__thiscall GlassShard::Outline::Add(GlassShard::Outline *this, float *dir, float len);
-char __thiscall GlassShard::Outline::CloseOutline(GlassShard::Outline *this);
-void __thiscall GlassShard::Outline::Vertex::operator=(
-                GlassShard::Outline::Vertex *this,
-                const GlassShard::Outline::Vertex *other);
-void __thiscall GlassShard::Outline::GetBBox(GlassShard::Outline *this, float *mn, float *mx);
-double __thiscall GlassShard::Outline::Extent(GlassShard::Outline *this);
-void __thiscall GlassShard::Outline::Recenter(GlassShard::Outline *this, bool flip, float *offset);
-bool __thiscall GlassShard::Outline::HasNarrowAngle(GlassShard::Outline *this);
-bool __thiscall GlassShard::Outline::IsNarrow(GlassShard::Outline *this);
-void __thiscall GlassShard::Outline::Reverse(GlassShard::Outline *this);
-int __thiscall GlassShard::Outline::GetNumIntersections(
-                GlassShard::Outline *this,
-                const float *start,
-                const float *dir,
-                float *nearestDist,
-                int *nearestedge);
+struct OutlineEdge // sizeof=0x18
+{                                       // XREF: ?PlayShatterFX@GlassClient@@QBEXHQBM0@Z/r
+    int index;                          // XREF: GlassClient::PlayShatterFX(int,float const * const,float const * const)+96/w
+    ray2_t ray;                         // XREF: GlassClient::PlayShatterFX(int,float const * const,float const * const)+D8/o
+};
+
+bool __cdecl IsInside(const float *v1, const float *v2, const float *v3, const float *p);
 double __cdecl GetSegmentParam(const float *a1, const float *a2, const float *p);
 bool __cdecl Vec2IntersectSegments(const float *a1, const float *a2, const float *b1, const float *b2, float *ret);
 char __cdecl Vec2IntesectLines(const float *a1, const float *a2, const float *b1, const float *b2, float *ret);
-char __thiscall GlassShard::Outline::DoesIntersect(
-                GlassShard::Outline *this,
-                const float *start,
-                const float *dir,
-                float len,
-                float padding);
-void __thiscall GlassShard::Outline::GetNearestDistances(
-                GlassShard::Outline *this,
-                const float *p,
-                GlassShard::Outline::EdgeDistance *dists,
-                int nDists);
-void __thiscall GlassShard::Outline::Verify(GlassShard::Outline *this);
-void __thiscall GlassShard::Mesh::Clear(GlassShard::Mesh *this);
-void __thiscall GlassShard::Mesh::SetTriangles(
-                GlassShard::Mesh *this,
-                unsigned __int8 *ptr,
-                unsigned __int8 *triangles,
-                unsigned int numTriIdxs);
-int __thiscall GlassShard::Mesh::SetPointers(GlassShard::Mesh *this, PackedUnitVec *ptr);
-void __thiscall GlassShard::Mesh::Init(
-                GlassShard::Mesh *this,
-                const GlassShard::Outline *outline,
-                float thickness,
-                const float *tangt);
-void __cdecl GlassShard::Mesh::InitVertexList(unsigned __int8 numOutlineVerts, GlassShardMeshVertex *verts);
-unsigned int __cdecl GlassShard::Mesh::GetMemorySize(unsigned int numOutineVerts);
-void __thiscall GlassShard::Triangles::Triangles(GlassShard::Triangles *this, const GlassShard::Outline *ol);
-double __thiscall GlassShard::Triangles::CalcCross(GlassShard::Triangles *this, int idx1, int idx2, int idx3);
-char __thiscall GlassShard::Triangles::AddTri(
-                GlassShard::Triangles *this,
-                unsigned __int8 v1,
-                unsigned __int8 v2,
-                unsigned __int8 v3);
-char __thiscall GlassShard::Triangles::Triangulate(GlassShard::Triangles *this);
-bool __cdecl IsInside(const float *v1, const float *v2, const float *v3, const float *p);
-void __thiscall GlassShard::Init(GlassShard *this);
-void __thiscall GlassShard::Destroy(GlassShard *this);
-double __thiscall GlassShard::EdgeRatio(GlassShard *this);
-void __thiscall GlassShard::UnEdge(GlassShard *this);
-void __thiscall GlassShard::Outline::MarkAllEdge(GlassShard::Outline *this, bool e);
-char __thiscall GlassShard::Create(GlassShard *this, const Glass *glass);
-bool __thiscall GlassShard::CanSplit(GlassShard *this, float maxShardSize, float minShardSize);
-bool __thiscall GlassShard::CanSplit(GlassShard *this, bool shatter);
-int __thiscall GlassShard::Shatter(GlassShard *this, GlassShard **newShards, int maxNewShards);
-int __cdecl compareShards(const void *s1, const GlassShard **s2);
-void __thiscall GlassShard::InitPhysics(
-                GlassShard *this,
-                GlassShard **newShards,
-                int numNewShards,
-                float glassExtent,
-                const float *pos,
-                const float *dir);
-void __thiscall GlassShard::InitMesh(GlassShard *this);
-char __thiscall GlassShard::AllocateMemory(
-                GlassShard *this,
-                unsigned int nHull,
-                const GlassShard::Triangles *triangles);
-void __thiscall GlassShard::FreeMemory(GlassShard *this);
-void __thiscall GlassShard::Defrag(GlassShard *this);
-void __thiscall GlassShard::ToWorldPos(GlassShard *this, float *pLocal, float *pWorld, bool is3D);
-void __thiscall GlassShard::ToWorldDir(GlassShard *this, float *dLocal, float *dWorld, bool is3D);
-void __thiscall GlassShard::ToLocal(GlassShard *this, float *pos, float *dir, float *localPos, float *localDir);
-bool __thiscall GlassShard::Intersect(GlassShard *this, float *pos, float *dir, float *hitPoint);
-void __thiscall GlassShard::ExplosionEvent(
-                GlassShard *this,
-                const float *expOrigin,
-                float damageInner,
-                float damageOuter,
-                float radius,
-                int mod);
-char __thiscall GlassShard::TracePoint(
-                GlassShard *this,
-                float *p0,
-                const float *p1,
-                float *dir,
-                float length,
-                const float *mins,
-                float *maxs);
-void __thiscall GlassShard::GetLocalBBox(GlassShard *this, float *mins, float *maxs);
-void __thiscall GlassShard::UpdateBBox(GlassShard *this);
-void __thiscall GlassShard::Update(GlassShard *this, float deltaTime);
-void __thiscall GlassShard::ChangeGroup(GlassShard *this);
-void __thiscall GlassShard::Remove(GlassShard *this, GlassShard::RemoveReason reason, bool delay);
-void __thiscall GlassShard::GenerateVerts(
-                GlassShard *this,
-                bool highLod,
-                GfxPackedVertex *baseVerts,
-                unsigned __int16 vertsBaseIndex,
-                unsigned __int16 *idxOut);
-int __thiscall GlassShard::Split(
-                GlassShard *this,
-                GlassShard **newShards,
-                float minShardSize,
-                unsigned int startEdge,
-                float startEdgeParam);
-int __thiscall GlassShard::Chip(
-                GlassShard *this,
-                const GlassShard::Outline::EdgeDistance *dist,
-                const float *hitPoint,
-                GlassShard **newShards,
-                float minShardSize);
-int __thiscall GlassShard::InitSplitShards(
-                GlassShard *this,
-                GlassShard::Outline *outline1,
-                GlassShard::Outline *outline2,
-                GlassShard **newShards,
-                float minShardSize);
-char __thiscall GlassShard::Init(
-                GlassShard *this,
-                const GlassShard *other,
-                GlassShard::Outline *newOutline,
-                float *offset);
-double __thiscall GlassShard::GetMass(GlassShard *this);
-bool __thiscall GlassShard::InitPhysicsObj(GlassShard *this, bool enableCollisions);
-void __thiscall GlassShard::DestroyPhysicsObj(GlassShard *this);
-void __thiscall GlassShard::DisableCollisions(GlassShard *this);
-void __thiscall GlassShard::AddForce(GlassShard *this, float *pos, const float *forceIn);
-void __thiscall GlassShard::SetVelocity(GlassShard *this, float *t_vel, float *a_vel);
-bool __thiscall GlassShard::LeaveOnEdge(GlassShard *this, float stickiness);
-bool __thiscall GlassShard::IsOnBottomEdge(GlassShard *this);
-void __thiscall GlassShard::Recenter(GlassShard *this);
-char __thiscall GlassShard::InitPhysics(
-                GlassShard *this,
-                bool enableCollisions,
-                const float *hitPos,
-                const float *hitDir,
-                float glassSize,
-                float stickiness);
-void __thiscall GlassShard::DrawOutline(GlassShard *this);
+int compareShards(const void *s1, const void *s2);

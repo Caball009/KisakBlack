@@ -5,7 +5,25 @@
 #include "r_scene.h"
 #include "r_dvars.h"
 #include "r_add_bsp.h"
+#include "r_marks.h"
 
+#include <algorithm>
+#include "r_add_cmdbuf.h"
+#include "r_add_staticmodel.h"
+#include <xanim/xmodel_utils.h>
+#include "r_foliage.h"
+#include "r_warn.h"
+#include <physics/rope.h>
+#include <DynEntity/DynEntity_load_obj.h>
+#include <EffectsCore/fx_system.h>
+#include <qcommon/dobj_management.h>
+#include "r_drawsurf.h"
+#include "r_pretess.h"
+#include <cgame_mp/cg_ents_mp.h>
+
+int(__cdecl *allowSurf_0[2])(int, void *) = { R_AllowBspSpotLight, R_AllowBspSpotLightShadows };
+
+StaticModelLightCallback g_staticModelLightCallback;
 LightGlobals lightGlob;
 
 GfxLightDef *__cdecl R_RegisterLightDef(const char *name)
@@ -301,37 +319,34 @@ void __cdecl R_CalcSpotLightPlanes(const GfxLight *light, float dynamicSpotLight
     origin[0] = (float)(dynamicSpotLightNearPlaneOffset * lightDirection[0]) + light->origin[0];
     origin[1] = (float)(dynamicSpotLightNearPlaneOffset * lightDirection[1]) + light->origin[1];
     origin[2] = (float)(dynamicSpotLightNearPlaneOffset * lightDirection[2]) + light->origin[2];
-    LODWORD((*planes)[3]) = COERCE_UNSIGNED_INT(
-                                                        (float)((float)((*planes)[0] * origin[0]) + (float)((*planes)[1] * origin[1]))
-                                                    + (float)((*planes)[2] * origin[2]))
-                                                ^ _mask__NegFloat_;
+    ((*planes)[3]) = -((float)((float)((*planes)[0] * origin[0]) + (float)((*planes)[1] * origin[1])) + (float)((*planes)[2] * origin[2]));
     R_ComputeSpotLightCrossDirs(light, crossDirs);
     fSin = sqrtf(1.0 - (float)(light->cosHalfFovOuter * light->cosHalfFovOuter));
     R_CalcPlaneFromCosSinPointDirs(
         &(*planes)[4],
         light->cosHalfFovOuter,
-        COERCE_FLOAT(LODWORD(fSin) ^ _mask__NegFloat_),
+        -fSin,
         light->origin,
         lightDirection,
         crossDirs[0]);
     R_CalcPlaneFromCosSinPointDirs(
         &(*planes)[8],
         light->cosHalfFovOuter,
-        COERCE_FLOAT(LODWORD(fSin) ^ _mask__NegFloat_),
+        -fSin,
         light->origin,
         lightDirection,
         crossDirs[1]);
     R_CalcPlaneFromCosSinPointDirs(
         &(*planes)[12],
-        COERCE_FLOAT(LODWORD(light->cosHalfFovOuter) ^ _mask__NegFloat_),
-        COERCE_FLOAT(LODWORD(fSin) ^ _mask__NegFloat_),
+        -light->cosHalfFovOuter,
+        -fSin,
         light->origin,
         lightDirection,
         crossDirs[0]);
     R_CalcPlaneFromCosSinPointDirs(
         &(*planes)[16],
-        COERCE_FLOAT(LODWORD(light->cosHalfFovOuter) ^ _mask__NegFloat_),
-        COERCE_FLOAT(LODWORD(fSin) ^ _mask__NegFloat_),
+        light->cosHalfFovOuter,
+        -fSin,
         light->origin,
         lightDirection,
         crossDirs[1]);
@@ -347,10 +362,7 @@ void __cdecl R_CalcPlaneFromPointDir(float *plane, const float *origin, const fl
     *plane = *dir;
     plane[1] = dir[1];
     plane[2] = dir[2];
-    *((unsigned int *)plane + 3) = COERCE_UNSIGNED_INT(
-                                                         (float)((float)(*origin * *dir) + (float)(origin[1] * dir[1]))
-                                                     + (float)(origin[2] * dir[2]))
-                                                 ^ _mask__NegFloat_;
+    plane[3] = -((float)((float)(*origin * *dir) + (float)(origin[1] * dir[1])) + (float)(origin[2] * dir[2]));
 }
 
 void __cdecl R_ComputeSpotLightCrossDirs(const GfxLight *light, float (*crossDirs)[3])
@@ -385,10 +397,7 @@ void __cdecl R_CalcPlaneFromCosSinPointDirs(
     *plane = (float)(fCos * *lateral) + (float)(fSin * *forward);
     plane[1] = (float)(fCos * lateral[1]) + (float)(fSin * forward[1]);
     plane[2] = (float)(fCos * lateral[2]) + (float)(fSin * forward[2]);
-    *((unsigned int *)plane + 3) = COERCE_UNSIGNED_INT(
-                                                         (float)((float)(*plane * *origin) + (float)(plane[1] * origin[1]))
-                                                     + (float)(plane[2] * origin[2]))
-                                                 ^ _mask__NegFloat_;
+    plane[3] = -((float)((float)(*plane * *origin) + (float)(plane[1] * origin[1])) + (float)(plane[2] * origin[2]));
 }
 
 void __cdecl R_GetBspLightSurfs(const GfxLight *visibleLights, int visibleCount)
@@ -471,11 +480,15 @@ void __cdecl R_GetBspSpotLightSurfs(const GfxLight *light, int lightIndex, GfxBs
         scene.visLightShadow[lightIndex].drawSurfCount = surfCounts[1];
         surfData[1].drawSurfList.current = drawSurfs[1];
         surfData[1].drawSurfList.end = (GfxDrawSurf *)&scene.visLightShadow[lightIndex + 1];
-        std::_Sort<Material * *,int,bool (__cdecl *)(Material const *,Material const *)>(
-            (const GfxStaticModelDrawInst **)surfaces[1],
-            (const GfxStaticModelDrawInst **)&surfaces[1][surfCounts[1]],
-            (signed int)(4 * surfCounts[1]) >> 2,
-            (bool (__cdecl *)(const GfxStaticModelDrawInst *, const GfxStaticModelDrawInst *))R_SortBspLightSurfaces);
+
+        //std::_Sort<Material * *,int,bool (__cdecl *)(Material const *,Material const *)>(
+        //    (const GfxStaticModelDrawInst **)surfaces[1],
+        //    (const GfxStaticModelDrawInst **)&surfaces[1][surfCounts[1]],
+        //    (signed int)(4 * surfCounts[1]) >> 2,
+        //    (bool (__cdecl *)(const GfxStaticModelDrawInst *, const GfxStaticModelDrawInst *))R_SortBspLightSurfaces);
+
+        std::sort(&surfaces[1][0], &surfaces[1][surfCounts[1]], R_SortBspLightSurfaces);
+
         for ( listSurfIndex = 0; listSurfIndex < surfCounts[1]; ++listSurfIndex )
         {
             if ( listSurfIndex >= rgp.world->surfaceCount
@@ -491,7 +504,7 @@ void __cdecl R_GetBspSpotLightSurfs(const GfxLight *light, int lightIndex, GfxBs
             }
             surfIndex = surfaces[1][listSurfIndex] - rgp.world->dpvs.surfaces;
             triSurfList[0] = surfIndex;
-            R_AddBspDrawSurfs(surfaceMaterials[surfIndex], triSurfList, 1u, surfData + 1);
+            R_AddBspDrawSurfs(surfaceMaterials[surfIndex], (unsigned char*)triSurfList, 1u, surfData + 1);
         }
         R_EndCmdBuf(&surfData[1].delayedCmdBuf);
         scene.visLightShadow[lightIndex].drawSurfCount = surfData[1].drawSurfList.current
@@ -508,7 +521,7 @@ bool __cdecl R_SortBspLightSurfaces(GfxSurface *surface0, GfxSurface *surface1)
     return surface0 < surface1;
 }
 
-int __cdecl R_AllowBspSpotLightShadows(int surfIndex)
+int __cdecl R_AllowBspSpotLightShadows(int surfIndex, void *__formal)
 {
     if ( r_spotLightShadows->current.enabled )
         return BoxInPlanes(
@@ -520,14 +533,14 @@ int __cdecl R_AllowBspSpotLightShadows(int surfIndex)
         return 0;
 }
 
-int __cdecl R_AllowBspSpotLight(int surfIndex, unsigned int *bspLightCallbackAsVoid)
+int __cdecl R_AllowBspSpotLight(int surfIndex, void *bspLightCallbackAsVoid)
 {
-    if ( *(_BYTE *)(*bspLightCallbackAsVoid + surfIndex) )
+    if (*(_BYTE *)(*(_DWORD *)bspLightCallbackAsVoid + surfIndex))
         return BoxInPlanes(
-                         scene.dynamicSpotLightPlanes,
-                         6u,
-                         rgp.world->dpvs.surfaces[surfIndex].bounds[0],
-                         rgp.world->dpvs.surfaces[surfIndex].bounds[1]);
+            scene.dynamicSpotLightPlanes,
+            6u,
+            rgp.world->dpvs.surfaces[surfIndex].bounds[0],
+            rgp.world->dpvs.surfaces[surfIndex].bounds[1]);
     else
         return 0;
 }
@@ -594,7 +607,7 @@ void __cdecl R_GetStaticModelLightSurfs(const GfxLight *visibleLights, int visib
                 g_staticModelLightCallback.position[1] = light->origin[1];
                 g_staticModelLightCallback.position[2] = light->origin[2];
                 g_staticModelLightCallback.radiusSq = light->radius * light->radius;
-                smodelCount = R_BoxStaticModels((int)&savedregs, mins, maxs, R_AllowStaticModelOmniLight, smodels, 1024);
+                smodelCount = R_BoxStaticModels(mins, maxs, R_AllowStaticModelOmniLight, smodels, 1024);
             }
             else if ( (unsigned int)lightIndex >= 2 )
             {
@@ -604,7 +617,7 @@ void __cdecl R_GetStaticModelLightSurfs(const GfxLight *visibleLights, int visib
             {
                 shadowSurfData.drawSurfList.current = &scene.visLightShadow[lightIndex].drawSurfs[scene.visLightShadow[lightIndex].drawSurfCount];
                 shadowSurfData.drawSurfList.end = (GfxDrawSurf *)&scene.visLightShadow[lightIndex + 1];
-                smodelCount = R_BoxStaticModels((int)&savedregs, mins, maxs, R_AllowStaticModelSpotLight, smodels, 1024);
+                smodelCount = R_BoxStaticModels(mins, maxs, R_AllowStaticModelSpotLight, smodels, 1024);
             }
             for ( index = 0; index < smodelCount; ++index )
             {
@@ -647,7 +660,8 @@ void __cdecl R_GetStaticModelLightSurfs(const GfxLight *visibleLights, int visib
                     }
                     if ( (material->info.gameFlags & 1) == 0 && Material_GetTechnique(material, 0x74u) )
                     {
-                        drawSurf.fields = (GfxDrawSurfFields)material->info.drawSurf;
+                        //drawSurf.fields = (GfxDrawSurfFields)material->info.drawSurf;
+                        drawSurf.packed = material->info.drawSurf.packed;
                         if ( needsCharredTech )
                         {
                             HIDWORD(drawSurf.packed) = (unsigned int)&cls.rankedServers[711].game[35]
@@ -764,7 +778,7 @@ int __cdecl R_AllocDrawSurf(
     }
 }
 
-bool __cdecl R_AllowStaticModelOmniLight(int smodelIndex)
+int __cdecl R_AllowStaticModelOmniLight(int smodelIndex)
 {
     return g_staticModelLightCallback.smodelVisData[smodelIndex]
             && g_staticModelLightCallback.radiusSq >= PointToBoxDistSq(

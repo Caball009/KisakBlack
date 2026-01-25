@@ -1,17 +1,28 @@
 #include "glass_server.h"
+#include <game_mp/g_main_mp.h>
+#include <game_mp/g_utils_mp.h>
+#include "glass_load_obj.h"
+#include <server_mp/sv_main_mp.h>
+#include <universal/com_math_anglevectors.h>
+#include <qcommon/cm_tracebox.h>
+#include <game_mp/g_spawn_mp.h>
+#include <clientscript/scr_const.h>
+#include <server/sv_game.h>
 
-void __thiscall GlassServer::SetState(GlassServer *this, GlassState::State st, float *pos, float *dir)
+GlassesServer svGlasses;
+
+void __thiscall GlassServer::SetState(GlassState::State st, float *pos, float *dir)
 {
     if ( st != (this->state.val.i & 0xF) )
     {
         this->stateChangeTime = level.time;
-        if ( st == CRACKED )
+        if ( st == GlassState::State::CRACKED )
         {
             this->crackedDamageRate = G_flrand(
                                                                     svGlasses.crackedDamageRateRange->current.value,
                                                                     svGlasses.crackedDamageRateRange->current.vector[1]);
         }
-        else if ( st == SHATTERED )
+        else if ( st == GlassState::State::SHATTERED )
         {
             Scr_GlassSmash(pos, dir);
             this->hitPos[0] = *pos;
@@ -25,7 +36,10 @@ void __thiscall GlassServer::SetState(GlassServer *this, GlassState::State st, f
     }
 }
 
-void __thiscall GlassesServer::Init(GlassesServer *this)
+cmd_function_s ShatterAllCmd_VAR;
+cmd_function_s ResetAllCmd_VAR;
+
+void __thiscall GlassesServer::Init()
 {
     unsigned int i; // [esp+20h] [ebp-Ch]
     Glasses *glss; // [esp+24h] [ebp-8h]
@@ -44,8 +58,8 @@ void __thiscall GlassesServer::Init(GlassesServer *this)
                                                              "Multiplier the damage applied to the glass (server).");
         this->crackedDamageRateRange = _Dvar_RegisterVec2(
                                                                          "glassCrackedDamageRateRange",
-                                                                         COERCE_UNSIGNED_INT(1.0),
-                                                                         COERCE_UNSIGNED_INT(10.0),
+                                                                         (1.0),
+                                                                         (10.0),
                                                                          0.0,
                                                                          10000.0,
                                                                          0,
@@ -71,7 +85,8 @@ void __thiscall GlassesServer::Init(GlassesServer *this)
             {
                 this->glasses[i].glass = &glss->glasses[i];
                 this->glasses[i].state.val.i = (16 * (i & 0xFFF)) | this->glasses[i].state.val.i & 0xFFFF000F;
-                GlassServer::SetState(&this->glasses[i], PRISTINE, 0, 0);
+                //GlassServer::SetState(&this->glasses[i], PRISTINE, 0, 0);
+                this->glasses[i].SetState(GlassState::State::PRISTINE, 0, 0);
                 this->glasses[i].health = (float)this->glasses[i].glass->glassDef->maxHealth;
                 this->glasses[i].stateChangeTime = 0;
             }
@@ -84,12 +99,12 @@ void __thiscall GlassesServer::Init(GlassesServer *this)
     this->nextShatterTime = 0;
 }
 
-void __thiscall GlassesServer::Shutdown(GlassesServer *this)
+void __thiscall GlassesServer::Shutdown()
 {
     this->numGlasses = 0;
 }
 
-void __thiscall GlassesServer::Update(GlassesServer *this)
+void __thiscall GlassesServer::Update()
 {
     float v3; // [esp+1Ch] [ebp-54h]
     float v4; // [esp+20h] [ebp-50h]
@@ -113,8 +128,11 @@ void __thiscall GlassesServer::Update(GlassesServer *this)
                                                                                                                 * this->damageMultiplier->current.value)
                                                                                                 * (float)level.frametime)
                                                                                 * 0.001);
-                if ( this->glasses[i].health < 0.0 )
-                    GlassServer::SetState(&this->glasses[i], SHATTERED, (float *)vec3_origin, (float *)vec3_origin);
+                if (this->glasses[i].health < 0.0)
+                {
+                    //GlassServer::SetState(&this->glasses[i], GlassState::State::SHATTERED, (float *)vec3_origin, (float *)vec3_origin);
+                    this->glasses[i].SetState(GlassState::State::SHATTERED, (float *)vec3_origin, (float *)vec3_origin);
+                }
             }
         }
         while ( this->nextShatterTime > 0 && svs.time > this->nextShatterTime )
@@ -159,10 +177,11 @@ void __thiscall GlassesServer::Update(GlassesServer *this)
 
 void __cdecl GlassesServer::ShatterAllCmd()
 {
-    GlassesServer::ShatterAll(&svGlasses);
+    //GlassesServer::ShatterAll(&svGlasses);
+    svGlasses.ShatterAll();
 }
 
-void __thiscall GlassesServer::ShatterAll(GlassesServer *this)
+void __thiscall GlassesServer::ShatterAll()
 {
     const char *v1; // eax
     int v2; // [esp+8h] [ebp-60h]
@@ -210,10 +229,11 @@ void __thiscall GlassesServer::ShatterAll(GlassesServer *this)
 
 void __cdecl GlassesServer::ResetAllCmd()
 {
-    GlassesServer::ResetAll(&svGlasses);
+    //GlassesServer::ResetAll(&svGlasses);
+    svGlasses.ResetAll();
 }
 
-void __thiscall GlassesServer::ResetAll(GlassesServer *this)
+void __thiscall GlassesServer::ResetAll()
 {
     unsigned int i; // [esp+4h] [ebp-4h]
 
@@ -221,7 +241,8 @@ void __thiscall GlassesServer::ResetAll(GlassesServer *this)
     {
         if ( (this->glasses[i].state.val.i & 0xF) != 0 )
         {
-            GlassServer::SetState(&this->glasses[i], PRISTINE, 0, 0);
+            //GlassServer::SetState(&this->glasses[i], PRISTINE, 0, 0);
+            this->glasses[i].SetState(GlassState::State::PRISTINE, 0, 0);
             this->glasses[i].health = (float)this->glasses[i].glass->glassDef->maxHealth;
         }
     }
@@ -229,17 +250,17 @@ void __thiscall GlassesServer::ResetAll(GlassesServer *this)
 
 void __cdecl GlassSv_Init()
 {
-    GlassesServer::Init(&svGlasses);
+    svGlasses.Init();
 }
 
 void __cdecl GlassSv_Shutdown()
 {
-    GlassesServer::Shutdown(&svGlasses);
+    svGlasses.Shutdown();
 }
 
 void __cdecl GlassSv_Update()
 {
-    GlassesServer::Update(&svGlasses);
+    svGlasses.Update();
 }
 
 unsigned int __cdecl GlassSv_AreaGlasses(
@@ -440,18 +461,24 @@ void __cdecl GlassSv_Damage(unsigned int glassId, int damage, int mod, float *po
         || (float)(5.0 * svGlasses.damageMultiplier->current.value) > (float)damage
         && (mod == 3 || mod == 5 || mod == 7 || mod == 8 || mod == 17 || mod == 16 ? (v6 = 1) : (v6 = 0), !v6) )
     {
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_32;
     }
     if ( mod == 3 || mod == 5 || mod == 7 || mod == 8 || mod == 17 || mod == 16 )
         glass->health = 0.0f;
     else
         glass->health = glass->health - (float)(int)(float)((float)damage * svGlasses.damageMultiplier->current.value);
-    if ( glass->health <= 0.0 )
-        GlassServer::SetState(glass, SHATTERED, pos, dir);
+    if (glass->health <= 0.0)
+    {
+        //GlassServer::SetState(glass, SHATTERED, pos, dir);
+        glass->SetState(GlassState::State::SHATTERED, pos, dir);
+    }
     else
-        GlassServer::SetState(glass, CRACKED, 0, 0);
+    {
+        //GlassServer::SetState(glass, CRACKED, 0, 0);
+        glass->SetState(GlassState::State::CRACKED, 0, 0);
+    }
     //if ( g_DXDeviceThread == GetCurrentThreadId() )
 LABEL_32:
         //D3DPERF_EndEvent();
@@ -467,7 +494,7 @@ void __cdecl GlassSv_RadiusDamage(
                 int mod)
 {
     float v7; // [esp+8h] [ebp-1ECh]
-    float *v8; // [esp+10h] [ebp-1E4h]
+    const float *v8; // [esp+10h] [ebp-1E4h]
     float v9; // [esp+18h] [ebp-1DCh]
     float distSqr; // [esp+20h] [ebp-1D4h]
     float damage; // [esp+24h] [ebp-1D0h]
@@ -486,7 +513,8 @@ void __cdecl GlassSv_RadiusDamage(
         //PIXBeginNamedEvent(-1, "GlassSv_RadiusDamage");
         MAX_CLOSESTS = 100;
         radiusSqr = radius * radius;
-        LODWORD(v9) = COERCE_UNSIGNED_INT(1.4142135 * radius) ^ _mask__NegFloat_;
+        //LODWORD(v9) = (1.4142135 * radius) ^ _mask__NegFloat_;
+        (v9) = -(1.4142135 * radius);
         radiusMins[0] = *origin + v9;
         radiusMins[1] = origin[1] + v9;
         radiusMins[2] = origin[2] + v9;
@@ -494,7 +522,7 @@ void __cdecl GlassSv_RadiusDamage(
         radiusMaxs[1] = origin[1] + (float)(1.4142135 * radius);
         radiusMaxs[2] = origin[2] + (float)(1.4142135 * radius);
         num = GlassSv_AreaGlasses(radiusMins, radiusMaxs, closest, 0x64u);
-        PIXSetMarker(0, "num=%d", num);
+        //PIXSetMarker(0, "num=%d", num);
         for ( i = 0; i < num; ++i )
         {
             v8 = closest[i]->origin;
@@ -552,7 +580,7 @@ void __cdecl GlassSv_Touch(unsigned int glassId, gentity_s *other)
         veh = other->scr_vehicle;
         phys = &veh->phys;
         Vec3NormalizeTo(veh->phys.vel, dir);
-        GlassSv_Damage(glassId, 5000, 16, phys->origin, dir);
+        GlassSv_Damage(glassId, 5000, 16, (float*)phys->origin, dir);
     }
     else if ( other->s.eType == 1 && (other->client->ps.pm_flags & 0x400000) != 0 )
     {
@@ -576,6 +604,7 @@ void __cdecl GlassSv_Touch(unsigned int glassId, gentity_s *other)
     }
 }
 
+float PREDICT_TIME = 0.15f;
 void __cdecl GlassSv_PredictTouch(gentity_s *other)
 {
     scr_vehicle_s *scr_vehicle; // ecx
@@ -692,7 +721,7 @@ void __cdecl GlassSv_PredictTouch(gentity_s *other)
                                      * v21) < 0.0
                     && fabs(v21) > 100.0 )
                 {
-                    GlassSv_Touch(v15->index, other);
+                    GlassSv_Touch((unsigned int)v15->index, other);
                 }
             }
         }
@@ -701,7 +730,7 @@ void __cdecl GlassSv_PredictTouch(gentity_s *other)
     }
 }
 
-void __thiscall GlassesServer::WriteSnapshotToClient(GlassesServer *this, msg_t *msg, int sinceTime)
+void __thiscall GlassesServer::WriteSnapshotToClient(msg_t *msg, int sinceTime)
 {
     GlassServer *v4; // [esp+18h] [ebp-34h]
     unsigned int value; // [esp+1Ch] [ebp-30h]
@@ -738,8 +767,8 @@ void __thiscall GlassesServer::WriteSnapshotToClient(GlassesServer *this, msg_t 
             {
                 MSG_WriteBit0(msg);
                 MSG_WriteShort(msg, 30154);
-                if ( g_DXDeviceThread != GetCurrentThreadId() )
-                    return;
+                //if ( g_DXDeviceThread != GetCurrentThreadId() )
+                //    return;
                 goto LABEL_30;
             }
             if ( 192 * numShattered + 2 * _numGlasses > 192 * numPositions + 12 * numChanges )
@@ -755,12 +784,12 @@ void __thiscall GlassesServer::WriteSnapshotToClient(GlassesServer *this, msg_t 
                 MSG_WriteBits(msg, this->glasses[j].state.val.i & 0xF, 2u);
                 if ( (this->glasses[j].state.val.i & 0xF) == 2 )
                 {
-                    MSG_WriteFloat(msg, COERCE_INT(this->glasses[j].hitPos[0]));
-                    MSG_WriteFloat(msg, COERCE_INT(this->glasses[j].hitPos[1]));
-                    MSG_WriteFloat(msg, COERCE_INT(this->glasses[j].hitPos[2]));
-                    MSG_WriteFloat(msg, COERCE_INT(this->glasses[j].hitDir[0]));
-                    MSG_WriteFloat(msg, COERCE_INT(this->glasses[j].hitDir[1]));
-                    MSG_WriteFloat(msg, COERCE_INT(this->glasses[j].hitDir[2]));
+                    MSG_WriteFloat(msg, (this->glasses[j].hitPos[0]));
+                    MSG_WriteFloat(msg, (this->glasses[j].hitPos[1]));
+                    MSG_WriteFloat(msg, (this->glasses[j].hitPos[2]));
+                    MSG_WriteFloat(msg, (this->glasses[j].hitDir[0]));
+                    MSG_WriteFloat(msg, (this->glasses[j].hitDir[1]));
+                    MSG_WriteFloat(msg, (this->glasses[j].hitDir[2]));
                 }
             }
         }
@@ -777,12 +806,12 @@ void __thiscall GlassesServer::WriteSnapshotToClient(GlassesServer *this, msg_t 
                     MSG_WriteBits(msg, v4->state.val.i & 0xF, 2u);
                     if ( (v4->state.val.i & 0xF) == 2 )
                     {
-                        MSG_WriteFloat(msg, COERCE_INT(this->glasses[value].hitPos[0]));
-                        MSG_WriteFloat(msg, COERCE_INT(this->glasses[value].hitPos[1]));
-                        MSG_WriteFloat(msg, COERCE_INT(this->glasses[value].hitPos[2]));
-                        MSG_WriteFloat(msg, COERCE_INT(this->glasses[value].hitDir[0]));
-                        MSG_WriteFloat(msg, COERCE_INT(this->glasses[value].hitDir[1]));
-                        MSG_WriteFloat(msg, COERCE_INT(this->glasses[value].hitDir[2]));
+                        MSG_WriteFloat(msg, (this->glasses[value].hitPos[0]));
+                        MSG_WriteFloat(msg, (this->glasses[value].hitPos[1]));
+                        MSG_WriteFloat(msg, (this->glasses[value].hitPos[2]));
+                        MSG_WriteFloat(msg, (this->glasses[value].hitDir[0]));
+                        MSG_WriteFloat(msg, (this->glasses[value].hitDir[1]));
+                        MSG_WriteFloat(msg, (this->glasses[value].hitDir[2]));
                     }
                 }
             }
@@ -796,7 +825,8 @@ LABEL_30:
 
 void __cdecl GlassSv_WriteSnapshotToClient(msg_t *msg, int sinceTime)
 {
-    GlassesServer::WriteSnapshotToClient(&svGlasses, msg, sinceTime);
+    //GlassesServer::WriteSnapshotToClient(&svGlasses, msg, sinceTime);
+    svGlasses.WriteSnapshotToClient(msg, sinceTime);
 }
 
 void __cdecl GlassSv_WriteGameState(msg_t *msg)

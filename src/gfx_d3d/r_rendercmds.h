@@ -727,7 +727,7 @@ const struct __declspec(align(32)) GfxBackEndData // sizeof=0x186300
     // padding byte
     GfxLight sunLight;
     int hasApproxSunDirChanged;
-    volatile int primDrawSurfPos;
+    volatile unsigned int primDrawSurfPos;
     DebugGlobals debugGlobals;
     unsigned int drawType;
     int hideMatureContent;

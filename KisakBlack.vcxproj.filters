@@ -6011,6 +6011,9 @@
     <ClInclude Include="src\jpeg\jconfig.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\glass\glass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="src\CubeMapGenLib\resource.rc">

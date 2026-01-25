@@ -32,9 +32,6 @@
 #include <algorithm>
 #include <clientscript/cscr_stringlist.h>
 
-const float traceOffsets_0[5][2] =
-{ { 0.0, 0.0 }, { 1.0, 1.0 }, { -1.0, 1.0 }, { 1.0, -1.0 }, { -1.0, -1.0 } };
-
 const dvar_t *dynEnt_bulletForce;
 const dvar_t *dynEnt_explodeForce;
 const dvar_t *dynEnt_explodeUpbias;

@@ -1293,13 +1293,6 @@ void __cdecl CM_TraceThroughAabbTree_r(const traceWork_t *tw, const CollisionAab
     }
 }
 
-void __cdecl Vec3Add(const float *a, const float *b, float *sum)
-{
-    *sum = *a + *b;
-    sum[1] = a[1] + b[1];
-    sum[2] = a[2] + b[2];
-}
-
 void __cdecl CM_TraceThroughAabbTree_work(const traceWork_t *tw, const CollisionAabbTree *aabbTree, trace_t *trace)
 {
     CollisionBorder *borders; // [esp+CCh] [ebp-58h]

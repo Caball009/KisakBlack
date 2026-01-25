@@ -1,6 +1,8 @@
 #include "glass_allocator.h"
+#include "glass_client.h"
+#include <universal/assertive.h>
 
-void __thiscall SmallAllocator::Init(SmallAllocator *this, void *buffer, unsigned int bs, unsigned int nb)
+void __thiscall SmallAllocator::Init(void *buffer, unsigned int bs, unsigned int nb)
 {
     unsigned int i; // [esp+4h] [ebp-8h]
     char *ptr; // [esp+8h] [ebp-4h]
@@ -14,13 +16,13 @@ void __thiscall SmallAllocator::Init(SmallAllocator *this, void *buffer, unsigne
     ptr = (char *)this->memory;
     for ( i = 0; i < this->numBlocks - 1; ++i )
     {
-        *(unsigned int *)ptr = &ptr[this->blockSize];
+        *(unsigned int *)ptr = (unsigned int)&ptr[this->blockSize];
         ptr += this->blockSize;
     }
     *(unsigned int *)ptr = 0;
 }
 
-void **__thiscall SmallAllocator::Allocate(SmallAllocator *this, unsigned int size)
+void **__thiscall SmallAllocator::Allocate(unsigned int size)
 {
     unsigned int numUsed; // [esp+0h] [ebp-14h]
     void **ret; // [esp+10h] [ebp-4h]
@@ -50,14 +52,14 @@ void **__thiscall SmallAllocator::Allocate(SmallAllocator *this, unsigned int si
     return ret;
 }
 
-void __thiscall SmallAllocator::Free(SmallAllocator *this, void **ptr, unsigned int num)
+void __thiscall SmallAllocator::Free(void **ptr, unsigned int num)
 {
     if ( num != 1
         && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_allocator.cpp", 73, 0, "%s", "num == 1") )
     {
         __debugbreak();
     }
-    if ( !SmallAllocator::IsValidPointer(this, ptr)
+    if ( !SmallAllocator::IsValidPointer(ptr)
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_allocator.cpp",
                     74,
@@ -77,14 +79,14 @@ void __thiscall SmallAllocator::Free(SmallAllocator *this, void **ptr, unsigned 
     this->freeHead = ptr;
 }
 
-bool __thiscall SmallAllocator::IsValidPointer(SmallAllocator *this, void *ptr)
+bool __thiscall SmallAllocator::IsValidPointer(void *ptr)
 {
     return ptr >= this->memory
             && !(((unsigned int)ptr - (unsigned int)this->memory) % this->blockSize)
             && (unsigned int)ptr - (unsigned int)this->memory < this->numBlocks * this->blockSize;
 }
 
-void __thiscall Allocator::Memory::Init(Allocator::Memory *this)
+void __thiscall Allocator::Memory::Init()
 {
     this->next = 0;
     this->prev = 0;
@@ -93,7 +95,7 @@ void __thiscall Allocator::Memory::Init(Allocator::Memory *this)
     this->prevFree = 0;
 }
 
-char __thiscall Allocator::Memory::MakeFree(Allocator::Memory *this)
+char __thiscall Allocator::Memory::MakeFree()
 {
     Allocator::Memory *p; // [esp+4h] [ebp-8h]
     Allocator::Memory *n; // [esp+8h] [ebp-4h]
@@ -123,7 +125,7 @@ char __thiscall Allocator::Memory::MakeFree(Allocator::Memory *this)
     return 1;
 }
 
-void __thiscall Allocator::Init(Allocator *this, void *buf, int size)
+void __thiscall Allocator::Init(void *buf, int size)
 {
     int v4; // [esp+4h] [ebp-Ch]
     Allocator::Memory *end; // [esp+Ch] [ebp-4h]
@@ -131,15 +133,17 @@ void __thiscall Allocator::Init(Allocator *this, void *buf, int size)
     this->buffer = buf;
     end = (Allocator::Memory *)(((int)this->buffer + size - 21) & 0xFFFFFFF0);
     this->head = (Allocator::Memory *)(((int)this->buffer + 15) & 0xFFFFFFF0);
-    Allocator::Memory::Init(this->head);
+    //Allocator::Memory::Init(this->head);
+    this->head->Init();
     this->tail = end;
-    Allocator::Memory::Init(this->tail);
-    Allocator::FreeAll(this);
+    this->tail->Init();
+    //Allocator::Memory::Init(this->tail);
+    Allocator::FreeAll();
     v4 = (char *)this->tail - (char *)this->head;
-    this->maxUsed = v4 - Allocator::GetFree(this);
+    this->maxUsed = v4 - Allocator::GetFree();
 }
 
-void __thiscall Allocator::FreeAll(Allocator *this)
+void __thiscall Allocator::FreeAll()
 {
     this->head->nextFree = this->tail;
     this->head->next = this->head->nextFree;
@@ -152,7 +156,7 @@ void __thiscall Allocator::FreeAll(Allocator *this)
     this->freeHead = this->head;
 }
 
-Allocator::Memory **__thiscall Allocator::Allocate(Allocator *this, int size, void *userData)
+Allocator::Memory **__thiscall Allocator::Allocate(int size, void *userData)
 {
     int maxUsed; // [esp+0h] [ebp-30h]
     signed int v5; // [esp+4h] [ebp-2Ch]
@@ -193,7 +197,7 @@ Allocator::Memory **__thiscall Allocator::Allocate(Allocator *this, int size, vo
     else
         v5 = 0;
     if ( v5 > sizea )
-        Allocator::Split(this, bestFit, sizea);
+        Allocator::Split(bestFit, sizea);
     bestFit->userData = userData;
     if ( bestFit->prevFree )
     {
@@ -218,7 +222,7 @@ Allocator::Memory **__thiscall Allocator::Allocate(Allocator *this, int size, vo
     bestFit->nextFree = 0;
     bestFit->prevFree = 0;
     v11 = (char *)this->tail - (char *)this->head;
-    v10 = v11 - Allocator::GetFree(this);
+    v10 = v11 - Allocator::GetFree();
     if ( this->maxUsed < v10 )
         maxUsed = v10;
     else
@@ -227,7 +231,7 @@ Allocator::Memory **__thiscall Allocator::Allocate(Allocator *this, int size, vo
     return &bestFit->prevFree;
 }
 
-void __thiscall Allocator::Free(Allocator *this, unsigned int *ptr)
+void __thiscall Allocator::Free(unsigned int *ptr)
 {
     Allocator::Memory *mem; // [esp+4h] [ebp-4h]
 
@@ -252,7 +256,8 @@ void __thiscall Allocator::Free(Allocator *this, unsigned int *ptr)
         }
         else
         {
-            if ( !Allocator::Memory::MakeFree(mem)
+            //if ( !Allocator::Memory::MakeFree(mem)
+            if ( !mem->MakeFree()
                 && !Assert_MyHandler(
                             "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_allocator.cpp",
                             250,
@@ -267,11 +272,11 @@ void __thiscall Allocator::Free(Allocator *this, unsigned int *ptr)
         while ( mem->prev && mem->prev == mem->prevFree )
             mem = mem->prev;
         while ( mem->nextFree && mem->nextFree == mem->next && mem->next != this->tail )
-            Allocator::Merge(this, mem, mem->next);
+            Allocator::Merge(mem, mem->next);
     }
 }
 
-unsigned int __thiscall Allocator::GetMemorySize(Allocator *this, unsigned int *ptr)
+unsigned int __thiscall Allocator::GetMemorySize(unsigned int *ptr)
 {
     if ( !ptr )
         return -1;
@@ -281,7 +286,7 @@ unsigned int __thiscall Allocator::GetMemorySize(Allocator *this, unsigned int *
         return 0;
 }
 
-void __thiscall Allocator::Split(Allocator *this, Allocator::Memory *mem, int size)
+void __thiscall Allocator::Split(Allocator::Memory *mem, int size)
 {
     int v3; // [esp+0h] [ebp-10h]
     int v4; // [esp+4h] [ebp-Ch]
@@ -327,7 +332,7 @@ void __thiscall Allocator::Split(Allocator *this, Allocator::Memory *mem, int si
     }
 }
 
-void __thiscall Allocator::Merge(Allocator *this, Allocator::Memory *mem1, Allocator::Memory *mem2)
+void __thiscall Allocator::Merge(Allocator::Memory *mem1, Allocator::Memory *mem2)
 {
     if ( mem2 != this->tail )
     {
@@ -380,7 +385,7 @@ void __thiscall Allocator::Merge(Allocator *this, Allocator::Memory *mem1, Alloc
     }
 }
 
-int __thiscall Allocator::Defrag(Allocator *this, void (__cdecl *func)(void *), int count)
+int __thiscall Allocator::Defrag(void (__cdecl *func)(void *), int count)
 {
     while ( count > 0 && this->freeHead != this->tail && this->freeHead->next != this->tail )
     {
@@ -401,7 +406,7 @@ int __thiscall Allocator::Defrag(Allocator *this, void (__cdecl *func)(void *), 
     return count;
 }
 
-int __thiscall Allocator::GetFree(Allocator *this)
+int __thiscall Allocator::GetFree()
 {
     int v2; // [esp+0h] [ebp-10h]
     Allocator::Memory *mem; // [esp+8h] [ebp-8h]
@@ -419,7 +424,7 @@ int __thiscall Allocator::GetFree(Allocator *this)
     return free;
 }
 
-int __thiscall Allocator::GetLargestFree(Allocator *this)
+int __thiscall Allocator::GetLargestFree()
 {
     int v2; // [esp+0h] [ebp-14h]
     int v3; // [esp+8h] [ebp-Ch]
@@ -440,5 +445,17 @@ int __thiscall Allocator::GetLargestFree(Allocator *this)
         largest = v2;
     }
     return largest;
+}
+
+template <typename T>
+void *FixedSizeAllocator<T>::operator new(std::size_t size) 
+{
+    return GlassesClient::Allocate(size, "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_renderer.cpp", 72);
+}
+
+template <typename T>
+void FixedSizeAllocator<T>::operator delete(void *ptr)
+{
+    GlassesClient::Free((char *)ptr);
 }
 

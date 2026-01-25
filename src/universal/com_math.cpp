@@ -3576,6 +3576,20 @@ void __cdecl Vec3ScaleMad(float scale0, const float *dir0, float scale1, const f
     result[2] = (float)(scale0 * dir0[2]) + (float)(scale1 * dir1[2]);
 }
 
+void __cdecl Vec3AddScalar(const float *a, float s, float *sum)
+{
+    *sum = *a + s;
+    sum[1] = a[1] + s;
+    sum[2] = a[2] + s;
+}
+
+void __cdecl Vec3Add(const float *a, const float *b, float *sum)
+{
+    *sum = *a + *b;
+    sum[1] = a[1] + b[1];
+    sum[2] = a[2] + b[2];
+}
+
 void __cdecl Vec3Sub(const float *a, const float *b, float *diff)
 {
     *diff = *a - *b;

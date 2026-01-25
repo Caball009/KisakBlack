@@ -42,7 +42,6 @@ void __cdecl CM_TraceSphereThroughBorder(
                 trace_t *trace);
 void __cdecl CM_TraceThroughAabbTree(const traceWork_t *tw, const CollisionAabbTree *aabbTree, trace_t *trace);
 void __cdecl CM_TraceThroughAabbTree_r(const traceWork_t *tw, const CollisionAabbTree *aabbTree, trace_t *trace);
-void __cdecl Vec3Add(const float *a, const float *b, float *sum);
 void __cdecl CM_TraceThroughAabbTree_work(const traceWork_t *tw, const CollisionAabbTree *aabbTree, trace_t *trace);
 void __cdecl CM_SightTraceThroughAabbTree(const traceWork_t *tw, const CollisionAabbTree *aabbTree, trace_t *trace);
 void __cdecl CM_MeshTestInLeaf(const traceWork_t *tw, cLeaf_s *leaf, trace_t *trace);

@@ -2,7 +2,13 @@
 #include "r_dpvs.h"
 #include <xanim/dobj_utils.h>
 #include <cgame_mp/cg_pose_mp.h>
-
+#include <client/splitscreen.h>
+#include "r_material_load_obj.h"
+#include <EffectsCore/fx_dvars.h>
+#include "r_warn.h"
+#include <cgame_mp/cg_ents_mp.h>
+#include <glass/glass_client.h>
+#include <universal/com_math_anglevectors.h>
 
 void    R_BoxSurfaces(
                 const float *mins,
@@ -450,43 +456,17 @@ int    R_BoxStaticModels(
                 unsigned __int16 *smodelList,
                 int smodelListSize)
 {
-    int v7; // [esp-Ch] [ebp-A0h] BYREF
-    unsigned int v8[2]; // [esp-8h] [ebp-9Ch] BYREF
-    int v9; // [esp+88h] [ebp-Ch]
-    void *v10; // [esp+8Ch] [ebp-8h]
-    void *retaddr; // [esp+94h] [ebp+0h]
+    int smodelCount; // [esp-Ch] [ebp-A0h] BYREF
+    unsigned __int8 cellBits[128]; // [esp-8h] [ebp-9Ch] BYREF
 
-    v9 = a1;
-    v10 = retaddr;
-    if ( !rgp.world
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_marks.cpp", 983, 0, "%s", "rgp.world") )
-    {
-        __debugbreak();
-    }
-    if ( rgp.world->dpvsPlanes.cellCount > 1024
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_marks.cpp",
-                    984,
-                    0,
-                    "%s\n\t(rgp.world->dpvsPlanes.cellCount) = %i",
-                    "(rgp.world->dpvsPlanes.cellCount <= (1024))",
-                    rgp.world->dpvsPlanes.cellCount) )
-    {
-        __debugbreak();
-    }
-    if ( rgp.world->cellBitsCount > 128
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_marks.cpp",
-                    985,
-                    0,
-                    "%s\n\t(rgp.world->cellBitsCount) = %i",
-                    "(rgp.world->cellBitsCount <= ((1024) >> 3))",
-                    rgp.world->cellBitsCount) )
-    {
-        __debugbreak();
-    }
-    Com_Memset(v8, 0, rgp.world->cellBitsCount);
-    v7 = 0;
+    iassert( rgp.world );
+    iassert(rgp.world->dpvsPlanes.cellCount <= (1024));
+    iassert(rgp.world->cellBitsCount <= ((1024) >> 3));
+
+    //PROF_SCOPED("R_BoxStaticModels");
+
+    Com_Memset(cellBits, 0, rgp.world->cellBitsCount);
+    smodelCount = 0;
     R_BoxStaticModels_r(
         (mnode_t *)rgp.world->dpvsPlanes.nodes,
         mins,
@@ -494,20 +474,10 @@ int    R_BoxStaticModels(
         allowSModel,
         smodelList,
         smodelListSize,
-        &v7,
-        (unsigned __int8 *)v8);
-    if ( v7 > smodelListSize
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_marks.cpp",
-                    992,
-                    0,
-                    "smodelCount <= smodelListSize\n\t%i, %i",
-                    v7,
-                    smodelListSize) )
-    {
-        __debugbreak();
-    }
-    return v7;
+        &smodelCount,
+        cellBits);
+    iassert( smodelCount <= smodelListSize );
+    return smodelCount;
 }
 
 void __cdecl R_BoxStaticModels_r(
@@ -746,6 +716,7 @@ void __cdecl R_GetMarkFragmentBounds(
     }
 }
 
+#if 0
 void __cdecl R_GetMarkFragmentClipPlanes(
                 const float *origin,
                 const float (*axis)[3],
@@ -790,6 +761,43 @@ void __cdecl R_GetMarkFragmentClipPlanes(
         __debugbreak();
     }
 }
+#endif
+
+// aislopped
+void __cdecl R_GetMarkFragmentClipPlanes(
+    const float *origin,
+    const float (*axis)[3],
+    float radius,
+    MarkClipPlaneSet *clipPlanes)
+{
+    int planeIndex = 0;
+
+    for (int axisIndex = 0; axisIndex < 3; ++axisIndex)
+    {
+        const float *n = axis[axisIndex];
+
+        float *p = clipPlanes->planes[planeIndex++];
+        p[0] = n[0];
+        p[1] = n[1];
+        p[2] = n[2];
+        p[3] = n[0] * origin[0] +
+            n[1] * origin[1] +
+            n[2] * origin[2] - radius;
+
+        p = clipPlanes->planes[planeIndex++];
+        p[0] = -n[0];
+        p[1] = -n[1];
+        p[2] = -n[2];
+        p[3] = -(n[0] * origin[0] +
+            n[1] * origin[1] +
+            n[2] * origin[2]) - radius;
+    }
+
+    clipPlanes->planeCount = planeIndex;
+
+    iassert(6 == clipPlanes->planeCount);
+}
+
 
 char __cdecl R_MarkFragments_AddDObj(MarkInfo *markInfo, DObj *dObj, cpose_t *pose, unsigned __int16 entityIndex)
 {
@@ -888,13 +896,13 @@ void __cdecl R_MarkFragments_Go(
             markInfo->origin[0],
             markInfo->origin[1],
             markInfo->origin[2]);
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
     }
-    else if ( g_DXDeviceThread != GetCurrentThreadId() )
-    {
-        return;
-    }
+    //else if ( g_DXDeviceThread != GetCurrentThreadId() )
+    //{
+    //    return;
+    //}
     //D3DPERF_EndEvent();
 }
 
@@ -906,6 +914,8 @@ bool __cdecl R_MarkFragments_Brushes(MarkInfo *markInfo)
         return R_MarkFragments_Glass(markInfo) != 0;
     return 0;
 }
+
+int(__cdecl *allowSurf[1])(int, void *) = { (int(*)(int, void*))R_AllowMarks };
 
 char __cdecl R_MarkFragments_WorldBrushes(MarkInfo *markInfo)
 {
@@ -932,7 +942,6 @@ char __cdecl R_MarkFragments_WorldBrushes(MarkInfo *markInfo)
     markContext.modelIndex = 0;
     surfacesArray[0] = surfaces;
     R_BoxSurfaces(
-        (int)&savedregs,
         markInfo->mins,
         markInfo->maxs,
         allowSurf,
@@ -1005,6 +1014,8 @@ bool __cdecl R_Mark_MaterialAllowsMarks(const Material *markReceiverMaterialHand
         return 0;
     return (markReceiverMaterialHandle->info.surfaceTypeBits & markMaterialHandle->info.surfaceTypeBits) == markMaterialHandle->info.surfaceTypeBits;
 }
+
+const float SEETHRU_DECAL_EPSISON = 0.001f;
 
 char __cdecl R_MarkFragments_BrushSurface(
                 MarkInfo *markInfo,
@@ -1270,7 +1281,7 @@ int __cdecl R_ChopWorldPolyBehindPlane(
                                             - plane[3];
         if ( dists[pointIndex] <= epsilon )
         {
-            if ( COERCE_FLOAT(LODWORD(epsilon) ^ _mask__NegFloat_) <= dists[pointIndex] )
+            if ( (-(epsilon)) <= dists[pointIndex] )
                 sides[pointIndex] = 2;
             else
                 sides[pointIndex] = 1;
@@ -1949,13 +1960,6 @@ char    R_MarkFragments_AnimatedXModel_VertList@<al>(
         MatrixTransposeTransformVector(markInfo->axis[0], (const float (*)[3])clipPlanes_172, markInfo->localHitNormal);
     }
     return 1;
-}
-
-void __cdecl Vec3AddScalar(const float *a, float s, float *sum)
-{
-    *sum = *a + s;
-    sum[1] = a[1] + s;
-    sum[2] = a[2] + s;
 }
 
 char __cdecl R_MarkFragments_StaticModels(MarkInfo *markInfo)

@@ -1,4 +1,16 @@
 #include "glass_client.h"
+#include <universal/com_memory.h>
+
+#include <new>
+#include <cgame/cg_sound.h>
+#include <EffectsCore/fx_marks.h>
+#include <cgame/cg_scr_main.h>
+#include <EffectsCore/fx_system.h>
+#include "glass_load_obj.h"
+#include <client/splitscreen.h>
+#include <bgame/bg_misc.h>
+
+GlassesClient *clGlasses;
 
 void __cdecl GlassesClient::InitAllocator(Glasses *glasses)
 {
@@ -28,7 +40,7 @@ unsigned int __cdecl GlassesClient::GetFreeMem()
     return GlassesClient::allocator.size - GlassesClient::allocator.pos;
 }
 
-GlassesClient *__thiscall GlassesClient::GlassesClient(GlassesClient *this, const Glasses *glss)
+GlassesClient::GlassesClient(const Glasses *glss)
 {
     GlassRenderer *v3; // [esp+0h] [ebp-10h]
     GlassRenderer *v5; // [esp+8h] [ebp-8h]
@@ -39,19 +51,30 @@ GlassesClient *__thiscall GlassesClient::GlassesClient(GlassesClient *this, cons
                                                                      12 * this->numGlasses,
                                                                      "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_client.cpp",
                                                                      80);
-    v5 = (GlassRenderer *)GlassRenderer::operator new(0x4DF8u);
-    if ( v5 )
-        v3 = GlassRenderer::GlassRenderer(v5, glss);
+    //v5 = (GlassRenderer *)GlassRenderer::operator new(0x4DF8u);
+    v5 = (GlassRenderer *)GlassesClient::Allocate(sizeof(GlassRenderer), "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_renderer.cpp", 59);
+    if (v5)
+    {
+        //v3 = GlassRenderer::GlassRenderer(v5, glss);
+        new (v5) GlassRenderer(glss);
+        this->renderer = v5;
+    }
     else
-        v3 = 0;
-    this->renderer = v3;
+    {
+        //v3 = 0;
+        this->renderer = NULL;
+    }
+
+    //this->renderer = v3;
     this->lastPreShatter = 0;
-    for ( i = 0; i < this->numGlasses; ++i )
-        GlassClient::Init(&this->glasses[i], &glss->glasses[i]);
-    return this;
+    for (i = 0; i < this->numGlasses; ++i)
+    {
+        //GlassClient::Init(&this->glasses[i], &glss->glasses[i]);
+        this->glasses[i].Init(&glss->glasses[i]);
+    }
 }
 
-void __thiscall GlassesClient::~GlassesClient(GlassesClient *this)
+GlassesClient::~GlassesClient()
 {
     GlassRenderer *renderer; // [esp+Ch] [ebp-4h]
 
@@ -59,36 +82,44 @@ void __thiscall GlassesClient::~GlassesClient(GlassesClient *this)
     renderer = this->renderer;
     if ( renderer )
     {
-        GlassRenderer::~GlassRenderer(renderer);
-        GlassesClient::operator delete((char *)renderer);
+        //GlassRenderer::~GlassRenderer(renderer);
+        renderer->~GlassRenderer();
+        //GlassesClient::operator delete((char *)renderer);
+        GlassesClient::Free((char*)renderer);
     }
 }
 
-const GlassClient *__thiscall GlassesClient::GetGlass(GlassesClient *this, int idx)
+const GlassClient *GlassesClient::GetGlass(int idx)
 {
     return &this->glasses[idx];
 }
 
-void __thiscall GlassesClient::Reset(GlassesClient *this)
+void __thiscall GlassesClient::Reset()
 {
     unsigned int i; // [esp+4h] [ebp-4h]
 
-    for ( i = 0; i < this->numGlasses; ++i )
-        GlassClient::Reset(&this->glasses[i]);
+    for (i = 0; i < this->numGlasses; ++i)
+    {
+        //GlassClient::Reset(&this->glasses[i]);
+        this->glasses[i].Reset();
+    }
 }
 
-void __thiscall GlassesClient::Update(GlassesClient *this, int localClientNum)
+void __thiscall GlassesClient::Update(int localClientNum)
 {
     unsigned int i; // [esp+Ch] [ebp-8h]
 
     //PIXBeginNamedEvent(-1, "GlassesClient.Update");
-    for ( i = 0; i < this->numGlasses; ++i )
-        GlassClient::Update(&this->glasses[i], localClientNum);
+    for (i = 0; i < this->numGlasses; ++i)
+    {
+        //GlassClient::Update(&this->glasses[i], localClientNum);
+        this->glasses[i].Update(localClientNum);
+    }
     //if ( g_DXDeviceThread == GetCurrentThreadId() )
         //D3DPERF_EndEvent();
 }
 
-void __thiscall GlassesClient::ParseSnapshot(GlassesClient *this, int localClientNum, msg_t *msg, bool gameState)
+void __thiscall GlassesClient::ParseSnapshot(int localClientNum, msg_t *msg, bool gameState)
 {
     GlassState::State newState; // [esp+4h] [ebp-50h]
     float v6[3]; // [esp+8h] [ebp-4Ch] BYREF
@@ -130,7 +161,8 @@ void __thiscall GlassesClient::ParseSnapshot(GlassesClient *this, int localClien
                     hitDir[1] = MSG_ReadFloat(msg);
                     hitDir[2] = MSG_ReadFloat(msg);
                 }
-                GlassClient::SetState(&this->glasses[i], localClientNum, (GlassState::State)state, hitPos, hitDir, gameState);
+                //GlassClient::SetState(&this->glasses[i], localClientNum, (GlassState::State)state, hitPos, hitDir, gameState);
+                this->glasses[i].SetState(localClientNum, (GlassState::State)state, hitPos, hitDir, gameState);
             }
         }
         else
@@ -149,8 +181,8 @@ void __thiscall GlassesClient::ParseSnapshot(GlassesClient *this, int localClien
                     MSG_Discard(msg);
                     return;
                 }
-                newState = MSG_ReadBits(msg, 2u);
-                if ( newState == SHATTERED )
+                newState = (GlassState::State)MSG_ReadBits(msg, 2u);
+                if ( newState == GlassState::State::SHATTERED )
                 {
                     v7[0] = MSG_ReadFloat(msg);
                     v7[1] = MSG_ReadFloat(msg);
@@ -159,7 +191,8 @@ void __thiscall GlassesClient::ParseSnapshot(GlassesClient *this, int localClien
                     v6[1] = MSG_ReadFloat(msg);
                     v6[2] = MSG_ReadFloat(msg);
                 }
-                GlassClient::SetState(&this->glasses[index], localClientNum, newState, v7, v6, gameState);
+                //GlassClient::SetState(&this->glasses[index], localClientNum, newState, v7, v6, gameState);
+                this->glasses[index].SetState(localClientNum, newState, v7, v6, gameState);
             }
         }
     }
@@ -171,7 +204,7 @@ void __thiscall GlassesClient::ParseSnapshot(GlassesClient *this, int localClien
     }
 }
 
-void __thiscall GlassesClient::WriteDemoSnapshot(GlassesClient *this, msg_t *msg)
+void __thiscall GlassesClient::WriteDemoSnapshot(msg_t *msg)
 {
     GlassClient *glass; // [esp+10h] [ebp-Ch]
     unsigned int i; // [esp+14h] [ebp-8h]
@@ -196,12 +229,12 @@ void __thiscall GlassesClient::WriteDemoSnapshot(GlassesClient *this, msg_t *msg
         MSG_WriteBits(msg, glass->state.val.i & 0xF, 2u);
         if ( (glass->state.val.i & 0xF) == 2 )
         {
-            MSG_WriteFloat(msg, COERCE_INT(0.0));
-            MSG_WriteFloat(msg, COERCE_INT(0.0));
-            MSG_WriteFloat(msg, COERCE_INT(0.0));
-            MSG_WriteFloat(msg, COERCE_INT(0.0));
-            MSG_WriteFloat(msg, COERCE_INT(0.0));
-            MSG_WriteFloat(msg, COERCE_INT(0.0));
+            MSG_WriteFloat(msg, 0.0);
+            MSG_WriteFloat(msg, 0.0);
+            MSG_WriteFloat(msg, 0.0);
+            MSG_WriteFloat(msg, 0.0);
+            MSG_WriteFloat(msg, 0.0);
+            MSG_WriteFloat(msg, 0.0);
         }
     }
     MSG_WriteShort(msg, 30154);
@@ -209,7 +242,7 @@ void __thiscall GlassesClient::WriteDemoSnapshot(GlassesClient *this, msg_t *msg
         //D3DPERF_EndEvent();
 }
 
-void __thiscall GlassesClient::PreShatterNext(GlassesClient *this)
+void __thiscall GlassesClient::PreShatterNext()
 {
     GlassClient *gls; // [esp+14h] [ebp-Ch]
     unsigned int i; // [esp+18h] [ebp-8h]
@@ -220,23 +253,25 @@ void __thiscall GlassesClient::PreShatterNext(GlassesClient *this)
         gls = &this->glasses[this->lastPreShatter++];
         if ( this->lastPreShatter >= this->numGlasses )
             this->lastPreShatter = 0;
-        if ( GlassClient::PreShatter(gls) )
+        //if ( GlassClient::PreShatter(gls) )
+        if ( gls->PreShatter() )
         {
-            if ( GetCurrentThreadId() != g_DXDeviceThread )
-                return;
+            //if ( GetCurrentThreadId() != g_DXDeviceThread )
+            //    return;
             goto LABEL_10;
         }
     }
-    if ( GetCurrentThreadId() != g_DXDeviceThread )
-        return;
+    //if ( GetCurrentThreadId() != g_DXDeviceThread )
+    //    return;
 LABEL_10:
+    ;
     //D3DPERF_EndEvent();
 }
 
-void __thiscall GlassClient::Init(GlassClient *this, const Glass *gls)
+void __thiscall GlassClient::Init(const Glass *gls)
 {
-    float *absmax; // [esp+8h] [ebp-10h]
-    float *absmin; // [esp+Ch] [ebp-Ch]
+    const float *absmax; // [esp+8h] [ebp-10h]
+    const float *absmin; // [esp+Ch] [ebp-Ch]
     GfxBrushModel *bmodel; // [esp+14h] [ebp-4h]
 
     this->state.val.i = this->state.val.i & 0xFFFFFFF0 | 3;
@@ -259,17 +294,17 @@ void __thiscall GlassClient::Init(GlassClient *this, const Glass *gls)
     bmodel->writable.maxs[2] = absmax[2];
 }
 
-void __thiscall GlassClient::Reset(GlassClient *this)
+void __thiscall GlassClient::Reset()
 {
     if ( this->outlines )
     {
-        GlassRenderer::FreeShardMemory(clGlasses->renderer, &this->outlines->numOutlines);
+        //GlassRenderer::FreeShardMemory(clGlasses->renderer, &this->outlines->numOutlines
+        clGlasses->renderer->FreeShardMemory((unsigned int*)&this->outlines);
         this->outlines = 0;
     }
 }
 
 void __thiscall GlassClient::SetState(
-                GlassClient *this,
                 int localClientNum,
                 GlassState::State newState,
                 const float *hitPos,
@@ -284,17 +319,21 @@ void __thiscall GlassClient::SetState(
         this->state.val.i = newState & 0xF | this->state.val.i & 0xFFFFFFF0;
         if ( newState )
         {
-            if ( newState == CRACKED )
+            if ( newState == GlassState::State::CRACKED )
             {
-                GlassRenderer::RemoveGlassShards(clGlasses->renderer, this->glass->index);
-                GlassClient::SetBrushMaterial(this, CRACKED);
-                if ( !gameState )
-                    CG_PlaySound(localClientNum, this->glass->origin, 0, 0, 1.0, (char *)this->glass->glassDef->crackSound);
+                //GlassRenderer::RemoveGlassShards(clGlasses->renderer, this->glass->index);
+                clGlasses->renderer->RemoveGlassShards(this->glass->index);
+                GlassClient::SetBrushMaterial(GlassState::State::CRACKED);
+                if (!gameState)
+                {
+                    CG_PlaySound(localClientNum, (float*)this->glass->origin, 0, 0, 1.0, (char *)this->glass->glassDef->crackSound);
+                }
             }
-            else if ( newState == SHATTERED )
+            else if ( newState == GlassState::State::SHATTERED )
             {
-                GlassRenderer::AddShatterAction(clGlasses->renderer, this, hitPos, hitDir, gameState);
-                CScr_GlassSmash(this->glass->origin, hitDir);
+                //GlassRenderer::AddShatterAction(clGlasses->renderer, this, hitPos, hitDir, gameState);
+                clGlasses->renderer->AddShatterAction(this, hitPos, hitDir, gameState);
+                CScr_GlassSmash((float*)this->glass->origin, hitDir);
                 if ( !gameState )
                 {
                     if ( (float)((float)((float)(*hitDir * *hitDir) + (float)(hitDir[1] * hitDir[1]))
@@ -302,9 +341,9 @@ void __thiscall GlassClient::SetState(
                         autoShatterShound = (char *)this->glass->glassDef->autoShatterShound;
                     else
                         autoShatterShound = (char *)this->glass->glassDef->shatterShound;
-                    CG_PlaySound(localClientNum, this->glass->origin, 0, 0, 1.0, autoShatterShound);
+                    CG_PlaySound(localClientNum, (float*)this->glass->origin, 0, 0, 1.0, autoShatterShound);
                     if ( this->glass->glassDef->shatterEffect )
-                        GlassClient::PlayShatterFX(this, localClientNum, hitPos, hitDir);
+                        GlassClient::PlayShatterFX(localClientNum, hitPos, hitDir);
                 }
                 FX_MarkGlassDetachAll(localClientNum, this->glass->index);
             }
@@ -317,14 +356,14 @@ void __thiscall GlassClient::SetState(
         }
         else
         {
-            GlassRenderer::RemoveGlassShards(clGlasses->renderer, this->glass->index);
-            GlassClient::SetBrushMaterial(this, PRISTINE);
+            //GlassRenderer::RemoveGlassShards(clGlasses->renderer, this->glass->index);
+            clGlasses->renderer->RemoveGlassShards(this->glass->index);
+            GlassClient::SetBrushMaterial(GlassState::State::PRISTINE);
         }
     }
 }
 
 void __thiscall GlassClient::PlayShatterFX(
-                GlassClient *this,
                 int localClientNum,
                 const float *hitPos,
                 const float *hitDir)
@@ -395,34 +434,34 @@ void __thiscall GlassClient::PlayShatterFX(
     {
         if ( irand(0, 1) )
         {
-            v17 = this->glass->outlineAxis[2];
+            v17 = (float*)this->glass->outlineAxis[2];
             *(_QWORD *)&axis[0][0] = *(_QWORD *)v17;
             axis[0][2] = v17[2];
         }
         else
         {
-            v16 = this->glass->outlineAxis[2];
-            LODWORD(axis[0][0]) = *(unsigned int *)v16 ^ _mask__NegFloat_;
-            LODWORD(axis[0][1]) = *((unsigned int *)v16 + 1) ^ _mask__NegFloat_;
-            LODWORD(axis[0][2]) = *((unsigned int *)v16 + 2) ^ _mask__NegFloat_;
+            v16 = (float*)this->glass->outlineAxis[2];
+            (axis[0][0]) = -v16[0];
+            (axis[0][1]) = -v16[1];
+            (axis[0][2]) = -v16[2];
         }
     }
     else if ( (float)((float)((float)(*hitDir * this->glass->outlineAxis[2][0])
                                                     + (float)(hitDir[1] * this->glass->outlineAxis[2][1]))
                                     + (float)(hitDir[2] * this->glass->outlineAxis[2][2])) <= 0.0 )
     {
-        v14 = this->glass->outlineAxis[2];
-        LODWORD(axis[0][0]) = *(unsigned int *)v14 ^ _mask__NegFloat_;
-        LODWORD(axis[0][1]) = *((unsigned int *)v14 + 1) ^ _mask__NegFloat_;
-        LODWORD(axis[0][2]) = *((unsigned int *)v14 + 2) ^ _mask__NegFloat_;
+        v14 = (float*)this->glass->outlineAxis[2];
+        (axis[0][0]) = -v14[0];
+        (axis[0][1]) = -v14[1];
+        (axis[0][2]) = -v14[2];
     }
     else
     {
-        v15 = this->glass->outlineAxis[2];
+        v15 = (float*)this->glass->outlineAxis[2];
         *(_QWORD *)&axis[0][0] = *(_QWORD *)v15;
         axis[0][2] = v15[2];
     }
-    v13 = this->glass->outlineAxis[1];
+    v13 = (float*)this->glass->outlineAxis[1];
     axis[1][0] = *v13;
     axis[1][1] = v13[1];
     axis[1][2] = v13[2];
@@ -450,14 +489,14 @@ void __thiscall GlassClient::PlayShatterFX(
         {
             p2d_4 = (float)((float)((float)((float)e + 0.5) * step) * outlineEdges[v27].ray.dir[1])
                         + outlineEdges[v27].ray.origin[1];
-            v9 = this->glass->outlineAxis[0];
+            v9 = (float*)this->glass->outlineAxis[0];
             v10 = (float)((float)((float)((float)e + 0.5) * step) * outlineEdges[v27].ray.dir[0])
                     + outlineEdges[v27].ray.origin[0];
-            outlineOrigin = this->glass->outlineOrigin;
+            outlineOrigin = (float*)this->glass->outlineOrigin;
             p3d[0] = (float)(v10 * *v9) + *outlineOrigin;
             p3d[1] = (float)(v10 * v9[1]) + outlineOrigin[1];
             p3d[2] = (float)(v10 * v9[2]) + outlineOrigin[2];
-            v8 = this->glass->outlineAxis[1];
+            v8 = (float*)this->glass->outlineAxis[1];
             p3d[0] = (float)(p2d_4 * *v8) + p3d[0];
             p3d[1] = (float)(p2d_4 * v8[1]) + p3d[1];
             p3d[2] = (float)(p2d_4 * v8[2]) + p3d[2];
@@ -478,11 +517,11 @@ int __cdecl compareOutlineEdges(float *s1, float *s2)
         return -1;
 }
 
-void __thiscall GlassClient::Update(GlassClient *this, int localClientNum)
+void __thiscall GlassClient::Update(int localClientNum)
 {
     const GfxBrushModel *BrushModel; // eax
-    float *origin; // [esp-Ch] [ebp-18h]
-    float *angles; // [esp-8h] [ebp-14h]
+    const float *origin; // [esp-Ch] [ebp-18h]
+    const float *angles; // [esp-8h] [ebp-14h]
     Material *pristineMaterial; // [esp+0h] [ebp-Ch]
 
     if ( (this->state.val.i & 0xF) == 3
@@ -508,7 +547,7 @@ void __thiscall GlassClient::Update(GlassClient *this, int localClientNum)
     }
 }
 
-void __thiscall GlassClient::SetBrushMaterial(GlassClient *this, GlassState::State state)
+void __thiscall GlassClient::SetBrushMaterial(GlassState::State state)
 {
     Material *crackedMaterial; // [esp+0h] [ebp-18h]
     unsigned int i; // [esp+8h] [ebp-10h]
@@ -538,7 +577,7 @@ void __thiscall GlassClient::SetBrushMaterial(GlassClient *this, GlassState::Sta
     }
 }
 
-void __thiscall GlassClient::Shatter(GlassClient *this, const float *pos, const float *dir)
+void __thiscall GlassClient::Shatter(const float *pos, const float *dir)
 {
     int i; // [esp+34h] [ebp-65Ch]
     int numNewShards; // [esp+3Ch] [ebp-654h]
@@ -548,27 +587,37 @@ void __thiscall GlassClient::Shatter(GlassClient *this, const float *pos, const 
     GlassShard *shard; // [esp+68Ch] [ebp-4h]
 
     //PIXBeginNamedEvent(-1, "GlassClient.Shatter");
-    shard = GlassRenderer::AllocShard(clGlasses->renderer);
+    //shard = GlassRenderer::AllocShard(clGlasses->renderer);
+    shard = clGlasses->renderer->AllocShard();
     if ( shard )
     {
-        if ( GlassShard::Create(shard, this->glass) )
+        //if ( GlassShard::Create(shard, this->glass) )
+        if ( shard->Create(this->glass) )
         {
-            glassExtent = GlassShard::Outline::Extent(&shard->outline);
+            //glassExtent = GlassShard::Outline::Extent(&shard->outline);
+            glassExtent = shard->outline.Extent();
             if ( this->outlines )
             {
                 //PIXBeginNamedEvent(-1, "GlassClient.Shatter.outlines");
-                numNewShards = GlassClient::Outlines::InitShards(this->outlines, shard, newShards, 400);
-                GlassShard::Remove(shard, (GlassShard::RemoveReason)8, 0);
-                GlassRenderer::FreeShardMemory(clGlasses->renderer, &this->outlines->numOutlines);
+                //numNewShards = GlassClient::Outlines::InitShards(this->outlines, shard, newShards, 400);
+                numNewShards = this->outlines->InitShards(shard, newShards, 400);
+                //GlassShard::Remove(shard, (GlassShard::RemoveReason)8, 0);
+                shard->Remove((GlassShard::RemoveReason)8, 0);
+                //GlassRenderer::FreeShardMemory(clGlasses->renderer, &this->outlines->numOutlines);
+                clGlasses->renderer->FreeShardMemory((unsigned int*)&this->outlines);
                 this->outlines = 0;
-                if ( numNewShards > 0 )
-                    GlassShard::InitPhysics(newShards[0], newShards, numNewShards, glassExtent, pos, dir);
+                if (numNewShards > 0)
+                {
+                    //GlassShard::InitPhysics(newShards[0], newShards, numNewShards, glassExtent, pos, dir);
+                    newShards[0]->InitPhysics(newShards, numNewShards, glassExtent, pos, dir);
+                }
                 //if ( GetCurrentThreadId() == g_DXDeviceThread )
                     //D3DPERF_EndEvent();
             }
             else
             {
-                numNewShardsa = GlassShard::Shatter(shard, newShards, 400);
+                //numNewShardsa = GlassShard::Shatter(shard, newShards, 400);
+                numNewShardsa = shard->Shatter(newShards, 400);
                 if ( !shard->group
                     && !Assert_MyHandler(
                                 "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_client.cpp",
@@ -581,18 +630,23 @@ void __thiscall GlassClient::Shatter(GlassClient *this, const float *pos, const 
                 }
                 if ( shard->group )
                 {
-                    GlassShard::InitPhysics(shard, newShards, numNewShardsa, glassExtent, pos, dir);
+                    //GlassShard::InitPhysics(shard, newShards, numNewShardsa, glassExtent, pos, dir);
+                    shard->InitPhysics(newShards, numNewShardsa, glassExtent, pos, dir);
                 }
                 else
                 {
-                    for ( i = 0; i < numNewShardsa; ++i )
-                        GlassShard::Remove(newShards[i], (GlassShard::RemoveReason)8, 0);
+                    for (i = 0; i < numNewShardsa; ++i)
+                    {
+                        //GlassShard::Remove(newShards[i], (GlassShard::RemoveReason)8, 0);
+                        newShards[i]->Remove((GlassShard::RemoveReason)8, 0);
+                    }
                 }
             }
         }
         else
         {
-            GlassRenderer::FreeShard(clGlasses->renderer, shard);
+            //GlassRenderer::FreeShard(clGlasses->renderer, shard);
+            clGlasses->renderer->FreeShard(shard);
         }
         //if ( g_DXDeviceThread == GetCurrentThreadId() )
             //D3DPERF_EndEvent();
@@ -603,7 +657,7 @@ void __thiscall GlassClient::Shatter(GlassClient *this, const float *pos, const 
     }
 }
 
-char __thiscall GlassClient::PreShatter(GlassClient *this)
+char __thiscall GlassClient::PreShatter()
 {
     unsigned int v2; // eax
     GlassClient::Outlines *v3; // eax
@@ -618,34 +672,46 @@ char __thiscall GlassClient::PreShatter(GlassClient *this)
     if ( (this->state.val.i & 0xF) == 2 || this->outlines )
         return 0;
     //PIXBeginNamedEvent(-1, "GlassClient.PreShatter");
-    shard = GlassRenderer::AllocShard(clGlasses->renderer);
+    //shard = GlassRenderer::AllocShard(clGlasses->renderer);
+    shard = clGlasses->renderer->AllocShard();
     if ( shard )
     {
-        if ( GlassShard::Create(shard, this->glass) )
+        //if ( GlassShard::Create(shard, this->glass) )
+        if ( shard->Create(this->glass) )
         {
-            numNewShards = GlassShard::Shatter(shard, newShards, 400);
+            //numNewShards = GlassShard::Shatter(shard, newShards, 400);
+            numNewShards = shard->Shatter(newShards, 400);
             renderer = clGlasses->renderer;
             v2 = GlassClient::Outlines::CalcMemorySize(newShards, numNewShards);
-            buffer = GlassRenderer::AllocateShardMemory(renderer, v2, 0);
+            //buffer = GlassRenderer::AllocateShardMemory(renderer, v2, 0);
+            buffer = renderer->AllocateShardMemory(v2, NULL);
             if ( buffer )
             {
-                baseShard = GlassRenderer::AllocShard(clGlasses->renderer);
+                //baseShard = GlassRenderer::AllocShard(clGlasses->renderer);
+                baseShard = clGlasses->renderer->AllocShard();
                 if ( baseShard )
                 {
-                    if ( GlassShard::Create(baseShard, this->glass) )
+                    //if ( GlassShard::Create(baseShard, this->glass) )
+                    if ( baseShard->Create(this->glass) )
                     {
-                        GlassClient::Outlines::Outlines((GlassClient::Outlines *)buffer, baseShard, newShards, numNewShards);
+                        //GlassClient::Outlines::Outlines((GlassClient::Outlines *)buffer, baseShard, newShards, numNewShards);
+                        new (buffer) GlassClient::Outlines(baseShard, newShards, numNewShards);
                         this->outlines = v3;
                     }
-                    GlassShard::Remove(baseShard, (GlassShard::RemoveReason)8, 0);
+                    //GlassShard::Remove(baseShard, (GlassShard::RemoveReason)8, 0);
+                    baseShard->Remove((GlassShard::RemoveReason)8, 0);
                 }
             }
-            for ( i = 0; i < numNewShards; ++i )
-                GlassShard::Remove(newShards[i], (GlassShard::RemoveReason)8, 0);
+            for (i = 0; i < numNewShards; ++i)
+            {
+                //GlassShard::Remove(newShards[i], (GlassShard::RemoveReason)8, 0);
+                newShards[i]->Remove((GlassShard::RemoveReason)8, 0);
+            }
         }
         else
         {
-            GlassRenderer::FreeShard(clGlasses->renderer, shard);
+            //GlassRenderer::FreeShard(clGlasses->renderer, shard);
+            clGlasses->renderer->FreeShard(shard);
         }
         //if ( g_DXDeviceThread == GetCurrentThreadId() )
             //D3DPERF_EndEvent();
@@ -670,8 +736,7 @@ int __cdecl GlassClient::Outlines::CalcMemorySize(GlassShard **shards, int numSh
     return 12 * numShards + 8 * numVerts + 8;
 }
 
-void __thiscall GlassClient::Outlines::Outlines(
-                GlassClient::Outlines *this,
+GlassClient::Outlines::Outlines(
                 const GlassShard *baseShard,
                 GlassShard **shards,
                 int numShards)
@@ -704,7 +769,6 @@ void __thiscall GlassClient::Outlines::Outlines(
 }
 
 int __thiscall GlassClient::Outlines::InitShards(
-                GlassClient::Outlines *this,
                 const GlassShard *baseShard,
                 GlassShard **shards,
                 int maxNewShards)
@@ -727,28 +791,31 @@ int __thiscall GlassClient::Outlines::InitShards(
         newOutline.numVerts = 0;
         newOutline.maxVerts = 64;
         newOutline.isClosed = 0;
-        for ( v = 0;
-                    v < this->outlines[i].numVerts;
-                    GlassShard::Outline::Add(&newOutline, this->outlines[i].verts[v++])->isOriginalEdge = v4 )
+        //for ( v = 0; v < this->outlines[i].numVerts; GlassShard::Outline::Add(&newOutline, this->outlines[i].verts[v++])->isOriginalEdge = v4 )
+        for ( v = 0; v < this->outlines[i].numVerts; newOutline.Add(this->outlines[i].verts[v++])->isOriginalEdge = v4 )
         {
             v4 = (this->outlines[i].edgeFlags & (1 << v)) != 0;
         }
-        GlassShard::Outline::CloseOutline(&newOutline);
-        GlassShard::Outline::Recenter(&newOutline, 0, offset);
-        v5 = GlassRenderer::AllocShard(clGlasses->renderer);
+        //GlassShard::Outline::CloseOutline(&newOutline);
+        newOutline.CloseOutline();
+        //GlassShard::Outline::Recenter(&newOutline, 0, offset);
+        newOutline.Recenter(false, offset);
+        //v5 = GlassRenderer::AllocShard(clGlasses->renderer);
+        v5 = clGlasses->renderer->AllocShard();
         shards[numNewShards] = v5;
         if ( !shards[numNewShards] )
             break;
-        if ( !GlassShard::Init(shards[numNewShards], baseShard, &newOutline, offset)
-            || (grp = (ShardGroup *)GlassRenderer::GetShardGroup(
-                                                                clGlasses->renderer,
+        //if ( !GlassShard::Init(shards[numNewShards], baseShard, &newOutline, offset) || (grp = (ShardGroup *)GlassRenderer::GetShardGroup(
+        if ( !shards[numNewShards]->Init(baseShard, &newOutline, offset) || (grp = (ShardGroup *)clGlasses->renderer->GetShardGroup(
                                                                 shards[numNewShards]->origin,
                                                                 baseShard->group->glassDef)) == 0 )
         {
-            GlassRenderer::FreeShard(clGlasses->renderer, shards[numNewShards]);
+            //GlassRenderer::FreeShard(clGlasses->renderer, shards[numNewShards]);
+            clGlasses->renderer->FreeShard(shards[numNewShards]);
             break;
         }
-        ShardGroup::Add(grp, shards[numNewShards++]);
+        //ShardGroup::Add(grp, shards[numNewShards++]);
+        grp->Add(shards[numNewShards++]);
     }
     v8 = numNewShards;
     //if ( GetCurrentThreadId() == g_DXDeviceThread )
@@ -770,11 +837,19 @@ void __cdecl GlassCl_AllocateMemory()
             if ( glasses->numGlasses )
             {
                 GlassesClient::InitAllocator(glasses);
-                v1 = (GlassesClient *)GlassesClient::operator new(0x10u);
-                if ( v1 )
-                    v0 = GlassesClient::GlassesClient(v1, glasses);
+
+                //v1 = (GlassesClient *)GlassesClient::operator new(0x10u);
+                v1 = (GlassesClient *)GlassesClient::Allocate(sizeof(GlassesClient), "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_client.cpp", 69);
+
+                if (v1)
+                {
+                    //v0 = GlassesClient::GlassesClient(v1, glasses);
+                    v0 = new (v1) GlassesClient(glasses);
+                }
                 else
+                {
                     v0 = 0;
+                }
                 clGlasses = v0;
             }
         }
@@ -788,8 +863,10 @@ void __cdecl GlassCl_FreeMemory()
     if ( clGlasses )
     {
         v0 = clGlasses;
-        GlassesClient::~GlassesClient(clGlasses);
-        GlassesClient::operator delete((char *)v0);
+        //GlassesClient::~GlassesClient(clGlasses);
+        clGlasses->~GlassesClient();
+        //GlassesClient::operator delete((char *)v0);
+        GlassesClient::Free((char *)v0);
         clGlasses = 0;
     }
 }
@@ -800,8 +877,8 @@ void __cdecl GlassCl_Reset(int localClientNum)
     {
         if ( clGlasses )
         {
-            GlassesClient::Reset(clGlasses);
-            GlassRenderer::Reset(clGlasses->renderer);
+            clGlasses->Reset();
+            clGlasses->renderer->Reset();
         }
     }
 }
@@ -809,25 +886,25 @@ void __cdecl GlassCl_Reset(int localClientNum)
 void __cdecl GlassCl_Update(int localClientNum)
 {
     if ( clGlasses )
-        GlassesClient::Update(clGlasses, localClientNum);
+        clGlasses->Update(localClientNum);
 }
 
 void __cdecl GlassCl_ReadGameState(int localClientNum, msg_t *msg)
 {
     if ( clGlasses )
-        GlassesClient::ParseSnapshot(clGlasses, localClientNum, msg, 1);
+        clGlasses->ParseSnapshot(localClientNum, msg, 1);
 }
 
 void __cdecl GlassCl_ParseSnapshot(int localClientNum, msg_t *msg)
 {
     if ( clGlasses )
-        GlassesClient::ParseSnapshot(clGlasses, localClientNum, msg, 0);
+        clGlasses->ParseSnapshot(localClientNum, msg, 0);
 }
 
 void __cdecl GlassCl_WriteDemoSnapshot(msg_t *msg)
 {
     if ( clGlasses )
-        GlassesClient::WriteDemoSnapshot(clGlasses, msg);
+        clGlasses->WriteDemoSnapshot(msg);
 }
 
 void __cdecl GlassCl_WaitUpdate()
@@ -835,17 +912,19 @@ void __cdecl GlassCl_WaitUpdate()
     if ( clGlasses )
     {
         if ( clGlasses->renderer->smpGlass->current.enabled )
-            GlassRenderer::BeginUpdate((colgeom_visitor_t *)clGlasses->renderer);
+            clGlasses->renderer->BeginUpdate();
     }
 }
 
 void __cdecl GlassCl_BeginGenerateVerts(unsigned int localClientNum, unsigned int viewIndex)
 {
-    if ( clGlasses )
-    {
-        if ( clGlasses->renderer->smpGlass->current.enabled )
-            NitrousVehicle::damage((NitrousVehicle *)clGlasses->renderer, localClientNum, viewIndex);
-    }
+    //if ( clGlasses )
+    //{
+    //    if ( clGlasses->renderer->smpGlass->current.enabled )
+    //        NitrousVehicle::damage((NitrousVehicle *)clGlasses->renderer, localClientNum, viewIndex);
+    //}
+
+    // LWSS: above function is a nullsub
 }
 
 void __cdecl GlassCl_WaitGenerateVerts()
@@ -853,7 +932,8 @@ void __cdecl GlassCl_WaitGenerateVerts()
     if ( clGlasses && clGlasses->renderer->smpGlass->current.enabled )
     {
         //PIXBeginNamedEvent(-1, "GlassCl_WaitGenerateVerts");
-        GlassRenderer::BeginUpdate((colgeom_visitor_t *)clGlasses->renderer);
+        //GlassRenderer::BeginUpdate((colgeom_visitor_t *)clGlasses->renderer);
+        clGlasses->renderer->BeginUpdate();
         //if ( g_DXDeviceThread == GetCurrentThreadId() )
             //D3DPERF_EndEvent();
     }
@@ -866,9 +946,10 @@ void __cdecl GlassCl_GenerateVerts(int localClientNum, unsigned int viewIndex)
         if ( CL_LocalClient_IsFirstActive(localClientNum) )
         {
             if ( !viewIndex )
-                GlassRenderer::Update(clGlasses->renderer, 0);
+                clGlasses->renderer->Update(0);
         }
-        GlassRenderer::GenerateVerts(clGlasses->renderer, localClientNum, viewIndex, 0);
+        //GlassRenderer::GenerateVerts(clGlasses->renderer, localClientNum, viewIndex, 0);
+        clGlasses->renderer->GenerateVerts(localClientNum, viewIndex, 0);
     }
 }
 
@@ -883,7 +964,7 @@ void __cdecl GlassCl_ExplosionEvent(
     if ( clGlasses )
     {
         if ( CL_LocalClient_IsFirstActive(localClientNum) )
-            GlassRenderer::AddExplosionAction(clGlasses->renderer, origin, damageInner, damageOuter, radius, mod);
+            clGlasses->renderer->AddExplosionAction(origin, damageInner, damageOuter, radius, mod);
     }
 }
 
@@ -893,13 +974,15 @@ void __cdecl GlassCl_TracePoint(const pointtrace_t *clip, trace_t *results)
 
     if ( clGlasses )
     {
-        GlassesClient::TracePoint(clGlasses, clip, results);
+        //GlassesClient::TracePoint(clGlasses, clip, results);
+        clGlasses->TracePoint(clip, results);
         Vec3Lerp(clip->extents.start.vec.v, clip->extents.end.vec.v, results->fraction, end);
-        GlassRenderer::AddTraceAction(clGlasses->renderer, clip->extents.start.vec.v, end);
+        //GlassRenderer::AddTraceAction(clGlasses->renderer, clip->extents.start.vec.v, end);
+        clGlasses->renderer->AddTraceAction(clip->extents.start.vec.v, end);
     }
 }
 
-void __thiscall GlassesClient::TracePoint(GlassesClient *this, const pointtrace_t *clip, trace_t *results)
+void __thiscall GlassesClient::TracePoint(const pointtrace_t *clip, trace_t *results)
 {
     unsigned __int16 index; // [esp+Eh] [ebp-232h]
     const Glass *glass; // [esp+10h] [ebp-230h]
@@ -913,7 +996,7 @@ void __thiscall GlassesClient::TracePoint(GlassesClient *this, const pointtrace_
     //PIXBeginNamedEvent(-1, "GlassesClient.TracePoint");
     Vec3Min(clip->extents.start.vec.v, clip->extents.end.vec.v, mins);
     Vec3Max(clip->extents.start.vec.v, clip->extents.end.vec.v, maxs);
-    num = GlassesClient::AreaGlasses(this, mins, maxs, glss, 0x80u);
+    num = GlassesClient::AreaGlasses(mins, maxs, glss, 0x80u);
     for ( i = 0; i < num; ++i )
     {
         glass = glss[i];
@@ -973,7 +1056,7 @@ void __cdecl GlassCl_MeleeEvent(int localClientNum, int attackerEntNum)
                     integer = player_bayonetRange->current.integer;
                 else
                     integer = player_meleeRange->current.integer;
-                GlassRenderer::AddMeleeAction(clGlasses->renderer, eyePos, forward, right, up, *(float *)&integer);
+                clGlasses->renderer->AddMeleeAction(eyePos, forward, right, up, *(float *)&integer);
             }
         }
     }
@@ -982,7 +1065,7 @@ void __cdecl GlassCl_MeleeEvent(int localClientNum, int attackerEntNum)
 void __cdecl GlassCl_DrawDebug()
 {
     if ( clGlasses )
-        GlassRenderer::DrawDebug(clGlasses->renderer);
+        clGlasses->renderer->DrawDebug();
 }
 
 unsigned int __cdecl GlassCl_AreaGlasses(
@@ -992,13 +1075,12 @@ unsigned int __cdecl GlassCl_AreaGlasses(
                 unsigned int maxGlasses)
 {
     if ( clGlasses )
-        return GlassesClient::AreaGlasses(clGlasses, mins, maxs, glasses, maxGlasses);
+        return clGlasses->AreaGlasses(mins, maxs, glasses, maxGlasses);
     else
         return 0;
 }
 
 unsigned int __thiscall GlassesClient::AreaGlasses(
-                GlassesClient *this,
                 const float *mins,
                 const float *maxs,
                 const Glass **glss,
@@ -1031,11 +1113,11 @@ void __cdecl GlassCl_ClipMoveTrace(const moveclip_t *clip, trace_t *results)
     if ( clGlasses )
     {
         if ( (clip->contentmask & 0x10) != 0 )
-            GlassesClient::ClipMoveTrace(clGlasses, clip, results);
+            clGlasses->ClipMoveTrace(clip, results);
     }
 }
 
-void __thiscall GlassesClient::ClipMoveTrace(GlassesClient *this, const moveclip_t *clip, trace_t *results)
+void __thiscall GlassesClient::ClipMoveTrace(const moveclip_t *clip, trace_t *results)
 {
     float v3; // [esp+0h] [ebp-29Ch]
     float v4; // [esp+4h] [ebp-298h]
@@ -1087,7 +1169,7 @@ void __thiscall GlassesClient::ClipMoveTrace(GlassesClient *this, const moveclip
             v3 = maxs[i];
         maxs[i] = v3;
     }
-    num = GlassesClient::AreaGlasses(this, mins, maxs, glss, 0x80u);
+    num = GlassesClient::AreaGlasses(mins, maxs, glss, 0x80u);
     for ( j = 0; j < num; ++j )
     {
         glass = glss[j];

@@ -1,6 +1,28 @@
 #include "glass_renderer.h"
+#include "glass_client.h"
 
-GlassRenderer *__thiscall GlassRenderer::GlassRenderer(GlassRenderer *this, const Glasses *glasses)
+#include <gfx_d3d/r_drawsurf.h>
+#include <gfx_d3d/r_model_lighting.h>
+#include <client/splitscreen.h>
+#include <client/client.h>
+#include <bgame/bg_misc.h>
+#include <gfx_d3d/r_stream.h>
+#include <cgame/cg_drawtools.h>
+#include <tl/tl_system.h>
+#include <client/cl_debugdata.h>
+#include <gfx_d3d/r_model_lod.h>
+
+// KISAKTODO: uses too much aislop to get rid of the horrible STL iterators and such (should be done manually with another pass)
+
+cmd_function_s MemInfoCmd_VAR;
+cmd_function_s CrashGlassCmd_VAR;
+cmd_function_s PrintHwmCmd_VAR;
+
+float MIN_SHARD_GROUP_VOLUME_SIZE = 32.0;
+
+
+
+GlassRenderer::GlassRenderer(const Glasses *glasses)
 {
     unsigned int *v2; // eax
     ShardGroup *v3; // eax
@@ -44,97 +66,95 @@ GlassRenderer *__thiscall GlassRenderer::GlassRenderer(GlassRenderer *this, cons
                  16 * smallAllocatorBlocks,
                  "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_renderer.cpp",
                  70);
-    SmallAllocator::Init(&this->smallAllocator, v2, 0x10u, smallAllocatorBlocks);
-    v23 = GlassesClient::Allocate(28, "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_renderer.cpp", 72);
-    v30 = (std::list<GlassPhysics *,SmallAllocatorTemplate<GlassPhysics * *> > *)v23;
-    if ( v23 )
-    {
-        _Al.alloc = &this->smallAllocator;
-        std::list<GlassShard *,SmallAllocatorTemplate<GlassShard * *>>::list<GlassShard *,SmallAllocatorTemplate<GlassShard * *>>(
-            v30,
-            &_Al);
-        v18 = v30;
-    }
-    else
-    {
-        v18 = 0;
-    }
-    this->colidingShards = (GlassRenderer::SortedShardsList *)v18;
-    v21 = GlassesClient::Allocate(28, "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_renderer.cpp", 73);
-    v29 = (std::list<GlassPhysics *,SmallAllocatorTemplate<GlassPhysics * *> > *)v21;
-    if ( v21 )
-    {
-        v20.alloc = &this->smallAllocator;
-        std::list<GlassShard *,SmallAllocatorTemplate<GlassShard * *>>::list<GlassShard *,SmallAllocatorTemplate<GlassShard * *>>(
-            v29,
-            &v20);
-        v17 = v29;
-    }
-    else
-    {
-        v17 = 0;
-    }
-    this->tempShardsList = (GlassRenderer::SortedShardsList *)v17;
-    v28 = (FixedSizeAllocator<ShardGroup *> *)GlassesClient::Allocate(
-                                                                                            64,
-                                                                                            "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_renderer.cpp",
-                                                                                            75);
-    if ( v28 )
-    {
-        maxGroups = glasses->maxGroups;
-        v3 = (ShardGroup *)GlassesClient::Allocate(
-                                                 84 * maxGroups,
-                                                 "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_renderer.cpp",
-                                                 75);
-        v16 = FixedSizeAllocator<ShardGroup *>::FixedSizeAllocator<ShardGroup *>(v28, v3, maxGroups, &this->smallAllocator);
-    }
-    else
-    {
-        v16 = 0;
-    }
-    this->groupsAllocator = v16;
-    v27 = (FixedSizeAllocator<GlassShard *> *)GlassesClient::Allocate(
-                                                                                            64,
-                                                                                            "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_renderer.cpp",
-                                                                                            77);
-    if ( v27 )
-    {
-        maxShards = glasses->maxShards;
-        v4 = GlassesClient::Allocate(144 * maxShards, "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_renderer.cpp", 77);
-        v15 = FixedSizeAllocator<GlassShard *>::FixedSizeAllocator<GlassShard *>(
-                        v27,
-                        (GlassShard *)v4,
-                        maxShards,
-                        &this->smallAllocator);
-    }
-    else
-    {
-        v15 = 0;
-    }
-    this->shardsAllocator = v15;
-    v26 = (FixedSizeAllocator<GlassPhysics *> *)GlassesClient::Allocate(
-                                                                                                64,
-                                                                                                "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_renderer.cpp",
-                                                                                                79);
-    if ( v26 )
-    {
-        maxPhysics = glasses->maxPhysics;
-        v5 = GlassesClient::Allocate(160 * maxPhysics, "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_renderer.cpp", 79);
-        v14 = FixedSizeAllocator<GlassPhysics *>::FixedSizeAllocator<GlassPhysics *>(
-                        v26,
-                        (GlassPhysics *)v5,
-                        maxPhysics,
-                        &this->smallAllocator);
-    }
-    else
-    {
-        v14 = 0;
-    }
-    this->physicsAllocator = v14;
+    this->smallAllocator.Init(v2, 0x10u, smallAllocatorBlocks);
+
+
+    //v23 = GlassesClient::Allocate(28, "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_renderer.cpp", 72);
+    //v30 = (std::list<GlassPhysics *,SmallAllocatorTemplate<GlassPhysics * *> > *)v23;
+    //if ( v23 )
+    //{
+    //    _Al.alloc = &this->smallAllocator;
+    //    std::list<GlassShard *,SmallAllocatorTemplate<GlassShard * *>>::list<GlassShard *,SmallAllocatorTemplate<GlassShard * *>>(v30, &_Al);
+    //    this->colidingShards = v30;
+    //}
+    //else
+    //{
+    //    this->colidingShards = 0;
+    //}
+    this->colidingShards = new GlassRenderer::SortedShardsList();
+
+
+    //v21 = GlassesClient::Allocate(28, "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_renderer.cpp", 73);
+    //v29 = (std::list<GlassPhysics *,SmallAllocatorTemplate<GlassPhysics * *> > *)v21;
+    //if ( v21 )
+    //{
+    //    v20.alloc = &this->smallAllocator;
+    //    std::list<GlassShard *,SmallAllocatorTemplate<GlassShard * *>>::list<GlassShard *,SmallAllocatorTemplate<GlassShard * *>>(v29, &v20);
+    //    this->tempShardsList = v29;
+    //}
+    //else
+    //{
+    //    this->tempShardsList = 0;
+    //}
+    this->tempShardsList = new GlassRenderer::SortedShardsList();
+
+
+    //v28 = (FixedSizeAllocator<ShardGroup *> *)GlassesClient::Allocate(64, "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_renderer.cpp", 75);
+    //if ( v28 )
+    //{
+    //    maxGroups = glasses->maxGroups;
+    //    v3 = (ShardGroup *)GlassesClient::Allocate(
+    //                                             84 * maxGroups,
+    //                                             "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_renderer.cpp",
+    //                                             75);
+    //    this->groupsAllocator = FixedSizeAllocator<ShardGroup *>::FixedSizeAllocator<ShardGroup *>(v28, v3, maxGroups, &this->smallAllocator);
+    //}
+    //else
+    //{
+    //    this->groupsAllocator = 0;
+    //}
+    this->groupsAllocator = new FixedSizeAllocator<ShardGroup *>();
+
+
+    //v27 = (FixedSizeAllocator<GlassShard *> *)GlassesClient::Allocate(64, "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_renderer.cpp", 77);
+    //if ( v27 )
+    //{
+    //    maxShards = glasses->maxShards;
+    //    v4 = GlassesClient::Allocate(144 * maxShards, "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_renderer.cpp", 77);
+    //    this->shardsAllocator = FixedSizeAllocator<GlassShard *>::FixedSizeAllocator<GlassShard *>(
+    //                    v27,
+    //                    (GlassShard *)v4,
+    //                    maxShards,
+    //                    &this->smallAllocator);
+    //}
+    //else
+    //{
+    //    this->shardsAllocator = 0;
+    //}
+    this->shardsAllocator = new FixedSizeAllocator<GlassShard *>();
+
+
+    //v26 = (FixedSizeAllocator<GlassPhysics *> *)GlassesClient::Allocate(64, "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_renderer.cpp", 79);
+    //if ( v26 )
+    //{
+    //    maxPhysics = glasses->maxPhysics;
+    //    v5 = GlassesClient::Allocate(160 * maxPhysics, "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_renderer.cpp", 79);
+    //    this->physicsAllocator = FixedSizeAllocator<GlassPhysics *>::FixedSizeAllocator<GlassPhysics *>(
+    //                    v26,
+    //                    (GlassPhysics *)v5,
+    //                    maxPhysics,
+    //                    &this->smallAllocator);
+    //}
+    //else
+    //{
+    //    this->physicsAllocator = 0;
+    //}
+    this->physicsAllocator = new FixedSizeAllocator<GlassPhysics *>();
+
     shardMemorySize = glasses->shardMemorySize;
     v6 = GlassesClient::Allocate(shardMemorySize, "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_renderer.cpp", 81);
-    Allocator::Init(&this->shardMemoryAllocator, v6, shardMemorySize);
-    GlassRenderer::InitShardMeshVertexLists(this);
+    this->shardMemoryAllocator.Init(v6, shardMemorySize);
+    GlassRenderer::InitShardMeshVertexLists();
     R_InitGlassRenderBuffers(glasses->numIndices, glasses->numVerts, 0x20u);
     FreeMem = GlassesClient::GetFreeMem();
     Com_Printf(0, "GlassRenderer init: unused memory: %d\n", FreeMem);
@@ -175,24 +195,24 @@ GlassRenderer *__thiscall GlassRenderer::GlassRenderer(GlassRenderer *this, cons
     this->doMaintenance = _Dvar_RegisterBool("doMaintenance", 1, 0x80u, "Do cleanup of the glass");
     this->shardSplitDir = _Dvar_RegisterVec2(
                                                     "shardSplitDir",
-                                                    COERCE_UNSIGNED_INT(30.0),
-                                                    COERCE_UNSIGNED_INT(60.0),
+                                                    (30.0),
+                                                    (60.0),
                                                     0.0,
                                                     180.0,
                                                     0,
                                                     "Angle range of the first edge of the shard");
     this->shardSplitDir2 = _Dvar_RegisterVec2(
                                                      "shardSplitDir2",
-                                                     COERCE_UNSIGNED_INT(10.0),
-                                                     COERCE_UNSIGNED_INT(30.0),
+                                                     (10.0),
+                                                     (30.0),
                                                      0.0,
                                                      180.0,
                                                      0,
                                                      "Angle range of the next edges of the shard");
     this->shardEdgeSize = _Dvar_RegisterVec2(
                                                     "shardEdgeSize",
-                                                    COERCE_UNSIGNED_INT(0.02),
-                                                    COERCE_UNSIGNED_INT(0.15000001),
+                                                    (0.02),
+                                                    (0.15000001),
                                                     0.0,
                                                     0.30000001,
                                                     0,
@@ -251,8 +271,8 @@ GlassRenderer *__thiscall GlassRenderer::GlassRenderer(GlassRenderer *this, cons
                                                  "Maximum life time of a shard that is contolled by the glass physics");
     this->timeUntilDropRange = _Dvar_RegisterVec2(
                                                              "timeUntilDropRange",
-                                                             COERCE_UNSIGNED_INT(0.25),
-                                                             COERCE_UNSIGNED_INT(1.0),
+                                                             (0.25),
+                                                             (1.0),
                                                              0.0,
                                                              10.0,
                                                              0,
@@ -308,9 +328,9 @@ GlassRenderer *__thiscall GlassRenderer::GlassRenderer(GlassRenderer *this, cons
         MIN_SHARD_GROUP_VOLUME_SIZE = 128.0f;
     else
         MIN_SHARD_GROUP_VOLUME_SIZE = 32.0f;
-    scale[0] = FLOAT_0_00048828125;
-    scale[1] = FLOAT_0_00048828125;
-    scale[2] = FLOAT_0_0009765625;
+    scale[0] = 0.00048828125f;
+    scale[1] = 0.00048828125f;
+    scale[2] = 0.0009765625f;
     gridSize[0] = 1.1 * (float)(allExtent[0] * 0.00048828125);
     gridSize[1] = 1.1 * (float)(allExtent[1] * 0.00048828125);
     gridSize[2] = 1.1 * (float)(allExtent[2] * 0.0009765625);
@@ -321,11 +341,10 @@ GlassRenderer *__thiscall GlassRenderer::GlassRenderer(GlassRenderer *this, cons
     this->coordScale[0] = 1.0 / gridSize[0];
     this->coordScale[1] = 1.0 / gridSize[1];
     this->coordScale[2] = 1.0 / gridSize[2];
-    GlassRenderer::Reset(this);
-    return this;
+    GlassRenderer::Reset();
 }
 
-void __thiscall GlassRenderer::~GlassRenderer(GlassRenderer *this)
+GlassRenderer::~GlassRenderer()
 {
     unsigned __int8 i; // [esp+27h] [ebp-1h]
 
@@ -344,7 +363,8 @@ void __thiscall GlassRenderer::~GlassRenderer(GlassRenderer *this)
     R_FreeGlassRenderBuffers();
 }
 
-void __thiscall GlassRenderer::Reset(GlassRenderer *this)
+#if 0
+void GlassRenderer::Reset()
 {
     GlassPhysics **v1; // eax
     std::_List_nod<ShardGroup *,SmallAllocatorTemplate<ShardGroup * *> >::_Node *Myhead; // [esp+Ch] [ebp-3Ch]
@@ -414,8 +434,58 @@ void __thiscall GlassRenderer::Reset(GlassRenderer *this)
     dword_A7070A8 = 0;
     this->rendererLock.lock = 0;
 }
+#endif
+void GlassRenderer::Reset()
+{
+    // Acquire spin lock
+    while (rendererLock.lock ||
+        _InterlockedCompareExchange(&rendererLock.lock, 1, 0))
+    {
+        /* spin */
+    }
 
-void __thiscall GlassRenderer::InitShardMeshVertexLists(GlassRenderer *this)
+    // Reset all shard groups
+    for (ShardGroup *group : groupsAllocator->used)
+    {
+        group->Reset();
+    }
+
+    // Free all allocator memory
+    groupsAllocator->FreeAll();
+    shardsAllocator->FreeAll();
+    shardMemoryAllocator.FreeAll();
+
+    // Reset counters and indices
+    numGroupChanges = 0;
+    maxNumGroupChanges = 0;
+    actionInputIndex = 0;
+    actionOutputIndex = 0;
+    numUsedMaterials = 0;
+    numShatters = 0;
+    numSplits = 0;
+    genVertsCount = 0;
+    maxCrashShards = 0;
+
+    // Clear action buffer
+    memset(actions, 0, sizeof(actions));
+
+    // Reset timers
+    shatterTimer = 0;
+    splitTimer = 0;
+    triangulateTimer = 0;
+    genVertsTimer = 0;
+
+    // Reset global shard removal stats
+    for (int i = 0; i < 7; ++i)
+    {
+        GlassShard::removeReasonsCount[i] = 0;
+    }
+
+    // Release lock
+    rendererLock.lock = 0;
+}
+
+void __thiscall GlassRenderer::InitShardMeshVertexLists()
 {
     unsigned __int8 numVerts; // [esp+6h] [ebp-2h]
     unsigned __int8 i; // [esp+7h] [ebp-1h]
@@ -438,7 +508,8 @@ void __thiscall GlassRenderer::InitShardMeshVertexLists(GlassRenderer *this)
     }
 }
 
-void __thiscall GlassRenderer::RemoveGlassShards(GlassRenderer *this, unsigned int glassIndex)
+#if 0
+void __thiscall GlassRenderer::RemoveGlassShards(unsigned int glassIndex)
 {
     GlassPhysics **v2; // eax
     std::_List_nod<ShardGroup *,SmallAllocatorTemplate<ShardGroup * *> >::_Node *Myhead; // [esp+Ch] [ebp-3Ch]
@@ -481,41 +552,69 @@ void __thiscall GlassRenderer::RemoveGlassShards(GlassRenderer *this, unsigned i
     GlassRenderer::DoGroupChanges(this);
     this->rendererLock.lock = 0;
 }
+#endif
+void GlassRenderer::RemoveGlassShards(unsigned int glassIndex)
+{
+    // Acquire spin lock
+    while (rendererLock.lock ||
+           _InterlockedCompareExchange(&rendererLock.lock, 1, 0))
+    {
+        /* spin */
+    }
 
-GlassShard *__thiscall GlassRenderer::AllocShard(GlassRenderer *this)
+    // Remove shards from all active groups
+    for (ShardGroup* group : groupsAllocator->used)
+    {
+        group->RemoveGlassShards(glassIndex);
+    }
+
+    // Apply pending structural changes
+    DoGroupChanges();
+
+    // Release lock
+    rendererLock.lock = 0;
+}
+
+GlassShard *__thiscall GlassRenderer::AllocShard()
 {
     GlassShard *shard; // [esp+4h] [ebp-4h]
 
-    shard = (GlassShard *)FixedSizeAllocator<ShardGroup *>::Allocate((FixedSizeAllocator<GlassPhysics *> *)this->shardsAllocator);
+    //shard = (GlassShard *)FixedSizeAllocator<ShardGroup *>::Allocate((FixedSizeAllocator<GlassPhysics *> *)this->shardsAllocator);
+    shard = this->shardsAllocator->Allocate();
     if ( shard )
-        GlassShard::Init(shard);
+        shard->Init();
     return shard;
 }
 
-void __thiscall GlassRenderer::FreeShard(GlassRenderer *this, GlassShard *shard)
+void __thiscall GlassRenderer::FreeShard(GlassShard *shard)
 {
     if ( shard->group
         && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_renderer.cpp", 305, 0, "%s", "!shard->group") )
     {
         __debugbreak();
     }
-    GlassShard::Destroy(shard);
-    FixedSizeAllocator<GlassShard *>::Free(
-        (FixedSizeAllocator<GlassPhysics *> *)this->shardsAllocator,
-        (GlassPhysics *)shard);
+    shard->Destroy();
+    this->shardsAllocator->Free(shard);
+    //FixedSizeAllocator<GlassShard *>::Free(
+    //    (FixedSizeAllocator<GlassPhysics *> *)this->shardsAllocator,
+    //    (GlassPhysics *)shard);
 }
 
-GlassPhysics *__thiscall GlassRenderer::AllocPhysics(GlassRenderer *this)
+GlassPhysics *__thiscall GlassRenderer::AllocPhysics()
 {
-    return FixedSizeAllocator<ShardGroup *>::Allocate(this->physicsAllocator);
+    //return FixedSizeAllocator<ShardGroup *>::Allocate(this->physicsAllocator);
+    return this->physicsAllocator->Allocate();
 }
 
-void __thiscall GlassRenderer::FreePhysics(GlassRenderer *this, GlassPhysics *phys)
+void __thiscall GlassRenderer::FreePhysics(GlassPhysics *phys)
 {
-    FixedSizeAllocator<GlassShard *>::Free(this->physicsAllocator, phys);
+    //FixedSizeAllocator<GlassShard *>::Free(this->physicsAllocator, phys);
+    this->physicsAllocator->Free(phys);
 }
 
-void __thiscall GlassRenderer::RemovePhysicsShards(GlassRenderer *this)
+// aislopped and chopped
+#if 0
+void __thiscall GlassRenderer::RemovePhysicsShards()
 {
     GlassShard **v2; // [esp+4h] [ebp-88h]
     GlassRenderer::SortedShardsList *tempShardsList; // [esp+Ch] [ebp-80h]
@@ -578,8 +677,45 @@ void __thiscall GlassRenderer::RemovePhysicsShards(GlassRenderer *this)
         v8 = v5;
     }
 }
+#endif
 
-void __thiscall GlassRenderer::AddGroupChange(GlassRenderer *this, GlassShard *shard)
+void GlassRenderer::RemovePhysicsShards()
+{
+    // First, process any pending group changes
+    DoGroupChanges();
+
+    // Clear the temporary shards list
+    tempShardsList->clear();
+
+    // Iterate over all shard groups
+    for (std::list<ShardGroup *, SmallAllocatorTemplate<ShardGroup *> >::iterator grpIt = groupsAllocator->used.begin();
+        grpIt != groupsAllocator->used.end();
+        ++grpIt)
+    {
+        ShardGroup &grp = **grpIt;
+
+        // Iterate over all shards in this group
+        for (GlassShard *shard = grp.head; shard; shard = shard->groupNext)
+        {
+            if (shard->glassPhysics)
+            {
+                tempShardsList->Insert(shard);
+            }
+        }
+    }
+
+    // Now remove all shards in the tempShardsList
+    while (!tempShardsList->empty())
+    {
+        GlassShard *shard = tempShardsList->front();
+        tempShardsList->pop_front();
+
+        //GlassShard::Remove(shard, NUM_REMOVE_REASONS, 0);
+        shard->Remove(GlassShard::RemoveReason::NUM_REMOVE_REASONS, 0);
+    }
+}
+
+void __thiscall GlassRenderer::AddGroupChange(GlassShard *shard)
 {
     if ( !shard->inGroupChange )
     {
@@ -601,13 +737,13 @@ void __thiscall GlassRenderer::AddGroupChange(GlassRenderer *this, GlassShard *s
     }
 }
 
-void __thiscall GlassRenderer::DoGroupChanges(GlassRenderer *this)
+void __thiscall GlassRenderer::DoGroupChanges()
 {
     int numGroupChanges; // [esp+0h] [ebp-14h]
     int i; // [esp+10h] [ebp-4h]
 
     for ( i = 0; i < this->numGroupChanges; ++i )
-        GlassShard::ChangeGroup(this->groupChanges[i]);
+        this->groupChanges[i]->ChangeGroup();
     if ( this->maxNumGroupChanges < this->numGroupChanges )
         numGroupChanges = this->numGroupChanges;
     else
@@ -616,7 +752,8 @@ void __thiscall GlassRenderer::DoGroupChanges(GlassRenderer *this)
     this->numGroupChanges = 0;
 }
 
-void __thiscall GlassRenderer::Update(GlassRenderer *this, int threadId)
+#if 0
+void __thiscall GlassRenderer::Update(int threadId)
 {
     GlassPhysics **v2; // eax
     float deltaTime; // [esp+0h] [ebp-78h]
@@ -735,9 +872,81 @@ void __thiscall GlassRenderer::Update(GlassRenderer *this, int threadId)
     //if ( g_DXDeviceThread == GetCurrentThreadId() )
         //D3DPERF_EndEvent();
 }
+#endif
 
+// aislop
+void GlassRenderer::Update(int threadId)
+{
+    if (threadId && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_renderer.cpp", 386, 0, "threadId == 0"))
+        __debugbreak();
+
+    // Pre-update housekeeping
+    CrashGlass();
+    Broom();
+
+    // Acquire renderer lock
+    while (_InterlockedCompareExchange(&rendererLock.lock, 1, 0))
+        ;
+
+    if (!threadId)
+    {
+        ++frame;
+        deltaTime = 0.016666668f;
+
+        cg_s *cg = CG_GetLocalClientGlobals(0);
+        if (cg && cg->snap)
+        {
+            for (int i = 0; i < 1; ++i)
+            {
+                if (CL_LocalClient_IsActive(i) && CL_GetLocalClientConnectionState(i) >= 4)
+                {
+                    cg_s *cgameGlob = CG_GetLocalClientGlobals(i);
+                    if (!cgameGlob)
+                        return;
+
+                    int now = cgameGlob->physicsTime;
+                    float dt = (float)(now - timeLastUpdate) * 0.001f;
+
+                    // Clamp deltaTime to [0, 0.1]
+                    if (dt < 0.0f)
+                        dt = 0.0f;
+                    else if (dt > 0.1f)
+                        dt = 0.1f;
+
+                    deltaTime = dt;
+                    timeLastUpdate = now;
+                    break;
+                }
+            }
+        }
+
+        // Execute queued group changes and actions
+        DoGroupChanges();
+        ExecuteActions();
+
+        //prevStat = stat;
+        memcpy(&prevStat, &stat, sizeof(prevStat));
+        stat.numVisGroups = 0;
+        stat.numVisShards = 0;
+        stat.numOOMGroups = 0;
+        stat.numMovingShards = 0;
+    }
+
+    // Update all shard groups
+    for (ShardGroup *grp : groupsAllocator->used)
+    {
+        grp->Update(deltaTime);
+    }
+
+    if (!threadId)
+        DoGroupChanges();
+
+    // Release renderer lock
+    rendererLock.lock = 0;
+}
+
+#if 0
 void __thiscall GlassRenderer::GenerateVerts(
-                GlassRenderer *this,
                 int localClientNum,
                 unsigned int viewIndex,
                 unsigned int threadId)
@@ -799,13 +1008,57 @@ void __thiscall GlassRenderer::GenerateVerts(
     if ( !threadId )
         //BLOPS_NULLSUB();
     this->rendererLock.lock = 0;
-    GlassRenderer::StartMaintenance(this);
+    GlassRenderer::StartMaintenance();
     //if ( g_DXDeviceThread == GetCurrentThreadId() )
         //D3DPERF_EndEvent();
 }
+#endif
 
+void GlassRenderer::GenerateVerts(int localClientNum, unsigned int viewIndex, unsigned int threadId)
+{
+    if (threadId && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_renderer.cpp", 472, 0, "threadId == 0"))
+        __debugbreak();
+
+
+    // Optional debug event
+    char *Name = va("Glass.GenVerts(c=%d v=%d t=%d)", localClientNum, viewIndex, threadId);
+    //PIXBeginNamedEvent(-1, Name);
+
+
+    // Acquire renderer lock
+    while (_InterlockedCompareExchange(&rendererLock.lock, 1, 0))
+        ;
+
+
+    // Determine if this is the first view
+    bool firstView = CL_LocalClient_IsFirstActive(localClientNum) && (viewIndex == 0);
+    if (firstView)
+        numUsedMaterials = 0;
+
+
+    // Iterate all shard groups
+    for (std::list<ShardGroup *, SmallAllocatorTemplate<ShardGroup *> >::iterator it = groupsAllocator->used.begin();
+        it != groupsAllocator->used.end();
+        ++it)
+    {
+        ShardGroup *grp = *it;
+        grp->GenerateVerts(firstView, localClientNum);
+    }
+
+
+    // Release renderer lock
+    rendererLock.lock = 0;
+
+
+    // Start maintenance tasks
+    StartMaintenance();
+
+
+    //PIXEndNamedEvent(); // if using PIX
+}
+
+#if 0
 void __thiscall GlassRenderer::ExplosionEvent(
-                GlassRenderer *this,
                 const float *origin,
                 float damageInner,
                 float damageOuter,
@@ -846,8 +1099,35 @@ void __thiscall GlassRenderer::ExplosionEvent(
     //if ( g_DXDeviceThread == GetCurrentThreadId() )
         //D3DPERF_EndEvent();
 }
+#endif
 
-int __thiscall GlassRenderer::TracePoint(GlassRenderer *this, float *p0, const float *p1)
+void GlassRenderer::ExplosionEvent(
+    const float *origin,
+    float damageInner,
+    float damageOuter,
+    float radius,
+    int mod)
+{
+    // Optional PIX event
+    // PIXBeginNamedEvent(-1, "GlassRenderer.ExplosionEvent");
+
+
+    // Iterate over all shard groups
+    for (std::list<ShardGroup *, SmallAllocatorTemplate<ShardGroup *> >::iterator it = groupsAllocator->used.begin();
+        it != groupsAllocator->used.end();
+        ++it)
+    {
+        ShardGroup *grp = *it;
+        grp->ExplosionEvent(origin, damageInner, damageOuter, radius, mod);
+    }
+
+
+    // Optional PIX end event
+    // PIXEndNamedEvent();
+}
+
+#if 0
+int __thiscall GlassRenderer::TracePoint(float *p0, const float *p1)
 {
     GlassPhysics **v3; // eax
     int v4; // eax
@@ -890,39 +1170,54 @@ int __thiscall GlassRenderer::TracePoint(GlassRenderer *this, float *p0, const f
         //D3DPERF_EndEvent();
     return v10;
 }
+#endif
+
+// aislop
+int GlassRenderer::TracePoint(float *p0, const float *p1)
+{
+    int numHits = 0;
+
+    // Iterate over all ShardGroups
+    for (ShardGroup *grp : groupsAllocator->used)
+    {
+        numHits += grp->TracePoint(p0, p1);
+    }
+
+    return numHits;
+}
+
 
 void __thiscall GlassRenderer::Melee(
-                GlassRenderer *this,
                 float *eyePos,
                 const float *forward,
                 const float *right,
                 const float *up,
                 float range)
 {
-    float v7; // [esp+4h] [ebp-18h]
-    float v8; // [esp+8h] [ebp-14h]
+    float v8; // [esp+4h] [ebp-18h]
+    float v9; // [esp+8h] [ebp-14h]
     unsigned int traceIndex; // [esp+Ch] [ebp-10h]
     float end[3]; // [esp+10h] [ebp-Ch] BYREF
 
-    for ( traceIndex = 0; traceIndex < 5; ++traceIndex )
+    for (traceIndex = 0; traceIndex < 5; ++traceIndex)
     {
         end[0] = (float)(range * *forward) + *eyePos;
         end[1] = (float)(range * forward[1]) + eyePos[1];
         end[2] = (float)(range * forward[2]) + eyePos[2];
-        v8 = player_meleeWidth->current.value * (float)traceOffsets_0[traceIndex][0];
-        end[0] = (float)(v8 * *right) + end[0];
-        end[1] = (float)(v8 * right[1]) + end[1];
-        end[2] = (float)(v8 * right[2]) + end[2];
-        v7 = player_meleeHeight->current.value * dword_D52AA4[2 * traceIndex];
-        end[0] = (float)(v7 * *up) + end[0];
-        end[1] = (float)(v7 * up[1]) + end[1];
-        end[2] = (float)(v7 * up[2]) + end[2];
-        if ( GlassRenderer::TracePoint(this, eyePos, end) > 0 )
+        v9 = player_meleeWidth->current.value * (float)traceOffsets_0[traceIndex][0];
+        end[0] = (float)(v9 * *right) + end[0];
+        end[1] = (float)(v9 * right[1]) + end[1];
+        end[2] = (float)(v9 * right[2]) + end[2];
+        v8 = player_meleeHeight->current.value * (float)traceOffsets_0[traceIndex][1];
+        end[0] = (float)(v8 * *up) + end[0];
+        end[1] = (float)(v8 * up[1]) + end[1];
+        end[2] = (float)(v8 * up[2]) + end[2];
+        if (GlassRenderer::TracePoint(eyePos, end) > 0)
             break;
     }
 }
 
-unsigned int __thiscall GlassRenderer::CalcPackedPos(GlassRenderer *this, const float *pos)
+unsigned int __thiscall GlassRenderer::CalcPackedPos(const float *pos)
 {
     float p[3]; // [esp+74h] [ebp-Ch] BYREF
 
@@ -970,16 +1265,16 @@ unsigned int __thiscall GlassRenderer::CalcPackedPos(GlassRenderer *this, const 
     return ((__int64)p[2] << 22) | ((__int64)p[1] << 11) | (__int64)p[0];
 }
 
-GlassPhysics *__thiscall GlassRenderer::GetShardGroup(GlassRenderer *this, const float *pos, const GlassDef *glassDef)
+GlassPhysics *__thiscall GlassRenderer::GetShardGroup(const float *pos, const GlassDef *glassDef)
 {
     unsigned int v3; // eax
 
-    v3 = GlassRenderer::CalcPackedPos(this, pos);
-    return GlassRenderer::GetShardGroup(this, v3, glassDef);
+    v3 = GlassRenderer::CalcPackedPos(pos);
+    return this->GetShardGroup(v3, glassDef);
 }
 
+#if 0
 GlassPhysics *__thiscall GlassRenderer::GetShardGroup(
-                GlassRenderer *this,
                 unsigned int packedPos,
                 const GlassDef *glassDef)
 {
@@ -1019,30 +1314,60 @@ GlassPhysics *__thiscall GlassRenderer::GetShardGroup(
         ShardGroup::Init(grp, packedPos, glassDef);
     return (GlassPhysics *)grp;
 }
+#endif
 
-void __thiscall GlassRenderer::FreeShardGroup(GlassRenderer *this, GlassPhysics *grp)
+GlassPhysics *GlassRenderer::GetShardGroup(
+    unsigned int packedPos,
+    const GlassDef *glassDef)
 {
-    FixedSizeAllocator<GlassShard *>::Free((FixedSizeAllocator<GlassPhysics *> *)this->groupsAllocator, grp);
+    // First, check if a group already exists for this position and GlassDef
+    for (ShardGroup *grp : groupsAllocator->used)
+    {
+        if (grp->packedPos == packedPos && grp->glassDef == glassDef)
+        {
+            return (GlassPhysics *)grp;
+        }
+    }
+
+    ShardGroup *grp = groupsAllocator->Allocate();
+    if (!grp)
+        return nullptr;
+
+
+    // Initialize the new group
+    grp->Init(packedPos, glassDef);
+
+
+    return (GlassPhysics *)grp;
+}
+
+void __thiscall GlassRenderer::FreeShardGroup(ShardGroup *grp)
+{
+    //FixedSizeAllocator<GlassShard *>::Free((FixedSizeAllocator<GlassPhysics *> *)this->groupsAllocator, grp);
+    this->groupsAllocator->Free(grp);
 }
 
 Allocator::Memory **__thiscall GlassRenderer::AllocateShardMemory(
-                GlassRenderer *this,
                 unsigned int size,
                 GlassShard *shard)
 {
-    return Allocator::Allocate(&this->shardMemoryAllocator, size, shard);
+    //return Allocator::Allocate(&this->shardMemoryAllocator, size, shard);
+    shardMemoryAllocator.Allocate(size, shard);
 }
 
-void __thiscall GlassRenderer::FreeShardMemory(GlassRenderer *this, unsigned int *ptr)
+void __thiscall GlassRenderer::FreeShardMemory(unsigned int *ptr)
 {
-    Allocator::Free(&this->shardMemoryAllocator, ptr);
+    //Allocator::Free(&this->shardMemoryAllocator, ptr);
+    this->shardMemoryAllocator.Free(ptr);
 }
 
-unsigned int __thiscall GlassRenderer::ShardMemorySize(GlassRenderer *this, unsigned int *ptr)
+unsigned int __thiscall GlassRenderer::ShardMemorySize(unsigned int *ptr)
 {
-    return Allocator::GetMemorySize(&this->shardMemoryAllocator, ptr);
+    //return Allocator::GetMemorySize(&this->shardMemoryAllocator, ptr);
+    return this->shardMemoryAllocator.GetMemorySize(ptr);
 }
 
+#if 0
 void __thiscall GlassRenderer::SortedShardsList::Insert(GlassRenderer::SortedShardsList *this, GlassShard *shard)
 {
     std::list<GlassPhysics *,SmallAllocatorTemplate<GlassPhysics * *> >::_Const_iterator<1> v2; // [esp-Ch] [ebp-15Ch]
@@ -1134,20 +1459,46 @@ void __thiscall GlassRenderer::SortedShardsList::Insert(GlassRenderer::SortedSha
             (GlassPhysics **)&shard);
     }
 }
+#endif
 
-double __thiscall GlassShard::Outline::Area(GlassShard::Outline *this)
+void GlassRenderer::SortedShardsList::Insert(GlassShard *shard)
 {
-    if ( !this->isClosed
-        && !Assert_MyHandler("c:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_shard.h", 144, 0, "%s", "isClosed") )
+    const float shardArea = shard->outline.Area();
+
+    // If the list is empty, just add it
+    if (empty())
     {
-        __debugbreak();
+        push_back(shard);
+        return;
     }
-    return this->area;
+
+    // Compare with the back element's area
+    const float backArea = back()->outline.Area();
+
+    if (shardArea <= backArea)
+    {
+        // Insert somewhere in the middle (or at the end)
+        for (auto it = begin(); it != end(); ++it)
+        {
+            const float curArea = (*it)->outline.Area();
+
+            if (curArea > shardArea)
+            {
+                insert(it, shard);
+                return;
+            }
+        }
+
+        push_back(shard);
+    }
+    else
+    {
+        push_front(shard);
+    }
 }
 
-void __thiscall GlassRenderer::SortedShardsList::InsertReverse(
-                GlassRenderer::SortedShardsList *this,
-                GlassShard *shard)
+#if 0
+void __thiscall GlassRenderer::SortedShardsList::InsertReverse(GlassShard *shard)
 {
     std::list<GlassPhysics *,SmallAllocatorTemplate<GlassPhysics * *> >::_Const_iterator<1> v2; // [esp-Ch] [ebp-15Ch]
     std::_List_nod<GlassPhysics *,SmallAllocatorTemplate<GlassPhysics * *> >::_Node *Myhead; // [esp+5Ch] [ebp-F4h]
@@ -1238,32 +1589,76 @@ void __thiscall GlassRenderer::SortedShardsList::InsertReverse(
             (GlassPhysics **)&shard);
     }
 }
+#endif
 
-bool __thiscall GlassRenderer::AddColidingShard(GlassRenderer *this, GlassShard *shard)
+void GlassRenderer::SortedShardsList::InsertReverse(GlassShard *shard)
 {
-    GlassRenderer::SortedShardsList::Insert(this->colidingShards, shard);
-    return this->colidingShards->_Mysize > 0x64;
+    const float shardArea = shard->outline.Area();
+
+
+    // If the list is empty, just add it
+    if (empty())
+    {
+        push_back(shard);
+        return;
+    }
+
+
+    // Compare with the back element's area
+    const float backArea = back()->outline.Area();
+
+
+    if (shardArea >= backArea)
+    {
+        // Insert somewhere in the middle (or at the end)
+        for (auto it = begin(); it != end(); ++it)
+        {
+            const float curArea = (*it)->outline.Area();
+
+
+            if (shardArea > curArea)
+            {
+                insert(it, shard);
+                return;
+            }
+        }
+
+        push_back(shard);
+    }
+    else
+    {
+        push_front(shard);
+    }
 }
 
-void __thiscall GlassRenderer::RemoveColidingShard(GlassRenderer *this, GlassShard *shard)
+bool __thiscall GlassRenderer::AddColidingShard(GlassShard *shard)
 {
-    std::list<GlassShard *,SmallAllocatorTemplate<GlassShard * *>>::remove(
-        (std::list<GlassPhysics *,SmallAllocatorTemplate<GlassPhysics * *> > *)this->colidingShards,
-        (GlassPhysics **)&shard);
+    //GlassRenderer::SortedShardsList::Insert(this->colidingShards, shard);
+    this->colidingShards->Insert(shard);
+    //return this->colidingShards->_Mysize > 0x64;
+    return this->colidingShards->size() > 100;
 }
 
-GlassPhysics *__thiscall GlassRenderer::GetSmallestColidingShard(GlassRenderer *this)
+void __thiscall GlassRenderer::RemoveColidingShard(GlassShard *shard)
 {
-    return *std::list<GlassShard *,SmallAllocatorTemplate<GlassShard *>>::front(this->colidingShards);
+    this->colidingShards->remove(shard);
+    //std::list<GlassShard *,SmallAllocatorTemplate<GlassShard * *>>::remove(
+    //    (std::list<GlassPhysics *,SmallAllocatorTemplate<GlassPhysics * *> > *)this->colidingShards,
+    //    (GlassPhysics **)&shard);
 }
 
-bool __thiscall GlassRenderer::IsVisible(GlassRenderer *this, const float *minmax, unsigned int localClientNum)
+GlassShard *__thiscall GlassRenderer::GetSmallestColidingShard()
+{
+    //return *std::list<GlassShard *,SmallAllocatorTemplate<GlassShard *>>::front(this->colidingShards);
+    return this->colidingShards->front();
+}
+
+bool __thiscall GlassRenderer::IsVisible(const float *minmax, unsigned int localClientNum)
 {
     return !this->cullShards->current.enabled || R_CullBoxCurDpvs_SceneSelect(minmax, localClientNum, 0) == 0;
 }
 
 void __thiscall GlassRenderer::AddShatterAction(
-                GlassRenderer *this,
                 GlassClient *glass,
                 const float *hitPos,
                 const float *hitDir,
@@ -1287,7 +1682,6 @@ void __thiscall GlassRenderer::AddShatterAction(
 }
 
 void __thiscall GlassRenderer::AddExplosionAction(
-                GlassRenderer *this,
                 const float *origin,
                 float damageInner,
                 float damageOuter,
@@ -1310,7 +1704,7 @@ void __thiscall GlassRenderer::AddExplosionAction(
     Sys_LeaveCriticalSection(CRITSECT_GLASS_ACTIONS);
 }
 
-void __thiscall GlassRenderer::AddTraceAction(GlassRenderer *this, const float *p0, const float *p1)
+void __thiscall GlassRenderer::AddTraceAction(const float *p0, const float *p1)
 {
     GlassRenderer::Action *action; // [esp+Ch] [ebp-4h]
 
@@ -1328,7 +1722,6 @@ void __thiscall GlassRenderer::AddTraceAction(GlassRenderer *this, const float *
 }
 
 void __thiscall GlassRenderer::AddMeleeAction(
-                GlassRenderer *this,
                 const float *eyePos,
                 const float *forward,
                 const float *right,
@@ -1357,7 +1750,7 @@ void __thiscall GlassRenderer::AddMeleeAction(
     Sys_LeaveCriticalSection(CRITSECT_GLASS_ACTIONS);
 }
 
-void __thiscall GlassRenderer::ExecuteActions(GlassRenderer *this)
+void __thiscall GlassRenderer::ExecuteActions()
 {
     GlassRenderer::Action *action; // [esp+20h] [ebp-8h]
 
@@ -1368,30 +1761,22 @@ void __thiscall GlassRenderer::ExecuteActions(GlassRenderer *this)
         switch ( action->type )
         {
             case SHATTER:
-                GlassClient::Shatter(action->shatter.glass, action->shatter.hitPos, action->shatter.hitDir);
+                action->shatter.glass->Shatter(action->shatter.hitPos, action->shatter.hitDir);
                 if ( action->shatter.gameState )
-                    GlassRenderer::RemovePhysicsShards(this);
+                    GlassRenderer::RemovePhysicsShards();
                 break;
             case TRACE_POINT:
-                GlassRenderer::TracePoint(this, (float *)&action->4, &action->shatter.hitPos[1]);
+                GlassRenderer::TracePoint(action->trace.p0, action->trace.p1);
                 break;
             case EXPLOSION:
-                GlassRenderer::ExplosionEvent(
-                    this,
-                    (const float *)&action->4,
-                    action->shatter.hitPos[1],
-                    action->shatter.hitPos[2],
-                    action->shatter.hitDir[0],
+                this->ExplosionEvent(action->explosion.origin, 
+                    action->explosion.damageInner, 
+                    action->explosion.damageOuter, 
+                    action->explosion.radius, 
                     action->explosion.mod);
                 break;
             case MELEE:
-                GlassRenderer::Melee(
-                    this,
-                    (float *)&action->4,
-                    &action->shatter.hitPos[1],
-                    &action->shatter.hitDir[1],
-                    action->melee.up,
-                    action->melee.range);
+                this->Melee(action->melee.eyePos, action->melee.forward, action->melee.right, action->melee.up, action->melee.range);
                 break;
             default:
                 if ( !Assert_MyHandler(
@@ -1403,19 +1788,19 @@ void __thiscall GlassRenderer::ExecuteActions(GlassRenderer *this)
                 break;
         }
         _InterlockedExchangeAdd(&this->actionOutputIndex, 1u);
-        GlassRenderer::DoGroupChanges(this);
+        GlassRenderer::DoGroupChanges();
     }
     //if ( g_DXDeviceThread == GetCurrentThreadId() )
         //D3DPERF_EndEvent();
 }
 
-void __thiscall GlassRenderer::StartMaintenance(GlassRenderer *this)
+void __thiscall GlassRenderer::StartMaintenance()
 {
-    GlassRenderer::DoMaintenance(this);
+    GlassRenderer::DoMaintenance();
 }
 
+#if 0
 void __thiscall GlassRenderer::GetSmallestShards(
-                GlassRenderer *this,
                 unsigned int maxShards,
                 bool checkVisible,
                 bool isVisible)
@@ -1461,9 +1846,36 @@ void __thiscall GlassRenderer::GetSmallestShards(
         v9 = v7;
     }
 }
+#endif
 
+void GlassRenderer::GetSmallestShards(unsigned int maxShards, bool checkVisible, bool isVisible)
+{
+    // Clear the temporary shard list
+    tempShardsList->clear();
+
+    // Iterate over all shard groups
+    for (ShardGroup *grp : groupsAllocator->used)
+    {
+        // Skip invisible groups if requested
+        if (checkVisible && grp->visible != isVisible)
+            continue;
+
+        // Iterate over all shards in the group
+        for (GlassShard *shard = grp->head; shard; shard = shard->groupNext)
+        {
+            // Insert the shard into the sorted temporary list
+            //SortedShardsList::Insert(tempShardsList, shard);
+            tempShardsList->Insert(shard);
+
+            // Keep only the smallest `maxShards` shards
+            if (tempShardsList->size() > maxShards)
+                tempShardsList->pop_back();
+        }
+    }
+}
+
+#if 0
 void __thiscall GlassRenderer::GetLargestShards(
-                GlassRenderer *this,
                 unsigned int maxShards,
                 bool checkVisible,
                 bool isVisible)
@@ -1509,8 +1921,38 @@ void __thiscall GlassRenderer::GetLargestShards(
         v9 = v7;
     }
 }
+#endif
 
-void __thiscall GlassRenderer::AddUsedShardMaterial(GlassRenderer *this, Material *material)
+void GlassRenderer::GetLargestShards(unsigned int maxShards, bool checkVisible, bool isVisible)
+{
+    // Clear the temporary list first
+    tempShardsList->clear();
+
+
+    // Iterate over all shard groups
+    for (ShardGroup *grp : groupsAllocator->used)
+    {
+        // Skip this group if visibility filtering is enabled and it doesn't match
+        if (checkVisible && grp->visible != isVisible)
+            continue;
+
+
+        // Iterate over all shards in the group
+        for (GlassShard *shard = grp->head; shard; shard = shard->groupNext)
+        {
+            // Insert shard into tempShardsList in descending order (largest first)
+            tempShardsList->InsertReverse(shard);
+
+
+            // Keep list size bounded to maxShards
+            if (tempShardsList->size() > maxShards)
+                tempShardsList->pop_back();
+        }
+    }
+}
+
+
+void __thiscall GlassRenderer::AddUsedShardMaterial(Material *material)
 {
     unsigned int i; // [esp+4h] [ebp-4h]
 
@@ -1535,7 +1977,8 @@ void __thiscall GlassRenderer::AddUsedShardMaterial(GlassRenderer *this, Materia
     }
 }
 
-void __thiscall GlassRenderer::DoMaintenance(GlassRenderer *this)
+#if 0
+void __thiscall GlassRenderer::DoMaintenance()
 {
     int Free; // eax
     GlassShard **v3; // [esp+58h] [ebp-E0h]
@@ -1556,8 +1999,8 @@ void __thiscall GlassRenderer::DoMaintenance(GlassRenderer *this)
     //PIXBeginNamedEvent(-1, "GlassRenderer.DoMaintenance");
     if ( this->doMaintenance->current.enabled )
     {
-        if ( (double)this->shardsAllocator->used._Mysize
-             / (double)(this->shardsAllocator->free._Mysize + this->shardsAllocator->used._Mysize) <= 0.89999998 )
+        if ( (double)this->shardsAllocator->used.size()
+             / (double)(this->shardsAllocator->free.size() + this->shardsAllocator->used.size()) <= 0.89999998 )
         {
             v5 = (char *)this->shardMemoryAllocator.tail - (char *)this->shardMemoryAllocator.head;
             if ( (float)(1.0 - 0.89999998) > (float)((float)Allocator::GetFree(&this->shardMemoryAllocator) / (float)v5) )
@@ -1598,8 +2041,8 @@ void __thiscall GlassRenderer::DoMaintenance(GlassRenderer *this)
         else
         {
             //PIXBeginNamedEvent(-1, "Too many shards");
-            numToFree = this->shardsAllocator->used._Mysize
-                                - (__int64)((double)(this->shardsAllocator->free._Mysize + this->shardsAllocator->used._Mysize)
+            numToFree = this->shardsAllocator->used.size()
+                                - (__int64)((double)(this->shardsAllocator->free.size() + this->shardsAllocator->used.size())
                                                     * 0.89999998
                                                     - 5.0);
             GlassRenderer::GetSmallestShards(this, numToFree, 1, 0);
@@ -1645,8 +2088,95 @@ void __thiscall GlassRenderer::DoMaintenance(GlassRenderer *this)
             //D3DPERF_EndEvent();
     }
 }
+#endif
 
-void __cdecl Sys_WaitInterlockedCompareExchange(volatile int *destination, int value, int comperand)
+void __cdecl GlassShard::Defrag(void *ptr)
+{
+    GlassShard::Defrag(ptr);
+}
+
+void GlassRenderer::DoMaintenance()
+{
+    // Acquire renderer lock
+    Sys_WaitInterlockedCompareExchange(&rendererLock.lock, 1, 0);
+
+
+    if (!doMaintenance->current.enabled)
+    {
+        rendererLock.lock = 0;
+        return;
+    }
+
+
+    double totalShards = static_cast<double>(shardsAllocator->used.size() + shardsAllocator->free.size());
+    double usedFraction = static_cast<double>(shardsAllocator->used.size()) / totalShards;
+
+
+    const double maxFraction = 0.9; // 90%
+    if (usedFraction <= maxFraction)
+    {
+        // Too much shard memory reserved
+        size_t totalMemory = reinterpret_cast<char *>(shardMemoryAllocator.tail) - reinterpret_cast<char *>(shardMemoryAllocator.head);
+        float freeFraction = static_cast<float>(shardMemoryAllocator.GetFree()) / static_cast<float>(totalMemory);
+
+
+        if ((1.0f - maxFraction) > freeFraction)
+        {
+            // Free some smallest shards to reclaim memory
+            GetSmallestShards(0x32u, true, false);
+
+
+            int targetFree = static_cast<int>(totalMemory * (1.0f - static_cast<float>(maxFraction)));
+
+
+            for (GlassShard *shard : *tempShardsList)
+            {
+                if (shardMemoryAllocator.GetFree() >= targetFree)
+                    break;
+
+
+                //GlassShard::Remove(shard, REMOVE_OUT_OF_SHARD_MEMORY, true);
+                shard->Remove(GlassShard::RemoveReason::REMOVE_OUT_OF_SHARD_MEMORY, true);
+            }
+
+
+            tempShardsList->clear();
+        }
+    }
+    else
+    {
+        // Too many shards allocated, remove excess
+        int numToFree = static_cast<int>(shardsAllocator->used.size() - static_cast<int>(totalShards * maxFraction - 5.0));
+
+
+        GetSmallestShards(numToFree, true, false);
+
+
+        for (GlassShard *shard : *tempShardsList)
+        {
+            //GlassShard::Remove(shard, REMOVE_OUT_OF_SHARDS, true);
+            shard->Remove(GlassShard::RemoveReason::REMOVE_OUT_OF_SHARDS, true);
+        }
+
+
+        tempShardsList->clear();
+    }
+
+
+    // Defrag shard memory
+    //Allocator::Defrag(&shardMemoryAllocator, reinterpret_cast<void(*)(void *)>(GlassShard::Defrag), 10);
+    shardMemoryAllocator.Defrag(GlassShard::Defrag, 10);
+
+
+    // Pre-shatter step
+    clGlasses->PreShatterNext();
+
+
+    // Release renderer lock
+    rendererLock.lock = 0;
+}
+
+void __cdecl Sys_WaitInterlockedCompareExchange(volatile unsigned int *destination, int value, int comperand)
 {
     do
     {
@@ -1656,17 +2186,12 @@ void __cdecl Sys_WaitInterlockedCompareExchange(volatile int *destination, int v
     while ( _InterlockedCompareExchange(destination, value, comperand) != comperand );
 }
 
-void __cdecl GlassShard::Defrag(GlassShard *ptr)
-{
-    GlassShard::Defrag(ptr);
-}
-
 void __cdecl GlassRenderer::CrashGlassCmd()
 {
-    GlassRenderer::StartCrashGlass(clGlasses->renderer);
+    clGlasses->renderer->StartCrashGlass();
 }
 
-void __thiscall GlassRenderer::StartCrashGlass(GlassRenderer *this)
+void __thiscall GlassRenderer::StartCrashGlass()
 {
     const char *v1; // eax
     int v2; // [esp+0h] [ebp-1Ch]
@@ -1688,7 +2213,8 @@ void __thiscall GlassRenderer::StartCrashGlass(GlassRenderer *this)
     }
 }
 
-void __thiscall GlassRenderer::CrashGlass(GlassRenderer *this)
+#if 0
+void __thiscall GlassRenderer::CrashGlass()
 {
     float *p_z; // eax
     float *v3; // [esp+1Ch] [ebp-98h]
@@ -1752,13 +2278,68 @@ void __thiscall GlassRenderer::CrashGlass(GlassRenderer *this)
         std::list<GlassShard *,SmallAllocatorTemplate<GlassShard *>>::clear((std::list<GlassPhysics *,SmallAllocatorTemplate<GlassPhysics * *> > *)this->tempShardsList);
     }
 }
+#endif
+
+void GlassRenderer::CrashGlass()
+{
+    if (maxCrashShards == 0)
+        return;
+
+
+    // Clear temp list and get largest shards
+    tempShardsList->clear();
+    GetLargestShards(maxCrashShards, false, false);
+
+
+    for (GlassShard *shard : *tempShardsList)
+    {
+        if (!shard->CanSplit(false))
+            continue;
+
+
+        GlassPhysics *phys = shard->glassPhysics;
+        if (!phys)
+            continue;
+
+
+        // Random factor
+        float r = flrand(-1.0f, 1.0f);
+
+
+        // Compute delta vector based on shard physics
+        float delta[3] = {
+        10.0f * phys->m_inv_inertia.x + r * phys->m_mat.w.x,
+        10.0f * phys->m_inv_inertia.y + r * phys->m_mat.w.y,
+        10.0f * phys->m_inv_inertia.z + r * phys->m_mat.w.z
+        };
+
+
+        // Two velocity vectors
+        float p1[3] = {
+        phys->m_t_vel.x + delta[0],
+        phys->m_t_vel.y + delta[1],
+        phys->m_t_vel.z + delta[2]
+        };
+        float p2[3] = {
+        phys->m_t_vel.x - delta[0],
+        phys->m_t_vel.y - delta[1],
+        phys->m_t_vel.z - delta[2]
+        };
+
+
+        // Add trace action for shard split
+        AddTraceAction(p1, p2);
+    }
+
+    tempShardsList->clear();
+}
 
 void __cdecl GlassRenderer::PrintHwmCmd()
 {
-    GlassRenderer::PrintHwm(clGlasses->renderer);
+    clGlasses->renderer->PrintHwm();
 }
 
-void __thiscall GlassRenderer::PrintHwm(GlassRenderer *this)
+void __thiscall GlassRenderer::PrintHwm()
 {
     Com_Printf(0, "glasses:                                %7d\n", clGlasses->numGlasses);
     Com_Printf(
@@ -1772,21 +2353,21 @@ void __thiscall GlassRenderer::PrintHwm(GlassRenderer *this)
         this->groupsAllocator->maxUsed,
         (double)this->groupsAllocator->maxUsed
     * 100.0
-    / (double)(this->groupsAllocator->free._Mysize + this->groupsAllocator->used._Mysize));
+    / (double)(this->groupsAllocator->free.size() + this->groupsAllocator->used.size()));
     Com_Printf(
         0,
         "glass_shardsAllocator:    %7d [%5.1f%%]\n",
         this->shardsAllocator->maxUsed,
         (double)this->shardsAllocator->maxUsed
     * 100.0
-    / (double)(this->shardsAllocator->free._Mysize + this->shardsAllocator->used._Mysize));
+    / (double)(this->shardsAllocator->free.size() + this->shardsAllocator->used.size()));
     Com_Printf(
         0,
         "glass_physicsAllocator: %7d [%5.1f%%]\n",
         this->physicsAllocator->maxUsed,
         (double)this->physicsAllocator->maxUsed
     * 100.0
-    / (double)(this->physicsAllocator->free._Mysize + this->physicsAllocator->used._Mysize));
+    / (double)(this->physicsAllocator->free.size() + this->physicsAllocator->used.size()));
     Com_Printf(
         0,
         "glass_sharedMemory:         %7d [%5.1f%%]\n",
@@ -1800,7 +2381,8 @@ void __thiscall GlassRenderer::PrintHwm(GlassRenderer *this)
     Com_Printf(0, "sizeof(GlassPhysics)        %7d\n", 160);
 }
 
-void __thiscall GlassRenderer::Broom(GlassRenderer *this)
+#if 0
+void __thiscall GlassRenderer::Broom()
 {
     float v2; // [esp+2Ch] [ebp-90h]
     std::list<GlassShard *,SmallAllocatorTemplate<GlassShard * *> >::_Const_iterator<1> v3; // [esp+38h] [ebp-84h]
@@ -1823,7 +2405,7 @@ void __thiscall GlassRenderer::Broom(GlassRenderer *this)
     if ( this->broom->current.enabled )
     {
         DISTANCE = 150.0f;
-        RADIUS = FLOAT_120_0;
+        RADIUS = 120.0f;
         FORCE_SCALE = 0.05f;
         cgameGlob = CG_GetLocalClientGlobals(0);
         v5 = cgameGlob->refdef.vieworg[1];
@@ -1876,8 +2458,66 @@ void __thiscall GlassRenderer::Broom(GlassRenderer *this)
         }
     }
 }
+#endif
 
-void __thiscall GlassRenderer::DrawDebug(GlassRenderer *this)
+void GlassRenderer::Broom()
+{
+    if (!broom->current.enabled)
+        return;
+
+
+    constexpr float DISTANCE = 150.0f;
+    constexpr float RADIUS = 120.0f;
+    constexpr float FORCE_SCALE = 0.05f;
+
+
+    const cg_s *cgameGlob = CG_GetLocalClientGlobals(0);
+
+
+    // Compute broom origin in front of player
+    float origin[2] = {
+    cgameGlob->refdef.vieworg[0] + DISTANCE * cgameGlob->refdef.viewaxis[2][0],
+    cgameGlob->refdef.vieworg[1] + DISTANCE * cgameGlob->refdef.viewaxis[2][1]
+    };
+
+
+    // Broom direction
+    float dir[2] = { cgameGlob->refdef.viewaxis[2][0], cgameGlob->refdef.viewaxis[2][1] };
+    Vec2Normalize(dir);
+
+
+    // Loop over all shards
+    for (GlassShard *shrd : shardsAllocator->used)
+    {
+        if (!shrd->group)
+            continue;
+
+
+        float dx = shrd->origin[0] - origin[0];
+        float dy = shrd->origin[1] - origin[1];
+
+
+        // Check if within broom radius
+        if ((dx * dx + dy * dy) <= (RADIUS * RADIUS))
+        {
+            float d2[2] = { -dx, -dy }; // direction from shard to origin
+            Vec2Normalize(d2);
+
+
+            // Apply only if shard roughly in broom direction
+            float dot = dir[0] * d2[0] + dir[1] * d2[1];
+            if (dot > 0.0f)
+            {
+                float force[3] = { FORCE_SCALE * d2[0], FORCE_SCALE * d2[1], 0.0f };
+                //GlassShard::InitPhysics(shrd, 1, shrd->origin, force, 0.0f, 0.0f);
+                shrd->InitPhysics(1, shrd->origin, force, 0.0f, 0.0f);
+            }
+        }
+    }
+}
+
+#if 0
+void __thiscall GlassRenderer::DrawDebug()
 {
     int Free; // eax
     GlassPhysics **v2; // eax
@@ -1920,10 +2560,10 @@ void __thiscall GlassRenderer::DrawDebug(GlassRenderer *this)
         s = va(
                     "glasses:%d shards:%d(free:%d) moving:%d(%d) vis:%d idx/vtx=%.1f",
                     clGlasses->numGlasses,
-                    this->shardsAllocator->used._Mysize,
-                    this->shardsAllocator->free._Mysize,
+                    this->shardsAllocator->used.size(),
+                    this->shardsAllocator->free.size(),
                     this->prevStat.numMovingShards,
-                    this->colidingShards->_Mysize,
+                    this->colidingShards->size(),
                     this->prevStat.numVisShards,
                     0.0);
         y = (float)CG_DrawDevString(scrPlaceView, 0.0, 0.0, 0.75, 0.75, s, colorWhite, 5, cgMedia.smallDevFont) + 0.0;
@@ -1943,10 +2583,10 @@ void __thiscall GlassRenderer::DrawDebug(GlassRenderer *this)
             v11 = (double)this->shatterTimer / tlPcTicksPerMS / (double)this->numShatters;
         else
             v11 = 0.0f;
-        if ( this->shardsAllocator->used._Mysize )
+        if ( this->shardsAllocator->used.size() )
         {
             v25 = (char *)this->shardMemoryAllocator.tail - (char *)this->shardMemoryAllocator.head;
-            v10 = (v25 - Allocator::GetFree(&this->shardMemoryAllocator)) / this->shardsAllocator->used._Mysize;
+            v10 = (v25 - this->shardMemoryAllocator.GetFree()) / this->shardsAllocator->used.size();
         }
         else
         {
@@ -1965,8 +2605,8 @@ void __thiscall GlassRenderer::DrawDebug(GlassRenderer *this)
         y = (float)CG_DrawDevString(scrPlaceView, x, y, 0.75, 0.75, v23, colorWhite, 5, cgMedia.smallDevFont) + y;
         v22 = va(
                         "ShardGroups: num:%d (free:%d) vis:%d oom:%d maxChng:%d",
-                        this->groupsAllocator->used._Mysize,
-                        this->groupsAllocator->free._Mysize,
+                        this->groupsAllocator->used.size(),
+                        this->groupsAllocator->free.size(),
                         this->prevStat.numVisGroups,
                         this->prevStat.numOOMGroups,
                         this->maxNumGroupChanges);
@@ -2022,13 +2662,104 @@ void __thiscall GlassRenderer::DrawDebug(GlassRenderer *this)
         }
     }
 }
+#endif
 
-void __thiscall GlassRenderer::BeginUpdate(colgeom_visitor_t *this)
+void GlassRenderer::DrawDebug()
+{
+    if (drawDebug && drawDebug->current.enabled)
+    {
+        float x = 0.0f, y = 0.0f;
+
+        // Display general shard stats
+        char *s = va(
+            "glasses:%d shards:%d(free:%d) moving:%d(%d) vis:%d idx/vtx=%.1f",
+            clGlasses->numGlasses,
+            (int)shardsAllocator->used.size(),
+            (int)shardsAllocator->free.size(),
+            prevStat.numMovingShards,
+            (int)colidingShards->size(),
+            prevStat.numVisShards,
+            0.0f);
+
+        y = (float)CG_DrawDevString(scrPlaceView, 0.0f, 0.0f, 0.75f, 0.75f, s, colorWhite, 5, cgMedia.smallDevFont);
+
+        // Compute timings
+        float genV = genVertsCount ? (float)(genVertsTimer * 1e6 / tlPcTicksPerMS / genVertsCount) : 0.0f;
+        float splitUs = numSplits ? (float)(splitTimer * 1000.0 / tlPcTicksPerMS / numSplits) : 0.0f;
+        float triangPct = splitTimer ? (float)(triangulateTimer * 100.0 / splitTimer) : 0.0f;
+        float shatterMs = numShatters ? (float)(shatterTimer / tlPcTicksPerMS / numShatters) : 0.0f;
+
+        // Memory per shard
+        unsigned int memPerShard = shardsAllocator->used.size()
+            ? (unsigned int)(((char *)shardMemoryAllocator.tail - (char *)shardMemoryAllocator.head - shardMemoryAllocator.GetFree()) / shardsAllocator->used.size())
+            : 0;
+
+        s = va("Shard: bytes:%d shatter:%.2fms triang=%.1f%% split=%.1fus genV=%.1fns", memPerShard, shatterMs, triangPct, splitUs, genV);
+        y = (float)CG_DrawDevString(scrPlaceView, x, y, 0.75f, 0.75f, s, colorWhite, 5, cgMedia.smallDevFont);
+
+        // Shard removes
+        s = va(
+            "ShardRemoves: bottom:%d shards:%d shardMem:%d vtx:%d phys:%d init:%d",
+            GlassShard::removeReasonsCount[0],
+            GlassShard::removeReasonsCount[1],
+            GlassShard::removeReasonsCount[3],
+            GlassShard::removeReasonsCount[2],
+            GlassShard::removeReasonsCount[4],
+
+            GlassShard::removeReasonsCount[6]);
+        y = (float)CG_DrawDevString(scrPlaceView, x, y, 0.75f, 0.75f, s, colorWhite, 5, cgMedia.smallDevFont);
+
+        // Shard group info
+        s = va(
+            "ShardGroups: num:%d (free:%d) vis:%d oom:%d maxChng:%d",
+            (int)groupsAllocator->used.size(),
+            (int)groupsAllocator->free.size(),
+            prevStat.numVisGroups,
+            prevStat.numOOMGroups,
+            maxNumGroupChanges);
+        y = (float)CG_DrawDevString(scrPlaceView, x, y, 0.75f, 0.75f, s, colorWhite, 5, cgMedia.smallDevFont);
+
+        // Small allocator
+        s = va("Allocator: used:%d(%d) free:%d", smallAllocator.numUsed, smallAllocator.maxUsed, smallAllocator.numBlocks - smallAllocator.numUsed);
+        y = (float)CG_DrawDevString(scrPlaceView, x, y, 0.75f, 0.75f, s, colorWhite, 5, cgMedia.smallDevFont);
+
+        // Shard memory
+        int totalMem = (char *)shardMemoryAllocator.tail - (char *)shardMemoryAllocator.head;
+        float freePct = totalMem ? (float)(shardMemoryAllocator.GetFree() * 100) / totalMem : 0.0f;
+        float minPct = totalMem ? (float)(minFreeShardsMemory * 100) / totalMem : 0.0f;
+        int largestFree = shardMemoryAllocator.GetLargestFree();
+
+        s = va("shards: sz:%d free:%d(%.0f%%) largest:%d min:%d(%.0f%%)", totalMem, shardMemoryAllocator.GetFree(), freePct, largestFree, minFreeShardsMemory, minPct);
+        y = (float)CG_DrawDevString(scrPlaceView, x, y, 0.75f, 0.75f, s, colorWhite, 5, cgMedia.smallDevFont);
+    }
+
+    if (drawBBox && drawBBox->current.enabled)
+    {
+        // Draw all shard group boxes
+        for (ShardGroup *grp : groupsAllocator->used)
+        {
+            if (!grp)
+                continue;
+
+            CL_AddDebugBox(vec3_origin, grp->worldBBoxMin, grp->worldBBoxMax, 0.0f, colorWhite, 1, 1);
+        }
+
+        // Draw all glasses boxes
+        for (unsigned int i = 0; i < clGlasses->numGlasses; ++i)
+        {
+            //const Glass *glass = GlassesClient::GetGlass(clGlasses, i)->glass;
+            const Glass *glass = clGlasses->GetGlass(i)->glass;
+            CL_AddDebugBox(vec3_origin, glass->absmin, glass->absmax, 0.0f, colorBlue, 1, 1);
+        }
+    }
+}
+
+void __thiscall GlassRenderer::BeginUpdate()
 {
     ;
 }
 
-void __thiscall ShardGroup::Init(ShardGroup *this, unsigned int p, const GlassDef *gd)
+void __thiscall ShardGroup::Init(unsigned int p, const GlassDef *gd)
 {
     this->packedPos = p;
     this->glassDef = gd;
@@ -2039,19 +2770,19 @@ void __thiscall ShardGroup::Init(ShardGroup *this, unsigned int p, const GlassDe
     this->numShards = 0;
 }
 
-void __thiscall ShardGroup::Reset(ShardGroup *this)
+void __thiscall ShardGroup::Reset()
 {
     GlassShard *shard; // [esp+8h] [ebp-4h]
 
     for ( shard = this->head; shard; shard = shard->groupNext )
     {
-        if ( shard->physObjId || shard->glassPhysics )
-            GlassShard::DestroyPhysicsObj(shard);
+        if (shard->physObjId || shard->glassPhysics)
+            shard->DestroyPhysicsObj();
     }
     this->head = 0;
 }
 
-void __thiscall ShardGroup::Add(ShardGroup *this, GlassShard *shard)
+void __thiscall ShardGroup::Add(GlassShard *shard)
 {
     if ( shard->group
         && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_renderer.cpp", 1460, 0, "%s", "!shard->group") )
@@ -2065,7 +2796,7 @@ void __thiscall ShardGroup::Add(ShardGroup *this, GlassShard *shard)
     ++this->numShards;
 }
 
-void __thiscall ShardGroup::Remove(ShardGroup *this, GlassShard *shard)
+void __thiscall ShardGroup::Remove(GlassShard *shard)
 {
     GlassShard *s; // [esp+8h] [ebp-4h]
 
@@ -2118,23 +2849,24 @@ void __thiscall ShardGroup::Remove(ShardGroup *this, GlassShard *shard)
                             this->numShards) )
                 __debugbreak();
         }
-        ShardGroup::FreeRenderMemory(this);
-        GlassRenderer::FreeShardGroup(clGlasses->renderer, (GlassPhysics *)this);
+        ShardGroup::FreeRenderMemory();
+        //GlassRenderer::FreeShardGroup(clGlasses->renderer, (GlassPhysics *)this);
+        clGlasses->renderer->FreeShardGroup(this);
     }
 }
 
-void __thiscall ShardGroup::RemoveGlassShards(ShardGroup *this, unsigned int glassIndex)
+void __thiscall ShardGroup::RemoveGlassShards(unsigned int glassIndex)
 {
     GlassShard *shard; // [esp+4h] [ebp-4h]
 
     for ( shard = this->head; shard; shard = shard->groupNext )
     {
-        if ( shard->glassIndex == glassIndex )
-            GlassShard::Remove(shard, REMOVE_ROLLBACK_TIME, 1);
+        if (shard->glassIndex == glassIndex)
+            shard->Remove(GlassShard::RemoveReason::REMOVE_ROLLBACK_TIME, true);
     }
 }
 
-void __thiscall ShardGroup::UpdateBBox(ShardGroup *this)
+void __thiscall ShardGroup::UpdateBBox()
 {
     float *worldBBoxMax; // [esp+38h] [ebp-14h]
     float *worldBBoxMin; // [esp+40h] [ebp-Ch]
@@ -2191,26 +2923,26 @@ void __thiscall ShardGroup::UpdateBBox(ShardGroup *this)
     this->invalidBBox = 0;
 }
 
-void __thiscall ShardGroup::Update(ShardGroup *this, float deltaTime)
+void __thiscall ShardGroup::Update(float deltaTime)
 {
     GlassShard *shard; // [esp+14h] [ebp-4h]
 
     if ( !this->visible )
-        ShardGroup::FreeRenderMemory(this);
+        ShardGroup::FreeRenderMemory();
     this->visible = 0;
     for ( shard = this->head; shard; shard = shard->groupNext )
     {
         if ( shard->physObjId || shard->glassPhysics || shard->delayedDrop )
         {
-            GlassShard::Update(shard, deltaTime);
+            shard->Update(deltaTime);
             ++clGlasses->renderer->stat.numMovingShards;
             this->invalidBBox = 1;
-            ShardGroup::FreeRenderMemory(this);
+            ShardGroup::FreeRenderMemory();
         }
     }
 }
 
-void __thiscall ShardGroup::GenerateVerts(ShardGroup *this, bool firstView, unsigned int localClientNum)
+void __thiscall ShardGroup::GenerateVerts(bool firstView, unsigned int localClientNum)
 {
     float v3; // [esp+0h] [ebp-B8h]
     unsigned __int8 v4; // [esp+11h] [ebp-A7h]
@@ -2233,20 +2965,21 @@ void __thiscall ShardGroup::GenerateVerts(ShardGroup *this, bool firstView, unsi
     unsigned int lightHandle; // [esp+B4h] [ebp-4h]
 
     if ( firstView && this->invalidBBox )
-        ShardGroup::UpdateBBox(this);
-    if ( GlassRenderer::IsVisible(clGlasses->renderer, this->worldBBoxMin, localClientNum) )
+        ShardGroup::UpdateBBox();
+
+    if ( clGlasses->renderer->IsVisible(this->worldBBoxMin, localClientNum) )
     {
         this->visible = 1;
         v3 = Vec3Distance(this->origin, rg.viewOrg);
         dist = R_GetAdjustedLodDist(v3, XMODEL_LOD_RAMP_RIGID);
         needHighLod = clGlasses->renderer->lowLodDist->current.value > dist;
         if ( needHighLod && !this->highLod && this->renderIndices )
-            ShardGroup::FreeRenderMemory(this);
+            ShardGroup::FreeRenderMemory();
         if ( !this->renderIndices )
         {
             //PIXBeginNamedEvent(-1, "ShardGroup.GenerateVerts");
             this->highLod = needHighLod;
-            ShardGroup::FreeRenderMemory(this);
+            ShardGroup::FreeRenderMemory();
             this->numIndices = 0;
             this->numVerts = 0;
             for ( shard = this->head; shard; shard = shard->groupNext )
@@ -2262,12 +2995,12 @@ void __thiscall ShardGroup::GenerateVerts(ShardGroup *this, bool firstView, unsi
                     numVerts = shard->mesh.numVertsLow;
                 this->numVerts += numVerts;
             }
-            this->renderIndices = (unsigned __int16 *)ShardGroup::AllocateIndices(this, this->numIndices);
-            baseVerts = ShardGroup::AllocateVerts(this, this->numVerts, &vertsBaseIndex);
+            this->renderIndices = (unsigned __int16 *)ShardGroup::AllocateIndices(this->numIndices);
+            baseVerts = ShardGroup::AllocateVerts(this->numVerts, &vertsBaseIndex);
             if ( !this->renderIndices || !baseVerts )
             {
                 ++clGlasses->renderer->stat.numOOMGroups;
-                ShardGroup::FreeRenderMemory(this);
+                ShardGroup::FreeRenderMemory();
                 baseVerts = 0;
                 this->renderIndices = 0;
                 //if ( g_DXDeviceThread == GetCurrentThreadId() )
@@ -2282,7 +3015,7 @@ void __thiscall ShardGroup::GenerateVerts(ShardGroup *this, bool firstView, unsi
             clGlasses->renderer->genVertsCount += this->numVerts;
             for ( i = this->head; i; i = i->groupNext )
             {
-                GlassShard::GenerateVerts(i, this->highLod, verts, vertsIndex, indices);
+                i->GenerateVerts(this->highLod, verts, vertsIndex, indices);
                 if ( this->highLod )
                     numIndicesLow = i->mesh.numIndices;
                 else
@@ -2332,25 +3065,25 @@ void __thiscall ShardGroup::GenerateVerts(ShardGroup *this, bool firstView, unsi
                 primaryLightIndex,
                 this->lightingInfo.reflectionProbeIndex,
                 9u);
-            GlassRenderer::AddUsedShardMaterial(clGlasses->renderer, this->glassDef->shardMaterial);
+            clGlasses->renderer->AddUsedShardMaterial(this->glassDef->shardMaterial);
         }
         clGlasses->renderer->stat.numVisShards += this->numShards;
         ++clGlasses->renderer->stat.numVisGroups;
         if ( clGlasses->renderer->drawShardOutline->current.integer > 0 )
         {
-            for ( j = this->head; j; j = j->groupNext )
-                GlassShard::DrawOutline(j);
+            for (j = this->head; j; j = j->groupNext)
+                j->DrawOutline();
         }
-        ShardGroup::FreeRenderMemory(this);
+        ShardGroup::FreeRenderMemory();
     }
 }
 
-void __thiscall ShardGroup::FreeRenderMemory(ShardGroup *this)
+void __thiscall ShardGroup::FreeRenderMemory()
 {
     this->renderIndices = 0;
 }
 
-r_double_index_t *__thiscall ShardGroup::AllocateIndices(ShardGroup *this, int numIndices)
+r_double_index_t *__thiscall ShardGroup::AllocateIndices(int numIndices)
 {
     r_double_index_t *baseIndices; // [esp+4h] [ebp-4h] BYREF
 
@@ -2360,7 +3093,7 @@ r_double_index_t *__thiscall ShardGroup::AllocateIndices(ShardGroup *this, int n
         return 0;
 }
 
-GfxPackedVertex *__thiscall ShardGroup::AllocateVerts(ShardGroup *this, int numVerts, unsigned __int16 *vertsBaseIndex)
+GfxPackedVertex *__thiscall ShardGroup::AllocateVerts(int numVerts, unsigned __int16 *vertsBaseIndex)
 {
     if ( R_ReserveCodeMeshVerts(numVerts, vertsBaseIndex) )
         return R_GetCodeMeshVerts(*vertsBaseIndex);
@@ -2369,7 +3102,6 @@ GfxPackedVertex *__thiscall ShardGroup::AllocateVerts(ShardGroup *this, int numV
 }
 
 void __thiscall ShardGroup::ExplosionEvent(
-                ShardGroup *this,
                 const float *origin,
                 float damageInner,
                 float damageOuter,
@@ -2388,12 +3120,12 @@ void __thiscall ShardGroup::ExplosionEvent(
         for ( shard = this->head; shard; shard = shard->groupNext )
         {
             if ( !shard->physObjId && !shard->glassPhysics )
-                GlassShard::ExplosionEvent(shard, origin, damageInner, damageOuter, radius, mod);
+                shard->ExplosionEvent(origin, damageInner, damageOuter, radius, mod);
         }
     }
 }
 
-int __thiscall ShardGroup::TracePoint(ShardGroup *this, float *p0, const float *p1)
+int __thiscall ShardGroup::TracePoint(float *p0, const float *p1)
 {
     GlassShard *shard; // [esp+34h] [ebp-34h]
     float dir[3]; // [esp+38h] [ebp-30h] BYREF
@@ -2421,7 +3153,7 @@ int __thiscall ShardGroup::TracePoint(ShardGroup *this, float *p0, const float *
         {
             if ( !shard->physObjId && !shard->glassPhysics )
             {
-                if ( GlassShard::TracePoint(shard, p0, p1, dir, length, mins, maxs) )
+                if ( shard->TracePoint(p0, p1, dir, length, mins, maxs) )
                     ++numHits;
             }
         }
@@ -2430,75 +3162,3 @@ int __thiscall ShardGroup::TracePoint(ShardGroup *this, float *p0, const float *
     }
     return numHits;
 }
-
-void __thiscall GlassShard::Defrag(GlassShard *this)
-{
-    int memorySize; // esi
-    int v2; // edi
-    int v3; // eax
-    int v4; // eax
-    unsigned __int8 backupBuffer[1024]; // [esp+1Ch] [ebp-408h] BYREF
-    unsigned __int8 *ptr; // [esp+420h] [ebp-4h]
-
-    if ( this->memorySize >= 0x400u
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_shard.cpp",
-                    1698,
-                    0,
-                    "%s",
-                    "memorySize < ARRAY_COUNT( backupBuffer )") )
-    {
-        __debugbreak();
-    }
-    if ( !this->mesh.normArray
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_shard.cpp", 1699, 0, "%s", "mesh.normArray") )
-    {
-        __debugbreak();
-    }
-    if ( !this->mesh.indices
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_shard.cpp", 1700, 0, "%s", "mesh.indices") )
-    {
-        __debugbreak();
-    }
-    memcpy(backupBuffer, this->memoryPtr, this->memorySize);
-    GlassRenderer::FreeShardMemory(clGlasses->renderer, (unsigned int *)this->memoryPtr);
-    memorySize = this->memorySize;
-    v2 = 24 * this->outline.numVerts;
-    if ( memorySize != GlassShard::Mesh::GetMemorySize(this->outline.numVerts) + v2
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_shard.cpp",
-                    1709,
-                    0,
-                    "%s",
-                    "memorySize == outline.NumVerts()*sizeof(Outline::Vertex) + Mesh::GetMemorySize(outline.NumVerts())") )
-    {
-        __debugbreak();
-    }
-    this->memoryPtr = (unsigned __int8 *)GlassRenderer::AllocateShardMemory(clGlasses->renderer, this->memorySize, this);
-    if ( this->memoryPtr )
-    {
-        memcpy(this->memoryPtr, backupBuffer, this->memorySize);
-        ptr = this->memoryPtr;
-        v3 = GlassShard::Outline::SetPointers(&this->outline, ptr);
-        ptr += v3;
-        v4 = GlassShard::Mesh::SetPointers(&this->mesh, (PackedUnitVec *)ptr);
-        ptr += v4;
-        if ( (unsigned __int8 *)(ptr - this->memoryPtr) != (unsigned __int8 *)this->memorySize
-            && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_shard.cpp",
-                        1726,
-                        0,
-                        "%s",
-                        "ptr - memoryPtr == int(memorySize)") )
-        {
-            __debugbreak();
-        }
-    }
-    else
-    {
-        if ( !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_shard.cpp", 1713, 0, "%s", "0") )
-            __debugbreak();
-        GlassRenderer::FreeShard(clGlasses->renderer, this);
-    }
-}
-

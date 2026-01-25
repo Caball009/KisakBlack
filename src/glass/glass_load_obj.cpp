@@ -1,4 +1,10 @@
 #include "glass_load_obj.h"
+#include "glass.h"
+#include <universal/com_memory.h>
+#include <universal/com_files.h>
+
+bool glassesInited;
+Glasses glasses;
 
 Glasses *__cdecl GetGlasses_LoadObj()
 {
