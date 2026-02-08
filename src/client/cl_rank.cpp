@@ -1,4 +1,13 @@
 #include "cl_rank.h"
+#include <database/db_registry.h>
+#include <cstring>
+#include <universal/com_stringtable.h>
+
+
+rankData_t s_rankData;
+
+int s_maxxp;
+int s_maxprestige;
 
 void __cdecl CL_BuildRankXPTable()
 {

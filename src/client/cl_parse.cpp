@@ -1,4 +1,6 @@
 #include "cl_parse.h"
+#include <client_mp/cl_main_mp.h>
+#include <qcommon/msg.h>
 
 void __cdecl CL_ParsePacketMatchState(
                 clientActive_t *cl,
@@ -16,7 +18,7 @@ void __cdecl CL_ParsePacketMatchState(
         oldMatchState = &cl->parseMatchStates[oldframe->parseMatchStateNum & 0x1F];
     newMatchState = &cl->parseMatchStates[cl->parseMatchStateNum & 0x1F];
     newframe->parseMatchStateNum = cl->parseMatchStateNum;
-    MSG_ReadDeltaMatchState((int)&savedregs, msg, time, oldMatchState, newMatchState);
+    MSG_ReadDeltaMatchState(msg, time, oldMatchState, newMatchState);
     ++cl->parseMatchStateNum;
 }
 

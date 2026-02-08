@@ -1,6 +1,7 @@
 #include "screen_placement.h"
 
 #include <cstring>
+#include <gfx_d3d/r_init.h>
 
 ScreenPlacement scrPlaceView[1];
 ScreenPlacement scrPlaceFull;

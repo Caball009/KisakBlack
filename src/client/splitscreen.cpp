@@ -1,4 +1,8 @@
 #include "splitscreen.h"
+#include <universal/assertive.h>
+#include <ui/ui_main.h>
+#include <qcommon/com_clients.h>
+#include "cl_main.h"
 
 int __cdecl CL_LocalClient_GetActiveCount()
 {
@@ -45,7 +49,7 @@ char __cdecl CL_AllLocalClientsDisconnected()
         return 1;
     for ( client = 0; client < 1; ++client )
     {
-        if ( CL_LocalClient_IsActive(client) && dword_FB2C3C[4 * client] >= 4 )
+        if (CL_LocalClient_IsActive(client) && clientUIActives[client].connectionState >= CA_CONNECTING)
             return 0;
     }
     return 1;
@@ -57,7 +61,7 @@ char __cdecl CL_AnyLocalClientStateActive()
 
     for ( localClientNum = 0; localClientNum < 1; ++localClientNum )
     {
-        if ( CL_LocalClient_IsActive(localClientNum) && dword_FB2C3C[4 * localClientNum] == 10 )
+        if (CL_LocalClient_IsActive(localClientNum) && clientUIActives[localClientNum].connectionState == CA_ACTIVE)
             return 1;
     }
     return 0;
@@ -69,7 +73,7 @@ char __cdecl CL_AnyLocalClientChallenging()
 
     for ( localClientNum = 0; localClientNum < 1; ++localClientNum )
     {
-        if ( CL_LocalClient_IsActive(localClientNum) && dword_FB2C3C[4 * localClientNum] == 5 )
+        if (CL_LocalClient_IsActive(localClientNum) && clientUIActives[localClientNum].connectionState == CA_CHALLENGING)
             return 1;
     }
     return 0;
@@ -102,6 +106,7 @@ int __cdecl CL_LocalActiveIndexFromClientNum(int localClientNum)
     return 0;
 }
 
+extern dvar_t *name; // KISAKTODO: remove this extern hack after live/ folder done
 const char *__cdecl CL_ControllerIndex_GetUsername()
 {
     return name->current.string;

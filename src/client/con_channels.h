@@ -1,4 +1,5 @@
 #pragma once
+#include "cl_console.h"
 
 char __cdecl Con_OpenChannel(const char *name, bool allowScript);
 bool __cdecl Con_ScriptHasPermission(unsigned int channel);

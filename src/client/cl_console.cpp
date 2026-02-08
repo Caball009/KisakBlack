@@ -21,6 +21,7 @@
 #include <cgame_mp/cg_consolecmds_mp.h>
 #include <cgame/cg_sound.h>
 #include <server_mp/sv_main_pc_mp.h>
+#include "client.h"
 
 Console con;
 ConDrawInputGlob conDrawInputGlob;

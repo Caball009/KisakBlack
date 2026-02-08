@@ -1,4 +1,70 @@
 #include "con_channels.h"
+#include <universal/q_shared.h>
+#include <bgame/bg_animation.h>
+#include <universal/com_files.h>
+#include <qcommon/cmd.h>
+
+const char *builtinChannels[34] =
+{
+  "dontfilter",
+  "error",
+  "gamenotify",
+  "boldgame",
+  "subtitle",
+  "obituary",
+  "logfile_only",
+  "console_only",
+  "gfx",
+  "sound",
+  "files",
+  "devgui",
+  "profile",
+  "ui",
+  "client",
+  "server",
+  "system",
+  "playerweap",
+  "ai",
+  "anim",
+  "physics",
+  "fx",
+  "leaderboards",
+  "live",
+  "parserscript",
+  "script",
+  "mpspawnsystem",
+  "coopinfo",
+  "serverdemo",
+  "ddl",
+  "network",
+  "scheduler",
+  "task",
+  "spu"
+};
+
+
+const char *defaultGameWindowFilters[3] = { "gamenotify obituary", "boldgame", "subtitle" };
+
+struct PrintChannel // sizeof=0x21
+{                                       // XREF: PrintChannelGlob/r
+    char name[32];                      // XREF: Con_OpenChannel(char const *,bool)+2B/r
+                                        // Con_ScriptHasPermission(int)+1C/r ...
+    bool allowScript;                   // XREF: Con_InitChannels(void):loc_577F79/w
+};
+
+struct PrintChannelGlob // sizeof=0x21C0
+{                                       // XREF: .data:pcGlob/r
+    PrintChannel openChannels[256];     // XREF: Con_OpenChannel(char const *,bool)+2B/r
+                                        // Con_ScriptHasPermission(int)+1C/r ...
+    unsigned int filters[6][8];         // XREF: Con_IsChannelVisible(print_msg_dest_t,int,int)+AE/o
+};
+
+PrintChannelGlob pcGlob;
+
+char con_gameMsgWindowNFilter_Names[3][25];
+const dvar_s *con_gameMsgWindowNFilter[3];
+char con_gameMsgWindowNFilter_Descs[3][91];
+
 
 char __cdecl Con_OpenChannel(const char *name, bool allowScript)
 {
@@ -88,15 +154,16 @@ void __cdecl Con_WriteFilterConfigString(int f)
 {
     signed int channel; // [esp+0h] [ebp-4h]
 
-    FS_Printf(f, "con_hidechannel *; con_showchannel");
+    FS_Printf(f, (char*)"con_hidechannel *; con_showchannel");
     for ( channel = 0; channel < 256; ++channel )
     {
         if ( Con_IsChannelVisible(CON_DEST_CONSOLE, channel, 0) )
-            FS_Printf(f, " %s", pcGlob.openChannels[channel].name);
+            FS_Printf(f, (char *)" %s", pcGlob.openChannels[channel].name);
     }
-    FS_Printf(f, "\n");
+    FS_Printf(f, (char *)"\n");
 }
 
+static bool inited;
 void __cdecl Con_InitGameMsgChannels()
 {
     unsigned int gameWindowIndex; // [esp+24h] [ebp-8h]
@@ -239,6 +306,13 @@ void __cdecl Com_BitClearAssert(unsigned int *array, int bitNum, int size)
     }
     array[bitNum >> 5] &= ~(1 << (bitNum & 0x1F));
 }
+
+cmd_function_s Con_ChannelList_f_VAR;
+cmd_function_s Con_FilterAdd_f_VAR;
+cmd_function_s Con_FilterRemove_f_VAR;
+cmd_function_s Con_FilterList_f_VAR;
+
+const dvar_s *con_default_console_filter;
 
 void __cdecl Con_InitChannels()
 {

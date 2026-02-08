@@ -1,4 +1,12 @@
 #include "cl_voice.h"
+#include "cl_main.h"
+#include <client_mp/cl_main_mp.h>
+#include <cgame_mp/cg_main_mp.h>
+#include "client.h"
+#include <client_mp/cl_main_pc_mp.h>
+#include <win32/win_voice.h>
+
+unsigned __int8 tempVoicePacketBuf[1260];
 
 void __cdecl CL_WriteVoicePacket(int localClientNum)
 {
