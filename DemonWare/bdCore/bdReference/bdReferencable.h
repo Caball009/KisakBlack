@@ -58,7 +58,7 @@ struct bdReference//<bdByteBuffer> // sizeof=0x4
 
 struct bdReferencable // sizeof=0x8
 {                                                                             // XREF: bdByteBuffer/r
-    volatile int m_refCount;
+    volatile unsigned int m_refCount;
 
     virtual ~bdReferencable();
 };

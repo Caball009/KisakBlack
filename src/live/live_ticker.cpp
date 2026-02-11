@@ -1,4 +1,15 @@
 #include "live_ticker.h"
+#include "live_news.h"
+#include <ui/ui_main.h>
+#include <qcommon/common.h>
+#include <cstring>
+#include <win32/win_shared.h>
+
+ticker_t s_ticker;
+bool s_isTickerInitialized;
+
+const dvar_t *tickerWidescreenWidth;
+const dvar_t *tickerStandardWidth;
 
 char *__cdecl LiveTicker_GetStreamNameTextInternal(streamName_t streamName)
 {
@@ -33,6 +44,7 @@ char *__cdecl LiveTicker_GetStreamNameTextInternal(streamName_t streamName)
 
 void __cdecl LiveTicker_DumpTickerInternal()
 {
+#ifdef KISAK_LIVE_STUBS
     char *StreamNameTextInternal; // eax
     streamName_t j; // [esp+0h] [ebp-8h]
     int i; // [esp+4h] [ebp-4h]
@@ -53,6 +65,7 @@ void __cdecl LiveTicker_DumpTickerInternal()
             Com_Printf(16, "\t%d: %s\n", j, (const char *)(5172 * i + 516 * j + 174152212));
     }
     Com_Printf(16, "**** End Ticker Dump ****\n");
+#endif
 }
 
 void __cdecl LiveTicker_SetDefaultDisplayOrder()
@@ -98,6 +111,7 @@ void __cdecl LiveTicker_InitializeInternal()
 
 void __cdecl LiveTicker_InsertMessageInternal(const char *text, streamName_t streamName)
 {
+#ifdef KISAK_LIVE_STUBS
     if ( !s_isTickerInitialized )
         LiveTicker_InitializeInternal();
     if ( text && *text && I_strncmp(text, "\n", 4) && I_strncmp(text, "\r", 4) )
@@ -113,6 +127,7 @@ void __cdecl LiveTicker_InsertMessageInternal(const char *text, streamName_t str
             ++s_ticker.totalMessageCount;
         }
     }
+#endif
 }
 
 char __cdecl LiveTicker_IsStreamPopulated(streamName_t streamName)
@@ -227,7 +242,7 @@ void __cdecl LiveTicker_AddMessages(const char *text, streamName_t streamName, b
     if ( isMultiple )
     {
         len = strlen(text);
-        delimiter = "\n\r";
+        delimiter = (char*)"\n\r";
         if ( len > 0 )
         {
             I_strncpyz(changingFileContents, text, 512);
@@ -379,9 +394,9 @@ $LN16_68:
                     else
                         *xCoord = baseX;
                     if ( (float)(currentTime - s_ticker.scrollUpStartTimeB) > 250.0 )
-                        currMessage->state = MESSAGE_DISPLAYING;
+                        currMessage->state = MESSAGE_DONE_DISPLAYING;
                     break;
-                case MESSAGE_DISPLAYING:
+                case MESSAGE_DONE_DISPLAYING:
                     s_ticker.streamDisplayOrder[1293 * s_ticker.currentStream
                                                                         - 6336
                                                                         + 129 * s_ticker.streamDisplayOrder[1293 * s_ticker.currentStream - 5173]] = TICKER_STREAM_COD;
@@ -417,7 +432,7 @@ char *__cdecl LiveTicker_GetCurrentMessageCategory(
                 float *outScale)
 {
     streams_t *currStream; // [esp+1Ch] [ebp-Ch]
-    unsigned intcurTime; // [esp+20h] [ebp-8h]
+    unsigned int curTime; // [esp+20h] [ebp-8h]
     char *text; // [esp+24h] [ebp-4h]
     char *texta; // [esp+24h] [ebp-4h]
 
@@ -570,6 +585,13 @@ void __cdecl LiveTicker_DumpTickerInternal_f()
     else
         Com_Printf(0, "USAGE: dumpTickerContents\n");
 }
+
+cmd_function_s LiveTicker_SetContractMsgsBatchSize_f_VAR;
+cmd_function_s LiveTicker_SetEventMsgsBatchSize_f_VAR;
+cmd_function_s LiveTicker_SetCODMsgsBatchSize_f_VAR;
+cmd_function_s LiveTicker_SetFriendMsgsBatchSize_f_VAR;
+cmd_function_s LiveTicker_SetClanMsgsBatchSize_f_VAR;
+cmd_function_s LiveTicker_DumpTickerInternal_f_VAR;
 
 void __cdecl LiveTicker_Init()
 {

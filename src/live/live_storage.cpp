@@ -17,6 +17,10 @@
 #include "live_fileshare.h"
 #include "live_fileshare_cache.h"
 #include "live_fileshare_search.h"
+#include <DW/MatchRecorder.h>
+#include <ui_mp/ui_main_mp.h>
+#include "live_counter.h"
+#include <qcommon/threads.h>
 
 cmd_function_s LiveStorage_FakeComErrorCmd_VAR;
 cmd_function_s LiveStorage_ReadStatsBackupCmd_VAR;
@@ -29,27 +33,33 @@ cmd_function_s LiveStorage_ListCustomGameTypesForUser_f_VAR;
 cmd_function_s LiveStorage_RefetchOnlineWAD_VAR;
 cmd_function_s LiveStorage_GeneratePopulationDataCmd_VAR;
 
-extern dvar_t *stat_version;
-extern dvar_t *stats_version_check;
-extern dvar_t *maxStatsBackupInterval;
-extern dvar_t *dwFileFetchTryIntervalBase;
-extern dvar_t *dwFileFetchTryIntervalMax;
-extern dvar_t *dwFileFetchTryMaxAttempts;
-extern dvar_t *clanMessageLastFetchTime;
-extern dvar_t *eventMessageLastFetchTime;
-extern dvar_t *codMessageLastFetchTime;
-extern dvar_t *waitOnStatsTimeout;
-extern dvar_t *heatMapLoadDelay;
-extern dvar_t *minDelayForOtherPlayerStatsFetch;
-extern dvar_t *fshSearchTaskDelay;
-extern dvar_t *basicTrainingFatal;
+const dvar_t *stat_version;
+const dvar_t *stats_version_check;
+const dvar_t *maxStatsBackupInterval;
+const dvar_t *dwFileFetchTryIntervalBase;
+const dvar_t *dwFileFetchTryIntervalMax;
+const dvar_t *dwFileFetchTryMaxAttempts;
+const dvar_t *clanMessageLastFetchTime;
+const dvar_t *eventMessageLastFetchTime;
+const dvar_t *codMessageLastFetchTime;
+const dvar_t *waitOnStatsTimeout;
+const dvar_t *heatMapLoadDelay;
+const dvar_t *minDelayForOtherPlayerStatsFetch;
+const dvar_t *fshSearchTaskDelay;
+const dvar_t *basicTrainingFatal;
 
 persistentStats s_otherPlayerStats;
 playerNetworkData controllerNetworkData[1];
 fileSharePrivateData s_fileSharePrimary;
 fileSharePrivateData s_fileShareSecondary;
 
+playerFileOperations controllerFileOps[1];
+
 unsigned __int64 s_tempXuid;
+unsigned __int64 s_XuidOfOtherPlayer;
+int s_lastStatsUpdateTimeForOtherPlayer;
+unsigned __int8 s_tempStatsBuffer[40168];
+char s_matchRecordBinaryData[66560];
 
 const TaskDefinition task_LiveDeleteUserFile[1] =
 {
@@ -1282,6 +1292,7 @@ int __cdecl LiveStorage_StatsBackupFileNotFound(int controllerIndex, const char 
 
 TaskRecord *__cdecl LiveStorage_SyncTime(int controllerIndex)
 {
+#ifdef KISAK_LIVE_STUBS
     const bdReference<bdCommonAddr> *ServerTime; // eax
     bdReference<bdCommonAddr> v3; // [esp+1Ch] [ebp-Ch] BYREF
     TaskRecord *task; // [esp+20h] [ebp-8h]
@@ -1301,13 +1312,18 @@ TaskRecord *__cdecl LiveStorage_SyncTime(int controllerIndex)
     bdReference<bdRemoteTask>::~bdReference<bdRemoteTask>(&v3);
     TaskManager2_StartTask(task);
     return task;
+#else
+    return NULL;
+#endif
 }
 
 void __cdecl LiveStorage_GetServerTimeComplete(TaskRecord *rec)
 {
+#ifdef KISAK_LIVE_STUBS
     SV_SetTime(bdServerTime.m_timeStamp);
     s_UTCOffset = bdServerTime.m_timeStamp - _time64(0);
     s_UTCSynced = 1;
+#endif
 }
 
 void __cdecl LiveStorage_GetServerTimeFailed(TaskRecord *rec)
@@ -1371,10 +1387,14 @@ TaskRecord *__cdecl LiveStorage_ReadMetPlayerList(
 
 bool __cdecl LiveStorage_NeedToDownloadMetPlayerList(int controllerIndex)
 {
+#ifdef KISAK_LIVE_STUBS
     int v1; // edx
 
     return LODWORD(s_lastMetPlayerListDownload[controllerIndex]) != Live_GetXuid(controllerIndex)
             || dword_A56350C[2 * controllerIndex] != v1;
+#else
+    return false;
+#endif
 }
 
 int __cdecl LiveStorage_ReadMetPlayerListFileNotFound(int controllerIndex)
@@ -1386,10 +1406,12 @@ int __cdecl LiveStorage_ReadMetPlayerListFileNotFound(int controllerIndex)
 
 void __cdecl LiveStorage_SetLastMetPlayerListDownload(int controllerIndex)
 {
+#ifdef KISAK_LIVE_STUBS
     int v1; // edx
 
     LODWORD(s_lastMetPlayerListDownload[controllerIndex]) = Live_GetXuid(controllerIndex);
     dword_A56350C[2 * controllerIndex] = v1;
+#endif
 }
 
 void __cdecl LiveStorage_ReadMetPlayerListSuccessful(int controllerIndex)
@@ -1475,7 +1497,7 @@ TaskRecord *__cdecl LiveStorage_ReadOtherPlayerStats(int controllerIndex, unsign
     fileInfo->retryInfo.retryCount = 0;
     fileInfo->isUserFile = 1;
     fileInfo->isCompressedFile = 1;
-    fileInfo->fileTask.m_filename = "globalstatsCompressed";
+    fileInfo->fileTask.m_filename = (char*)"globalstatsCompressed";
     fileInfo->fileBuffer = (unsigned __int8 *)LiveStorage_GetStatsBuffer(controllerIndex, STATS_LOCATION_OTHERPLAYER, 1);
     fileInfo->bufferSize = 40172;
     fileInfo->fileOperationSucessFunction = (void (__cdecl *)(const int, void *))LiveStorage_ReadOtherPlayerStatsSuccessful;
@@ -1702,7 +1724,7 @@ TaskRecord *__cdecl LiveStorage_ReadBasicTrainingStats(int controllerIndex, bool
     if ( TaskManager2_TaskIsInProgressForController(task_LiveGetBasicTrainingStatsData, controllerIndex) )
         return 0;
     fileInfo = &controllerNetworkData[controllerIndex].fileOps->getBasicTrainingStatsFileInfo;
-    fileInfo->fileTask.m_filename = "mpstatsBasicTraining";
+    fileInfo->fileTask.m_filename = (char*)"mpstatsBasicTraining";
     fileInfo->fileOperationSucessFunction = (void (__cdecl *)(const int, void *))LiveStorage_ReadBasicTrainingStatsSuccessful;
     fileInfo->fileNotFoundFunction = (taskCompleteResults (__cdecl *)(const int, void *))LiveStorage_BasicTrainingStatsFileNotFound;
     return LiveStorage_ReadCommonStats(
@@ -1893,7 +1915,7 @@ TaskRecord *__cdecl LiveStorage_WriteBasicTrainingStats(int controllerIndex)
     fileInfo = &controllerNetworkData[controllerIndex].fileOps->saveBasicTrainingStatsFileInfo;
     if ( !LiveStorage_TryFile(&controllerNetworkData[controllerIndex].fileOps->saveBasicTrainingStatsFileInfo.retryInfo) )
         return 0;
-    fileInfo->fileTask.m_filename = "mpstatsBasicTraining";
+    fileInfo->fileTask.m_filename = (char*)"mpstatsBasicTraining";
     return LiveStorage_WriteStats(
                      controllerIndex,
                      0,
@@ -1929,7 +1951,7 @@ void __cdecl LiveStorage_WriteBackupStats(int controllerIndex)
                                                                                                                                         STATS_LOCATION_FORCE_NORMAL,
                                                                                                                                         1);
         fileInfo->statsBackupFileInfo.bufferSize = LiveStorage_GetStatsBufferSize();
-        fileInfo->statsBackupFileInfo.fileTask.m_filename = "mpdatabk0000";
+        fileInfo->statsBackupFileInfo.fileTask.m_filename = (char*)"mpdatabk0000";
         *(unsigned int *)fileInfo->statsBackupFileInfo.fileBuffer = LiveStats_ChecksumGamerStats(
                                                                                                                         fileInfo->statsBackupFileInfo.fileBuffer + 4,
                                                                                                                         fileInfo->statsBackupFileInfo.bufferSize - 4);
@@ -2263,6 +2285,7 @@ void __cdecl LiveStorage_FileShare_KickOffRatingsTask(
 
 void __cdecl LiveStorage_FileShare_ReadListingSuccess(TaskRecord *task)
 {
+#ifdef KISAK_LIVE_STUBS
     int LocalClientNum; // eax
     const char *menuDef; // [esp-4h] [ebp-2Ch]
     int v3; // [esp+4h] [ebp-24h]
@@ -2308,6 +2331,7 @@ void __cdecl LiveStorage_FileShare_ReadListingSuccess(TaskRecord *task)
             UI_CloseMenu(LocalClientNum, menuDef);
         }
     }
+#endif
 }
 
 bool __cdecl LiveStorage_FileShare_IsPageLoading(int controllerIndex)
@@ -2390,6 +2414,7 @@ TaskRecord *__cdecl LiveStorage_FileShare_LoadPage(
                 void (__cdecl *successCallback)(),
                 void (__cdecl *failureCallback)())
 {
+#ifdef KISAK_LIVE_STUBS
     int v9; // [esp+8h] [ebp-20h]
     bdFileID *j; // [esp+Ch] [ebp-1Ch]
     int i; // [esp+10h] [ebp-18h]
@@ -2452,6 +2477,9 @@ TaskRecord *__cdecl LiveStorage_FileShare_LoadPage(
         return LiveStorage_SetupNestedTask(task_LiveFileShareLoadBlock, controllerIndex, nestedTask, fsTask);
     }
     return task;
+#else
+    return NULL;
+#endif
 }
 
 void __cdecl LiveStorage_FileShare_LoadBlockFailure(TaskRecord *task)
@@ -2466,6 +2494,7 @@ void __cdecl LiveStorage_FileShare_LoadBlockFailure(TaskRecord *task)
 
 void __cdecl LiveStorage_FileShare_LoadBlockSuccess(TaskRecord *task)
 {
+#ifdef KISAK_LIVE_STUBS
     dwFileShareDescriptorsTask *fsTask; // [esp+4h] [ebp-4h]
 
     fsTask = (dwFileShareDescriptorsTask *)task->payload;
@@ -2473,6 +2502,7 @@ void __cdecl LiveStorage_FileShare_LoadBlockSuccess(TaskRecord *task)
     *fsTask->descriptorCount = fsTask->cacheLoadedFileCount
                                                      + bdTaskByteBuffer::getHeaderSize((bdTaskByteBuffer *)task->nestedTask->remoteTask.m_ptr);
     LiveStorage_FileShare_LoadBlockSuccessAction(fsTask);
+#endif
 }
 
 void __cdecl LiveStorage_FileShare_DownloadFile_f()
@@ -2589,6 +2619,7 @@ void __cdecl LiveStorage_FileShare_SearchFailure(TaskRecord *task)
 
 void __cdecl LiveStorage_FileShare_SearchSuccess(TaskRecord *task)
 {
+#ifdef KISAK_LIVE_STUBS
     bdRemoteTask *v1; // [esp+0h] [ebp-Ch]
     bdTaskByteBuffer *m_ptr; // [esp+4h] [ebp-8h]
     dwFileShareSearchTask *fileShareSearchTask; // [esp+8h] [ebp-4h]
@@ -2600,6 +2631,7 @@ void __cdecl LiveStorage_FileShare_SearchSuccess(TaskRecord *task)
     *fileShareSearchTask->resultTotalFileCount = bdRemoteTask::getTotalNumResults(v1);
     if ( fileShareSearchTask->successCallback )
         ((void (__cdecl *)(bdRemoteTask *, bdTaskByteBuffer *))fileShareSearchTask->successCallback)(v1, m_ptr);
+#endif
 }
 
 unsigned int __cdecl LiveStorage_FileShare_ReadFileData(
@@ -2644,6 +2676,7 @@ unsigned int __cdecl LiveStorage_FileShare_GetUploadingFileTotalSize(int control
 
 TaskRecord *__cdecl LiveStorage_FileShare_ReadFile(int controllerIndex, fileShareReadFileInfo *fileInfo)
 {
+#ifdef KISAK_LIVE_STUBS
     int LocalClientNum; // eax
     const char *menuDef; // [esp-4h] [ebp-14h]
     dwFileShareReadFileTask *fileTask; // [esp+4h] [ebp-Ch]
@@ -2729,10 +2762,12 @@ TaskRecord *__cdecl LiveStorage_FileShare_ReadFile(int controllerIndex, fileShar
             "Pooled");
     nestedTask = dwFileShareReadFile(controllerIndex, fileTask);
     return LiveStorage_SetupNestedTask(task_LiveFileShareReadFile, controllerIndex, nestedTask, fileTask);
+#else
+    return NULL;
+#endif
 }
 
 unsigned int __thiscall fileShareDownloadInterceptor::handleDownload(
-                fileShareDownloadInterceptor *this,
                 void *data,
                 unsigned int dataSize)
 {
@@ -2823,6 +2858,7 @@ unsigned int __cdecl LiveStorage_FileShare_WriteFileData(
 
 TaskRecord *__cdecl LiveStorage_FileShare_WriteFile(int controllerIndex, fileShareWriteFileInfo *writeFileInfo)
 {
+#ifdef KISAK_LIVE_STUBS
     int LocalClientNum; // eax
     const char *menuDef; // [esp-4h] [ebp-10h]
     dwFileShareWriteFileTask *fileTask; // [esp+0h] [ebp-Ch]
@@ -2896,15 +2932,18 @@ TaskRecord *__cdecl LiveStorage_FileShare_WriteFile(int controllerIndex, fileSha
     }
     nestedTask = dwFileShareWriteFile(controllerIndex, fileTask);
     return LiveStorage_SetupNestedTask(task_LiveFileShareWriteFile, controllerIndex, nestedTask, fileTask);
+#else
+    return NULL;
+#endif
 }
 
-unsigned int __thiscall fileShareUploadInterceptor::handleUpload(
-                void *data,
-                unsigned int dataSize,
-                unsigned int bytesUploaded)
-{
-    return this->callback(data, dataSize, bytesUploaded, this->task);
-}
+//unsigned int fileShareUploadInterceptor::handleUpload(
+//                void *data,
+//                unsigned int dataSize,
+//                unsigned int bytesUploaded)
+//{
+//    return this->callback(data, dataSize, bytesUploaded, this->task);
+//}
 
 void __cdecl LiveStorage_FileShare_WriteFileFailure(TaskRecord *task)
 {
@@ -2963,22 +3002,23 @@ void __cdecl LiveStorage_FileShare_GenerateHeatmap(
                 unsigned int bufferSize)
 {
     unsigned __int8 *tempCompressedFileBuffer; // [esp+0h] [ebp-10h]
-    LargeLocal tempCompressedFileBuffer_large_local; // [esp+4h] [ebp-Ch] BYREF
     int decompressedBuffSize; // [esp+Ch] [ebp-4h]
 
-    LargeLocal::LargeLocal(&tempCompressedFileBuffer_large_local, 66560);
-    tempCompressedFileBuffer = LargeLocal::GetBuf(&tempCompressedFileBuffer_large_local);
+    LargeLocal tempCompressedFileBuffer_large_local(66560); // [esp+4h] [ebp-Ch] BYREF
+
+    //LargeLocal::LargeLocal(&tempCompressedFileBuffer_large_local, 66560);
+    tempCompressedFileBuffer = tempCompressedFileBuffer_large_local.GetBuf(); // LargeLocal::GetBuf(&tempCompressedFileBuffer_large_local);
     if ( bufferSize <= 0x10400 )
     {
         decompressedBuffSize = MSG_DecompressWithZLib(buffer, bufferSize, tempCompressedFileBuffer, 0x10400u);
         if ( MatchRecord_ParseDownloadedMatchData(controllerIndex, (char *)tempCompressedFileBuffer, decompressedBuffSize) )
             UI_GenerateHeatMapTexture(controllerIndex);
-        LargeLocal::~LargeLocal(&tempCompressedFileBuffer_large_local);
+        //LargeLocal::~LargeLocal(&tempCompressedFileBuffer_large_local);
     }
     else
     {
         Com_PrintError(16, "Insufficient space to decompress fileID %lld", fileID);
-        LargeLocal::~LargeLocal(&tempCompressedFileBuffer_large_local);
+        //LargeLocal::~LargeLocal(&tempCompressedFileBuffer_large_local);
     }
 }
 
@@ -3221,6 +3261,7 @@ void __cdecl LiveStorage_FileShare_RemoveFileSuccess(TaskRecord *task)
 
 TaskRecord *__cdecl LiveStorage_FileShare_TransferLastUploaded(int controllerIndex, unsigned int userSlot)
 {
+#ifdef KISAK_LIVE_STUBS
     dwFileShareTransferTask *transferTask; // [esp+14h] [ebp-10h]
     TaskRecord *nestedTask; // [esp+18h] [ebp-Ch]
     fileShareLastPlayedGame_t *lastPlayed; // [esp+20h] [ebp-4h]
@@ -3250,7 +3291,7 @@ TaskRecord *__cdecl LiveStorage_FileShare_TransferLastUploaded(int controllerInd
     LODWORD(transferTask->fileID) = lastPlayed->dwFileID.m_fileID;
     HIDWORD(transferTask->fileID) = HIDWORD(lastPlayed->dwFileID.m_fileID);
     transferTask->category = 1;
-    transferTask->fileName = "Film.demo";
+    transferTask->fileName = (char*)"Film.demo";
     transferTask->fileSlot = userSlot;
     Com_Printf(16, "Transferring file %llu from pooled storage to slot %u.\n", transferTask->fileID, userSlot);
     memcpy(transferTask->metaData, lastPlayed->descriptor.m_metaData, sizeof(transferTask->metaData));
@@ -3260,6 +3301,9 @@ TaskRecord *__cdecl LiveStorage_FileShare_TransferLastUploaded(int controllerInd
     transferTask->tags = lastPlayed->descriptor.m_tags;
     nestedTask = dwFileShareTransferFile(controllerIndex, transferTask);
     return LiveStorage_SetupNestedTask(task_LiveFileShareTransfer, controllerIndex, nestedTask, transferTask);
+#else
+    return NULL;
+#endif
 }
 
 TaskRecord *__cdecl LiveStorage_FileShare_TransferFromPooled(
@@ -3267,6 +3311,7 @@ TaskRecord *__cdecl LiveStorage_FileShare_TransferFromPooled(
                 unsigned __int64 fileID,
                 unsigned int userSlot)
 {
+#ifdef KISAK_LIVE_STUBS
     dwFileShareTransferTask *transferTask; // [esp+8h] [ebp-Ch]
     TaskRecord *nestedTask; // [esp+Ch] [ebp-8h]
     TaskRecord *task; // [esp+10h] [ebp-4h]
@@ -3334,6 +3379,9 @@ TaskRecord *__cdecl LiveStorage_FileShare_TransferFromPooled(
         Com_PrintError(16, "Invalid file ID %llu\n", 0LL);
         return 0;
     }
+#else
+    return NULL;
+#endif
 }
 
 TaskRecord *__cdecl LiveStorage_FileShare_TransferFromUser(
@@ -3342,6 +3390,7 @@ TaskRecord *__cdecl LiveStorage_FileShare_TransferFromUser(
                 unsigned int userSlot,
                 bool isCommunity)
 {
+#ifdef KISAK_LIVE_STUBS
     fileSharePrivateData *fsData; // [esp+10h] [ebp-1Ch]
     dwFileShareTransferTask *transferTask; // [esp+14h] [ebp-18h]
     TaskRecord *nestedTask; // [esp+18h] [ebp-14h]
@@ -3435,6 +3484,9 @@ TaskRecord *__cdecl LiveStorage_FileShare_TransferFromUser(
         }
     }
     return task;
+#else
+    return NULL;
+#endif
 }
 
 TaskRecord *__cdecl LiveStorage_FileShare_TransferFile(
@@ -3597,6 +3649,7 @@ void __cdecl LiveStorage_FileShare_ReadTopRatedFailure(TaskRecord *task)
 
 void __cdecl LiveStorage_FileShare_ReadTopRatedSuccess(TaskRecord *task)
 {
+#ifdef KISAK_LIVE_STUBS
     int v1; // ecx
     bdFileID *outFileIDs; // edx
     int i; // [esp+14h] [ebp-8h]
@@ -3625,6 +3678,7 @@ void __cdecl LiveStorage_FileShare_ReadTopRatedSuccess(TaskRecord *task)
     }
     if ( fsTask->successCallback )
         fsTask->successCallback();
+#endif
 }
 
 bool __cdecl LiveStorage_FileShare_IsReadingRatings(int controllerIndex)
@@ -3669,6 +3723,7 @@ TaskRecord *__cdecl LiveStorage_FileShare_ReadRatingsCommunity(
                 void (__cdecl *successCallback)(),
                 void (__cdecl *failureCallback)())
 {
+#ifdef KISAK_LIVE_STUBS
     int i; // [esp+4h] [ebp-10h]
     dwFileShareGetRatingTask *ratingTask; // [esp+8h] [ebp-Ch]
     int ratingIndex; // [esp+Ch] [ebp-8h]
@@ -3721,6 +3776,9 @@ TaskRecord *__cdecl LiveStorage_FileShare_ReadRatingsCommunity(
         Com_Printf(16, "\tSearch: Reading %d ratings from DW.\n", fileIDsToFetch);
         return LiveStorage_FileShare_ReadRating(controllerIndex, ratingTask, task_LiveFileShareGetRating);
     }
+#else
+    return NULL;
+#endif
 }
 
 TaskRecord *__cdecl LiveStorage_FileShare_ReadRating(
@@ -3749,6 +3807,7 @@ void __cdecl LiveStorage_FileShare_ReadRatingFailure(TaskRecord *task)
 
 void __cdecl LiveStorage_FileShare_ReadRatingSuccess(TaskRecord *task)
 {
+#ifdef KISAK_LIVE_STUBS
     dwFileShareGetRatingTask *fsTask; // [esp+4h] [ebp-4h]
 
     fsTask = (dwFileShareGetRatingTask *)task->payload;
@@ -3756,14 +3815,17 @@ void __cdecl LiveStorage_FileShare_ReadRatingSuccess(TaskRecord *task)
     *fsTask->outNumRatingsReceived = fsTask->cacheLoadedFileCount
                                                                  + bdTaskByteBuffer::getHeaderSize((bdTaskByteBuffer *)task->nestedTask->remoteTask.m_ptr);
     LiveStorage_FileShare_ReadRatingSuccessAction(fsTask);
+#endif
 }
 
 void __cdecl LiveStorage_FileShare_ReadFileRatingSuccess(TaskRecord *task)
 {
+#ifdef KISAK_LIVE_STUBS
     unsigned int HeaderSize; // eax
 
     HeaderSize = bdTaskByteBuffer::getHeaderSize((bdTaskByteBuffer *)task->nestedTask->remoteTask.m_ptr);
     Com_Printf(16, "%d file ratings retrieved successfully.\n", HeaderSize);
+#endif
 }
 
 void __cdecl LiveStorage_FileShare_WriteTagsFailure(TaskRecord *task)
@@ -4019,6 +4081,7 @@ void __cdecl LiveStorage_CheckOngoingSessionTasks()
     LiveStorage_CheckOngoingSessionTasks_Platform();
 }
 
+#if 0
 fileSharePrivateData *__thiscall fileSharePrivateData::fileSharePrivateData(fileSharePrivateData *this)
 {
     int v3; // [esp+4h] [ebp-10h]
@@ -4143,3 +4206,4 @@ void __thiscall playerFileOperations::~playerFileOperations(playerFileOperations
     bdFileData::~bdFileData(&this->statsBackupFileInfo.fileTask.m_fileData);
 }
 
+#endif

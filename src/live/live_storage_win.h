@@ -1,6 +1,39 @@
 #pragma once
+#include "live_storage.h"
+#include "live_leaderboard.h"
+
 
 struct dwFileOperationInfo;
+
+enum blobtype_t : __int32
+{                                       // XREF: ?Live_CACValidate_DispatchMessage@@YA_N_KPAXI@Z/r
+    BLOB_TYPE_CAC     = 0x0,
+    BLOB_TYPE_GLOBAL  = 0x1,
+    BLOB_TYPE_INVALID = 0x2,
+};
+
+enum sv_cacvalidate_state_t : __int32
+{
+    CAC_IDLE         = 0x0,
+    CAC_WAITING      = 0x1,
+    CAC_FETCHONE     = 0x2,
+    CAC_FETCHTWO     = 0x3,
+    CAC_WAITINGAGAIN = 0x4,
+    CAC_WRITEONE     = 0x5,
+    CAC_WRITETWO     = 0x6,
+};
+
+enum day_t : __int32
+{                                       // XREF: ?SV_DoTimedStatsForClient@@YAXHPBDPAV?$LeaderBoardRow@$09@@H1H@Z/r
+                                        // ?SV_DoTimedStatsForClient@@YAXHPBDPAV?$LeaderBoardRow@$09@@H1H@Z/r
+    SUNDAY = 0x0,
+    MONDAY = 0x1,
+    TUESDAY = 0x2,
+    WEDNESDAY = 0x3,
+    THURSDAY = 0x4,
+    FRIDAY = 0x5,
+    SATURDAY = 0x6,
+};
 
 int __cdecl SystemTimeToInt();
 void __cdecl LiveStorage_ResetStats(unsigned __int8 *buffer);
@@ -59,7 +92,7 @@ bool __cdecl SV_MakeClientGlobalLBRow(
                 const LbPlayerStat *const stats,
                 int lbIndex,
                 LeaderBoardRow<10> *const row);
-void __thiscall SV_CommitClientLeaderboards(void *this);
+void SV_CommitClientLeaderboards();
 void __cdecl SV_SetClientStatsForRow(int clientNum, const char *gameModePrefix, bool delta);
 void __cdecl SV_ReadClientFileSuccess(TaskRecord *task);
 void __cdecl SV_WriteClientFileFailure(TaskRecord *task);

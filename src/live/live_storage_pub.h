@@ -1,4 +1,13 @@
 #pragma once
+#include "live_storage.h"
+
+struct WADEntry // sizeof=0x2C
+{
+    char name[32];
+    unsigned int compressedSize;
+    unsigned int size;
+    unsigned int offset;
+};
 
 bool __cdecl LiveStorage_DoWeHaveContracts();
 bool __cdecl LiveStorage_DoWeHavePlaylists();

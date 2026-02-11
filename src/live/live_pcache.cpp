@@ -1,7 +1,31 @@
 #include "live_pcache.h"
+#include <ctime>
+#include "live_pcache_profile.h"
+#include <qcommon/threads.h>
+#include "live_storage_win.h"
+#include <qcommon/com_clients.h>
+#include <bgame/bg_emblems.h>
+#include "live_win.h"
+#include <gfx_d3d/r_stream.h>
+#include <demo/demo_ui.h>
+#include <client_mp/cl_cgame_mp.h>
+#include <client/client.h>
+
+FastCriticalSection s_lock;
+
+PCachePublicProfile s_publicProfiles[256];
+PCachePlayerEmblem s_playerEmblems[32];
+
+PCacheEntry s_entries[256];
+
+PCacheComponentPool s_componentPools[2] =
+{
+  { 256, 288, &s_publicProfiles, 600u, NULL },
+  { 32, 432, &s_playerEmblems, 600u, &PCache_ReleasePlayerEmblem }
+};
 
 __int64 __cdecl PCache_Time()
-{
+{ 
     return _time64(0);
 }
 
@@ -174,7 +198,7 @@ PCacheComponent *__cdecl PCache_GetOrphanComponent(int controllerIndex, unsigned
 
 PCacheEntry *__cdecl PCache_GetEntry(int controllerIndex, unsigned __int64 xuid)
 {
-    int v3; // eax
+    DWORD v3; // eax
     PCacheEntry *entry; // [esp+10h] [ebp-1Ch]
     PCacheEntry *entrya; // [esp+10h] [ebp-1Ch]
     PCacheEntry *entryb; // [esp+10h] [ebp-1Ch]
@@ -206,8 +230,8 @@ PCacheEntry *__cdecl PCache_GetEntry(int controllerIndex, unsigned __int64 xuid)
     neighborhood = baseEntry->neighborhood;
     while ( 1 )
     {
-        if ( !_BitScanReverse((unsigned int *)&v3, neighborhood) )
-            v3 = `CountLeadingZeros'::`2'::notFound;
+        if (!_BitScanReverse(&v3, neighborhood))
+            v3 = 63;// `CountLeadingZeros'::`2': : notFound;
         offset = 31 - (v3 ^ 0x1F);
         if ( offset == -1 )
             break;

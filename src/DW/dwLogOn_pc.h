@@ -1,6 +1,18 @@
 #pragma once
 #include <DemonWare/bdLobbyService.h>
 
+enum DWOnlineStatus : __int32
+{                                       // XREF: ?Live_Frame_MP@@YA_NHH@Z/r
+                                        // ?Live_Frame_MP@@YA_NHH@Z/r ...
+    DW_WAITING_FOR_USERNAME = 0x0,
+    DW_LIVE_ERROR = 0x1,
+    DW_LIVE_DISCONNECTED = 0x2,
+    DW_LIVE_CONNECTING = 0x3,
+    DW_LIVE_CONNECTED = 0x4,
+    DW_LIVE_PLATFORM_AUTH_ERROR = 0x5,
+};
+
+
 bool __cdecl SV_IsConnectedToDW();
 void __cdecl dwInit();
 void __cdecl dwInitForController(int localControllerIndex);

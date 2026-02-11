@@ -1,4 +1,59 @@
 #include "live_presence_win.h"
+#include "live_win.h"
+#include <ui/ui_playlists.h>
+
+const MapnameRichPresenceInfo mapRichPresenceInfo[10] =
+{
+  {
+    {
+      'm',
+      'p',
+      '_',
+      'a',
+      'i',
+      'r',
+      'f',
+      'i',
+      'e',
+      'l',
+      'd',
+      '\0',
+      '\0',
+      '\0',
+      '\0',
+      '\0',
+      '\0',
+      '\0',
+      '\0',
+      '\0',
+      '\0',
+      '\0',
+      '\0',
+      '\0',
+      '\0',
+      '\0',
+      '\0',
+      '\0',
+      '\0',
+      '\0',
+      '\0',
+      '\0'
+    },
+    0,
+    2
+  },
+  { "mp_asylum", 0, 2 },
+  { "mp_carrier", 0, 2 },
+  { "mp_castle", 0, 2 },
+  { "mp_cavern", 0, 2 },
+  { "mp_docks", 0, 2 },
+  { "mp_makin", 0, 2 },
+  { "mp_nachtfeuer", 0, 2 },
+  { "mp_subway", 0, 2 },
+  { "", -1, -1 }
+};
+
+
 
 int __cdecl Live_GetMapCount()
 {

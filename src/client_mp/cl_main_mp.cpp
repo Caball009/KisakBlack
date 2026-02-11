@@ -1310,7 +1310,6 @@ void __cdecl CL_UploadStatsForController(int localControllerIndex)
 
 void __cdecl CL_Disconnect(unsigned int localClientNum, bool deactivateClient)
 {
-    void *v2; // ecx
     int ControllerIndex; // eax
     int v4; // eax
     int v5; // eax
@@ -1345,7 +1344,7 @@ void __cdecl CL_Disconnect(unsigned int localClientNum, bool deactivateClient)
             clc = CL_GetLocalClientConnection(localClientNum);
         }
         if ( connstate )
-            LiveSteam_Client_SteamDisconnect(v2);
+            LiveSteam_Client_SteamDisconnect();
         if ( connstate >= CA_CONNECTED && clc->demorecording )
         {
             if ( clc->demoUseMemoryBuffer )

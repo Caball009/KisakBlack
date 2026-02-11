@@ -15,6 +15,199 @@
 #include "live_presence_win.h"
 #include <ui/ui_playlists.h>
 #include <client_mp/sv_client_mp.h>
+#include "live_leaderboard.h"
+#include <server_mp/sv_main_mp.h>
+#include <client/cl_rank.h>
+#include <bgame/bg_unlockable_items.h>
+#include <ctime>
+#include <server/sv_live_stats.h>
+#include <DW/dwLogOn_pc.h>
+#include <universal/mem_largelocal.h>
+#include <DW/dwUtils.h>
+#include <win32/win_shared.h>
+#include <bgame/bg_emblems.h>
+#include "live_contracts.h"
+#include <DW/dwMessaging.h>
+#include <universal/com_tasks.h>
+#include <qcommon/md4.h>
+#include <universal/com_files.h>
+#include "live_win.h"
+#include <win32/win_gamerprofile.h>
+
+int g_svLastPlaylistFetch;
+bool s_shouldMapRotate;
+bool s_fetchingStats;
+sv_cacvalidate_state_t g_cacvalidateState;
+
+const int GlobalLbViewIds_0[4] =
+{ 3000, 3001, 3002, 3003 };
+
+
+const int lbViewIds_0[160] =
+{
+  1000,
+  1001,
+  1002,
+  1003,
+  1004,
+  1005,
+  1006,
+  1007,
+  1100,
+  1101,
+  1102,
+  1103,
+  1104,
+  1105,
+  1106,
+  1107,
+  1200,
+  1201,
+  1202,
+  1203,
+  1204,
+  1205,
+  1206,
+  1207,
+  1300,
+  1301,
+  1302,
+  1303,
+  1304,
+  1305,
+  1306,
+  1307,
+  1400,
+  1401,
+  1402,
+  1403,
+  1404,
+  1405,
+  1406,
+  1407,
+  1500,
+  1501,
+  1502,
+  1503,
+  1504,
+  1505,
+  1506,
+  1507,
+  1600,
+  1601,
+  1602,
+  1603,
+  1604,
+  1605,
+  1606,
+  1607,
+  1700,
+  1701,
+  1702,
+  1703,
+  1704,
+  1705,
+  1706,
+  1707,
+  1800,
+  1801,
+  1802,
+  1803,
+  1804,
+  1805,
+  1806,
+  1807,
+  1900,
+  1901,
+  1902,
+  1903,
+  1904,
+  1905,
+  1906,
+  1907,
+  2000,
+  2001,
+  2002,
+  2003,
+  2004,
+  2005,
+  2006,
+  2007,
+  2100,
+  2101,
+  2102,
+  2103,
+  2104,
+  2105,
+  2106,
+  2107,
+  2200,
+  2201,
+  2202,
+  2203,
+  2204,
+  2205,
+  2206,
+  2207,
+  2300,
+  2301,
+  2302,
+  2303,
+  2304,
+  2305,
+  2306,
+  2307,
+  2400,
+  2401,
+  2402,
+  2403,
+  2404,
+  2405,
+  2406,
+  2407,
+  2500,
+  2501,
+  2502,
+  2503,
+  2504,
+  2505,
+  2506,
+  2507,
+  2600,
+  2601,
+  2602,
+  2603,
+  2604,
+  2605,
+  2606,
+  2607,
+  2700,
+  2701,
+  2702,
+  2703,
+  2704,
+  2705,
+  2706,
+  2707,
+  2800,
+  2801,
+  2802,
+  2803,
+  2804,
+  2805,
+  2806,
+  2807,
+  2900,
+  2901,
+  2902,
+  2903,
+  2904,
+  2905,
+  2906,
+  2907
+};
+
+bool s_firstTimeRunning = true;
 
 const dvar_t *stats_backup;
 const dvar_t *presell;
@@ -417,7 +610,7 @@ bool __cdecl SV_MakeClientLBRow(
     }
     numLbs = g_LbLookup.numLbs;
     structure = 0;
-    row->m_writeType = statWriteTypeAdd;
+    row->m_writeType = (bdWriteType)statWriteTypeAdd;
     if ( (clientNum < 0 || clientNum > com_maxclients->current.integer)
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_storage_win.cpp",
@@ -465,6 +658,7 @@ bool __cdecl SV_MakeClientLBRow(
 
 void __cdecl SV_CommitClientLeaderboardsSuccess()
 {
+#ifdef KISAK_LIVE_STUBS
     if ( !lbRemoteTask.m_ptr
         && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\live\\live_storage_win.cpp", 1536, 0, "%s", "lbRemoteTask") )
     {
@@ -472,10 +666,12 @@ void __cdecl SV_CommitClientLeaderboardsSuccess()
     }
     if ( lbRemoteTask.m_ptr )
         bdReference<bdCommonAddr>::operator=(&lbRemoteTask, 0);
+#endif
 }
 
 void __cdecl SV_CommitClientLeaderboardsFailure()
 {
+#ifdef KISAK_LIVE_STUBS
     if ( !lbRemoteTask.m_ptr
         && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\live\\live_storage_win.cpp", 1545, 0, "%s", "lbRemoteTask") )
     {
@@ -483,6 +679,7 @@ void __cdecl SV_CommitClientLeaderboardsFailure()
     }
     if ( lbRemoteTask.m_ptr )
         bdReference<bdCommonAddr>::operator=(&lbRemoteTask, 0);
+#endif
 }
 
 void __cdecl SV_DoTimedStatsForClient(
@@ -567,16 +764,17 @@ void __cdecl SV_DoTimedStatsForClient(
                         tm_lastweeklyWrite = _gmtime64(&lastwriteTime);
                         numDays = tm_currentTime->tm_wday - tm_lastweeklyWrite->tm_wday;
                         Com_DPrintf(15, "%i days since last weekly write\n", numDays);
-                        currentday = tm_currentTime->tm_wday;
+                        currentday = (day_t)tm_currentTime->tm_wday;
                         if ( numDays || currentday != MONDAY )
                         {
-                            writeday = tm_lastweeklyWrite->tm_wday;
+                            writeday = (day_t)tm_lastweeklyWrite->tm_wday;
                             while ( 1 )
                             {
                                 v6 = numDays--;
                                 if ( v6 <= 0 )
                                     break;
-                                if ( *operator++(&writeday) == TUESDAY )
+                                //if ( *operator++(&writeday) == TUESDAY )
+                                if (writeday == (TUESDAY) - 1)
                                     resetweekly = 1;
                             }
                         }
@@ -931,8 +1129,9 @@ bool __cdecl SV_MakeClientGlobalLBRow(
     return v5;
 }
 
-void __thiscall SV_CommitClientLeaderboards(void *this)
+void SV_CommitClientLeaderboards()
 {
+#ifdef KISAK_LIVE_STUBS
     const bdReference<bdCommonAddr> *v1; // eax
     char *v2; // [esp+0h] [ebp-15F8Ch]
     char *v3; // [esp+4h] [ebp-15F88h]
@@ -962,7 +1161,7 @@ void __thiscall SV_CommitClientLeaderboards(void *this)
     unsigned int v27[577]; // [esp+15684h] [ebp-908h] BYREF
     signed int v28; // [esp+15F88h] [ebp-4h]
 
-    if ( Com_CanWriteLeaderboards(this) )
+    if ( Com_CanWriteLeaderboards() )
     {
         if ( lbRemoteTask.m_ptr
             && !Assert_MyHandler(
@@ -1120,10 +1319,12 @@ void __thiscall SV_CommitClientLeaderboards(void *this)
             }
         }
     }
+#endif
 }
 
 void __cdecl SV_SetClientStatsForRow(int clientNum, const char *gameModePrefix, bool delta)
 {
+#ifdef KISAK_LIVE_STUBS
     int v3; // [esp+0h] [ebp-24h]
     int TotalMatchesPlayedByGameModeForClient; // [esp+4h] [ebp-20h]
     int timePlayed; // [esp+10h] [ebp-14h] BYREF
@@ -1179,14 +1380,15 @@ void __cdecl SV_SetClientStatsForRow(int clientNum, const char *gameModePrefix, 
         }
         SV_SetClientLBStat(clientNum, statId, statValue);
     }
+#endif
 }
 
 void __cdecl SV_ReadClientFileSuccess(TaskRecord *task)
 {
+#ifdef KISAK_LIVE_STUBS
     client_t *ClientFromFileInfo; // eax
     dwFileOperationInfo *fileTask; // [esp+0h] [ebp-14h]
     unsigned __int8 *tempCompressedFileBuffer; // [esp+4h] [ebp-10h]
-    LargeLocal tempCompressedFileBuffer_large_local; // [esp+8h] [ebp-Ch] BYREF
     dwFileOperationInfo *fileInfo; // [esp+10h] [ebp-4h]
 
     if ( task->payload )
@@ -1194,19 +1396,21 @@ void __cdecl SV_ReadClientFileSuccess(TaskRecord *task)
         fileInfo = (dwFileOperationInfo *)task->payload;
         if ( fileInfo->isCompressedFile )
         {
-            LargeLocal::LargeLocal(&tempCompressedFileBuffer_large_local, 0x10000);
-            tempCompressedFileBuffer = LargeLocal::GetBuf(&tempCompressedFileBuffer_large_local);
+            LargeLocal tempCompressedFileBuffer_large_local(0x10000); // [esp+8h] [ebp-Ch] BYREF
+
+            //LargeLocal::LargeLocal(&tempCompressedFileBuffer_large_local, 0x10000);
+            tempCompressedFileBuffer = tempCompressedFileBuffer_large_local.GetBuf(); // LargeLocal::GetBuf(&tempCompressedFileBuffer_large_local);
             fileTask = fileInfo;
             if ( fileInfo->fileTask.m_bufferSize > 0x10000 )
             {
                 Com_PrintError(16, "Insufficient space to decompress file %s", fileInfo->fileTask.m_filename);
                 LiveStorage_GetUserFileFailure(task);
-                LargeLocal::~LargeLocal(&tempCompressedFileBuffer_large_local);
+                //LargeLocal::~LargeLocal(&tempCompressedFileBuffer_large_local);
                 return;
             }
             if ( SV_GetClientFromFileInfo((_QWORD *)task->payload) )
             {
-                ClientFromFileInfo = SV_GetClientFromFileInfo(fileInfo);
+                ClientFromFileInfo = SV_GetClientFromFileInfo((uint64*)fileInfo);
                 Com_DPrintf(16, "Decompressing file %s for user %s\n", fileTask->fileTask.m_filename, ClientFromFileInfo->name);
             }
             memcpy(
@@ -1228,11 +1432,12 @@ void __cdecl SV_ReadClientFileSuccess(TaskRecord *task)
                 fileTask->fileTask.m_fileData.m_fileSize,
                 (unsigned __int8 *)fileTask->fileTask.m_buffer,
                 fileTask->fileTask.m_bufferSize);
-            LargeLocal::~LargeLocal(&tempCompressedFileBuffer_large_local);
+            //LargeLocal::~LargeLocal(&tempCompressedFileBuffer_large_local);
         }
         if ( fileInfo->fileOperationSucessFunction )
             fileInfo->fileOperationSucessFunction(0, task->payload);
     }
+#endif
 }
 
 void __cdecl SV_WriteClientFileFailure(TaskRecord *task)
@@ -1261,6 +1466,7 @@ void __cdecl SV_WriteClientFileSuccess(TaskRecord *task)
 
 void __cdecl SV_ReadDWFileDeferred(dwFileOperationInfo *fileInfo)
 {
+#ifdef KISAK_LIVE_STUBS
     bdReference<bdCommonAddr> v1; // [esp+24h] [ebp-14h] BYREF
     bdReference<bdCommonAddr> v2; // [esp+28h] [ebp-10h] BYREF
     dwFileTask *fileTask; // [esp+2Ch] [ebp-Ch]
@@ -1303,10 +1509,12 @@ void __cdecl SV_ReadDWFileDeferred(dwFileOperationInfo *fileInfo)
                 TaskManager2_DeferTaskToMainThread(task, task_svreadclientfile, fileInfo);
         }
     }
+#endif
 }
 
 void __cdecl SV_WriteClientFileDeferred(client_t *client, dwFileOperationInfo *fileInfo)
 {
+#ifdef KISAK_LIVE_STUBS
     bdReference<bdCommonAddr> v2; // [esp+10h] [ebp-20h] BYREF
     unsigned __int8 (*tempCompressedFileBuffer)[65536]; // [esp+14h] [ebp-1Ch]
     LargeLocal tempCompressedFileBuffer_large_local; // [esp+18h] [ebp-18h] BYREF
@@ -1375,6 +1583,7 @@ void __cdecl SV_WriteClientFileDeferred(client_t *client, dwFileOperationInfo *f
                 TaskManager2_DeferTaskToMainThread(task, task_svwriteclientfile, fileInfo);
         }
     }
+#endif
 }
 
 void __cdecl SV_DWReadClientStats(client_t *client)
@@ -1395,7 +1604,7 @@ void __cdecl SV_DWReadClientStats(client_t *client)
             {
                 fileInfo->isUserFile = 1;
                 fileInfo->isCompressedFile = 1;
-                fileInfo->fileTask.m_filename = "globalstatsCompressed";
+                fileInfo->fileTask.m_filename = (char*)"globalstatsCompressed";
                 fileInfo->fileBuffer = client->globalStats;
                 fileInfo->bufferSize = 40168;
                 fileInfo->fileOperationSucessFunction = (void (__cdecl *)(const int, void *))SV_DWReadClientGlobalStatsSuccess;
@@ -1462,7 +1671,7 @@ void __cdecl SV_DWReadClientGlobalStatsSuccess(const int controllerIndex, _QWORD
     {
         Com_PrintWarning(15, "Got successful globalstats for user %llu, but no matching user on server found!\n", data[34]);
     }
-    SV_ResetFileOp(data);
+    SV_ResetFileOp((dwFileOperationInfo*)data);
 }
 
 char __cdecl SV_IsStatsBlobOK(char *data)
@@ -1513,7 +1722,7 @@ int __cdecl SV_DWReadClientGlobalStatsFailure(int controllerIndex, _QWORD *data)
             NET_OutOfBandPrint(NS_SERVER, client->header.netchan.remoteAddress, "statsOK\n");
         }
     }
-    SV_ResetFileOp(data);
+    SV_ResetFileOp((dwFileOperationInfo*)data);
     return 1;
 }
 
@@ -1581,7 +1790,7 @@ void __cdecl SV_DWReadClientCACSuccess(const int controllerIndex, _QWORD *data)
             NET_OutOfBandPrint(NS_SERVER, ClientFromFileInfo->header.netchan.remoteAddress, "error\nPATCH_BAD_STATS");
         }
     }
-    SV_ResetFileOp(data);
+    SV_ResetFileOp((dwFileOperationInfo*)data);
 }
 
 int __cdecl SV_DWReadClientCACFailure(int controllerIndex, _QWORD *data)
@@ -1616,7 +1825,7 @@ int __cdecl SV_DWReadClientCACFailure(int controllerIndex, _QWORD *data)
             NET_OutOfBandPrint(NS_SERVER, client->header.netchan.remoteAddress, "statsOK\n");
         }
     }
-    SV_ResetFileOp(data);
+    SV_ResetFileOp((dwFileOperationInfo*)data);
     return 1;
 }
 
@@ -1643,7 +1852,7 @@ void __cdecl SV_DWWriteClientStats(client_t *client)
                 {
                     fileInfo->isUserFile = 1;
                     fileInfo->isCompressedFile = 1;
-                    fileInfo->fileTask.m_filename = "globalstatsCompressed";
+                    fileInfo->fileTask.m_filename = (char*)"globalstatsCompressed";
                     fileInfo->fileBuffer = client->globalStats;
                     fileInfo->bufferSize = 40168;
                     fileInfo->fileOperationSucessFunction = (void (__cdecl *)(const int, void *))SV_DWWriteClientGlobalStatsSuccess;
@@ -1708,7 +1917,7 @@ void __cdecl SV_DWWriteClientGlobalStatsSuccess(int controllerIndex, unsigned __
     client_t *client; // [esp+0h] [ebp-10h]
     unsigned __int64 uid; // [esp+8h] [ebp-8h]
 
-    client = SV_GetClientFromFileInfo(data);
+    client = SV_GetClientFromFileInfo((uint64*)data);
     if ( client )
     {
         Com_Printf(15, "Write stats success for user %s\n", client->name);
@@ -1717,10 +1926,10 @@ void __cdecl SV_DWWriteClientGlobalStatsSuccess(int controllerIndex, unsigned __
     }
     else
     {
-        uid = SV_GetBdUidFromFileInfo(data);
+        uid = SV_GetBdUidFromFileInfo((uint64*)data);
     }
     LiveStorage_SendStatsBufferToClient(uid, data[62], 40168, BLOB_TYPE_GLOBAL, 0);
-    SV_ResetFileOp(data);
+    SV_ResetFileOp((dwFileOperationInfo*)data);
 }
 
 void __cdecl LiveStorage_SendStatsBufferToClient(
@@ -1730,6 +1939,7 @@ void __cdecl LiveStorage_SendStatsBufferToClient(
                 blobtype_t blobtype,
                 bool sendOK)
 {
+#ifdef KISAK_LIVE_STUBS
     char *v5; // eax
     const char *v6; // eax
     int v7; // [esp+14h] [ebp-9D04h]
@@ -1787,6 +1997,7 @@ void __cdecl LiveStorage_SendStatsBufferToClient(
             dwMessaging_SendDeferredInstantMessage(uid, (unsigned __int8 *)payload, *(unsigned int *)&payload[1] + 10);
         }
     }
+#endif
 }
 
 char __cdecl SV_CACValidate_SetIntStat(unsigned __int8 *buffer, const char *stat, unsigned int value)
@@ -2298,6 +2509,7 @@ void __cdecl SV_CACValidateSendClientMsgFailure()
 
 void __cdecl SV_CACValidateSendClientMsg(unsigned __int64 uid, unsigned int msg)
 {
+#ifdef KISAK_LIVE_STUBS
     TaskRecord *ptask; // [esp+0h] [ebp-Ch]
     TaskRecord *childTask; // [esp+4h] [ebp-8h]
     unsigned __int8 ackBuf[1]; // [esp+Bh] [ebp-1h] BYREF
@@ -2311,6 +2523,7 @@ void __cdecl SV_CACValidateSendClientMsg(unsigned __int64 uid, unsigned int msg)
         if ( ptask )
             TaskManager2_StartTask(ptask);
     }
+#endif
 }
 
 void __cdecl SV_CACValidateWriteCAC(unsigned __int64 client, unsigned __int8 *cacblob, unsigned int cacsize)
@@ -2323,7 +2536,7 @@ void __cdecl SV_CACValidateWriteCAC(unsigned __int64 client, unsigned __int8 *ca
     {
         fileInfo->isUserFile = 1;
         fileInfo->isCompressedFile = 1;
-        fileInfo->fileTask.m_filename = "mpstatsCompressed";
+        fileInfo->fileTask.m_filename = (char*)"mpstatsCompressed";
         fileInfo->fileBuffer = cacblob;
         fileInfo->bufferSize = cacsize;
         fileInfo->ownerID = client;
@@ -2340,6 +2553,7 @@ void __cdecl SV_CACValidateWriteCAC(unsigned __int64 client, unsigned __int8 *ca
 
 void __cdecl SV_CACValidateWriteCACSuccess(int controllerIndex, void *data)
 {
+#ifdef KISAK_LIVE_STUBS
     Com_DPrintf(15, "write cac success\n");
     if ( *operator++(&g_cacvalidateState) == CAC_WRITETWO )
         g_cacvalidateState = CAC_IDLE;
@@ -2350,6 +2564,7 @@ void __cdecl SV_CACValidateWriteCACSuccess(int controllerIndex, void *data)
         BLOB_TYPE_CAC,
         g_cacvalidateState == CAC_IDLE);
     SV_ResetFileOp(data);
+#endif
 }
 
 void __cdecl SV_CACValidateWriteCACFailure(int controllerIndex, _QWORD *data)
@@ -2357,11 +2572,12 @@ void __cdecl SV_CACValidateWriteCACFailure(int controllerIndex, _QWORD *data)
     Com_DPrintf(15, "write cac failure\n");
     SV_CACValidateSendClientMsg(data[34], 6u);
     g_cacvalidateState = CAC_IDLE;
-    SV_ResetFileOp(data);
+    SV_ResetFileOp((dwFileOperationInfo*)data);
 }
 
 void __cdecl SV_CACValidateWriteGlobal(unsigned __int64 client, unsigned __int8 *globalblob, unsigned int globalsize)
 {
+#ifdef KISAK_LIVE_STUBS
     dwFileOperationInfo *fileInfo; // [esp+4h] [ebp-4h]
 
     Com_DPrintf(15, "CACValidate: Attempting to write globalblob for client %llu with size %i\n", client, globalsize);
@@ -2400,10 +2616,12 @@ void __cdecl SV_CACValidateWriteGlobal(unsigned __int64 client, unsigned __int8 
     {
         Com_DPrintf(15, "Warning: ran out of client fileops. This is bad. Ask Ewan.\n");
     }
+#endif
 }
 
 void __cdecl SV_CACValidateWriteGlobalSuccess(int controllerIndex, void *data)
 {
+#ifdef KISAK_LIVE_STUBS
     Com_DPrintf(15, "write global success\n");
     if ( *operator++(&g_cacvalidateState) == CAC_WRITETWO )
         g_cacvalidateState = CAC_IDLE;
@@ -2414,6 +2632,7 @@ void __cdecl SV_CACValidateWriteGlobalSuccess(int controllerIndex, void *data)
         BLOB_TYPE_GLOBAL,
         g_cacvalidateState == CAC_IDLE);
     SV_ResetFileOp(data);
+#endif
 }
 
 void __cdecl SV_CACValidateWriteGlobalFailure(int controllerIndex, _QWORD *data)
@@ -2421,7 +2640,7 @@ void __cdecl SV_CACValidateWriteGlobalFailure(int controllerIndex, _QWORD *data)
     Com_DPrintf(15, "write global failure\n");
     SV_CACValidateSendClientMsg(data[34], 6u);
     g_cacvalidateState = CAC_IDLE;
-    SV_ResetFileOp(data);
+    SV_ResetFileOp((dwFileOperationInfo*)data);
 }
 
 TaskRecord *__cdecl SV_CACValidateReadCAC(unsigned __int64 client, unsigned __int8 *cacblob, unsigned int cacsize)
@@ -2447,7 +2666,7 @@ TaskRecord *__cdecl SV_CACValidateReadCAC(unsigned __int64 client, unsigned __in
     {
         fileInfo->isUserFile = 1;
         fileInfo->isCompressedFile = 1;
-        fileInfo->fileTask.m_filename = "mpstatsCompressed";
+        fileInfo->fileTask.m_filename = (char*)"mpstatsCompressed";
         fileInfo->fileBuffer = cacblob;
         fileInfo->bufferSize = cacsize;
         fileInfo->ownerID = client;
@@ -2466,6 +2685,7 @@ TaskRecord *__cdecl SV_CACValidateReadCAC(unsigned __int64 client, unsigned __in
 
 void __cdecl SV_CACValidateReadCACSuccess(int controllerIndex, void *data)
 {
+#ifdef KISAK_LIVE_STUBS
     Com_DPrintf(15, "cac read success\n");
     if ( !*((unsigned int *)data + 9)
         && !Assert_MyHandler(
@@ -2500,10 +2720,12 @@ void __cdecl SV_CACValidateReadCACSuccess(int controllerIndex, void *data)
         }
     }
     SV_ResetFileOp(data);
+#endif
 }
 
 int __cdecl SV_CACValidateReadCACFailure(int controllerIndex, void *data)
 {
+#ifdef KISAK_LIVE_STUBS
     Com_DPrintf(15, "cac read failure\n");
     if ( !*((unsigned int *)data + 9)
         && !Assert_MyHandler(
@@ -2581,10 +2803,14 @@ TaskRecord *__cdecl SV_CACValidateReadGlobal(
     if ( !retval )
         Com_Printf(15, "Couldn't read global immediate for %llu\n", client);
     return retval;
+#else
+    return 0;
+#endif
 }
 
 void __cdecl SV_CACValidateReadGlobalSuccess(int controllerIndex, void *data)
 {
+#ifdef KISAK_LIVE_STUBS
     Com_DPrintf(15, "global read success\n");
     if ( !*((unsigned int *)data + 9)
         && !Assert_MyHandler(
@@ -2619,10 +2845,12 @@ void __cdecl SV_CACValidateReadGlobalSuccess(int controllerIndex, void *data)
         }
     }
     SV_ResetFileOp(data);
+#endif
 }
 
 int __cdecl SV_CACValidateReadGlobalFailure(int controllerIndex, _QWORD *data)
 {
+#ifdef KISAK_LIVE_STUBS
     Com_DPrintf(15, "global read failure\n");
     g_globalBlobSize = 0;
     if ( *operator++(&g_cacvalidateState) == CAC_FETCHTWO )
@@ -2648,6 +2876,9 @@ int __cdecl SV_CACValidateReadGlobalFailure(int controllerIndex, _QWORD *data)
     }
     SV_ResetFileOp(data);
     return 1;
+#else
+    return 1;
+#endif
 }
 
 void __cdecl SV_CACValidateHandleRequest(
@@ -2655,6 +2886,7 @@ void __cdecl SV_CACValidateHandleRequest(
                 unsigned __int8 *compressedcac,
                 unsigned int cacsize)
 {
+#ifdef KISAK_LIVE_STUBS
     unsigned intv3; // eax
     bool ok; // [esp+3h] [ebp-1h]
 
@@ -2712,6 +2944,7 @@ void __cdecl SV_CACValidateHandleRequest(
         Com_DPrintf(15, "immediate NACK\n");
         SV_CACValidateSendClientMsg(clientID, 4u);
     }
+#endif
 }
 
 void __cdecl Live_OnNewStatsFromServer(unsigned __int8 *compressedblob, unsigned int blobsize, blobtype_t blobtype)
@@ -2871,6 +3104,7 @@ char __cdecl Live_CACValidate_DispatchMessage(
     }
 }
 
+
 void __cdecl SV_SetPlaylistFetchedTime()
 {
     g_svLastPlaylistFetch = Sys_Milliseconds();
@@ -2907,6 +3141,7 @@ void __cdecl SV_FetchWADDeferred()
 
 TaskRecord *__cdecl LiveStorage_ReadPlayerGlobalBlob()
 {
+#ifdef KISAK_LIVE_STUBS
     TaskRecord *nestedTask; // [esp+0h] [ebp-10h]
     TaskRecord *task; // [esp+4h] [ebp-Ch]
     dwFileOperationInfo *fileInfo; // [esp+Ch] [ebp-4h]
@@ -2944,10 +3179,14 @@ TaskRecord *__cdecl LiveStorage_ReadPlayerGlobalBlob()
         Com_DPrintf(15, "Warning: ran out of client fileops. This is bad. Ask Ewan.\n");
         return 0;
     }
+#else
+    return NULL;
+#endif
 }
 
 void __cdecl LiveStorage_GetGlobalBlobSuccess(int controllerIndex, void *data)
 {
+#ifdef KISAK_LIVE_STUBS
     persistentStats *StatsBuffer; // eax
     unsigned int StatsBufferSize; // [esp-4h] [ebp-4h]
 
@@ -2960,14 +3199,19 @@ void __cdecl LiveStorage_GetGlobalBlobSuccess(int controllerIndex, void *data)
     SV_ResetFileOp(data);
     CL_GetXP_f();
     LiveStats_MakeStableGlobalStatsBuffer(controllerIndex);
+#endif
 }
 
 int __cdecl LiveStorage_GetGlobalBlobFileNotFound(int controlleridx, void *data)
 {
+#ifdef KISAK_LIVE_STUBS
     LiveStorage_ReadPlayerStats(0, 0, 0);
     LiveStorage_FinishStatsFetch();
     SV_ResetFileOp(data);
     return 1;
+#else
+    return 1;
+#endif
 }
 
 bool __cdecl LiveStorage_AreWeFetchingStats()
@@ -3022,11 +3266,12 @@ void __cdecl LiveStorage_SaveRecentServersComplete(int controllerindex, void *da
     {
         __debugbreak();
     }
-    SV_ResetFileOp(data);
+    SV_ResetFileOp((dwFileOperationInfo* )data);
 }
 
 TaskRecord *__cdecl LiveStorage_SaveRecentServers(unsigned __int8 *buffer, int buffSize)
 {
+#ifdef KISAK_LIVE_STUBS
     TaskRecord *nestedTask; // [esp+0h] [ebp-10h]
     dwFileOperationInfo *fileInfo; // [esp+Ch] [ebp-4h]
 
@@ -3053,10 +3298,14 @@ TaskRecord *__cdecl LiveStorage_SaveRecentServers(unsigned __int8 *buffer, int b
         Com_DPrintf(15, "Warning: ran out of client fileops. This is bad. Ask Ewan.\n");
         return 0;
     }
+#else
+    return 0;
+#endif
 }
 
 TaskRecord *__cdecl LiveStorage_ReadRecentServers(unsigned __int8 *buf, int bufsize)
 {
+#ifdef KISAK_LIVE_STUBS
     TaskRecord *nestedTask; // [esp+0h] [ebp-10h]
     dwFileOperationInfo *fileInfo; // [esp+Ch] [ebp-4h]
 
@@ -3083,6 +3332,9 @@ TaskRecord *__cdecl LiveStorage_ReadRecentServers(unsigned __int8 *buf, int bufs
         Com_DPrintf(15, "Warning: ran out of client fileops. This is bad. Ask Ewan.\n");
         return 0;
     }
+#else
+    return 0;
+#endif
 }
 
 void __cdecl LiveStorage_ReadRecentServersSuccess(int controllerIndex, void *data)
@@ -3100,7 +3352,7 @@ void __cdecl LiveStorage_DeleteGlobalStats(int controllerIndex)
     {
         __debugbreak();
     }
-    fileInfo->fileTask.m_filename = "globalstatsCompressed";
+    fileInfo->fileTask.m_filename = (char*)"globalstatsCompressed";
     fileInfo->isUserFile = 1;
     fileInfo->fileOperationSucessFunction = (void (__cdecl *)(const int, void *))LiveStorage_DeleteGlobalStatsSuccess;
     fileInfo->fileOperationFailureFunction = (void (__cdecl *)(const int, void *))LiveStorage_DeleteGlobalStatsNotFound;
@@ -3121,15 +3373,15 @@ void __cdecl LiveStorage_DeleteGlobalStatsNotFound()
 
 void __cdecl ResetCreateAClassNames(int controllerIndex)
 {
-    SetDvarFromLocString_0(controllerIndex, "customclass1", "CLASS_SLOT1_CAPS");
-    SetDvarFromLocString_0(controllerIndex, "customclass2", "CLASS_SLOT2_CAPS");
-    SetDvarFromLocString_0(controllerIndex, "customclass3", "CLASS_SLOT3_CAPS");
-    SetDvarFromLocString_0(controllerIndex, "customclass4", "CLASS_SLOT4_CAPS");
-    SetDvarFromLocString_0(controllerIndex, "customclass5", "CLASS_SLOT5_CAPS");
-    SetDvarFromLocString_0(controllerIndex, "prestigeclass1", "CLASS_PRESTIGE1_CAPS");
-    SetDvarFromLocString_0(controllerIndex, "prestigeclass2", "CLASS_PRESTIGE2_CAPS");
-    SetDvarFromLocString_0(controllerIndex, "prestigeclass3", "CLASS_PRESTIGE3_CAPS");
-    SetDvarFromLocString_0(controllerIndex, "prestigeclass4", "CLASS_PRESTIGE4_CAPS");
-    SetDvarFromLocString_0(controllerIndex, "prestigeclass5", "CLASS_PRESTIGE5_CAPS");
+    SetDvarFromLocString_0(controllerIndex, "customclass1",   (char*)"CLASS_SLOT1_CAPS");
+    SetDvarFromLocString_0(controllerIndex, "customclass2",   (char*)"CLASS_SLOT2_CAPS");
+    SetDvarFromLocString_0(controllerIndex, "customclass3",   (char*)"CLASS_SLOT3_CAPS");
+    SetDvarFromLocString_0(controllerIndex, "customclass4",   (char*)"CLASS_SLOT4_CAPS");
+    SetDvarFromLocString_0(controllerIndex, "customclass5",   (char*)"CLASS_SLOT5_CAPS");
+    SetDvarFromLocString_0(controllerIndex, "prestigeclass1", (char*)"CLASS_PRESTIGE1_CAPS");
+    SetDvarFromLocString_0(controllerIndex, "prestigeclass2", (char*)"CLASS_PRESTIGE2_CAPS");
+    SetDvarFromLocString_0(controllerIndex, "prestigeclass3", (char*)"CLASS_PRESTIGE3_CAPS");
+    SetDvarFromLocString_0(controllerIndex, "prestigeclass4", (char*)"CLASS_PRESTIGE4_CAPS");
+    SetDvarFromLocString_0(controllerIndex, "prestigeclass5", (char*)"CLASS_PRESTIGE5_CAPS");
 }
 

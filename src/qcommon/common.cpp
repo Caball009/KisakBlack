@@ -2944,7 +2944,7 @@ int __cdecl Com_GetPrivateClients()
     return 0;
 }
 
-void Com_Printf_NoFilter(char *fmt, ...)
+void Com_Printf_NoFilter(const char *fmt, ...)
 {
     char string[4100]; // [esp+4h] [ebp-1008h] BYREF
     va_list va; // [esp+1018h] [ebp+Ch] BYREF

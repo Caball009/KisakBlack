@@ -11,10 +11,39 @@
 #include "win_gamepad.h"
 #include <client_mp/cl_main_mp.h>
 #include <cgame_mp/cg_local_mp.h>
+#include <live/live_win.h>
+#include <ui/ui_playlists.h>
+#include <client_mp/cl_input_mp.h>
 
-// need live/live_win for more of this file
+const char *commonDvarList[19] =
+{
+  "gpad_buttonsConfig",
+  "gpad_button_lstick_deflect_max",
+  "gpad_button_rstick_deflect_max",
+  "r_gamma",
+  "snd_menu_voice",
+  "snd_menu_music",
+  "snd_menu_sfx",
+  "snd_menu_master",
+  "snd_menu_cinematic",
+  "snd_menu_speaker_setup",
+  "snd_menu_listen_level",
+  "snd_menu_left_channel",
+  "snd_menu_right_channel",
+  "snd_menu_center_channel",
+  "snd_menu_left_surround",
+  "snd_menu_right_surround",
+  "snd_menu_lfe",
+  "demo_controllerConfig",
+  NULL
+};
 
 GamerSettingState gamerSettings[1];
+const char *mpDvarList[1];
+const char *nonResetMPDvarList[1];
+const char *commonXProfileDvarList[1];
+
+extern dvar_t *sv_botUseFriendNames; // KISAKTODO: remove later
 
 void __cdecl ResetCreateAClassNames(int controllerIndex)
 {
@@ -258,6 +287,20 @@ void __cdecl GamerProfile_UpdateDvarsFromProfile(int controllerIndex)
     }
 }
 
+const char *dvarNameList[10] =
+{
+  "mis_01",
+  "mis_difficulty",
+  "takeCoverWarnings",
+  "r_gamma",
+  "snd_menu_voice",
+  "snd_menu_music",
+  "snd_menu_sfx",
+  "snd_menu_master",
+  "snd_menu_cinematic",
+  NULL
+};
+
 void __cdecl DebugReportProfileDVars(const char *headerMsg)
 {
     const char *VariantString; // eax
@@ -271,18 +314,39 @@ void __cdecl DebugReportProfileDVars(const char *headerMsg)
     }
 }
 
+void __cdecl SetDvarFromLocString_0(int controllerIndex, const char *dvarName, char *preLocalizedText)
+{
+    char *localizedText; // [esp+0h] [ebp-4h]
+
+    if (!Dvar_IsValidName(dvarName)
+        && !Assert_MyHandler(
+            "C:\\projects_pc\\cod\\codsrc\\src\\win32\\win_gamerprofile.cpp",
+            961,
+            0,
+            "%s",
+            "Dvar_IsValidName( dvarName )"))
+    {
+        __debugbreak();
+    }
+    localizedText = SEH_LocalizeTextMessage(preLocalizedText, "dvar string", LOCMSG_NOERR);
+    if (localizedText && *localizedText)
+        Dvar_SetCommand(dvarName, localizedText);
+    else
+        Dvar_SetCommand(dvarName, preLocalizedText);
+}
+
 void __cdecl ResetCreateAClassNames(int controllerIndex)
 {
-    SetDvarFromLocString_0(controllerIndex, "customclass1", "CLASS_SLOT1_CAPS");
-    SetDvarFromLocString_0(controllerIndex, "customclass2", "CLASS_SLOT2_CAPS");
-    SetDvarFromLocString_0(controllerIndex, "customclass3", "CLASS_SLOT3_CAPS");
-    SetDvarFromLocString_0(controllerIndex, "customclass4", "CLASS_SLOT4_CAPS");
-    SetDvarFromLocString_0(controllerIndex, "customclass5", "CLASS_SLOT5_CAPS");
-    SetDvarFromLocString_0(controllerIndex, "prestigeclass1", "CLASS_PRESTIGE1_CAPS");
-    SetDvarFromLocString_0(controllerIndex, "prestigeclass2", "CLASS_PRESTIGE2_CAPS");
-    SetDvarFromLocString_0(controllerIndex, "prestigeclass3", "CLASS_PRESTIGE3_CAPS");
-    SetDvarFromLocString_0(controllerIndex, "prestigeclass4", "CLASS_PRESTIGE4_CAPS");
-    SetDvarFromLocString_0(controllerIndex, "prestigeclass5", "CLASS_PRESTIGE5_CAPS");
+    SetDvarFromLocString_0(controllerIndex, "customclass1",   (char*)"CLASS_SLOT1_CAPS");
+    SetDvarFromLocString_0(controllerIndex, "customclass2",   (char*)"CLASS_SLOT2_CAPS");
+    SetDvarFromLocString_0(controllerIndex, "customclass3",   (char*)"CLASS_SLOT3_CAPS");
+    SetDvarFromLocString_0(controllerIndex, "customclass4",   (char*)"CLASS_SLOT4_CAPS");
+    SetDvarFromLocString_0(controllerIndex, "customclass5",   (char*)"CLASS_SLOT5_CAPS");
+    SetDvarFromLocString_0(controllerIndex, "prestigeclass1", (char*)"CLASS_PRESTIGE1_CAPS");
+    SetDvarFromLocString_0(controllerIndex, "prestigeclass2", (char*)"CLASS_PRESTIGE2_CAPS");
+    SetDvarFromLocString_0(controllerIndex, "prestigeclass3", (char*)"CLASS_PRESTIGE3_CAPS");
+    SetDvarFromLocString_0(controllerIndex, "prestigeclass4", (char*)"CLASS_PRESTIGE4_CAPS");
+    SetDvarFromLocString_0(controllerIndex, "prestigeclass5", (char*)"CLASS_PRESTIGE5_CAPS");
 }
 
 void __cdecl GamerProfile_UpdateProfileFromDvars(int controllerIndex, profileWriteState_t profileWriteState)
@@ -352,9 +416,9 @@ void __cdecl GamerProfile_UpdateProfileFromDvars(int controllerIndex, profileWri
     {
         if ( Dvar_GetBool("zombietron") )
         {
-            Cmd_ExecuteSingleCommand(0, controllerIndex, "exec thumbstick_default.cfg\n");
-            Cmd_ExecuteSingleCommand(0, controllerIndex, "exec buttons_default.cfg\n");
-            Cmd_ExecuteSingleCommand(0, controllerIndex, "exec buttons_zombietron\n");
+            Cmd_ExecuteSingleCommand(0, controllerIndex, (char*)"exec thumbstick_default.cfg\n");
+            Cmd_ExecuteSingleCommand(0, controllerIndex, (char*)"exec buttons_default.cfg\n");
+            Cmd_ExecuteSingleCommand(0, controllerIndex, (char*)"exec buttons_zombietron\n");
         }
         else
         {

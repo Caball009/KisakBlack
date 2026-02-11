@@ -1,6 +1,25 @@
 #include "live_sessions_win.h"
+#include <win32/win_tasks.h>
+#include <DW/dwMatchMaking.h>
+#include <client_mp/cl_main_pc_mp.h>
+#include <gfx_d3d/r_rendercmds.h>
+#include "live_storage_win.h"
+#include "live_win.h"
+#include <DW/dwUtils_pc.h>
+#include "live_stats.h"
+#include <game_mp/g_main_mp.h>
+#include <server_mp/sv_init_mp.h>
+#include "live_leaderboard.h"
+#include <cgame/cg_compass.h>
 
 SessionData_s g_serverSession;
+
+overlappedTask overlappedTasks_2[32];
+const dvar_t *matchmaking_debug;
+SessionJoinData sessionJoinData[32];
+SessionCreateData sessionCreateData[32];
+
+SessionGraveYard sessionGraveYard[6];
 
 void __cdecl Session_ClearDWOverlappedTasks()
 {
@@ -19,6 +38,7 @@ void __cdecl Live_FindSessionsPump()
 
 void __cdecl Session_QoSListenStart(SessionData_s *session)
 {
+#ifdef KISAK_LIVE_STUBS
     unsigned __int8 *QosPayloadBuffer; // eax
     unsigned int v2; // [esp-4h] [ebp-8h]
     bdQoSProbe *qosProbe; // [esp+0h] [ebp-4h]
@@ -48,10 +68,12 @@ void __cdecl Session_QoSListenStart(SessionData_s *session)
         Com_Error(ERR_DROP, "Error when trying to listen for QoS queries for %s\n", session->sessionName);
     }
     UI_CloseMenu(0, "popup_gettingdata");
+#endif
 }
 
 void __cdecl Session_QoSListenStop(SessionData_s *session)
 {
+#ifdef KISAK_LIVE_STUBS
     bdQoSProbe *qosProbe; // [esp+0h] [ebp-4h]
 
     if ( !session->qosListenEnabled
@@ -71,6 +93,7 @@ void __cdecl Session_QoSListenStop(SessionData_s *session)
     else
         Com_PrintError(16, "Error from dwGetQoSProbe()\n");
     session->qosListenEnabled = 0;
+#endif
 }
 
 int __cdecl Session_FindRegisteredUser(const SessionData_s *session, unsigned __int64 xuid)
@@ -102,6 +125,7 @@ void __cdecl Session_EndGameSession(SessionData_s *session)
 
 void __cdecl Session_DeleteSession(SessionData_s *session)
 {
+#ifdef KISAK_LIVE_STUBS
     int FreeSessionGraveYardSlot; // eax
 
     Session_EndOngoingSessionTasks(session);
@@ -135,10 +159,12 @@ void __cdecl Session_DeleteSession(SessionData_s *session)
     session->publicSlots = 0;
     session->keysGenerated = 0;
     //BLOPS_NULLSUB();
+#endif
 }
 
 void __cdecl Session_DeleteHandle(bool *sessionHandle)
 {
+#ifdef KISAK_LIVE_STUBS
     overlappedTask *sessionDeleteOverlappedIO; // [esp+0h] [ebp-14h]
     bdSecurityID secID; // [esp+4h] [ebp-10h] BYREF
     int localControllerIndex; // [esp+10h] [ebp-4h]
@@ -164,6 +190,7 @@ void __cdecl Session_DeleteHandle(bool *sessionHandle)
         TaskManager_ClearTask(sessionDeleteOverlappedIO);
     }
     LiveStorage_UploadStats();
+#endif
 }
 
 void __cdecl Session_UnregisterAllUsersFromVoice(SessionData_s *session)
@@ -197,6 +224,7 @@ int __cdecl Session_GetFreeSessionGraveYardSlot()
 
 void __cdecl Session_StartHost(SessionData_s *session, int sessionFlags, int numPrivateSlots, int numPublicSlots)
 {
+#ifdef KISAK_LIVE_STUBS
     int SignInState; // eax
     bdTrulyRandomImpl *Instance; // eax
     bdSecurityKey secKey; // [esp+64h] [ebp-24h] BYREF
@@ -327,6 +355,7 @@ void __cdecl Session_StartHost(SessionData_s *session, int sessionFlags, int num
     if ( !session_nonblocking->current.enabled )
         Session_EndOngoingSessionTasks(session);
     dwCreateLanSession();
+#endif
 }
 
 int __cdecl Session_GetFreeCreateSessionSlot()
@@ -677,6 +706,7 @@ void __cdecl Session_EndOngoingSessionTasks(SessionData_s *session)
 
 taskCompleteResults __cdecl Session_StartHostComplete(int slot)
 {
+#ifdef KISAK_LIVE_STUBS
     bdTrulyRandomImpl *Instance; // eax
     XNADDR *p_hostAddress; // esi
     XNADDR *v4; // edi
@@ -789,6 +819,9 @@ taskCompleteResults __cdecl Session_StartHostComplete(int slot)
     if ( result == TASK_ERROR )
         Com_Error(ERR_DROP, "EXE_ERROR_CREATING_SESSION");
     return result;
+#else
+    return TASK_NOTCOMPLETE;
+#endif
 }
 
 int __cdecl Session_EveryoneLeaveSessionComplete(int slot)
@@ -846,7 +879,7 @@ void __cdecl Live_FinishOngoingSessionJoinTasksForXUID(unsigned __int64 player)
                 {
                     do
                     {
-                        result = Session_JoinSessionComplete(tasknum);
+                        result = (taskCompleteResults)Session_JoinSessionComplete(tasknum);
                         if ( (unsigned int)result >= TASK_ERROR )
                             Com_PrintError(16, "EXE_ERROR_JOINING_SESSION");
                     }
@@ -918,17 +951,17 @@ void Session_ManageGraveYard()
     int slot; // [esp+0h] [ebp-Ch]
     SessionData_s *session; // [esp+8h] [ebp-4h]
 
-    if ( !CG_IsShowingZombieMap() )
+    if (!CG_IsShowingZombieMap())
     {
-        for ( slot = 0; slot < 6; ++slot )
+        for (slot = 0; slot < 6; ++slot)
         {
-            if ( sessionGraveYard[slot].active )
+            if (sessionGraveYard[slot].active)
             {
-                session = (SessionData_s *)((char *)&unk_A53DA40 + 2432 * slot);
-                if ( !Session_SessionTasksInProgress(session) )
+                session = &sessionGraveYard[slot].sessionData;
+                if (!Session_SessionTasksInProgress(session))
                 {
                     Session_EndGameSession(session);
-                    if ( !Session_SessionTasksInProgress(session) && !Session_SessionTasksInProgress(session) )
+                    if (!Session_SessionTasksInProgress(session) && !Session_SessionTasksInProgress(session))
                     {
                         Session_DeleteHandle(&session->sessionHandle);
                         session->sessionHandle = 0;
@@ -945,7 +978,7 @@ void __cdecl Session_Init()
     memset((unsigned __int8 *)sessionJoinData, 0, sizeof(sessionJoinData));
     memset((unsigned __int8 *)sessionCreateData, 0, sizeof(sessionCreateData));
     TaskManager_ClearOverlappedTasks(overlappedTasks_2);
-    g_serverSession.sessionName = "gameSession";
+    g_serverSession.sessionName = (char*)"gameSession";
     g_serverSession.registerUsersWithVoice = 1;
     matchmaking_debug = _Dvar_RegisterBool("matchmaking_debug", 1, 0, "Enable matchmaking debugging information");
 }

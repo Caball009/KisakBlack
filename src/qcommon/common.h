@@ -222,7 +222,7 @@ void __cdecl Com_SyncThreads();
 const char *__cdecl Com_DisplayName(const char *name, const char *clanAbbrev, int type);
 const char *__cdecl CS_DisplayName(const clientState_s *cs, int type);
 int __cdecl Com_GetPrivateClients();
-void Com_Printf_NoFilter(char *fmt, ...);
+void Com_Printf_NoFilter(const char *fmt, ...);
 
 #include <xmmintrin.h>  // SSE
 

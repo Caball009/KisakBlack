@@ -9,6 +9,169 @@
 #include "live_win_common.h"
 #include <client/cl_rank.h>
 #include "live_win.h"
+#include <client_mp/cl_ui_pc_mp.h>
+#include "live_friends_pc.h"
+#include <game_mp/g_main_mp.h>
+#include "live_stats.h"
+#include "live.h"
+#include "live_storage_win.h"
+#include <DW/dwUtils.h>
+
+const int GlobalLbStat[4][19] =
+{
+  { 16, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+  { 8, 9, 10, 17, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+  { 1, 2, 3, 18, 4, 11, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+  { 13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+const int lbStatCounts[8] =
+{ 4, 3, 4, 3, 4, 4, 4, 4 };
+
+const int GlobalLbStatCounts[4] =
+{ 3, 4, 7, 3 };
+
+const char *lbFilterEnum_6[4] =
+{ "none", "friends", "lobbymembers", NULL };
+
+const char *lbResetPeriodEnum_6[4] =
+{ "all_time", "weekly", "monthly", NULL };
+
+const int LbStatPerLbGameMode[8][17] =
+{
+  { 6, 7, 8, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+  { 6, 7, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+  { 10, 11, 12, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+  { 10, 12, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+  { 14, 15, 12, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+  { 14, 15, 12, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+  { 10, 16, 12, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+  { 14, 15, 12, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+const char *GlobalLbStatStrings[73] =
+{
+  "SCORE_PER_MINUTE",
+  "KILLS",
+  "DEATHS",
+  "KDRATIO",
+  "ASSISTS",
+  "RANKXP",
+  "PLEVEL",
+  "TIME_PLAYED_TOTAL",
+  "WINS",
+  "LOSSES",
+  "WLRATIO",
+  "HEADSHOTS",
+  "ACCURACY",
+  "CODPOINTS",
+  "CURRENCYEARNED",
+  "CURRENCYSPENT",
+  "SCORE",
+  "WIN_STREAK",
+  "KILL_STREAK",
+  "bad allocation",
+  "CA_DISCONNECTED",
+  "CA_CINEMATIC",
+  "CA_UICINEMATIC",
+  "CA_LOGO",
+  "CA_CONNECTING",
+  "CA_CHALLENGING",
+  "CA_CONNECTED",
+  "CA_SENDINGSTATS",
+  "CA_LOADING",
+  "CA_PRIMED",
+  "CA_ACTIVE",
+  "bad allocation",
+  "CA_DISCONNECTED",
+  "CA_CINEMATIC",
+  "CA_UICINEMATIC",
+  "CA_LOGO",
+  "CA_CONNECTING",
+  "CA_CHALLENGING",
+  "CA_CONNECTED",
+  "CA_SENDINGSTATS",
+  "CA_LOADING",
+  "CA_PRIMED",
+  "CA_ACTIVE",
+  "Gamestate",
+  "Snapshots",
+  "MatchStates",
+  "PlayerStates",
+  "Entities",
+  "Clients",
+  "Actors",
+  "AnimCmds",
+  "none",
+  "segmentName",
+  "clipNameIngame",
+  "clipDescIngame",
+  "screenshotNameIngame",
+  "screenshotDescIngame",
+  "fileshareFileName",
+  "fileshareFileDescription",
+  "MENU_SEGMENT_TAG_KILL",
+  "MENU_SEGMENT_TAG_DEATH",
+  "MENU_SEGMENT_TAG_KILLSTREAK",
+  "MENU_SEGMENT_TAG_PERK",
+  "MENU_SEGMENT_TAG_WEAPON",
+  "MENU_SEGMENT_TAG_EQUIPMENT",
+  "MENU_SEGMENT_TAG_GRENADE",
+  "MENU_SEGMENT_TAG_MELEE",
+  "MENU_DEMO_TRANSITION_CUT",
+  "MENU_DEMO_TRANSITION_FADE",
+  "listen server",
+  "dedicated LAN server",
+  "dedicated internet server",
+  NULL,
+};
+
+
+const char *lbStatStrings[18] =
+{
+  "MATCHES_PLAYED",
+  "SCORE",
+  "TIME_PLAYED_TOTAL",
+  "SCORE_PER_MINUTE",
+  "RANKXP",
+  "PLEVEL",
+  "KILLS",
+  "DEATHS",
+  "KDRATIO",
+  "ASSISTS",
+  "CAPTURES",
+  "RETURNS",
+  "DEFENDS",
+  "PICKUPS",
+  "PLANTS",
+  "DEFUSES",
+  "DESTRUCTIONS",
+  NULL
+};
+
+const char *lbTypeEnum_6[17] =
+{
+  "tdm",
+  "dm",
+  "ctf",
+  "dom",
+  "sab",
+  "sd",
+  "koth",
+  "dem",
+  "hctdm",
+  "hcdm",
+  "hcctf",
+  "hcdom",
+  "hcsab",
+  "hcsd",
+  "hckoth",
+  "hcdem",
+  NULL
+};
+
+const int GlobalLbViewIds[4] =
+{ 3000, 3001, 3002, 3003 };
 
 const int lbViewIds[160] =
 {
@@ -368,6 +531,7 @@ LbType __cdecl LB_GetLbIndex(LbType type, LbResetPeriod resetPeriod, bool isPres
 
 char __cdecl LB_GetNumMatchesPlayedForPlayerFromLb(Leaderboard *lb, int controllerIndex)
 {
+#ifdef KISAK_LIVE_STUBS
     LbResetPeriod Int; // eax
     bool Bool; // [esp-4h] [ebp-1Ch]
     LbType lbIndex; // [esp+8h] [ebp-10h]
@@ -429,10 +593,14 @@ char __cdecl LB_GetNumMatchesPlayedForPlayerFromLb(Leaderboard *lb, int controll
         Com_PrintError(22, "dwGetOnlineUserID() failed, probably called before NP logon has completed\n");
         return 0;
     }
+#else
+    return 0;
+#endif
 }
 
 char __cdecl LB_GetByRank(Leaderboard *lb, int controllerIndex, unsigned int topRank)
 {
+#ifdef KISAK_LIVE_STUBS
     LbType lbIndex; // [esp+8h] [ebp-8h]
     overlappedTask *ov; // [esp+Ch] [ebp-4h]
 
@@ -493,10 +661,14 @@ char __cdecl LB_GetByRank(Leaderboard *lb, int controllerIndex, unsigned int top
             Com_PrintError(22, "Error Reading number of matches played from leaderboard\n");
         return 1;
     }
+#else
+    return false;
+#endif
 }
 
 char __cdecl LB_GetByPlayer(Leaderboard *lb, int localClientNum)
 {
+#ifdef KISAK_LIVE_STUBS
     int ControllerIndex; // eax
     int v4; // eax
     int v5; // eax
@@ -565,10 +737,14 @@ char __cdecl LB_GetByPlayer(Leaderboard *lb, int localClientNum)
         Com_PrintError(22, "dwGetOnlineUserID() failed, probably called before NP logon has completed\n");
         return 0;
     }
+#else
+    return false;
+#endif
 }
 
 char __cdecl LB_GetStatsByXuids(int controllerIndex, Leaderboard *lb)
 {
+#ifdef KISAK_LIVE_STUBS
     LbType lbIndex; // [esp+8h] [ebp-8h]
     overlappedTask *ov; // [esp+Ch] [ebp-4h]
 
@@ -612,6 +788,9 @@ char __cdecl LB_GetStatsByXuids(int controllerIndex, Leaderboard *lb)
             Com_PrintError(22, "Error Reading number of matches played from leaderboard\n");
         return 1;
     }
+#else
+    return false;
+#endif
 }
 
 char __cdecl LB_GetPlayerStats(int controllerIndex, Leaderboard *lb)
@@ -731,7 +910,7 @@ LeaderBoardResult<LeaderBoardRow<10>,100> *__cdecl LB_UpdateLeaderboard(int loca
     bool notSameFilter; // [esp+16h] [ebp-16h]
     int controllerIndex; // [esp+18h] [ebp-14h]
     bool notSameResetPeriod; // [esp+1Fh] [ebp-Dh]
-    unsigned intms; // [esp+24h] [ebp-8h]
+    unsigned int ms; // [esp+24h] [ebp-8h]
     bool notSamePrestigeMode; // [esp+2Ah] [ebp-2h]
 
     lb = (Leaderboard *)&g_lbGlob.feederText[15520 * lbType - 248320];
@@ -813,7 +992,7 @@ int __cdecl LB_FeederCount(int localClientNum)
     Leaderboard *lb; // [esp+0h] [ebp-Ch]
     LbType lbType; // [esp+4h] [ebp-8h]
 
-    lbType = lb_type->current.integer;
+    lbType = (LbType)lb_type->current.integer;
     Com_LocalClient_GetControllerIndex(localClientNum);
     if ( !LB_NeedToReadLeaderBoard() )
         return 0;
@@ -836,7 +1015,7 @@ void __cdecl LB_OnSelect(int localClientNum)
     LbType lbType; // [esp+4h] [ebp-Ch]
     LeaderBoardRow<10> *row; // [esp+8h] [ebp-8h]
 
-    lbType = lb_type->current.integer;
+    lbType = (LbType)lb_type->current.integer;
     if ( !g_lbGlob.feederText[15520 * lbType - 232995] )
     {
         row = &LB_UpdateLeaderboard(localClientNum, lbType, *(unsigned int *)&g_lbGlob.feederText[15520 * lbType - 233000])->m_leaderBoardEntries[*(unsigned int *)&g_lbGlob.feederText[15520 * lbType - 233000] - *(unsigned int *)&g_lbGlob.feederText[15520 * lbType - 233004]];
@@ -849,7 +1028,7 @@ void __cdecl LB_GetSelectedPlayerInfo(int localClientNum, LBSelectedPlayerInfo *
     LeaderBoardRow<10> *v2; // eax
     LbType lbType; // [esp+4h] [ebp-Ch]
 
-    lbType = lb_type->current.integer;
+    lbType = (LbType)lb_type->current.integer;
     if ( !g_lbGlob.feederText[15520 * lbType - 232995] )
     {
         v2 = &LB_UpdateLeaderboard(localClientNum, lbType, *(unsigned int *)&g_lbGlob.feederText[15520 * lbType - 233000])->m_leaderBoardEntries[*(unsigned int *)&g_lbGlob.feederText[15520 * lbType - 233000] - *(unsigned int *)&g_lbGlob.feederText[15520 * lbType - 233004]];
@@ -1071,7 +1250,7 @@ bool __cdecl LB_MakeRow(
     }
     numLbs = g_LbLookup.numLbs;
     structure = 0;
-    row->m_writeType = statWriteTypeAdd;
+    row->m_writeType = (bdWriteType)statWriteTypeAdd;
     for ( i = 0; !structure && i < numLbs; ++i )
     {
         if ( g_LbLookup.structures[i].type == type )
@@ -1247,6 +1426,7 @@ char __cdecl LB_SetGametypeDvar()
 
 taskCompleteResults __cdecl LB_ReadHiddenLeaderboardComplete(unsigned int slot)
 {
+#ifdef KISAK_LIVE_STUBS
     int v2; // [esp+0h] [ebp-1A0h]
     taskCompleteResults v3; // [esp+Ch] [ebp-194h]
     unsigned int i; // [esp+10h] [ebp-190h]
@@ -1400,6 +1580,9 @@ taskCompleteResults __cdecl LB_ReadHiddenLeaderboardComplete(unsigned int slot)
     bdStatsInfo::~bdStatsInfo(&rowToBeWrittenToLb);
     bdStatsInfo::~bdStatsInfo(&rowToBeWrittenToHiddenLb);
     return v3;
+#else
+    return TASK_NOTCOMPLETE;
+#endif
 }
 
 void __cdecl LB_SetStatsForRow(int controllerIndex, const char *gameModePrefix, bool setMatchDelta)
@@ -1613,7 +1796,7 @@ taskCompleteResults __cdecl LB_ReadLeaderboardComplete(unsigned int slot)
     {
         lb->numResults = 0;
         lb->totalResults = 0;
-        if ( readStatsOverlappedIO->finalStatus == BD_TIMED_OUT )
+        if ( readStatsOverlappedIO->finalStatus == bdRemoteTask::bdStatus::BD_TIMED_OUT )
         {
             controllerIndex = readStatsOverlappedIO->controllerIndex;
             TaskManager_ClearTask(readStatsOverlappedIO);
@@ -1820,6 +2003,7 @@ void __cdecl Lb_InitiateWeeklyAndMonthlyLbWrite(int controllerIndex, LbType type
 
 char __cdecl LB_UploadPlayerStats(int localControllerIndex)
 {
+#ifdef KISAK_LIVE_STUBS
     __int64 v2; // [esp-Ch] [ebp-408h]
     __int64 v3; // [esp-Ch] [ebp-408h]
     int v4; // [esp+0h] [ebp-3FCh]
@@ -1973,6 +2157,9 @@ char __cdecl LB_UploadPlayerStats(int localControllerIndex)
             n = (bdStatsInfo *)((char *)n - 152);
         return 1;
     }
+#else
+    return false;
+#endif
 }
 
 taskCompleteResults __cdecl LB_UploadPlayerStatsComplete(unsigned int slot)
@@ -2172,6 +2359,7 @@ taskCompleteResults __cdecl LB_ResolveEscrowComplete(unsigned int slot)
 
 taskCompleteResults __cdecl LB_RetrieveEscrowBalanceComplete(unsigned int slot)
 {
+#ifdef KISAK_LIVE_STUBS
     taskCompleteResults v2; // [esp+Ch] [ebp-15Ch]
     LeaderBoardRow<10> updateTimeRow; // [esp+10h] [ebp-158h] BYREF
     LeaderBoardRow<10> balanceRow; // [esp+A8h] [ebp-C0h] BYREF
@@ -2254,6 +2442,9 @@ taskCompleteResults __cdecl LB_RetrieveEscrowBalanceComplete(unsigned int slot)
         TaskManager_ClearTask(retrieveEscrowBalanceOverlappedIO);
     }
     return result;
+#else
+    return TASK_NOTCOMPLETE;
+#endif
 }
 
 taskCompleteResults __cdecl LB_ClearEscrowComplete(int slot)
@@ -2297,7 +2488,7 @@ char *__cdecl LB_FeederItemText(int localClientNum, unsigned int index, int colu
     LeaderBoardRow<10> *row; // [esp+1Ch] [ebp-Ch]
     LeaderBoardResult<LeaderBoardRow<10>,100> *stats; // [esp+20h] [ebp-8h]
 
-    lbType = lb_type->current.integer;
+    lbType = (LbType)lb_type->current.integer;
     Com_LocalClient_GetControllerIndex(localClientNum);
     if ( !LB_NeedToReadLeaderBoard() )
         return 0;
@@ -2499,6 +2690,10 @@ void __cdecl LB_InitAndRegisterStructureForSpecialLeaderboards(
     LB_RegisterGlobalStructure(&g_LbLookup, v3, lbIndex);
 }
 
+cmd_function_s LB_IncrementEscrow_VAR;
+cmd_function_s LB_openDownloadingMenuCmd_VAR;
+cmd_function_s LB_ReportUser_VAR;
+
 void __cdecl LB_Init()
 {
     int gpad; // [esp+4h] [ebp-BCh]
@@ -2669,7 +2864,7 @@ LABEL_26:
 
 void __cdecl LB_EndOngoingTasks()
 {
-    unsigned intstart; // [esp+0h] [ebp-4h]
+    unsigned int start; // [esp+0h] [ebp-4h]
 
     start = Sys_Milliseconds();
     while ( TaskManager_AnyTaskInProgress(g_lbGlob.tasks) )
@@ -2683,267 +2878,224 @@ void __cdecl LB_EndOngoingTasks()
     }
 }
 
-void __thiscall LeaderBoardRow<10>::serialize(LeaderBoardRow<10> *this, bdByteBuffer *buffer)
-{
-    unsigned int i; // [esp+4h] [ebp-4h]
+//LbGlob *__thiscall LbGlob::LbGlob(LbGlob *this)
+//{
+//    int v3; // [esp+4h] [ebp-40h]
+//    LeaderBoardRow<10> *kk; // [esp+8h] [ebp-3Ch]
+//    int v5; // [esp+Ch] [ebp-38h]
+//    LeaderBoardRow<10> *jj; // [esp+10h] [ebp-34h]
+//    int v7; // [esp+14h] [ebp-30h]
+//    LeaderBoardRow<10> *ii; // [esp+18h] [ebp-2Ch]
+//    int v9; // [esp+1Ch] [ebp-28h]
+//    LeaderBoardRow<10> *n; // [esp+20h] [ebp-24h]
+//    int v11; // [esp+24h] [ebp-20h]
+//    Leaderboard *m; // [esp+28h] [ebp-1Ch]
+//    int v13; // [esp+2Ch] [ebp-18h]
+//    LeaderBoardRow<10> *k; // [esp+30h] [ebp-14h]
+//    int v15; // [esp+34h] [ebp-10h]
+//    LbPlayerStat *j; // [esp+38h] [ebp-Ch]
+//    int v17; // [esp+3Ch] [ebp-8h]
+//    LbGlob *i; // [esp+40h] [ebp-4h]
+//
+//    v17 = 32;
+//    for ( i = this; --v17 >= 0; i = (LbGlob *)((char *)i + 36) )
+//        i->tasks[0].overlappedIO.m_ptr = 0;
+//    v15 = 1;
+//    for ( j = this->playerStats; --v15 >= 0; ++j )
+//    {
+//        LODWORD(j->userID) = 0;
+//        HIDWORD(j->userID) = 0;
+//    }
+//    v13 = 1;
+//    for ( k = this->escrowData; --v13 >= 0; ++k )
+//    {
+//        bdStatsInfo::bdStatsInfo(k);
+//        k->__vftable = (LeaderBoardRow<10>_vtbl *)&LeaderBoardRow<10>::`vftable';
+//        k->m_columns[0] = 0;
+//        k->m_columns[1] = 0;
+//        k->m_columns[2] = 0;
+//        k->m_columns[3] = 0;
+//        k->m_columns[4] = 0;
+//        k->m_columns[5] = 0;
+//        k->m_columns[6] = 0;
+//        k->m_columns[7] = 0;
+//        k->m_columns[8] = 0;
+//        k->m_columns[9] = 0;
+//    }
+//    v11 = 16;
+//    for ( m = this->leaderboards; --v11 >= 0; ++m )
+//        Leaderboard::Leaderboard(m);
+//    v9 = 1;
+//    for ( n = this->weeklyEntry; --v9 >= 0; ++n )
+//    {
+//        bdStatsInfo::bdStatsInfo(n);
+//        n->__vftable = (LeaderBoardRow<10>_vtbl *)&LeaderBoardRow<10>::`vftable';
+//        n->m_columns[0] = 0;
+//        n->m_columns[1] = 0;
+//        n->m_columns[2] = 0;
+//        n->m_columns[3] = 0;
+//        n->m_columns[4] = 0;
+//        n->m_columns[5] = 0;
+//        n->m_columns[6] = 0;
+//        n->m_columns[7] = 0;
+//        n->m_columns[8] = 0;
+//        n->m_columns[9] = 0;
+//    }
+//    v7 = 1;
+//    for ( ii = this->prestigeWeeklyEntry; --v7 >= 0; ++ii )
+//    {
+//        bdStatsInfo::bdStatsInfo(ii);
+//        ii->__vftable = (LeaderBoardRow<10>_vtbl *)&LeaderBoardRow<10>::`vftable';
+//        ii->m_columns[0] = 0;
+//        ii->m_columns[1] = 0;
+//        ii->m_columns[2] = 0;
+//        ii->m_columns[3] = 0;
+//        ii->m_columns[4] = 0;
+//        ii->m_columns[5] = 0;
+//        ii->m_columns[6] = 0;
+//        ii->m_columns[7] = 0;
+//        ii->m_columns[8] = 0;
+//        ii->m_columns[9] = 0;
+//    }
+//    v5 = 1;
+//    for ( jj = this->monthlyEntry; --v5 >= 0; ++jj )
+//    {
+//        bdStatsInfo::bdStatsInfo(jj);
+//        jj->__vftable = (LeaderBoardRow<10>_vtbl *)&LeaderBoardRow<10>::`vftable';
+//        jj->m_columns[0] = 0;
+//        jj->m_columns[1] = 0;
+//        jj->m_columns[2] = 0;
+//        jj->m_columns[3] = 0;
+//        jj->m_columns[4] = 0;
+//        jj->m_columns[5] = 0;
+//        jj->m_columns[6] = 0;
+//        jj->m_columns[7] = 0;
+//        jj->m_columns[8] = 0;
+//        jj->m_columns[9] = 0;
+//    }
+//    v3 = 1;
+//    for ( kk = this->prestigeMonthlyEntry; --v3 >= 0; ++kk )
+//    {
+//        bdStatsInfo::bdStatsInfo(kk);
+//        kk->__vftable = (LeaderBoardRow<10>_vtbl *)&LeaderBoardRow<10>::`vftable';
+//        kk->m_columns[0] = 0;
+//        kk->m_columns[1] = 0;
+//        kk->m_columns[2] = 0;
+//        kk->m_columns[3] = 0;
+//        kk->m_columns[4] = 0;
+//        kk->m_columns[5] = 0;
+//        kk->m_columns[6] = 0;
+//        kk->m_columns[7] = 0;
+//        kk->m_columns[8] = 0;
+//        kk->m_columns[9] = 0;
+//    }
+//    return this;
+//}
 
-    bdStatsInfo::serialize(this, buffer);
-    for ( i = 0; i < 0xA; ++i )
-        bdByteBuffer::writeInt32(buffer, this->m_columns[i]);
-}
-
-bool __thiscall LeaderBoardRow<10>::deserialize(LeaderBoardRow<10> *this, bdReference<bdByteBuffer> buffer)
-{
-    bdReference<bdCommonAddr> v3; // [esp-4h] [ebp-38h] BYREF
-    bool v4; // [esp+3h] [ebp-31h]
-    volatile int m_refCount; // [esp+4h] [ebp-30h]
-    LeaderBoardRow<10> *thisa; // [esp+8h] [ebp-2Ch]
-    bdByteBuffer *v7; // [esp+18h] [ebp-1Ch]
-    bdReference<bdCommonAddr> *v8; // [esp+1Ch] [ebp-18h]
-    bdCommonAddr *m_ptr; // [esp+20h] [ebp-14h]
-    bool v10; // [esp+27h] [ebp-Dh]
-    unsigned int i; // [esp+2Ch] [ebp-8h]
-    bool ok; // [esp+33h] [ebp-1h]
-
-    thisa = this;
-    v8 = &v3;
-    v3.m_ptr = (bdCommonAddr *)buffer.m_ptr;
-    if ( buffer.m_ptr )
-    {
-        m_ptr = v8->m_ptr;
-        InterlockedIncrement(&m_ptr->m_refCount);
-        m_refCount = m_ptr->m_refCount;
-    }
-    v4 = bdStatsInfo::deserialize((int)thisa, v3);
-    ok = v4;
-    for ( i = 0; ok && i < 0xA; ++i )
-    {
-        v7 = buffer.m_ptr;
-        ok = bdByteBuffer::readInt32(buffer.m_ptr, &thisa->m_columns[i]);
-    }
-    v10 = ok;
-    bdReference<bdRemoteTask>::~bdReference<bdRemoteTask>((bdReference<bdCommonAddr> *)&buffer);
-    return v10;
-}
-
-LbGlob *__thiscall LbGlob::LbGlob(LbGlob *this)
-{
-    int v3; // [esp+4h] [ebp-40h]
-    LeaderBoardRow<10> *kk; // [esp+8h] [ebp-3Ch]
-    int v5; // [esp+Ch] [ebp-38h]
-    LeaderBoardRow<10> *jj; // [esp+10h] [ebp-34h]
-    int v7; // [esp+14h] [ebp-30h]
-    LeaderBoardRow<10> *ii; // [esp+18h] [ebp-2Ch]
-    int v9; // [esp+1Ch] [ebp-28h]
-    LeaderBoardRow<10> *n; // [esp+20h] [ebp-24h]
-    int v11; // [esp+24h] [ebp-20h]
-    Leaderboard *m; // [esp+28h] [ebp-1Ch]
-    int v13; // [esp+2Ch] [ebp-18h]
-    LeaderBoardRow<10> *k; // [esp+30h] [ebp-14h]
-    int v15; // [esp+34h] [ebp-10h]
-    LbPlayerStat *j; // [esp+38h] [ebp-Ch]
-    int v17; // [esp+3Ch] [ebp-8h]
-    LbGlob *i; // [esp+40h] [ebp-4h]
-
-    v17 = 32;
-    for ( i = this; --v17 >= 0; i = (LbGlob *)((char *)i + 36) )
-        i->tasks[0].overlappedIO.m_ptr = 0;
-    v15 = 1;
-    for ( j = this->playerStats; --v15 >= 0; ++j )
-    {
-        LODWORD(j->userID) = 0;
-        HIDWORD(j->userID) = 0;
-    }
-    v13 = 1;
-    for ( k = this->escrowData; --v13 >= 0; ++k )
-    {
-        bdStatsInfo::bdStatsInfo(k);
-        k->__vftable = (LeaderBoardRow<10>_vtbl *)&LeaderBoardRow<10>::`vftable';
-        k->m_columns[0] = 0;
-        k->m_columns[1] = 0;
-        k->m_columns[2] = 0;
-        k->m_columns[3] = 0;
-        k->m_columns[4] = 0;
-        k->m_columns[5] = 0;
-        k->m_columns[6] = 0;
-        k->m_columns[7] = 0;
-        k->m_columns[8] = 0;
-        k->m_columns[9] = 0;
-    }
-    v11 = 16;
-    for ( m = this->leaderboards; --v11 >= 0; ++m )
-        Leaderboard::Leaderboard(m);
-    v9 = 1;
-    for ( n = this->weeklyEntry; --v9 >= 0; ++n )
-    {
-        bdStatsInfo::bdStatsInfo(n);
-        n->__vftable = (LeaderBoardRow<10>_vtbl *)&LeaderBoardRow<10>::`vftable';
-        n->m_columns[0] = 0;
-        n->m_columns[1] = 0;
-        n->m_columns[2] = 0;
-        n->m_columns[3] = 0;
-        n->m_columns[4] = 0;
-        n->m_columns[5] = 0;
-        n->m_columns[6] = 0;
-        n->m_columns[7] = 0;
-        n->m_columns[8] = 0;
-        n->m_columns[9] = 0;
-    }
-    v7 = 1;
-    for ( ii = this->prestigeWeeklyEntry; --v7 >= 0; ++ii )
-    {
-        bdStatsInfo::bdStatsInfo(ii);
-        ii->__vftable = (LeaderBoardRow<10>_vtbl *)&LeaderBoardRow<10>::`vftable';
-        ii->m_columns[0] = 0;
-        ii->m_columns[1] = 0;
-        ii->m_columns[2] = 0;
-        ii->m_columns[3] = 0;
-        ii->m_columns[4] = 0;
-        ii->m_columns[5] = 0;
-        ii->m_columns[6] = 0;
-        ii->m_columns[7] = 0;
-        ii->m_columns[8] = 0;
-        ii->m_columns[9] = 0;
-    }
-    v5 = 1;
-    for ( jj = this->monthlyEntry; --v5 >= 0; ++jj )
-    {
-        bdStatsInfo::bdStatsInfo(jj);
-        jj->__vftable = (LeaderBoardRow<10>_vtbl *)&LeaderBoardRow<10>::`vftable';
-        jj->m_columns[0] = 0;
-        jj->m_columns[1] = 0;
-        jj->m_columns[2] = 0;
-        jj->m_columns[3] = 0;
-        jj->m_columns[4] = 0;
-        jj->m_columns[5] = 0;
-        jj->m_columns[6] = 0;
-        jj->m_columns[7] = 0;
-        jj->m_columns[8] = 0;
-        jj->m_columns[9] = 0;
-    }
-    v3 = 1;
-    for ( kk = this->prestigeMonthlyEntry; --v3 >= 0; ++kk )
-    {
-        bdStatsInfo::bdStatsInfo(kk);
-        kk->__vftable = (LeaderBoardRow<10>_vtbl *)&LeaderBoardRow<10>::`vftable';
-        kk->m_columns[0] = 0;
-        kk->m_columns[1] = 0;
-        kk->m_columns[2] = 0;
-        kk->m_columns[3] = 0;
-        kk->m_columns[4] = 0;
-        kk->m_columns[5] = 0;
-        kk->m_columns[6] = 0;
-        kk->m_columns[7] = 0;
-        kk->m_columns[8] = 0;
-        kk->m_columns[9] = 0;
-    }
-    return this;
-}
-
-Leaderboard *__thiscall Leaderboard::Leaderboard(Leaderboard *this)
-{
-    LeaderBoardResult<LeaderBoardRow<10>,100>::LeaderBoardResult<LeaderBoardRow<10>,100>(&this->userStats);
-    bdStatsInfo::bdStatsInfo(&this->playerLbRow);
-    this->playerLbRow.__vftable = (LeaderBoardRow<10>_vtbl *)&LeaderBoardRow<10>::`vftable';
-    this->playerLbRow.m_columns[0] = 0;
-    this->playerLbRow.m_columns[1] = 0;
-    this->playerLbRow.m_columns[2] = 0;
-    this->playerLbRow.m_columns[3] = 0;
-    this->playerLbRow.m_columns[4] = 0;
-    this->playerLbRow.m_columns[5] = 0;
-    this->playerLbRow.m_columns[6] = 0;
-    this->playerLbRow.m_columns[7] = 0;
-    this->playerLbRow.m_columns[8] = 0;
-    this->playerLbRow.m_columns[9] = 0;
-    return this;
-}
-
-LeaderBoardResult<LeaderBoardRow<10>,100> *__thiscall LeaderBoardResult<LeaderBoardRow<10>,100>::LeaderBoardResult<LeaderBoardRow<10>,100>(
-                LeaderBoardResult<LeaderBoardRow<10>,100> *this)
-{
-    int v3; // [esp+4h] [ebp-8h]
-    LeaderBoardRow<10> *i; // [esp+8h] [ebp-4h]
-
-    bdStatsInfo::bdStatsInfo(this);
-    this->__vftable = (LeaderBoardResult<LeaderBoardRow<10>,100>_vtbl *)&LeaderBoardResult<LeaderBoardRow<10>,100>::`vftable';
-    v3 = 100;
-    for ( i = this->m_leaderBoardEntries; --v3 >= 0; ++i )
-    {
-        bdStatsInfo::bdStatsInfo(i);
-        i->__vftable = (LeaderBoardRow<10>_vtbl *)&LeaderBoardRow<10>::`vftable';
-        i->m_columns[0] = 0;
-        i->m_columns[1] = 0;
-        i->m_columns[2] = 0;
-        i->m_columns[3] = 0;
-        i->m_columns[4] = 0;
-        i->m_columns[5] = 0;
-        i->m_columns[6] = 0;
-        i->m_columns[7] = 0;
-        i->m_columns[8] = 0;
-        i->m_columns[9] = 0;
-    }
-    return this;
-}
-
-void __thiscall LeaderBoardResult<LeaderBoardRow<10>,100>::~LeaderBoardResult<LeaderBoardRow<10>,100>(
-                LeaderBoardResult<LeaderBoardRow<10>,100> *this)
-{
-    int v2; // [esp+4h] [ebp-8h]
-    LeaderBoardResult<LeaderBoardRow<10>,100> *i; // [esp+8h] [ebp-4h]
-
-    v2 = 100;
-    for ( i = this + 1; --v2 >= 0; bdStatsInfo::~bdStatsInfo(i) )
-        i = (LeaderBoardResult<LeaderBoardRow<10>,100> *)((char *)i - 152);
-    bdStatsInfo::~bdStatsInfo(this);
-}
-
-void __thiscall LbGlob::~LbGlob(LbGlob *this)
-{
-    int v2; // [esp+4h] [ebp-44h]
-    bdReference<bdCommonAddr> *jj; // [esp+8h] [ebp-40h]
-    int v4; // [esp+18h] [ebp-30h]
-    bdStatsInfo *ii; // [esp+1Ch] [ebp-2Ch]
-    int v6; // [esp+20h] [ebp-28h]
-    Leaderboard *n; // [esp+24h] [ebp-24h]
-    int v8; // [esp+28h] [ebp-20h]
-    LeaderBoardRow<10> *m; // [esp+2Ch] [ebp-1Ch]
-    int v10; // [esp+30h] [ebp-18h]
-    LeaderBoardRow<10> *k; // [esp+34h] [ebp-14h]
-    int v12; // [esp+38h] [ebp-10h]
-    LeaderBoardRow<10> *j; // [esp+3Ch] [ebp-Ch]
-    int v14; // [esp+40h] [ebp-8h]
-    bdStatsInfo *i; // [esp+44h] [ebp-4h]
-
-    v14 = 1;
-    for ( i = (bdStatsInfo *)&this[1]; --v14 >= 0; bdStatsInfo::~bdStatsInfo(i) )
-        i = (bdStatsInfo *)((char *)i - 152);
-    v12 = 1;
-    for ( j = this->prestigeMonthlyEntry; --v12 >= 0; bdStatsInfo::~bdStatsInfo(j) )
-        --j;
-    v10 = 1;
-    for ( k = this->monthlyEntry; --v10 >= 0; bdStatsInfo::~bdStatsInfo(k) )
-        --k;
-    v8 = 1;
-    for ( m = this->prestigeWeeklyEntry; --v8 >= 0; bdStatsInfo::~bdStatsInfo(m) )
-        --m;
-    v6 = 16;
-    for ( n = (Leaderboard *)this->feederText; --v6 >= 0; Leaderboard::~Leaderboard(n) )
-        --n;
-    v4 = 1;
-    for ( ii = (bdStatsInfo *)this->escrowBalance; --v4 >= 0; bdStatsInfo::~bdStatsInfo(ii) )
-        ii = (bdStatsInfo *)((char *)ii - 152);
-    v2 = 32;
-    for ( jj = (bdReference<bdCommonAddr> *)this->playerStats;
-                --v2 >= 0;
-                bdReference<bdRemoteTask>::~bdReference<bdRemoteTask>(jj) )
-    {
-        jj -= 9;
-    }
-}
-
-void __thiscall Leaderboard::~Leaderboard(Leaderboard *this)
-{
-    bdStatsInfo::~bdStatsInfo(&this->playerLbRow);
-    LeaderBoardResult<LeaderBoardRow<10>,100>::~LeaderBoardResult<LeaderBoardRow<10>,100>(&this->userStats);
-}
+//Leaderboard *__thiscall Leaderboard::Leaderboard(Leaderboard *this)
+//{
+//    LeaderBoardResult<LeaderBoardRow<10>,100>::LeaderBoardResult<LeaderBoardRow<10>,100>(&this->userStats);
+//    bdStatsInfo::bdStatsInfo(&this->playerLbRow);
+//    this->playerLbRow.__vftable = (LeaderBoardRow<10>_vtbl *)&LeaderBoardRow<10>::`vftable';
+//    this->playerLbRow.m_columns[0] = 0;
+//    this->playerLbRow.m_columns[1] = 0;
+//    this->playerLbRow.m_columns[2] = 0;
+//    this->playerLbRow.m_columns[3] = 0;
+//    this->playerLbRow.m_columns[4] = 0;
+//    this->playerLbRow.m_columns[5] = 0;
+//    this->playerLbRow.m_columns[6] = 0;
+//    this->playerLbRow.m_columns[7] = 0;
+//    this->playerLbRow.m_columns[8] = 0;
+//    this->playerLbRow.m_columns[9] = 0;
+//    return this;
+//}
+//
+//LeaderBoardResult<LeaderBoardRow<10>,100> *__thiscall LeaderBoardResult<LeaderBoardRow<10>,100>::LeaderBoardResult<LeaderBoardRow<10>,100>(
+//                LeaderBoardResult<LeaderBoardRow<10>,100> *this)
+//{
+//    int v3; // [esp+4h] [ebp-8h]
+//    LeaderBoardRow<10> *i; // [esp+8h] [ebp-4h]
+//
+//    bdStatsInfo::bdStatsInfo(this);
+//    this->__vftable = (LeaderBoardResult<LeaderBoardRow<10>,100>_vtbl *)&LeaderBoardResult<LeaderBoardRow<10>,100>::`vftable';
+//    v3 = 100;
+//    for ( i = this->m_leaderBoardEntries; --v3 >= 0; ++i )
+//    {
+//        bdStatsInfo::bdStatsInfo(i);
+//        i->__vftable = (LeaderBoardRow<10>_vtbl *)&LeaderBoardRow<10>::`vftable';
+//        i->m_columns[0] = 0;
+//        i->m_columns[1] = 0;
+//        i->m_columns[2] = 0;
+//        i->m_columns[3] = 0;
+//        i->m_columns[4] = 0;
+//        i->m_columns[5] = 0;
+//        i->m_columns[6] = 0;
+//        i->m_columns[7] = 0;
+//        i->m_columns[8] = 0;
+//        i->m_columns[9] = 0;
+//    }
+//    return this;
+//}
+//
+//void __thiscall LeaderBoardResult<LeaderBoardRow<10>,100>::~LeaderBoardResult<LeaderBoardRow<10>,100>(
+//                LeaderBoardResult<LeaderBoardRow<10>,100> *this)
+//{
+//    int v2; // [esp+4h] [ebp-8h]
+//    LeaderBoardResult<LeaderBoardRow<10>,100> *i; // [esp+8h] [ebp-4h]
+//
+//    v2 = 100;
+//    for ( i = this + 1; --v2 >= 0; bdStatsInfo::~bdStatsInfo(i) )
+//        i = (LeaderBoardResult<LeaderBoardRow<10>,100> *)((char *)i - 152);
+//    bdStatsInfo::~bdStatsInfo(this);
+//}
+//
+//void __thiscall LbGlob::~LbGlob(LbGlob *this)
+//{
+//    int v2; // [esp+4h] [ebp-44h]
+//    bdReference<bdCommonAddr> *jj; // [esp+8h] [ebp-40h]
+//    int v4; // [esp+18h] [ebp-30h]
+//    bdStatsInfo *ii; // [esp+1Ch] [ebp-2Ch]
+//    int v6; // [esp+20h] [ebp-28h]
+//    Leaderboard *n; // [esp+24h] [ebp-24h]
+//    int v8; // [esp+28h] [ebp-20h]
+//    LeaderBoardRow<10> *m; // [esp+2Ch] [ebp-1Ch]
+//    int v10; // [esp+30h] [ebp-18h]
+//    LeaderBoardRow<10> *k; // [esp+34h] [ebp-14h]
+//    int v12; // [esp+38h] [ebp-10h]
+//    LeaderBoardRow<10> *j; // [esp+3Ch] [ebp-Ch]
+//    int v14; // [esp+40h] [ebp-8h]
+//    bdStatsInfo *i; // [esp+44h] [ebp-4h]
+//
+//    v14 = 1;
+//    for ( i = (bdStatsInfo *)&this[1]; --v14 >= 0; bdStatsInfo::~bdStatsInfo(i) )
+//        i = (bdStatsInfo *)((char *)i - 152);
+//    v12 = 1;
+//    for ( j = this->prestigeMonthlyEntry; --v12 >= 0; bdStatsInfo::~bdStatsInfo(j) )
+//        --j;
+//    v10 = 1;
+//    for ( k = this->monthlyEntry; --v10 >= 0; bdStatsInfo::~bdStatsInfo(k) )
+//        --k;
+//    v8 = 1;
+//    for ( m = this->prestigeWeeklyEntry; --v8 >= 0; bdStatsInfo::~bdStatsInfo(m) )
+//        --m;
+//    v6 = 16;
+//    for ( n = (Leaderboard *)this->feederText; --v6 >= 0; Leaderboard::~Leaderboard(n) )
+//        --n;
+//    v4 = 1;
+//    for ( ii = (bdStatsInfo *)this->escrowBalance; --v4 >= 0; bdStatsInfo::~bdStatsInfo(ii) )
+//        ii = (bdStatsInfo *)((char *)ii - 152);
+//    v2 = 32;
+//    for ( jj = (bdReference<bdCommonAddr> *)this->playerStats;
+//                --v2 >= 0;
+//                bdReference<bdRemoteTask>::~bdReference<bdRemoteTask>(jj) )
+//    {
+//        jj -= 9;
+//    }
+//}
+//
+//Leaderboard::~Leaderboard()
+//{
+//    bdStatsInfo::~bdStatsInfo(&this->playerLbRow);
+//    LeaderBoardResult<LeaderBoardRow<10>,100>::~LeaderBoardResult<LeaderBoardRow<10>,100>(&this->userStats);
+//}
 

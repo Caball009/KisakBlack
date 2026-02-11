@@ -89,6 +89,20 @@ struct bdRemoteTask : bdReferencable // sizeof=0x40
     bdTaskResultProcessor *m_taskResultProcessor;
                                         // XREF: bdHTTPClient::resolveHostIP(bdAddr &)+72/o
                                         // bdHTTPClient::resolveHostIP(bdAddr &)+80/w ...
+
+    bdRemoteTask();
+    ~bdRemoteTask();
+
+    bdRemoteTask::bdStatus getStatus() const
+    {
+        float elapsedTime;
+        if (this->m_status == 1 && this->m_timeout > 0.0)
+        {
+            elapsedTime = this->m_timer
+        }
+        return m_status;
+    }
+
 };
 
 struct TaskRecord // sizeof=0x34
@@ -981,3 +995,19 @@ void __cdecl LiveStorage_GetFriendStatsCmd();
 void __cdecl LiveStorage_RestoreStatsFromBackupCmd();
 void __cdecl LiveStorage_FakeComErrorCmd();
 void __cdecl LiveStorage_CheckOngoingSessionTasks();
+
+
+extern const dvar_t *stat_version;
+extern const dvar_t *stats_version_check;
+extern const dvar_t *maxStatsBackupInterval;
+extern const dvar_t *dwFileFetchTryIntervalBase;
+extern const dvar_t *dwFileFetchTryIntervalMax;
+extern const dvar_t *dwFileFetchTryMaxAttempts;
+extern const dvar_t *clanMessageLastFetchTime;
+extern const dvar_t *eventMessageLastFetchTime;
+extern const dvar_t *codMessageLastFetchTime;
+extern const dvar_t *waitOnStatsTimeout;
+extern const dvar_t *heatMapLoadDelay;
+extern const dvar_t *minDelayForOtherPlayerStatsFetch;
+extern const dvar_t *fshSearchTaskDelay;
+extern const dvar_t *basicTrainingFatal;

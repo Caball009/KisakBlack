@@ -1,5 +1,33 @@
 #include "live_win_common.h"
+#include <qcommon/com_clients.h>
+#include "live_win.h"
+#include <DW/dwNet.h>
+#include "live_groups_dw.h"
+#include <DW/MatchRecorder.h>
+#include "live_leaderboard.h"
+#include "live_sessions_win.h"
+#include "live_news.h"
+#include "live_counter.h"
+#include "live_pcache.h"
+#include <client_mp/cl_main_pc_mp.h>
+#include <win32/win_shared.h>
+#include "live.h"
+#include <qcommon/common.h>
+#include <universal/assertive.h>
+#include <qcommon/threads.h>
 
+#include <DW/dwLogOn_pc.h>
+#include <DW/MatchMakingInfo_win32.h>
+
+const char *s_comErrorString;
+bool s_shouldComError;
+
+bool dw_disconnect_detected;
+
+int sessiontimer;
+
+extern const dvar_t *live_service; // KISAKTODO: remove these later
+extern const dvar_t *dw_dupe_key;
 char __cdecl Live_Frame_MP(int localControllerIndex)
 {
     bool v2; // [esp+7h] [ebp-21h]
@@ -29,10 +57,13 @@ char __cdecl Live_Frame_MP(int localControllerIndex)
         s_shouldComError = 0;
         Com_Error(ERR_DROP, s_comErrorString);
     }
+
     if ( !live_service->current.enabled )
         return 0;
+
     if ( dw_dupe_key->current.enabled )
         return 0;
+
     if ( dw_disconnect_detected )
     {
         Live_DemonwareDisconnectCleanup(0);
@@ -41,7 +72,7 @@ char __cdecl Live_Frame_MP(int localControllerIndex)
     else
     {
         dw_disconnect_detected = 0;
-        onlineStatus = dwGetLogOnStatus(localControllerIndex);
+        onlineStatus = (DWOnlineStatus)dwGetLogOnStatus(localControllerIndex);
         switch ( onlineStatus )
         {
             case DW_LIVE_ERROR:
@@ -54,7 +85,7 @@ char __cdecl Live_Frame_MP(int localControllerIndex)
                 break;
             case DW_LIVE_CONNECTING:
                 dwLogOnComplete();
-                newOnlineStatus = dwGetLogOnStatus(localControllerIndex);
+                newOnlineStatus = (DWOnlineStatus)dwGetLogOnStatus(localControllerIndex);
                 if ( newOnlineStatus == DW_LIVE_DISCONNECTED )
                 {
                     Com_Printf(16, "Failed to log on.\n");
@@ -75,7 +106,8 @@ char __cdecl Live_Frame_MP(int localControllerIndex)
                 LB_CheckOngoingTasks();
                 LiveGroups_Update(localControllerIndex);
                 Live_CheckOngoingMatchRecordingTasks();
-                if ( MatchMakingInfo::doUpdate(g_matchmakingInfo, elapsed, 0xBB8u, 0x2BF20u) )
+                //if ( MatchMakingInfo::doUpdate(g_matchmakingInfo, elapsed, 0xBB8u, 0x2BF20u) )
+                if ( g_matchmakingInfo->doUpdate(elapsed, 0xBB8u, 0x2BF20u) )
                     Session_Modify(0, &g_serverSession, 0, g_serverSession.publicSlots, g_serverSession.privateSlots);
                 LogOnStatus = dwGetLogOnStatus(localControllerIndex);
                 if ( LogOnStatus == 2 )
@@ -104,6 +136,7 @@ char __cdecl Live_Frame_MP(int localControllerIndex)
     }
 }
 
+extern dvar_t *dw_popup; // KISAKTODO: remove later
 void __cdecl Live_UpdateUiPopup(const char *popupname, bool reset)
 {
     int v2; // eax

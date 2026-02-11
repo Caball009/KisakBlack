@@ -16,6 +16,15 @@ struct __declspec(align(8)) PCacheComponent // sizeof=0x20
     // padding byte
 };
 
+struct PCacheComponentPool // sizeof=0x14
+{                                       // XREF: .data:s_componentPools/r
+    int count;                          // XREF: PCache_Init(void)+4E/r
+    int componentSize;                  // XREF: PCache_Init(void)+54/r
+    void *array;                        // XREF: PCache_Init(void)+64/r
+    unsigned int updateInterval;        // XREF: PCache_TouchComponent(PCacheComponent *)+C3/r
+    void (__cdecl *release)(PCacheComponent *);
+};
+
 struct PCachePublicProfile // sizeof=0x120
 {                                       // XREF: .data:s_publicProfiles/r
     PCacheComponent c;

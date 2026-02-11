@@ -40,6 +40,7 @@ TaskRecord *__cdecl LiveCounter_IncrementCounters(
                 bdCounterValue *const counterIncrements,
                 unsigned int numEntries)
 {
+#ifdef KISAK_LIVE_STUBS
     const bdReference<bdCommonAddr> *v5; // eax
     bdReference<bdCommonAddr> v6; // [esp+1Ch] [ebp-Ch] BYREF
     TaskRecord *task; // [esp+20h] [ebp-8h]
@@ -60,6 +61,9 @@ TaskRecord *__cdecl LiveCounter_IncrementCounters(
         TaskManager2_StartTask(task);
     }
     return task;
+#else
+    return NULL;
+#endif
 }
 
 TaskRecord *__cdecl LiveCounter_GetCounterTotals(
@@ -68,6 +72,7 @@ TaskRecord *__cdecl LiveCounter_GetCounterTotals(
                 bdCounterValue *results,
                 unsigned int numCounterIDs)
 {
+#ifdef KISAK_LIVE_STUBS
     const bdReference<bdCommonAddr> *CounterTotals; // eax
     bdReference<bdCommonAddr> v6; // [esp+1Ch] [ebp-Ch] BYREF
     TaskRecord *task; // [esp+20h] [ebp-8h]
@@ -86,10 +91,14 @@ TaskRecord *__cdecl LiveCounter_GetCounterTotals(
         TaskManager2_StartTask(task);
     }
     return task;
+#else
+    return NULL;
+#endif
 }
 
 TaskRecord *__cdecl LiveCounter_UploadAllCounters(int controllerIndex)
 {
+#ifdef KISAK_LIVE_STUBS
     unsigned int v1; // eax
     signed int v3; // eax
     signed int j; // [esp+4h] [ebp-Ch]
@@ -117,6 +126,9 @@ TaskRecord *__cdecl LiveCounter_UploadAllCounters(int controllerIndex)
         *(unsigned int *)(v3 * 16 + 172779900) = 0;
     }
     return LiveCounter_IncrementCounters(task_uploadAllCounters, controllerIndex, s_uploadCounters, uploadCount);
+#else
+    return NULL;
+#endif
 }
 
 void __cdecl LiveCounter_UploadAllCountersComplete()

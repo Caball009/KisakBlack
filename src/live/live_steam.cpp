@@ -4,8 +4,21 @@
 #include <win32/win_localize.h>
 #include <Windows.h>
 #include <win32/win_main.h>
+#include <steam/steamclientpublic.h>
+#include <steam/steam_api.h>
+#include <win32/win_net.h>
+#include "live_friends_pc.h"
+#include "live_steam_server.h"
+#include "live_steam_achievements.h"
+#include "live_win.h"
+#include "live_steamp2p.h"
+#include "live_steam_client.h"
+
+const dvar_t *livesteam_sv_vac;
 
 bool g_liveSteamInitialized;
+LiveSteamP2P s_SteamP2P;
+LiveSteamClient *g_liveLocalSteamClient;
 
 void __cdecl SteamAPIDebugTextHook(int severity, const char *pchDebugText)
 {
@@ -40,92 +53,95 @@ bool __cdecl LiveSteam_IsInitialized()
 
 char __cdecl LiveSteam_IsClientSignedInLocally()
 {
-    CSteamID *v0; // eax
-    int v2; // [esp+0h] [ebp-10h]
-    int v3; // [esp+0h] [ebp-10h]
-    char v4; // [esp+0h] [ebp-10h]
-    int v5; // [esp+4h] [ebp-Ch]
-    _BYTE v6[8]; // [esp+8h] [ebp-8h] BYREF
-
-    v4 = 0;
-    if ( _SteamUser(v2) )
+    if (SteamUser())
     {
-        v5 = _SteamUser(v3);
-        v0 = (CSteamID *)(*(int (__thiscall **)(int, _BYTE *))(*(unsigned int *)v5 + 8))(v5, v6);
-        if ( CSteamID::IsValid(v0) )
-            return 1;
+        return SteamUser()->GetSteamID().IsValid();
     }
-    return v4;
+
+    return false;
 }
 
 bool __cdecl LiveSteam_IsClientSignedInOnline()
 {
-    int v1; // eax
-    int v2; // [esp+0h] [ebp-4h]
-
     if ( !LiveSteam_IsClientSignedInLocally() )
         return 0;
-    v1 = _SteamUser(v2);
-    return (*(int (__thiscall **)(int, int))(*(unsigned int *)v1 + 4))(v1, v1);
+    //v1 = SteamUser();
+    //return (*(int (__thiscall **)(int, int))(*(unsigned int *)v1 + 4))(v1, v1);
+    return SteamUser()->BLoggedOn();
 }
 
 unsigned __int64 __cdecl LiveSteam_GetClientIDAsXUID()
 {
     CSteamID *v1; // eax
-    int v2; // eax
-    int v3; // [esp+0h] [ebp-24h]
-    int v4; // [esp+0h] [ebp-24h]
-    int v5; // [esp+0h] [ebp-24h]
-    int v6; // [esp+4h] [ebp-20h]
-    _BYTE v7[8]; // [esp+14h] [ebp-10h] BYREF
-    _BYTE v8[8]; // [esp+1Ch] [ebp-8h] BYREF
+    ISteamUser *v2; // eax
+    ISteamUser *v3; // [esp+4h] [ebp-20h]
+    _BYTE v4[8]; // [esp+14h] [ebp-10h] BYREF
+    _DWORD v5[2]; // [esp+1Ch] [ebp-8h] BYREF
 
-    if ( !LiveSteam_IsClientSignedInLocally() )
+    if (LiveSteam_IsClientSignedInLocally())
+    {
+        if (!SteamUser()
+            && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\live\\live_steam.cpp", 141, 0, "%s", "SteamUser()"))
+        {
+            __debugbreak();
+        }
+
+        iassert(SteamUser()->GetSteamID().IsValid());
+        //v3 = SteamUser();
+        //v1 = v3->GetSteamID(v5);
+        //if (!CSteamID::IsValid(v1)
+        //    && !Assert_MyHandler(
+        //        "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_steam.cpp",
+        //        142,
+        //        0,
+        //        "%s",
+        //        "SteamUser()->GetSteamID().IsValid()"))
+        //{
+        //    __debugbreak();
+        //}
+        //v2 = SteamUser();
+        //return v2->GetSteamID(v2, v4)->m_steamid;
+        return SteamUser()->GetSteamID().GetAccountID(); // KISAKTODO: prob wrong
+    }
+    else
+    {
         return 0;
-    if ( !_SteamUser(v3)
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\live\\live_steam.cpp", 141, 0, "%s", "SteamUser()") )
-    {
-        __debugbreak();
     }
-    v6 = _SteamUser(v4);
-    v1 = (CSteamID *)(*(int (__thiscall **)(int, _BYTE *))(*(unsigned int *)v6 + 8))(v6, v8);
-    if ( !CSteamID::IsValid(v1)
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_steam.cpp",
-                    142,
-                    0,
-                    "%s",
-                    "SteamUser()->GetSteamID().IsValid()") )
-    {
-        __debugbreak();
-    }
-    v2 = _SteamUser(v5);
-    return *(_QWORD *)(*(int (__thiscall **)(int, _BYTE *))(*(unsigned int *)v2 + 8))(v2, v7);
 }
 
 const char *__cdecl LiveSteam_GetCountryCode()
 {
-    int v1; // eax
+    ISteamUtils *v1; // eax
     const char *loc; // [esp+4h] [ebp-4h]
 
     loc = Dvar_GetString("cl_forceloc");
-    if ( loc && *loc )
+    if (loc && *loc)
         return loc;
-    v1 = _SteamUtils();
-    return (const char *)(*(int (__thiscall **)(int, int))(*(unsigned int *)v1 + 16))(v1, v1);
+
+    return SteamUtils()->GetIPCountry();
+    //v1 = SteamUtils();
+    //return (v1->GetIPCountry)(v1, v1);
 }
 
 unsigned __int64 __cdecl LiveSteam_GetUid()
 {
-    int v1; // [esp+0h] [ebp-18h]
+    ISteamUser *v1; // [esp+0h] [ebp-18h]
     _BYTE v2[8]; // [esp+10h] [ebp-8h] BYREF
 
-    if ( !_SteamUser() )
+    if (SteamUser())
+    {
+        //v1 = SteamUser();
+        //return v1->GetSteamID(v1, v2)->m_steamid;
+        return SteamUser()->GetSteamID().GetAccountID(); // KISAKTODO: prob wrong
+    }
+    else
+    {
         return 0;
-    v1 = _SteamUser();
-    return *(_QWORD *)(*(int (__thiscall **)(int, _BYTE *))(*(unsigned int *)v1 + 8))(v1, v2);
+    }
 }
 
+int g_ShellExecuteErr;
+volatile unsigned int g_ShellExecuteInProgress;
 unsigned int __stdcall ShellExecuteThredProc(const char *lpParam)
 {
     char currentDirectory[268]; // [esp+0h] [ebp-110h] BYREF
@@ -139,9 +155,9 @@ unsigned int __stdcall ShellExecuteThredProc(const char *lpParam)
 bool __cdecl LiveSteam_LaunchOtherApp(const char *cmd)
 {
     const char *v1; // eax
-    char *url; // [esp+0h] [ebp-Ch]
+    const char *url; // [esp+0h] [ebp-Ch]
     int result; // [esp+4h] [ebp-8h]
-    unsigned int dwThreadID; // [esp+8h] [ebp-4h] BYREF
+    DWORD dwThreadID; // [esp+8h] [ebp-4h] BYREF
 
     if ( !I_stricmp(cmd, "CoDSP_rd.exe") )
     {
@@ -153,15 +169,15 @@ bool __cdecl LiveSteam_LaunchOtherApp(const char *cmd)
         url = "steam://run/42710";
 LABEL_8:
         g_ShellExecuteInProgress = 1;
-        CreateThread(0, 0, (LPTHREAD_START_ROUTINE)ShellExecuteThredProc, url, 0, &dwThreadID);
+        CreateThread(0, 0, (LPTHREAD_START_ROUTINE)ShellExecuteThredProc, (LPVOID)url, 0, &dwThreadID);
         while ( g_ShellExecuteInProgress )
-            NET_Sleep(0xAu);
+            NET_Sleep(10);
         result = g_ShellExecuteErr;
         if ( g_ShellExecuteErr <= 32 )
-            Com_Printf_NoFilter("Steam_LaunchOtherApp: ShellExecute return less than 32, '%d'\n", g_ShellExecuteErr);
+            Com_Printf_NoFilter((char*)"Steam_LaunchOtherApp: ShellExecute return less than 32, '%d'\n", g_ShellExecuteErr);
         return result > 32;
     }
-    Com_Printf_NoFilter("Steam_LaunchOtherApp: Don't know how to launch '%s'\n", cmd);
+    Com_Printf_NoFilter((char *)"Steam_LaunchOtherApp: Don't know how to launch '%s'\n", cmd);
     v1 = va("Unknown exe '%s' to launch through Steam.\n", cmd);
     if ( !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\live\\live_steam.cpp", 195, 0, v1) )
         __debugbreak();
@@ -170,35 +186,34 @@ LABEL_8:
 
 void __cdecl LiveSteam_ShowStore()
 {
-    int v0; // eax
+    ISteamUtils *v0; // eax
     int v1; // eax
     ISteamFriends *steamFriends; // [esp+4h] [ebp-4h]
 
-    if ( g_liveSteamInitialized )
+    if (g_liveSteamInitialized)
     {
-        steamFriends = (ISteamFriends *)_SteamFriends();
-        if ( steamFriends )
+        steamFriends = SteamFriends();
+        if (steamFriends)
         {
-            v0 = _SteamUtils();
-            v1 = (*(int (__thiscall **)(int, int))(*(unsigned int *)v0 + 36))(v0, v0);
-            steamFriends->ActivateGameOverlayToStore(steamFriends, v1);
+            //v0 = SteamUtils();
+            //v1 = (v0->GetAppID)(v0, v0);
+            steamFriends->ActivateGameOverlayToStore(SteamUtils()->GetAppID());
         }
     }
 }
 
 void __cdecl LiveSteam_PopOverlayForSteamID(unsigned __int64 steamID)
 {
-    int v1; // [esp+0h] [ebp-Ch]
+    ISteamFriends *v1; // [esp+0h] [ebp-Ch]
     CSteamID sID; // [esp+4h] [ebp-8h] BYREF
 
-    CSteamID::CSteamID(&sID);
-    sID.m_steamid.m_comp = (CSteamID::SteamID_t::SteamIDComponent_t)steamID;
-    v1 = _SteamFriends();
-    (*(void (__thiscall **)(int, const char *, unsigned int, unsigned int))(*(unsigned int *)v1 + 80))(
-        v1,
-        "steamid",
-        *(unsigned int *)&sID.m_steamid.m_comp,
-        *((unsigned int *)&sID.m_steamid.m_comp + 1));
+    //CSteamID::CSteamID(&sID);
+    //sID.m_steamid.m_comp = steamID;
+    sID.SetFromUint64(steamID);
+    //v1 = SteamFriends();
+    //(v1->ActivateGameOverlayToUser)(v1, "steamid", *&sID.m_steamid.m_comp, *(&sID.m_steamid.m_comp + 1));
+
+    SteamFriends()->ActivateGameOverlayToUser("steamid", sID);
 }
 
 void __cdecl LiveSteam_Init()
@@ -210,6 +225,7 @@ void __cdecl LiveSteam_Init()
 
 void __cdecl LiveSteam_TestFriends_f()
 {
+#if 0 // KISAKTODO who cares
     int i; // [esp+Ch] [ebp-54h]
     unsigned __int64 dwID; // [esp+10h] [ebp-50h]
     char buf[64]; // [esp+18h] [ebp-48h] BYREF
@@ -237,6 +253,7 @@ void __cdecl LiveSteam_TestFriends_f()
         LiveSteam_GetFriendOnTheServerPersonaName(n, buf, 64);
         Com_Printf_NoFilter("STEAM: LiveSteam_GetFriendOnTheServerPersonaName( %d ): %s\n", n, buf);
     }
+#endif
 }
 
 _iobuf *LiveSteam_CreateSteamAppIdFile()
@@ -280,20 +297,23 @@ void __cdecl LiveSteam_CheckForP2PMessages()
 
     numMessages = 0;
     messagesize = 0;
-    CSteamID::CSteamID(&remoteID);
-    while ( (unsigned __int8)LiveSteamP2P::IsDataAvailable(&s_SteamP2P, &messagesize) )
+    //CSteamID::CSteamID(&remoteID);
+
+    while (s_SteamP2P.IsDataAvailable(&messagesize))
     {
         v0 = numMessages++;
         if ( v0 >= 10 )
             break;
-        LiveSteamP2P::ReadPacket(&s_SteamP2P, messageBuffer, 0x40u, &messagesize, &remoteID);
-        Live_DispatchP2PMessage(messageBuffer, messagesize, remoteID.m_steamid.m_unAll64Bits);
+        //LiveSteamP2P::ReadPacket(&s_SteamP2P, messageBuffer, 0x40u, &messagesize, &remoteID);
+        s_SteamP2P.ReadPacket(messageBuffer, 64, &messagesize, &remoteID);
+        Live_DispatchP2PMessage(messageBuffer, messagesize, remoteID.ConvertToUint64());
     }
 }
 
 void __cdecl LiveSteam_SendP2PMessage(unsigned __int64 uid, unsigned __int8 *payload, unsigned int payloadsize)
 {
-    LiveSteamP2P::SendPacketToSteamID(&s_SteamP2P, (CSteamID)uid, payload, payloadsize);
+    //LiveSteamP2P::SendPacketToSteamID(&s_SteamP2P, (CSteamID)uid, payload, payloadsize);
+    s_SteamP2P.SendPacketToSteamID((CSteamID)uid, payload, payloadsize);
 }
 
 void __cdecl LiveSteam_Frame()
@@ -301,40 +321,40 @@ void __cdecl LiveSteam_Frame()
     LiveSteam_Achievements_Frame();
     LiveSteam_Server_Frame();
     Friends_Update();
-    _SteamAPI_RunCallbacks();
+    SteamAPI_RunCallbacks();
 }
 
 void __cdecl LiveSteam_RunCallbacks()
 {
-    _SteamAPI_RunCallbacks();
+    SteamAPI_RunCallbacks();
 }
 
-char *__cdecl LiveSteam_GetClientPersonaName(bool shortName)
+char shorName[64];
+const char *__cdecl LiveSteam_GetClientPersonaName(bool shortName)
 {
-    int (__thiscall ***v1)(unsigned int, unsigned int); // eax
     const char *s; // [esp+4h] [ebp-4h]
 
-    if ( !_SteamFriends() )
-        return (char *)"";
-    v1 = (int (__thiscall ***)(unsigned int, unsigned int))_SteamFriends();
-    s = (const char *)(**v1)(v1, v1);
-    if ( !shortName )
-        return (char *)s;
+    if (!SteamFriends())
+        return "";
+
+    if (!shortName)
+        return SteamFriends()->GetPersonaName();
+
     Com_sprintf(shorName, 0x40u, "%.16s", s);
     return shorName;
 }
 
 char __cdecl LiveSteam_DWUserNameFromSteamID(char *dwUserName)
 {
-    int v2; // [esp+0h] [ebp-18h]
+    ISteamUser *v2; // [esp+0h] [ebp-18h]
     _BYTE v3[8]; // [esp+8h] [ebp-10h] BYREF
     unsigned __int64 steamid; // [esp+10h] [ebp-8h]
 
-    if ( g_liveSteamInitialized )
+    if (g_liveSteamInitialized)
     {
-        v2 = _SteamUser();
-        steamid = *(_QWORD *)(*(int (__thiscall **)(int, _BYTE *))(*(unsigned int *)v2 + 8))(v2, v3);
-        sprintf_s(dwUserName, 0x40u, "%s%I64x", "steam", steamid);
+        //v2 = SteamUser();
+        //steamid = v2->GetSteamID(v2, v3)->m_steamid.m_unAll64Bits;
+        sprintf_s(dwUserName, 0x40u, "%s%I64x", "steam", SteamUser()->GetSteamID().ConvertToUint64());
         return 1;
     }
     else
@@ -358,41 +378,39 @@ char __cdecl LiveSteam_AuthRequestTicket(const void *authBlob, unsigned int auth
     {
         __debugbreak();
     }
-    LiveSteamClient::RequestEncryptedAppTicket(g_liveLocalSteamClient, authBlob, authBlobSize);
+    //LiveSteamClient::RequestEncryptedAppTicket(g_liveLocalSteamClient, authBlob, authBlobSize);
+    g_liveLocalSteamClient->RequestEncryptedAppTicket(authBlob, authBlobSize);
     return 1;
 }
 
 char __cdecl LiveSteam_AuthGetRequestedTicket(void *ticketBuf, unsigned int ticketBufSize, unsigned int *ticketSize)
 {
-    if ( g_liveLocalSteamClient->resultOnRequestEncryptedAppTicket == k_EResultOK )
-        return LiveSteamClient::GetRetrievedEncryptedAppTicket(g_liveLocalSteamClient, ticketBuf, ticketBufSize, ticketSize);
+    if (g_liveLocalSteamClient->resultOnRequestEncryptedAppTicket == k_EResultOK)
+    {
+        //return LiveSteamClient::GetRetrievedEncryptedAppTicket(g_liveLocalSteamClient, ticketBuf, ticketBufSize, ticketSize);
+        return g_liveLocalSteamClient->GetRetrievedEncryptedAppTicket(ticketBuf, ticketBufSize, ticketSize);
+    }
     else
         return 0;
 }
 
 int __cdecl LiveSteam_Client_ConnectToSteamServer(unsigned __int64 serverID, void *authBlob, unsigned int bufferSize)
 {
-    unsigned int v4[6]; // [esp-14h] [ebp-24h] BYREF
-    int v5; // [esp+4h] [ebp-Ch]
-    unsigned int *v6; // [esp+8h] [ebp-8h]
+    int v4; // [esp-14h] [ebp-24h] BYREF
+    ISteamUser *v5; // [esp+4h] [ebp-Ch]
+    int *v6; // [esp+8h] [ebp-8h]
 
     Com_DPrintf(14, "Steam CL_ConnectToSteamServer\n");
-    v5 = _SteamUser(v4[5]);
-    v6 = v4;
-    return (*(int (__thiscall **)(int, void *, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, int))(*(unsigned int *)v5 + 12))(
-                     v5,
-                     authBlob,
-                     bufferSize,
-                     serverID,
-                     HIDWORD(serverID),
-                     0,
-                     0,
-                     1);
+    v5 = SteamUser();
+    v6 = &v4;
+    //return (v5->InitiateGameConnection)(v5, authBlob, bufferSize, serverID, HIDWORD(serverID), 0, 0, 1);
+    SteamUser()->InitiateGameConnection(authBlob, bufferSize, serverID, 0, 0, true);
 }
 
-void __thiscall LiveSteam_Client_SteamDisconnect(void *this)
+void LiveSteam_Client_SteamDisconnect()
 {
-    _SteamUser(this);
-    (*(void (__thiscall **)(unsigned int, unsigned int, unsigned int))(MEMORY[0] + 16))(0, 0, 0);
+    //SteamUser(this);
+    //(*(void (__thiscall **)(unsigned int, unsigned int, unsigned int))(MEMORY[0] + 16))(0, 0, 0);
+    SteamUser()->TerminateGameConnection(0, 0);
 }
 

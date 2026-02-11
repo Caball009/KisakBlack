@@ -2,6 +2,103 @@
 #include <win32/win_tasks.h>
 #include "live_steam.h"
 #include <DW/dwLogOn_pc.h>
+#include "live_friends_pc.h"
+#include <qcommon/com_clients.h>
+#include <client/client.h>
+#include <client_mp/cl_main_pc_mp.h>
+#include <game_mp/g_main_mp.h>
+#include "live_sessions_win.h"
+#include "live_groups_dw.h"
+#include "live_pcache.h"
+#include "live_meetplayer.h"
+#include "live_leaderboard.h"
+#include "live_counter.h"
+#include <DW/dwUtils_pc.h>
+#include "live_steam_achievements.h"
+#include <universal/com_files.h>
+#include <win32/win_net.h>
+#include <DW/dwStats.h>
+#include <win32/win_shared.h>
+#include <win32/win_gamerprofile.h>
+#include "live_storage_win.h"
+#include <DW/dwUtils.h>
+#include <client/splitscreen.h>
+#include <server_mp/sv_main_mp.h>
+
+const char *bot_difficulties[5] = { "easy", "normal", "hard", "fu", NULL };
+
+PrivateProfileInfo s_profileInfo;
+favourite_t s_favourites[42];
+recentServer_t s_recentServers[30];
+unsigned __int8 s_recentServersBuf[480];
+unsigned int s_blockedListCount;
+unsigned __int64 s_blockedList[50];
+
+bool g_shouldComError;
+const char *g_comErrorString;
+
+bool g_presenceSecKeyAndIDRegistered;
+bool s_updatePerformanceValues;
+int s_performanceValueTimer;
+int s_uploadBitsPerSec;
+
+MatchMakingInfo *g_matchmakingInfo;
+overlappedTask overlappedTasks_3[32];
+XenonUserData xenonUserData[1];
+unsigned __int64 s_lastInvite;
+
+unsigned __int64 s_selectedPlayerXUID;
+unsigned __int64 s_selectedMetPlayerXUID;
+
+int s_signInRequirement[1];
+
+bool g_shouldWeHost = true;
+
+
+
+const dvar_t *live_service;
+const dvar_t *dw_loggedin;
+const dvar_t *dw_active;
+const dvar_t *pc_newversionavailable;
+const dvar_t *dw_dupe_key;
+const dvar_t *xblive_loggedin;
+const dvar_t *xenon_voiceDebug;
+const dvar_t *xenon_voiceDegrade;
+const dvar_t *getdlcmapsfrommaindrive;
+const dvar_t *session_nonblocking;
+const dvar_t *systemUiActive;
+const dvar_t *xblive_showmarketplace;
+const dvar_t *xblive_clanmatch;
+const dvar_t *xblive_theater;
+const dvar_t *xblive_hostingprivateparty;
+const dvar_t *xblive_privatepartyclient;
+const dvar_t *xblive_wagermatch;
+const dvar_t *xblive_basictraining;
+const dvar_t *xblive_basictraining_popup;
+const dvar_t *bot_tips;
+const dvar_t *party_simulateLongQoS;
+const dvar_t *xblive_clanListChanged;
+const dvar_t *teamsplitter_verbose;
+const dvar_t *xblive_matchEndingSoon;
+const dvar_t *ui_isClanMember;
+const dvar_t *dw_numaccounts;
+const dvar_t *xenon_maxVoicePacketsPerSec;
+const dvar_t *xenon_maxVoicePacketsPerSecForServer;
+const dvar_t *bandwidth_retry_interval;
+const dvar_t *xblive_mappacks;
+const dvar_t *bot_friends;
+const dvar_t *bot_enemies;
+const dvar_t *invite_waitPeriod;
+const dvar_t *steamid;
+const dvar_t *dw_popup;
+const dvar_t *inviteText;
+const dvar_t *scr_bot_difficulty;
+const dvar_t *clancard_clanid;
+const dvar_t *clanName;
+const dvar_t *bot_difficulty;
+const dvar_t *dw_usernames[5];
+
+
 
 void __cdecl Live_ClearDWOverlappedTasks()
 {
@@ -50,27 +147,28 @@ char __cdecl Live_RequireUserToPlayOnline()
 
 char *__cdecl Live_ControllerIndex_GetClientName(int controllerIndex)
 {
-    if ( controllerIndex < 0
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_win.cpp",
-                    809,
-                    0,
-                    "%s",
-                    (const char *)&stru_D50258.alloc) )
-    {
-        __debugbreak();
-    }
-    if ( controllerIndex >= 1
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_win.cpp",
-                    810,
-                    0,
-                    "%s",
-                    "controllerIndex < MAX_GPAD_COUNT") )
-    {
-        __debugbreak();
-    }
-    return &byte_A61C02C[80 * controllerIndex];
+    return (char*)"kisak"; // KISAKTODO: idc
+    //if ( controllerIndex < 0
+    //    && !Assert_MyHandler(
+    //                "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_win.cpp",
+    //                809,
+    //                0,
+    //                "%s",
+    //                (const char *)&stru_D50258.alloc) )
+    //{
+    //    __debugbreak();
+    //}
+    //if ( controllerIndex >= 1
+    //    && !Assert_MyHandler(
+    //                "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_win.cpp",
+    //                810,
+    //                0,
+    //                "%s",
+    //                "controllerIndex < MAX_GPAD_COUNT") )
+    //{
+    //    __debugbreak();
+    //}
+    //return &byte_A61C02C[80 * controllerIndex];
 }
 
 int __cdecl CL_ControllerIndex_GetSignInState(int controllerIndex)
@@ -91,12 +189,14 @@ int __cdecl CL_ControllerIndex_GetSignInState(int controllerIndex)
 
 void __cdecl Live_InitiateDemonWareConnect_f()
 {
+#ifdef KISAK_LIVE_SERVICE
     if ( dwGetLogOnStatus(0) == 2 )
     {
         dword_33267DC[0] = 0;
         dw_disconnect_detected = 0;
         dwLogOnStart(0);
     }
+#endif
 }
 
 void __cdecl Live_SendInvite_f()
@@ -110,7 +210,7 @@ void __cdecl Live_SendInvite_f()
     }
     else
     {
-        Com_PrintError(0, (char *)&stru_D50258.jpeg_color_space);
+        Com_PrintError(0, (char*)"PLATFORM_STEAM_OFFLINE");
     }
 }
 
@@ -130,12 +230,13 @@ void __cdecl Live_AcceptInvite_f()
         else
         {
             v1 = Cmd_Argv(1);
-            Com_PrintError(23, (char *)&stru_D50258.do_fancy_upsampling, v1);
+            //Com_PrintError(23, (char *)&stru_D50258.do_fancy_upsampling, v1);
+            Com_PrintError(23, "%s", v1);
         }
     }
     else
     {
-        Com_PrintError(0, (char *)&stru_D50258.output_components);
+        Com_PrintError(0, (char *)"(kisak) need more args"); // (char *)&stru_D50258.output_components);
     }
 }
 
@@ -161,12 +262,12 @@ void __cdecl Live_RevokeInvite_f()
         else
         {
             v1 = Cmd_Argv(1);
-            Com_PrintError(23, (char *)&stru_D50258.do_fancy_upsampling, v1);
+            Com_PrintError(23, (char *)"Couldn't get id for friend %s", v1);
         }
     }
     else
     {
-        Com_PrintError(0, (char *)&stru_D50258.coef_bits);
+        Com_PrintError(0, (char *)"USAGE: revokeinvite <friendname>\n");
     }
 }
 
@@ -191,7 +292,7 @@ void __cdecl Live_JoinSessionInProgress_f()
         else if ( __PAIR64__(s_selectedMetPlayerXUID, 0) == HIDWORD(s_selectedMetPlayerXUID) )
         {
             v2 = Cmd_Argv(1);
-            Com_PrintError(23, (char *)&stru_D50258.do_fancy_upsampling, v2);
+            Com_PrintError(23, (char *)"Couldn't get id for friend %s", v2);
         }
         else
         {
@@ -202,50 +303,70 @@ void __cdecl Live_JoinSessionInProgress_f()
     }
     else
     {
-        Com_PrintError(23, (char *)stru_D50258.ac_huff_tbl_ptrs);
+        Com_PrintError(23, (char *)"Usage: joinsession <friendName>\n");
     }
 }
 
 void __cdecl Live_ToggleMute_f()
 {
-    const char *v0; // eax
+    const char *v1; // eax
     int LocalClientNum; // eax
     clientActive_t *LocalClientGlobals; // [esp+14h] [ebp-1Ch]
     unsigned int playerIndex; // [esp+18h] [ebp-18h]
     unsigned __int64 playerXuid; // [esp+20h] [ebp-10h]
     int i; // [esp+28h] [ebp-8h]
 
-    if ( Cmd_Argc() == 2 )
+    if (Cmd_Argc() == 2)
     {
-        v0 = Cmd_Argv(1);
-        playerXuid = I_atoi64(v0);
+        v1 = Cmd_Argv(1);
+        playerXuid = I_atoi64(v1);
         playerIndex = -1;
         LocalClientNum = Com_ControllerIndex_GetLocalClientNum(0);
         LocalClientGlobals = CL_GetLocalClientGlobals(LocalClientNum);
-        if ( LocalClientGlobals->snap.valid )
+        if (LocalClientGlobals->snap.valid)
         {
-            for ( i = 0; i < LocalClientGlobals->snap.numClients; ++i )
+            for (i = 0; i < LocalClientGlobals->snap.numClients; ++i)
             {
-                if ( LocalClientGlobals->parseClients[((_WORD)i + (unsigned __int16)LocalClientGlobals->snap.parseClientsNum)
-                                                                                        & 0x7FF].xuid == playerXuid )
+                if (LocalClientGlobals->parseClients[((_WORD)i + (unsigned __int16)LocalClientGlobals->snap.parseClientsNum)
+                    & 0x7FF].xuid == playerXuid)
                 {
                     playerIndex = LocalClientGlobals->parseClients[((_WORD)i
-                                                                                                                + (unsigned __int16)LocalClientGlobals->snap.parseClientsNum)
-                                                                                                             & 0x7FF].clientIndex;
+                        + (unsigned __int16)LocalClientGlobals->snap.parseClientsNum)
+                        & 0x7FF].clientIndex;
                     break;
                 }
             }
         }
-        if ( playerXuid )
+        if (playerXuid)
             CL_MutePlayer(0, playerIndex);
         else
-            Com_Printf(30, (char *)&stru_D50258.arith_dc_L[10]);
+            Com_Printf(30, "party_mutePlayer: Invalid player xuid sent.\n");
     }
     else
     {
-        Com_Printf(30, (char *)&stru_D50258.X_density);
+        Com_Printf(30, "USAGE: mp_mutePlayer <selected player xuid>\n");
     }
 }
+
+cmd_function_s Live_InitiateDemonWareConnect_f_VAR;
+cmd_function_s Live_UpdateInfoForInGameList_f_VAR;
+cmd_function_s Live_JoinSessionInProgress_f_VAR;
+cmd_function_s Live_SendInvite_f_VAR;
+cmd_function_s Live_AcceptInvite_f_VAR;
+cmd_function_s Live_RevokeInvite_f_VAR;
+cmd_function_s Live_ListInvites_f_VAR;
+cmd_function_s Live_AddPlayerAsFriend_f_VAR;
+cmd_function_s Live_AcceptLastInvite_f_VAR;
+cmd_function_s Live_ToggleMute_f_VAR;
+
+const char *dwUsers[5] =
+{
+    "dw_user0",
+    "dw_user1",
+    "dw_user2",
+    "dw_user3",
+    "dw_user4",
+};
 
 void __cdecl Live_InitPlatform()
 {
@@ -278,12 +399,8 @@ void __cdecl Live_InitPlatform()
                                              0,
                                              "Number of online accounts registered for the license");
         for ( i = 5;
-                    i--;
-                    dw_usernames[i] = _Dvar_RegisterString(
-                                                            &aDwUser0[9 * i],
-                                                            (char *)"",
-                                                            0,
-                                                            "Online user name registered for the license") )
+            i--; 
+            dw_usernames[i] = _Dvar_RegisterString(dwUsers[i], (char *)"", 0, "Online user name registered for the license") )
         {
             ;
         }
@@ -409,17 +526,19 @@ void __cdecl Live_InitPlatform()
                                                          0,
                                                          0,
                                                          "Verbose debug output while splitting teams if true.");
-        xblive_matchEndingSoon = _Dvar_RegisterBool((char *)&stru_D50258.cconvert, 0, 0, "True if the match is ending soon");
+        xblive_matchEndingSoon = _Dvar_RegisterBool("xblive_matchEndingSoon", 0, 0, "True if the match is ending soon");
         clancard_clanid = _Dvar_RegisterString(
-                                                (const char *)&stru_D50258.MCU_membership[9],
+                                                "clancard_clanid",
                                                 "0",
                                                 0,
-                                                (const char *)&stru_D50258.Al);
+//                                                (const char *)&stru_D50258.Al);
+                                                "");
         ui_isClanMember = _Dvar_RegisterBool(
-                                                (char *)&stru_D50258.cur_comp_info[3],
+                                                "ui_isClanMember",
                                                 0,
                                                 0,
-                                                (const char *)stru_D50258.MCU_membership);
+                                                //(const char *)stru_D50258.MCU_membership);
+                                                "");
         getdlcmapsfrommaindrive = _Dvar_RegisterBool(
                                                                 "getdlcmapsfrommaindrive",
                                                                 0,
@@ -475,7 +594,8 @@ int __cdecl Live_GetControllerFromXUID(unsigned __int64 player)
 
     for ( index = 0; index < 1; ++index )
     {
-        if ( xenonUserData[index].signinState && __PAIR64__(dword_A61C054[20 * index], dword_A61C050[20 * index]) == player )
+        if (xenonUserData[index].signinState
+            && __PAIR64__(HIDWORD(xenonUserData[index].xuid), xenonUserData[index].xuid) == player)
             return index;
     }
     return -1;
@@ -549,6 +669,7 @@ taskCompleteResults __cdecl Live_SetPlayerTeamRanksComplete(int slot)
     return res;
 }
 
+unsigned __int64 g_fakeXUID; // KISAKTODO: value?
 char __cdecl XUserGetXUID(int controllerIndex, unsigned __int64 *xuid)
 {
     if ( dwGetLogOnStatus(0) == 4 )
@@ -589,10 +710,10 @@ char __cdecl Live_UserGetName(int controllerIndex, char *buf, int bufsize)
 
 bool __cdecl Live_UserSignedInLocally(int controllerIndex, char **disconnectMessage)
 {
-    unsigned intv2; // eax
+    unsigned int v2; // eax
     unsigned int oldState; // [esp+14h] [ebp-Ch]
     bool shouldDisconnect; // [esp+1Bh] [ebp-5h]
-    unsigned intsignInFunctionStartTime; // [esp+1Ch] [ebp-4h]
+    unsigned int signInFunctionStartTime; // [esp+1Ch] [ebp-4h]
 
     Com_Printf(16, "Controller #%i signed in locally\n", controllerIndex);
     oldState = xenonUserData[controllerIndex].signinState;
@@ -605,14 +726,14 @@ bool __cdecl Live_UserSignedInLocally(int controllerIndex, char **disconnectMess
     if ( oldState < 2 || oldState == 2 && !onlinegame->current.enabled || strlen(Dvar_GetString("com_errorMessage")) )
         return 0;
     shouldDisconnect = 1;
-    *disconnectMessage = "XBOXLIVE_SIGNINCHANGED";
+    *disconnectMessage = (char*)"XBOXLIVE_SIGNINCHANGED";
     return shouldDisconnect;
 }
 
-void __cdecl Live_UserSignedIn(int controllerIndex)
+void Live_UserSignedIn(int controllerIndex)
 {
-    int v1; // eax
-    unsigned intv2; // eax
+    int v2; // eax
+    DWORD v3; // eax
     unsigned __int64 newXuid; // [esp+8h] [ebp-58h] BYREF
     char xuidStr[20]; // [esp+14h] [ebp-4Ch] BYREF
     char newGamertag[32]; // [esp+28h] [ebp-38h] BYREF
@@ -622,44 +743,44 @@ void __cdecl Live_UserSignedIn(int controllerIndex)
     int netCodeVersion; // [esp+5Ch] [ebp-4h]
 
     res = XUserGetXUID(controllerIndex, &newXuid);
-    if ( !res && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\live\\live_win.cpp", 2705, 0, "%s", "res") )
+    if (!res && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\live\\live_win.cpp", 2705, 0, "%s", "res"))
         __debugbreak();
     res = Live_UserGetName(controllerIndex, newGamertag, 32);
-    if ( !res )
+    if (!res)
         Com_Error(ERR_DROP, "XBOXLIVE_SIGNEDOUTOFLIVE");
-    Dvar_SetBool((dvar_s *)xblive_loggedin, 1);
+    Dvar_SetBool((dvar_s*)xblive_loggedin, 1);
     LiveStorage_NewUser(controllerIndex);
-    I_strncpyz(&byte_A61C02C[80 * controllerIndex], newGamertag, 32);
-    v1 = 20 * controllerIndex;
-    dword_A61C050[v1] = newXuid;
-    dword_A61C054[v1] = HIDWORD(newXuid);
-    XUIDToString(&newXuid, &byte_A61C058[80 * controllerIndex]);
-    dword_A61C06C[20 * controllerIndex] = 0;
-    XUIDToString((unsigned __int64 *)&dword_A61C050[20 * controllerIndex], xuidStr);
+    I_strncpyz(xenonUserData[controllerIndex].gamertag, newGamertag, 32);
+    v2 = controllerIndex;
+    LODWORD(xenonUserData[v2].xuid) = newXuid;
+    HIDWORD(xenonUserData[v2].xuid) = HIDWORD(newXuid);
+    XUIDToString(&newXuid, xenonUserData[controllerIndex].xuidString);
+    xenonUserData[controllerIndex].tier = USER_TIER_NONE;
+    XUIDToString(&xenonUserData[controllerIndex].xuid, xuidStr);
     StringToXUID(xuidStr, &xuidCopy);
-    if ( memcmp(&xuidCopy, &dword_A61C050[20 * controllerIndex], 8u)
+    if (memcmp(&xuidCopy, &xenonUserData[controllerIndex].xuid, 8u)
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_win.cpp",
-                    2728,
-                    0,
-                    "%s",
-                    "memcmp( &xuidCopy, &xenonUserData[controllerIndex].xuid, sizeof(XUID) ) == 0") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_win.cpp",
+            2728,
+            0,
+            "%s",
+            "memcmp( &xuidCopy, &xenonUserData[controllerIndex].xuid, sizeof(XUID) ) == 0"))
     {
         __debugbreak();
     }
-    Dvar_SetString((dvar_s *)name, &byte_A61C02C[80 * controllerIndex]);
-    if ( !xenonUserData[controllerIndex].signinState )
+    Dvar_SetString((dvar_s*)name, xenonUserData[controllerIndex].gamertag);
+    if (!xenonUserData[controllerIndex].signinState)
     {
         startTime = Sys_Milliseconds();
         GamerProfile_LogInProfile(controllerIndex);
-        v2 = Sys_Milliseconds();
-        Com_Printf(16, "GamerProfile_LogInProfile took %ims\n", v2 - startTime);
+        v3 = Sys_Milliseconds();
+        Com_Printf(16, "GamerProfile_LogInProfile took %ims\n", v3 - startTime);
     }
     netCodeVersion = 1044;
     LiveGroups_RegisterPlayer(controllerIndex);
 }
 
-bool __cdecl Live_UserSignedInToLive(int controllerIndex, char **disconnectMessage)
+bool Live_UserSignedInToLive(int controllerIndex, char **disconnectMessage)
 {
     int LocalClientNum; // eax
     int oldState; // [esp+10h] [ebp-8h]
@@ -669,7 +790,7 @@ bool __cdecl Live_UserSignedInToLive(int controllerIndex, char **disconnectMessa
     oldState = xenonUserData[controllerIndex].signinState;
     Live_UserSignedIn(controllerIndex);
     xenonUserData[controllerIndex].signinState = 2;
-    byte_A61C069[80 * controllerIndex] = 0;
+    xenonUserData[controllerIndex].isGuestUser = 0;
     Live_GetOurUploadBandwidth(controllerIndex);
     LiveStorage_FetchRequiredFiles(controllerIndex);
     LiveMeetPlayer_DownloadMetPlayersList(0);
@@ -680,32 +801,32 @@ bool __cdecl Live_UserSignedInToLive(int controllerIndex, char **disconnectMessa
     Live_RequestSessionsFromFriends();
     LiveStorage_SetAllStatsNotFetched(controllerIndex);
     LiveStorage_ReadStats(controllerIndex, 0, 0);
-    //BLOPS_NULLSUB();
-    if ( (s_signInRequirement[controllerIndex] & 4) != 0 )
+    //BG_EvalVehicleName();
+    if ((s_signInRequirement[controllerIndex] & 4) != 0)
     {
-        //BLOPS_NULLSUB();
-        if ( Live_ContentRatingAllowed() )
+        //BG_EvalVehicleName();
+        if (Live_ContentRatingAllowed())
         {
             LocalClientNum = Com_ControllerIndex_GetLocalClientNum(controllerIndex);
-            Cbuf_ExecuteBuffer(LocalClientNum, controllerIndex, "xstartprivateparty");
+            Cbuf_ExecuteBuffer(LocalClientNum, controllerIndex, (char*)"xstartprivateparty");
         }
         else
         {
             Com_Printf(
                 16,
                 "Since the active profile doesn't have permission to play MP, so we are going to send them back to the main menu\n");
-            *disconnectMessage = "XBOXLIVE_MPNOTALLOWED";
+            *disconnectMessage = (char*)"XBOXLIVE_MPNOTALLOWED";
         }
     }
-    if ( !oldState
+    if (!oldState
         || oldState == 2
         || oldState == 1 && !onlinegame->current.enabled
-        || strlen(Dvar_GetString("com_errorMessage")) )
+        || strlen(Dvar_GetString("com_errorMessage")))
     {
         return 0;
     }
     shouldDisconnect = 1;
-    *disconnectMessage = "XBOXLIVE_SIGNINCHANGED";
+    *disconnectMessage = (char *)"XBOXLIVE_SIGNINCHANGED";
     return shouldDisconnect;
 }
 
@@ -744,7 +865,7 @@ int __cdecl Live_GetXuid(int controllerIndex)
     {
         __debugbreak();
     }
-    return dword_A61C050[20 * controllerIndex];
+    return xenonUserData[controllerIndex].xuid;
 }
 
 int __cdecl Live_GetTier(int controllerIndex)
@@ -759,7 +880,7 @@ int __cdecl Live_GetTier(int controllerIndex)
     {
         __debugbreak();
     }
-    return dword_A61C06C[20 * controllerIndex];
+    return xenonUserData[controllerIndex].tier;
 }
 
 char __cdecl Live_ShowMarketplaceUI()
@@ -775,6 +896,7 @@ int __cdecl Live_GetUploadSpeed()
 
 void __cdecl Live_GetOurUploadBandwidth(int localControllerIndex)
 {
+#ifdef KISAK_LIVE_STUBS
     struct bdLobbyService *Lobby; // eax
 
     if ( s_uploadBitsPerSec <= 0 )
@@ -787,6 +909,7 @@ void __cdecl Live_GetOurUploadBandwidth(int localControllerIndex)
                 TaskManager_GetOpenTaskSlot(overlappedTasks_3, localControllerIndex, 3);
         }
     }
+#endif
 }
 
 char __cdecl Live_BandwidthTestInProgress()
@@ -845,6 +968,7 @@ void __cdecl Live_CheckOngoingTasks()
 
 int __cdecl Live_GetBandwidthTestComplete(int slot)
 {
+#ifdef KISAK_LIVE_STUBS
     bdBandwidthTestResults *UploadResults; // eax
     bdBandwidthTestResults *v2; // eax
     double Bandwidth; // st7
@@ -904,10 +1028,14 @@ int __cdecl Live_GetBandwidthTestComplete(int slot)
     {
         return 0;
     }
+#else
+    return 0;
+#endif
 }
 
 taskCompleteResults __cdecl Live_QoSProbeComplete(int slot)
 {
+#ifdef KISAK_LIVE_STUBS
     overlappedTask *qosOverlappedIO; // [esp+0h] [ebp-Ch]
     dwQoSMultiProbeListener *listener; // [esp+4h] [ebp-8h]
     taskCompleteResults res; // [esp+8h] [ebp-4h]
@@ -958,10 +1086,14 @@ taskCompleteResults __cdecl Live_QoSProbeComplete(int slot)
         TaskManager_ClearTask(qosOverlappedIO);
     }
     return res;
+#else
+    return TASK_NOTCOMPLETE;
+#endif
 }
 
 bool __cdecl Live_QoSProbeEarlyComplete(dwQoSMultiProbeListener *listener)
 {
+#ifdef KISAK_LIVE_STUBS
     unsigned inttime; // [esp+0h] [ebp-4h]
 
     if ( !listener->m_numSuccesses )
@@ -991,10 +1123,14 @@ bool __cdecl Live_QoSProbeEarlyComplete(dwQoSMultiProbeListener *listener)
     if ( (int)(time - g_qosStatus.firstMS) >= 1000 )
         return (int)(time - g_qosStatus.updateMS) >= 250;
     return 0;
+#else
+    return 0;
+#endif
 }
 
 void __cdecl PC_InitSigninState()
 {
+#ifdef KISAK_LIVE_STUBS
     int LicenseType; // eax
     MatchMakingInfo *matched; // [esp+8h] [ebp-24h]
     bdLogSubscriber *v2; // [esp+Ch] [ebp-20h]
@@ -1025,10 +1161,12 @@ void __cdecl PC_InitSigninState()
     DWDedicatedLogon();
     LicenseType = SV_GetLicenseType();
     Dvar_SetIntByName("sv_ranked", LicenseType);
+#endif
 }
 
 bool __cdecl Live_UserSignedOut(int controllerIndex)
 {
+#ifdef KISAK_LIVE_STUBS
     int v1; // eax
     int localClientNum; // [esp+0h] [ebp-8h]
 
@@ -1056,6 +1194,9 @@ bool __cdecl Live_UserSignedOut(int controllerIndex)
             Com_Printf(16, "Controller #%i signed out\n", controllerIndex);
     }
     return 0;
+#else
+    return 0;
+#endif
 }
 
 void __cdecl Live_DelayedComError(const char *comErrorString)
@@ -1215,6 +1356,7 @@ bool __cdecl Live_CanViewContentFromUser(int controllerIndex, unsigned __int64 x
 
 void __cdecl Live_SendInvite(const char *friendName)
 {
+#ifdef KISAK_LIVE_STUBS
     const struct bdSessionID *SessionID; // eax
     int LocalClientNum; // eax
     const struct bdSessionID *v3; // eax
@@ -1277,6 +1419,7 @@ void __cdecl Live_SendInvite(const char *friendName)
             *(const char **)v7[0].m_sessionID.ab,
             *(int *)&v7[0].m_sessionID.ab[4]);
     }
+#endif
 }
 
 void __cdecl Live_DumpFavourites()
@@ -1292,6 +1435,7 @@ void __cdecl Live_DumpFavourites()
 
 void __cdecl Live_FindFavouriteServersSuccess(TaskRecord *task)
 {
+#ifdef KISAK_LIVE_STUBS
     int HeaderSize; // eax
     bdReference<bdRemoteTask> dwtask; // [esp+24h] [ebp-4h] BYREF
 
@@ -1310,15 +1454,21 @@ void __cdecl Live_FindFavouriteServersSuccess(TaskRecord *task)
         CL_ServersResponsePacket(s_favouritesInfo, HeaderSize, 1);
     }
     bdReference<bdRemoteTask>::~bdReference<bdRemoteTask>((bdReference<bdCommonAddr> *)&dwtask);
+#endif
 }
 
 bool __cdecl Live_FindFavouritesInProgress()
 {
+#ifdef KISAK_LIVE_STUBS
     return TaskManager2_TaskIsInProgress(task_LiveFavouriteServers);
+#else
+    return false;
+#endif
 }
 
 void __cdecl Live_FindFavouriteServers()
 {
+#ifdef KISAK_LIVE_STUBS
     TaskRecord *task; // [esp+4h] [ebp-160h]
     TaskRecord *nestedTask; // [esp+8h] [ebp-15Ch]
     unsigned int i; // [esp+Ch] [ebp-158h]
@@ -1351,10 +1501,12 @@ void __cdecl Live_FindFavouriteServers()
                 Com_DPrintf(0, "Couldn't start find favourites task, connected ok?\n");
         }
     }
+#endif
 }
 
 void __cdecl Live_FindFriendServersSuccess(TaskRecord *task)
 {
+#ifdef KISAK_LIVE_STUBS
     int HeaderSize; // eax
 
     if ( !task->nestedTask->remoteTask.m_ptr
@@ -1372,10 +1524,12 @@ void __cdecl Live_FindFriendServersSuccess(TaskRecord *task)
         HeaderSize = bdTaskByteBuffer::getHeaderSize((bdTaskByteBuffer *)task->nestedTask->remoteTask.m_ptr);
         CL_ServersResponsePacket(s_friendServersInfo, HeaderSize, 1);
     }
+#endif
 }
 
 void __cdecl Live_FindFriendServers()
 {
+#ifdef KISAK_LIVE_STUBS
     TaskRecord *task; // [esp+Ch] [ebp-814h]
     TaskRecord *nestedTask; // [esp+10h] [ebp-810h]
     int k; // [esp+14h] [ebp-80Ch]
@@ -1418,10 +1572,12 @@ void __cdecl Live_FindFriendServers()
                 TaskManager2_StartTask(task);
         }
     }
+#endif
 }
 
 void __cdecl Live_FindRecentServersSuccess(TaskRecord *task)
 {
+#ifdef KISAK_LIVE_STUBS
     int HeaderSize; // eax
 
     if ( !task->nestedTask->remoteTask.m_ptr
@@ -1439,10 +1595,12 @@ void __cdecl Live_FindRecentServersSuccess(TaskRecord *task)
         HeaderSize = bdTaskByteBuffer::getHeaderSize((bdTaskByteBuffer *)task->nestedTask->remoteTask.m_ptr);
         CL_ServersResponsePacket(s_recentServersInfo, HeaderSize, 1);
     }
+#endif
 }
 
 void __cdecl Live_FindRecentServers()
 {
+#ifdef KISAK_LIVE_STUBS
     TaskRecord *task; // [esp+0h] [ebp-100h]
     TaskRecord *nestedTask; // [esp+4h] [ebp-FCh]
     int i; // [esp+8h] [ebp-F8h]
@@ -1470,6 +1628,7 @@ void __cdecl Live_FindRecentServers()
                 TaskManager2_StartTask(task);
         }
     }
+#endif
 }
 
 void __cdecl Live_SaveRecentServers()
@@ -1551,6 +1710,7 @@ int __cdecl compareRecentServers(unsigned int *server1, unsigned int *server2)
 
 void __cdecl Live_GetFriendsOnServer(unsigned __int64 serverId, unsigned __int64 *friendIDs, int *numfriends)
 {
+#ifdef KISAK_LIVE_STUBS
     int v3; // ecx
     int i; // [esp+Ch] [ebp-8h]
     int numsteamfriends; // [esp+10h] [ebp-4h]
@@ -1568,10 +1728,12 @@ void __cdecl Live_GetFriendsOnServer(unsigned __int64 serverId, unsigned __int64
             ++*numfriends;
         }
     }
+#endif
 }
 
 char __cdecl Live_AddFavourite_Ingame(unsigned __int64 serverid, unsigned __int64 serveruid)
 {
+#ifdef KISAK_LIVE_STUBS
     char *v2; // eax
     favourite_t *v4; // eax
     unsigned int v5; // eax
@@ -1612,6 +1774,9 @@ char __cdecl Live_AddFavourite_Ingame(unsigned __int64 serverid, unsigned __int6
         Dvar_SetStringByName("ui_favorite_message", "@EXE_FAVORITEADDED");
         return 1;
     }
+#else
+    return 0;
+#endif
 }
 
 void __cdecl Live_AddFavourite(unsigned __int64 serverid, unsigned __int64 serveruid)
@@ -1720,6 +1885,7 @@ void __cdecl Live_SetPrivateProfileFailure()
 
 TaskRecord *__cdecl Live_GetPrivateProfile()
 {
+#ifdef KISAK_LIVE_STUBS
     const bdReference<bdCommonAddr> *PrivateInfo; // eax
     bdReference<bdCommonAddr> v2; // [esp+1Ch] [ebp-10h] BYREF
     bdProfiles *profileService; // [esp+20h] [ebp-Ch]
@@ -1747,10 +1913,14 @@ TaskRecord *__cdecl Live_GetPrivateProfile()
         }
     }
     return task;
+#else
+    return NULL;
+#endif
 }
 
 TaskRecord *__cdecl Live_SetPrivateProfile()
 {
+#ifdef KISAK_LIVE_STUBS
     const bdReference<bdCommonAddr> *v0; // eax
     bdReference<bdCommonAddr> v2; // [esp+1Ch] [ebp-10h] BYREF
     bdProfiles *profileService; // [esp+20h] [ebp-Ch]
@@ -1779,6 +1949,9 @@ TaskRecord *__cdecl Live_SetPrivateProfile()
         }
     }
     return task;
+#else
+    return NULL;
+#endif
 }
 
 void __cdecl CL_GetFavourites_f()
@@ -1832,6 +2005,13 @@ void __cdecl CL_NukeFavourites_f()
     Live_SetPrivateProfile();
 }
 
+cmd_function_s CL_GetFavourites_f_VAR;
+cmd_function_s CL_SetFavourites_f_VAR;
+cmd_function_s CL_AddFavourite_f_VAR;
+cmd_function_s CL_DeleteFavourite_f_VAR;
+cmd_function_s CL_DumpFavourites_f_VAR;
+cmd_function_s CL_NukeFavourites_f_VAR;
+
 void __cdecl Live_InitFavourites()
 {
     unsigned int v0; // ecx
@@ -1882,6 +2062,7 @@ void __cdecl Live_AddRecentPlayers(unsigned __int64 *uids, const char **names, i
 
 unsigned __int64 __cdecl Live_GetServerForFriend(unsigned __int64 friendId)
 {
+#ifdef KISAK_LIVE_STUBS
     friendonserver_t *friendserver; // [esp+8h] [ebp-Ch]
     int i; // [esp+Ch] [ebp-8h]
     int numsteamfriends; // [esp+10h] [ebp-4h]
@@ -1897,10 +2078,14 @@ unsigned __int64 __cdecl Live_GetServerForFriend(unsigned __int64 friendId)
         }
     }
     return 0;
+#else
+    return 0;
+#endif
 }
 
 void __cdecl Live_JoinSessionInProgressComplete(TaskRecord *task)
 {
+#ifdef KISAK_LIVE_STUBS
     int ControllerIndex; // eax
     netadr_t v2; // [esp-10h] [ebp-4Ch]
     unsigned int v3; // [esp+1Ch] [ebp-20h]
@@ -1972,10 +2157,12 @@ LABEL_19:
             Dvar_SetBool((dvar_s *)xblive_basictraining, wasbasictraining);
         }
     }
+#endif
 }
 
 TaskRecord *__cdecl Live_JoinSessionInProgress(unsigned __int64 uid, bool recent)
 {
+#ifdef KISAK_LIVE_STUBS
     unsigned __int64 ServerForFriend; // [esp+0h] [ebp-1Ch]
     TaskRecord *nestedTask; // [esp+8h] [ebp-14h]
     unsigned __int64 serverid; // [esp+Ch] [ebp-10h] BYREF
@@ -2000,10 +2187,14 @@ TaskRecord *__cdecl Live_JoinSessionInProgress(unsigned __int64 uid, bool recent
         }
     }
     return task;
+#else
+    return NULL;
+#endif
 }
 
 void __cdecl Live_AddFriendServer(unsigned __int64 serverID, unsigned __int64 friendID)
 {
+#ifdef KISAK_LIVE_STUBS
     int v2; // ecx
     int v3; // edx
     int v4; // edx
@@ -2032,10 +2223,12 @@ void __cdecl Live_AddFriendServer(unsigned __int64 serverID, unsigned __int64 fr
         ++s_numfriendsonservers;
     }
     Live_FindFriendServers();
+#endif
 }
 
 void __cdecl Live_OnInvite(unsigned __int64 uid, bdSessionID sessionID, const char *password)
 {
+#ifdef KISAK_LIVE_STUBS
     char *v3; // eax
     int LocalClientNum; // eax
     char *v5; // eax
@@ -2112,10 +2305,12 @@ void __cdecl Live_OnInvite(unsigned __int64 uid, bdSessionID sessionID, const ch
         s_lastInvite = uid;
         bdTaskResult::~bdTaskResult(&sessionID);
     }
+#endif
 }
 
 void __cdecl Live_OnRevokeInvite(unsigned __int64 uid)
 {
+#ifdef KISAK_LIVE_STUBS
     int v1; // edx
     int i; // [esp+4h] [ebp-4h]
 
@@ -2132,18 +2327,24 @@ void __cdecl Live_OnRevokeInvite(unsigned __int64 uid)
     }
     if ( s_lastInvite == uid )
         s_lastInvite = 0;
+#endif
 }
 
 bool __cdecl Live_RevokeInvite(unsigned __int64 friendID)
 {
+#ifdef KISAK_LIVE_STUBS
     char msg; // [esp+7h] [ebp-1h] BYREF
 
     msg = 9;
     return dwMessaging_SendInstantMessage(friendID, &msg, 1u) != 0;
+#else
+    return false;
+#endif
 }
 
 char __cdecl Live_FindInviteFromFriend(unsigned __int64 friendID, bdSessionID *sessionID, char **password)
 {
+#ifdef KISAK_LIVE_STUBS
     int v3; // edx
     int i; // [esp+4h] [ebp-8h]
     bool retval; // [esp+Bh] [ebp-1h]
@@ -2161,6 +2362,9 @@ char __cdecl Live_FindInviteFromFriend(unsigned __int64 friendID, bdSessionID *s
         }
     }
     return retval;
+#else
+    return false;
+#endif
 }
 
 char __cdecl Live_HandleInviteMessage(unsigned __int64 senderID, char *message)
@@ -2187,11 +2391,14 @@ void __cdecl Live_AcceptInviteAsyncFailure()
 
 void __cdecl Live_JoinWagerFromInvite()
 {
+#ifdef KISAK_LIVE_STUBS
     CL_Connect(&s_inviteServerinfo);
+#endif
 }
 
 void __cdecl Live_AcceptInviteAsyncComplete(TaskRecord *task)
 {
+#ifdef KISAK_LIVE_STUBS
     int ControllerIndex; // eax
     netadr_t v2; // [esp-10h] [ebp-40h]
     unsigned int v3; // [esp+10h] [ebp-20h]
@@ -2270,10 +2477,12 @@ LABEL_19:
     {
         Live_AcceptInviteAsyncFailure();
     }
+#endif
 }
 
 TaskRecord *__cdecl Live_AcceptInviteAsync(bdSessionID sessionID)
 {
+#ifdef KISAK_LIVE_STUBS
     TaskRecord *nestedTask; // [esp+4h] [ebp-Ch]
     TaskRecord *task; // [esp+8h] [ebp-8h]
 
@@ -2287,10 +2496,14 @@ TaskRecord *__cdecl Live_AcceptInviteAsync(bdSessionID sessionID)
     }
     bdTaskResult::~bdTaskResult(&sessionID);
     return task;
+#else
+    return NULL;
+#endif
 }
 
 void __cdecl Live_AcceptInvite(unsigned __int64 frienduid)
 {
+#ifdef KISAK_LIVE_STUBS
     bdSessionID v1; // [esp-Ch] [ebp-3Ch] BYREF
     int v2; // [esp+Ch] [ebp-24h]
     int v3; // [esp+10h] [ebp-20h]
@@ -2317,10 +2530,12 @@ void __cdecl Live_AcceptInvite(unsigned __int64 frienduid)
             Com_PrintError(23, "Accept invite systemic failure, not connected?\n");
     }
     bdTaskResult::~bdTaskResult(&friendSession);
+#endif
 }
 
 int __cdecl Live_GetInvitesCount()
 {
+#ifdef KISAK_LIVE_STUBS
     int i; // [esp+4h] [ebp-8h]
     int count; // [esp+8h] [ebp-4h]
 
@@ -2331,10 +2546,12 @@ int __cdecl Live_GetInvitesCount()
             ++count;
     }
     return count;
+#endif
 }
 
 int __cdecl Live_GetInviteFriend(int index)
 {
+#ifdef KISAK_LIVE_STUBS
     int i; // [esp+4h] [ebp-8h]
     int inviteIndex; // [esp+8h] [ebp-4h]
 
@@ -2349,10 +2566,12 @@ int __cdecl Live_GetInviteFriend(int index)
         }
     }
     return 0;
+#endif
 }
 
 void __cdecl Live_ListInvites_f()
 {
+#ifdef KISAK_LIVE_STUBS
     unsigned __int64 v0; // [esp-Ch] [ebp-D0h]
     __int64 v1; // [esp-4h] [ebp-C8h]
     FriendInfo finfo; // [esp+4h] [ebp-C0h] BYREF
@@ -2372,6 +2591,7 @@ void __cdecl Live_ListInvites_f()
         }
     }
     Com_Printf(23, "\n*********************\n");
+#endif
 }
 
 void __cdecl Live_AddPlayerAsFriend_f()
@@ -2398,6 +2618,7 @@ bool __cdecl Live_ShouldBroadcastNewServer()
 
 void __cdecl Live_RespondToSessionRequest(unsigned __int64 from, unsigned __int8 flags)
 {
+#ifdef KISAK_LIVE_STUBS
     unsigned __int8 message[12]; // [esp+8h] [ebp-20h] BYREF
     unsigned __int64 sessionUid; // [esp+18h] [ebp-10h]
     unsigned __int8 messageflags; // [esp+27h] [ebp-1h]
@@ -2428,10 +2649,12 @@ void __cdecl Live_RespondToSessionRequest(unsigned __int64 from, unsigned __int8
         *(_QWORD *)&message[1] = sessionUid;
         LiveSteam_SendP2PMessage(from, message, 9u);
     }
+#endif
 }
 
 void __cdecl Live_RequestSessionsFromFriends()
 {
+#ifdef KISAK_LIVE_STUBS
     unsigned __int64 FriendXuid; // rax
     int i; // [esp+0h] [ebp-8h]
     unsigned __int8 message; // [esp+7h] [ebp-1h] BYREF
@@ -2442,10 +2665,12 @@ void __cdecl Live_RequestSessionsFromFriends()
         FriendXuid = LiveSteam_GetFriendXuid(i);
         LiveSteam_SendP2PMessage(FriendXuid, &message, 1u);
     }
+#endif
 }
 
 void __cdecl Live_RequestSessionsFromRecentPlayers()
 {
+#ifdef KISAK_LIVE_STUBS
     XuidInfo result; // [esp+8h] [ebp-70h] BYREF
     unsigned __int64 v1[6]; // [esp+38h] [ebp-40h] BYREF
     unsigned __int64 recentUid; // [esp+68h] [ebp-10h]
@@ -2459,10 +2684,12 @@ void __cdecl Live_RequestSessionsFromRecentPlayers()
         recentUid = v1[0];
         LiveSteam_SendP2PMessage(v1[0], &message, 1u);
     }
+#endif
 }
 
 void __cdecl Live_DispatchP2PMessage(unsigned __int8 *message, unsigned int messagesize, unsigned __int64 from)
 {
+#ifdef KISAK_LIVE_STUBS
     unsigned __int64 uid; // [esp+0h] [ebp-10h]
     unsigned __int8 flags; // [esp+Fh] [ebp-1h]
 
@@ -2508,10 +2735,12 @@ void __cdecl Live_DispatchP2PMessage(unsigned __int8 *message, unsigned int mess
             }
         }
     }
+#endif
 }
 
 void __cdecl Live_BroadcastSessionToFriends(unsigned __int64 sessionUID, unsigned __int8 flags)
 {
+#ifdef KISAK_LIVE_STUBS
     unsigned __int64 FriendXuid; // rax
     int i; // [esp+8h] [ebp-14h]
     unsigned __int8 message[12]; // [esp+Ch] [ebp-10h] BYREF
@@ -2523,10 +2752,12 @@ void __cdecl Live_BroadcastSessionToFriends(unsigned __int64 sessionUID, unsigne
         FriendXuid = LiveSteam_GetFriendXuid(i);
         LiveSteam_SendP2PMessage(FriendXuid, message, 9u);
     }
+#endif
 }
 
 void __cdecl Live_BroadcastSessionToRecentPlayers(unsigned __int64 sessionUID, unsigned __int8 flags)
 {
+#ifdef KISAK_LIVE_STUBS
     XuidInfo result; // [esp+10h] [ebp-A8h] BYREF
     _BYTE v3[48]; // [esp+40h] [ebp-78h] BYREF
     XuidInfo recentinfo; // [esp+70h] [ebp-48h] BYREF
@@ -2543,10 +2774,12 @@ void __cdecl Live_BroadcastSessionToRecentPlayers(unsigned __int64 sessionUID, u
         memcpy(&recentinfo, v3, sizeof(recentinfo));
         LiveSteam_SendP2PMessage(recentinfo.playerXuids, message, 9u);
     }
+#endif
 }
 
 void __cdecl Live_BroadcastSessionIfNeeded()
 {
+#ifdef KISAK_LIVE_STUBS
     unsigned __int8 flags; // [esp+0h] [ebp-2h]
     bool needtobroadcast; // [esp+1h] [ebp-1h]
 
@@ -2585,5 +2818,6 @@ void __cdecl Live_BroadcastSessionIfNeeded()
         }
         cachedState = CL_GetLocalClientConnectionState(0);
     }
+#endif
 }
 

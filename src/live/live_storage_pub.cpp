@@ -1,4 +1,30 @@
 #include "live_storage_pub.h"
+#include <DW/dwLogOn_pc.h>
+#include <stringed/stringed_hooks.h>
+#include <cgame_mp/cg_main_mp.h>
+#include <universal/com_files.h>
+#include <universal/com_tasks.h>
+#include <universal/mem_largelocal.h>
+#include "live_fileshare.h"
+#include "live_ticker.h"
+#include <ui/ui_playlists.h>
+#include <server/sv_autoplaylist.h>
+#include "live_contracts.h"
+#include "live_storage_win.h"
+#include <zlib/zlib.h>
+
+bool s_haveContracts;
+bool s_havePlaylists;
+bool s_haveMotd;
+
+char wadFileName[128];
+
+dwFileOperationInfo s_onlineWADFileInfo;
+unsigned __int8 s_onlineWADBuffer[65536];
+bool s_completedOnlineWAD;
+
+const TaskDefinition task_LiveFetchOnlineWAD[1] =
+{ { 8uLL, "LiveFetchOnlineWAD", 0, NULL, NULL, NULL } };
 
 bool __cdecl LiveStorage_DoWeHaveContracts()
 {
@@ -13,6 +39,11 @@ bool __cdecl LiveStorage_DoWeHavePlaylists()
 void __cdecl LiveStorage_SetHavePlaylists(bool val)
 {
     s_havePlaylists = val;
+}
+
+static void NULLSUB_LOCAL(const int, void *)
+{
+
 }
 
 TaskRecord *__cdecl LiveStorage_FetchOnlineWAD(int controllerIndex)
@@ -74,7 +105,7 @@ TaskRecord *__cdecl LiveStorage_FetchOnlineWAD(int controllerIndex)
         s_onlineWADFileInfo.fileTask.m_filename = wadFileName;
         s_onlineWADFileInfo.fileBuffer = s_onlineWADBuffer;
         s_onlineWADFileInfo.bufferSize = 0x10000;
-        s_onlineWADFileInfo.fileOperationSucessFunction = (void (__cdecl *)(const int, void *))BLOPS_NULLSUB;
+        s_onlineWADFileInfo.fileOperationSucessFunction = NULLSUB_LOCAL;
         s_onlineWADFileInfo.fileNotFoundFunction = (taskCompleteResults (__cdecl *)(const int, void *))LiveStorage_FetchOnlineWADNotFound;
         nestedTask = LiveStorage_ReadDWFile(controllerIndex, &s_onlineWADFileInfo);
         return LiveStorage_SetupNestedTask(task_LiveFetchOnlineWAD, controllerIndex, nestedTask, &s_onlineWADFileInfo);
@@ -130,14 +161,15 @@ void LiveStorage_ProcessOnlineWAD()
     const char *language; // [esp+30h] [ebp-18h]
     unsigned __int8 *uncompressedFileBuffer; // [esp+34h] [ebp-14h]
     unsigned int idx; // [esp+38h] [ebp-10h]
-    LargeLocal uncompressedFileBuffer_large_local; // [esp+3Ch] [ebp-Ch] BYREF
     WADEntry *toc; // [esp+44h] [ebp-4h]
 
     language = SEH_GetLanguageName(loc_language->current.unsignedInt);
     if ( !LiveStorage_CompletedOnlineWAD() && LiveStorage_DoWeHaveOnlineWAD() )
     {
-        LargeLocal::LargeLocal(&uncompressedFileBuffer_large_local, 0x40000);
-        uncompressedFileBuffer = LargeLocal::GetBuf(&uncompressedFileBuffer_large_local);
+        LargeLocal uncompressedFileBuffer_large_local(0x40000); // [esp+3Ch] [ebp-Ch] BYREF
+
+        //LargeLocal::LargeLocal(&uncompressedFileBuffer_large_local, 0x40000);
+        uncompressedFileBuffer = uncompressedFileBuffer_large_local.GetBuf();// LargeLocal::GetBuf(&uncompressedFileBuffer_large_local);
         if ( !s_onlineWADFileInfo.fetchCompleted
             && !Assert_MyHandler(
                         "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_storage_pub.cpp",
@@ -158,7 +190,7 @@ void LiveStorage_ProcessOnlineWAD()
             {
                 Com_PrintError(16, "Platform wad file is missing or invalid.\n");
                 s_completedOnlineWAD = 1;
-                LargeLocal::~LargeLocal(&uncompressedFileBuffer_large_local);
+                //LargeLocal::~LargeLocal(&uncompressedFileBuffer_large_local);
                 return;
             }
             Com_PrintWarning(0, "WAD: Big-endian WAD on Small-endian machine\n");
@@ -225,7 +257,7 @@ void LiveStorage_ProcessOnlineWAD()
         SV_SetPlaylistFetchedTime();
         s_completedOnlineWAD = 1;
         //BLOPS_NULLSUB();
-        LargeLocal::~LargeLocal(&uncompressedFileBuffer_large_local);
+        //LargeLocal::~LargeLocal(&uncompressedFileBuffer_large_local);
     }
 }
 

@@ -1,8 +1,29 @@
 #include "live_news.h"
+#include <win32/win_shared.h>
+#include <universal/q_shared.h>
+#include <ddl/ddl_api.h>
+#include <cstring>
+#include "live_pcache.h"
+#include "live_pcache_profile.h"
+#include <cgame/cg_main.h>
+#include "live_contracts.h"
+#include <client_mp/cl_ui_pc_mp.h>
+#include "live_friends_pc.h"
+#include "live_ticker.h"
+#include "live_win.h"
+#include <universal/com_expressions_eval.h>
+#include <game_mp/g_utils_mp.h>
+
+const dvar_t *liveNewsMaxCounters;
+countersNewsState_t s_countersNewsState;
+TickerMessageQueue s_tickerMessageQueue;
+char outputString[128];
+unsigned __int64 friendXuid[5];
+bool indexOfXuidAddedToTicker[5];
 
 char __cdecl LiveNews_NeedToGetFriendNews()
 {
-    unsigned intv0; // eax
+    unsigned int v0; // eax
 
     if ( (!friendsNewsLastFetchTime || (int)(Sys_Milliseconds() - friendsNewsLastFetchTime->current.integer) <= 180000)
         && ((int)Sys_Milliseconds() >= 180000 || friendsNewsLastFetchTime->current.integer) )
@@ -637,6 +658,11 @@ void __cdecl LiveNews_GetOwnNews_f()
 {
     LiveNews_GetOwnNews(0);
 }
+
+cmd_function_s LiveNews_PublishNews_f_VAR;
+cmd_function_s LiveNews_GetOwnNews_f_VAR;
+
+const dvar_t *friendsNewsLastFetchTime;
 
 void __cdecl LiveNews_Init()
 {

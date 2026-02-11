@@ -1,12 +1,23 @@
 #include "live_meetplayer.h"
 #include "live_storage.h"
 #include <win32/win_shared.h>
+#include "live_win.h"
+
+MetPlayerInfo metPlayersXuidinfo[1];
+int s_metPlayerLastUploadTime[1];
+bool s_metPlayerListChanged[1];
+int s_lastUpdateTime[1];
+unsigned __int64 recentPlayerSessionIDs[50];
+unsigned __int64 metPlayerXuid;
+
+const dvar_t *metPlayerListUploadInterval;
+const dvar_t *metPlayerListUpdateInterval;
 
 void __cdecl LiveMeetPlayer_DownloadMetPlayersList(int localControllerIndex)
 {
     LiveStorage_ReadMetPlayerList(
         localControllerIndex,
-        "CompressedMetPlayer3.info",
+        (char*)"CompressedMetPlayer3.info",
         &metPlayersXuidinfo[localControllerIndex].version,
         2416);
 }
@@ -55,7 +66,7 @@ void __cdecl LiveMeetPlayer_UploadMetPlayerList(int localControllerIndex)
 {
     LiveStorage_WriteMetPlayerList(
         localControllerIndex,
-        "CompressedMetPlayer3.info",
+        (char*)"CompressedMetPlayer3.info",
         &metPlayersXuidinfo[localControllerIndex].version,
         2416);
 }
@@ -126,79 +137,82 @@ int __cdecl LiveMeetPlayer_MetPlayerCompare(_QWORD *arg0, _QWORD *arg1)
 }
 
 void __cdecl LiveMeetPlayer_UpdateMeetPlayerList(
-                int localControllerIndex,
-                unsigned __int64 playeruid,
-                const char *playername)
+    int localControllerIndex,
+    unsigned __int64 playeruid,
+    const char *playername)
 {
     int i; // [esp+0h] [ebp-18h]
     int currentPlayerPosition; // [esp+8h] [ebp-10h]
     int currentPlayerPositiona; // [esp+8h] [ebp-10h]
 
     s_lastUpdateTime[localControllerIndex] = Sys_Milliseconds();
-    if ( !playeruid
+    if (!playeruid
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_meetplayer.cpp",
-                    449,
-                    0,
-                    "%s",
-                    "currentPlayerXuid != 0") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_meetplayer.cpp",
+            449,
+            0,
+            "%s",
+            "currentPlayerXuid != 0"))
     {
         __debugbreak();
     }
-    if ( playeruid )
+    if (playeruid)
     {
         currentPlayerPosition = LiveMeetPlayer_GetXUIDPosInMetPlayerList(localControllerIndex, playeruid);
         s_metPlayerListChanged[localControllerIndex] = 1;
-        if ( currentPlayerPosition == -1 )
+        if (currentPlayerPosition == -1)
         {
-            if ( metPlayersXuidinfo[localControllerIndex].metPlayerCount >= 0x32u )
+            if (metPlayersXuidinfo[localControllerIndex].metPlayerCount >= 0x32u)
             {
-                if ( metPlayersXuidinfo[localControllerIndex].metPlayerCount != 50
+                if (metPlayersXuidinfo[localControllerIndex].metPlayerCount != 50
                     && !Assert_MyHandler(
-                                "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_meetplayer.cpp",
-                                479,
-                                0,
-                                "%s",
-                                "metPlayersXuidinfo[localControllerIndex].metPlayerCount == MAX_MET_FRIENDS") )
+                        "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_meetplayer.cpp",
+                        479,
+                        0,
+                        "%s",
+                        "metPlayersXuidinfo[localControllerIndex].metPlayerCount == MAX_MET_FRIENDS"))
                 {
                     __debugbreak();
                 }
                 currentPlayerPositiona = 0;
-                for ( i = 1; i < metPlayersXuidinfo[localControllerIndex].metPlayerCount; ++i )
+                for (i = 1; i < metPlayersXuidinfo[localControllerIndex].metPlayerCount; ++i)
                 {
-                    if ( LiveMeetPlayer_MetPlayerCompare(
-                                 &metPlayersXuidinfo[localControllerIndex].playersXuidInfo[currentPlayerPositiona].playerXuids,
-                                 &metPlayersXuidinfo[localControllerIndex].playersXuidInfo[i].playerXuids) == -1 )
+                    if (LiveMeetPlayer_MetPlayerCompare(
+                        &metPlayersXuidinfo[localControllerIndex].playersXuidInfo[currentPlayerPositiona].playerXuids,
+                        &metPlayersXuidinfo[localControllerIndex].playersXuidInfo[i].playerXuids) == -1)
                         currentPlayerPositiona = i;
                 }
                 LODWORD(metPlayerXuid) = metPlayersXuidinfo[localControllerIndex].playersXuidInfo[currentPlayerPositiona].playerXuids;
-                dword_A52246C = HIDWORD(metPlayersXuidinfo[localControllerIndex].playersXuidInfo[currentPlayerPositiona].playerXuids);
-                if ( !LiveMeetPlayer_AddPlayerAtSlot(localControllerIndex, playeruid, playername, currentPlayerPositiona) )
+                HIDWORD(metPlayerXuid) = HIDWORD(metPlayersXuidinfo[localControllerIndex].playersXuidInfo[currentPlayerPositiona].playerXuids);
+                if (!LiveMeetPlayer_AddPlayerAtSlot(localControllerIndex, playeruid, playername, currentPlayerPositiona))
                     Com_PrintWarning(23, "This might be bad.\n");
             }
-            else if ( LiveMeetPlayer_AddPlayerAtSlot(
-                                    localControllerIndex,
-                                    playeruid,
-                                    playername,
-                                    metPlayersXuidinfo[localControllerIndex].metPlayerCount) )
+            else if (LiveMeetPlayer_AddPlayerAtSlot(
+                localControllerIndex,
+                playeruid,
+                playername,
+                metPlayersXuidinfo[localControllerIndex].metPlayerCount))
             {
                 ++metPlayersXuidinfo[localControllerIndex].metPlayerCount;
             }
         }
         else
         {
-            if ( currentPlayerPosition >= metPlayersXuidinfo[localControllerIndex].metPlayerCount
+            if (currentPlayerPosition >= metPlayersXuidinfo[localControllerIndex].metPlayerCount
                 && !Assert_MyHandler(
-                            "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_meetplayer.cpp",
-                            465,
-                            0,
-                            "%s",
-                            "currentPlayerPosition < metPlayersXuidinfo[localControllerIndex].metPlayerCount") )
+                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_meetplayer.cpp",
+                    465,
+                    0,
+                    "%s",
+                    "currentPlayerPosition < metPlayersXuidinfo[localControllerIndex].metPlayerCount"))
             {
                 __debugbreak();
             }
-            LiveMeetPlayer_SetCurrentTime((_FILETIME *)(2416 * localControllerIndex + 48 * currentPlayerPosition + 173153064));
-            I_strncpyz((char *)(2416 * localControllerIndex + 48 * currentPlayerPosition + 173153032), playername, 32);
+            LiveMeetPlayer_SetCurrentTime(&metPlayersXuidinfo[localControllerIndex].playersXuidInfo[currentPlayerPosition].systemTime);
+            I_strncpyz(
+                metPlayersXuidinfo[localControllerIndex].playersXuidInfo[currentPlayerPosition].gamertag,
+                playername,
+                32);
         }
     }
 }
@@ -314,12 +328,12 @@ void __cdecl LiveMeetPlayer_UpdatePlayerSession(unsigned __int64 playerUid, unsi
 {
     unsigned int i; // [esp+8h] [ebp-8h]
 
-    for ( i = 0; i < metPlayersXuidinfo[0].metPlayerCount; ++i )
+    for (i = 0; i < metPlayersXuidinfo[0].metPlayerCount; ++i)
     {
-        if ( metPlayersXuidinfo[0].playersXuidInfo[i].playerXuids == playerUid )
+        if (metPlayersXuidinfo[0].playersXuidInfo[i].playerXuids == playerUid)
         {
             LODWORD(recentPlayerSessionIDs[i]) = sessionUid;
-            dword_A52196C[2 * i] = HIDWORD(sessionUid);
+            HIDWORD(recentPlayerSessionIDs[i]) = HIDWORD(sessionUid);
         }
     }
 }

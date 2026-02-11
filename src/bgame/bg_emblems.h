@@ -149,3 +149,8 @@ bool __cdecl SV_CACValidate_IsBackgroundPurchased(unsigned __int8 *buffer, int r
 bool __cdecl SV_CACValidate_IsBackgroundLockedForRank(unsigned __int8 *buffer, int rank, __int16 id);
 bool __cdecl SV_CACValidate_IsIconPurchased(unsigned __int8 *buffer, int rank, __int16 id);
 bool __cdecl SV_CACValidate_IsIconLockedForRank(unsigned __int8 *buffer, int rank, __int16 id);
+
+extern const dvar_s *allEmblemsUnlocked;
+extern const dvar_s *allEmblemsPurchased;
+extern const dvar_s *bg_overridePlayerEmblemColor;
+extern const dvar_s *bg_overridePlayerEmblemIcon;

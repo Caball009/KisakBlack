@@ -1,5 +1,41 @@
 #pragma once
 
+#include <universal/q_shared.h>
+#include <Windows.h>
+
+struct XuidInfo // sizeof=0x30
+{                                       // XREF: .data:recentPlayerInfo/r
+    unsigned __int64 playerXuids;       // XREF: UI_FeederItemText_CommmonPlayerListHandler+CE/r
+                                        // UI_FeederItemText_CommmonPlayerListHandler+D6/r ...
+    char gamertag[32];                  // XREF: UI_FeederItemText_CommmonPlayerListHandler+DF/o
+                                        // UI_FeederDataExtended_RecentPlayers+E9/o ...
+    _FILETIME systemTime;
+};
+
+struct __declspec(align(8)) MetPlayerInfo // sizeof=0x970
+{                                       // XREF: .data:metPlayersXuidinfo/r
+    unsigned __int8 version;            // XREF: LiveMeetPlayer_ResetData(int)+2A/w
+                                        // LiveMeetPlayer_CheckDownloadedVersionAndResetData(int)+13/r ...
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    XuidInfo playersXuidInfo[50];       // XREF: LiveMeetPlayer_CheckDownloadedVersionAndResetData(int)+88/r
+                                        // LiveMeetPlayer_GetXUIDPosInMetPlayerList(int,unsigned __int64)+4B/r ...
+    unsigned __int8 metPlayerCount;     // XREF: LiveMeetPlayer_CheckDownloadedVersionAndResetData(int)+61/r
+                                        // LiveMeetPlayer_GetXUIDPosInMetPlayerList(int,unsigned __int64)+21/r ...
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+};
+
 void __cdecl LiveMeetPlayer_DownloadMetPlayersList(int localControllerIndex);
 void __cdecl LiveMeetPlayer_ClearUploadFlags(int controllerIndex);
 bool __cdecl LiveMeetPlayer_UploadMetPlayerListNeeded(int controllerIndex);

@@ -1,13 +1,7 @@
 #pragma once
 #include <client_mp/cl_main_mp.h>
 
-enum taskCompleteResults : __int32
-{                                       // XREF: Live_SetPlayerTeamRanksComplete/r
-                                        // Live_QoSProbeComplete/r ...
-    TASK_NOTCOMPLETE = 0x0,
-    TASK_COMPLETE    = 0x1,
-    TASK_ERROR       = 0x2,
-};
+enum taskCompleteResults : __int32;
 
 struct XSESSION_INFO // sizeof=0x31
 {                                       // XREF: SessionData_s/r
@@ -103,6 +97,50 @@ struct __declspec(align(8)) SessionData_s // sizeof=0x978
     // padding byte
     // padding byte
     // padding byte
+};
+
+struct __declspec(align(8)) SessionJoinData // sizeof=0x20
+{                                       // XREF: .data:sessionJoinData/r
+    bool active;
+    // padding byte
+    // padding byte
+    // padding byte
+    int privateSlot;
+    int slot;
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    unsigned __int64 player;
+    SessionData_s *session;
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+};
+
+struct SessionCreateData // sizeof=0x8
+{                                       // XREF: .data:SessionCreateData sessionCreateData/r
+                                        // .data:sessionCreateData/r
+    bool active;                        // XREF: Session_StartHost(SessionData_s *,int,int,int)+146/w
+    // Session_GetFreeCreateSessionSlot+1F/r
+// padding byte
+// padding byte
+// padding byte
+    SessionData_s *session;             // XREF: Session_StartHost(SessionData_s *,int,int,int)+154/w
+};
+
+struct SessionGraveYard // sizeof=0x980
+{
+    bool active;
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    SessionData_s sessionData;
 };
 
 void __cdecl Session_ClearDWOverlappedTasks();

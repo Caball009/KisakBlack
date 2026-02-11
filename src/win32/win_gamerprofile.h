@@ -113,6 +113,8 @@ struct __declspec(align(2)) GamerSettingState // sizeof=0xCC4
     // padding byte
 };
 
+void __cdecl SetDvarFromLocString_0(int controllerIndex, const char *dvarName, char *preLocalizedText);
+
 void __cdecl ResetCreateAClassNames(int controllerIndex);
 //void __cdecl SetDvarFromLocString(int controllerIndex, const char *dvarName, char *preLocalizedText);
 GamerSettingState *__cdecl GamerProfile_GetProfileSettings(int controllerIndex);

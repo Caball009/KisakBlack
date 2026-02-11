@@ -1,5 +1,87 @@
 #pragma once
 #include "live_storage.h"
+#include <DW/MatchMakingInfo_win32.h>
+
+enum EUserTier : __int32
+{                                       // XREF: XenonUserData/r
+                                        // GetIsSuperUser/r
+    USER_TIER_NONE      = 0x0,
+    USER_TIER_SUPER     = 0x1,
+    USER_TIER_DEVELOPER = 0x2,
+    USER_TIER_FRIEND    = 0x3,
+    USER_TIER_ENEMY     = 0x29A,
+};
+
+struct __declspec(align(8)) PlayerRank // sizeof=0x10
+{                                       // XREF: Live_UpdatePerformanceValuesComplete/r
+    unsigned __int64 xuid;              // XREF: Live_UpdatePerformanceValuesComplete+F3/r
+                                        // Live_UpdatePerformanceValuesComplete+FB/r
+    int rank;                           // XREF: Live_UpdatePerformanceValuesComplete+139/r
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+};
+
+struct __declspec(align(8)) recentServer_t // sizeof=0x10
+{                                       // XREF: .data:s_recentServers/r
+    unsigned __int64 serverID;          // XREF: Live_FindRecentServers(void)+84/r
+                                        // Live_SaveRecentServers(void)+31/r ...
+    int joinTime;                       // XREF: Live_FindRecentServers(void)+6A/r
+                                        // Live_SaveRecentServers(void)+74/r ...
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+};
+
+struct favourite_t // sizeof=0x10
+{                                       // XREF: .data:s_favourites/r
+    unsigned __int8 addressblob[6];
+    // padding byte
+    // padding byte
+    unsigned __int64 uid;               // XREF: Live_DumpFavourites(void)+2A/r
+                                        // Live_FindFavouriteServers(void)+76/r ...
+};
+
+struct XenonUserData // sizeof=0x50
+{
+    int signinState;
+    char gamertag[32];
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    unsigned __int64 xuid;
+    char xuidString[17];
+    bool isGuestUser;
+    // padding byte
+    // padding byte
+    EUserTier tier;
+    __int64 totalGamesPlayed;
+};
+
+struct bdProfileInfo : bdTaskResult // sizeof=0x10
+{                                       // XREF: PrivateProfileInfo/r
+                                        // PublicProfileInfo/r
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+    unsigned __int64 m_entityID;        // XREF: PCache_GetPublicProfilesCompleted+27C/r
+                                        // Live_SetPrivateProfile(void)+52/w ...
+};
+
+struct __declspec(align(4)) PrivateProfileInfo : bdProfileInfo // sizeof=0x260
+{                                       // XREF: .data:s_profileInfo/r
+    unsigned __int8 m_memberfavsblob[253];
+                                        // XREF: Live_GetPrivateProfileComplete(TaskRecord *)+8/o
+                                        // CL_SetFavourites_f(void)+8/o ...
+    unsigned __int8 m_memberuids[337];  // XREF: Live_GetPrivateProfileComplete(TaskRecord *)+3/o
+                                        // CL_SetFavourites_f(void)+3/o ...
+    // padding byte
+    // padding byte
+};
 
 struct dwQoSMultiProbeListener;
 
@@ -116,3 +198,50 @@ void __cdecl Live_DispatchP2PMessage(unsigned __int8 *message, unsigned int mess
 void __cdecl Live_BroadcastSessionToFriends(unsigned __int64 sessionUID, unsigned __int8 flags);
 void __cdecl Live_BroadcastSessionToRecentPlayers(unsigned __int64 sessionUID, unsigned __int8 flags);
 void __cdecl Live_BroadcastSessionIfNeeded();
+
+extern MatchMakingInfo *g_matchmakingInfo;
+
+extern unsigned __int64 s_selectedPlayerXUID;
+
+
+extern const dvar_t *live_service;
+extern const dvar_t *dw_loggedin;
+extern const dvar_t *dw_active;
+extern const dvar_t *pc_newversionavailable;
+extern const dvar_t *dw_dupe_key;
+extern const dvar_t *xblive_loggedin;
+extern const dvar_t *xenon_voiceDebug;
+extern const dvar_t *xenon_voiceDegrade;
+extern const dvar_t *getdlcmapsfrommaindrive;
+extern const dvar_t *session_nonblocking;
+extern const dvar_t *systemUiActive;
+extern const dvar_t *xblive_showmarketplace;
+extern const dvar_t *xblive_clanmatch;
+extern const dvar_t *xblive_theater;
+extern const dvar_t *xblive_hostingprivateparty;
+extern const dvar_t *xblive_privatepartyclient;
+extern const dvar_t *xblive_wagermatch;
+extern const dvar_t *xblive_basictraining;
+extern const dvar_t *xblive_basictraining_popup;
+extern const dvar_t *bot_tips;
+extern const dvar_t *party_simulateLongQoS;
+extern const dvar_t *xblive_clanListChanged;
+extern const dvar_t *teamsplitter_verbose;
+extern const dvar_t *xblive_matchEndingSoon;
+extern const dvar_t *ui_isClanMember;
+extern const dvar_t *dw_numaccounts;
+extern const dvar_t *xenon_maxVoicePacketsPerSec;
+extern const dvar_t *xenon_maxVoicePacketsPerSecForServer;
+extern const dvar_t *bandwidth_retry_interval;
+extern const dvar_t *xblive_mappacks;
+extern const dvar_t *bot_friends;
+extern const dvar_t *bot_enemies;
+extern const dvar_t *invite_waitPeriod;
+extern const dvar_t *steamid;
+extern const dvar_t *dw_popup;
+extern const dvar_t *inviteText;
+extern const dvar_t *scr_bot_difficulty;
+extern const dvar_t *clancard_clanid;
+extern const dvar_t *clanName;
+extern const dvar_t *bot_difficulty;
+extern const dvar_t *dw_usernames[5];

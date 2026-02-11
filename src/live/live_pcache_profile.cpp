@@ -1,4 +1,13 @@
 #include "live_pcache_profile.h"
+#include <universal/UserInfo.h>
+#include "live_stats.h"
+#include "live_win.h"
+
+ddlDef_t *g_playerDDL;
+ddlState_t s_rankState;
+ddlState_t s_prestigeState;
+ddlState_t s_emblemState;
+ddlState_t s_codpointsState;
 
 void __cdecl PCache_ProfileInit()
 {
@@ -20,6 +29,7 @@ ddlDef_t *__cdecl PCache_GetPublicProfileDDL()
 
 void __cdecl PCache_GetPublicProfilesCompleted(TaskRecord *task)
 {
+#ifdef KISAK_LIVE_STUBS
     unsigned int HeaderSize; // eax
     unsigned __int64 v2; // [esp-Ch] [ebp-154h]
     int retrievedProfileIndex; // [esp+20h] [ebp-128h]
@@ -93,10 +103,12 @@ void __cdecl PCache_GetPublicProfilesCompleted(TaskRecord *task)
         }
     }
     PCache_Unlock();
+#endif
 }
 
 void __cdecl PCache_GetPublicProfilesFailed(TaskRecord *task)
 {
+#ifdef KISAK_LIVE_STUBS
     unsigned __int64 v1; // [esp-Ch] [ebp-20h]
     int controllerIndex; // [esp+0h] [ebp-14h]
     int batchCount; // [esp+8h] [ebp-Ch]
@@ -115,6 +127,7 @@ void __cdecl PCache_GetPublicProfilesFailed(TaskRecord *task)
         profile->c.state |= 0x20u;
     }
     PCache_Unlock();
+#endif
 }
 
 void __cdecl PCache_SetPublicProfileCompleted(TaskRecord *task)
@@ -133,6 +146,7 @@ void __cdecl PCache_SetPublicProfileFailed(TaskRecord *task)
 
 void __cdecl PCache_GetPublicProfileCompleted(TaskRecord *task)
 {
+#ifdef KISAK_LIVE_STUBS
     PCachePublicProfile *profile; // [esp+18h] [ebp-10Ch]
     char backup[256]; // [esp+1Ch] [ebp-108h] BYREF
     PublicProfileInfo *dwProfile; // [esp+120h] [ebp-4h]
@@ -210,10 +224,12 @@ void __cdecl PCache_GetPublicProfileCompleted(TaskRecord *task)
     }
     profile->c.state |= 2u;
     PCache_Unlock();
+#endif
 }
 
 void __cdecl PCache_GetPublicProfileFailed(TaskRecord *task)
 {
+#ifdef KISAK_LIVE_STUBS
     PCachePublicProfile *profile; // [esp+8h] [ebp-4h]
 
     PCache_Lock();
@@ -250,10 +266,12 @@ void __cdecl PCache_GetPublicProfileFailed(TaskRecord *task)
         profile->c.state |= 2u;
     }
     PCache_Unlock();
+#endif
 }
 
 void __cdecl PCache_NukeProfile(int controlleridx)
 {
+#ifdef KISAK_LIVE_STUBS
     const bdReference<bdCommonAddr> *v1; // eax
     bdReference<bdCommonAddr> v2; // [esp+1Ch] [ebp-10h] BYREF
     TaskRecord *task; // [esp+20h] [ebp-Ch]
@@ -273,10 +291,12 @@ void __cdecl PCache_NukeProfile(int controlleridx)
             TaskManager2_StartTask(task);
         }
     }
+#endif
 }
 
 void __cdecl PCache_BatchUpdatePublicProfiles(int controllerIndex, PCachePublicProfile *profiles, int count)
 {
+#ifdef KISAK_LIVE_STUBS
     unsigned __int64 v3; // rax
     const bdReference<bdCommonAddr> *v4; // eax
     const bdReference<bdCommonAddr> *v5; // eax
@@ -428,6 +448,7 @@ void __cdecl PCache_BatchUpdatePublicProfiles(int controllerIndex, PCachePublicP
             }
         }
     }
+#endif
 }
 
 char __cdecl PCache_GetRankInternal(PCachePublicProfile *profile, int *rank, int *prestige)
