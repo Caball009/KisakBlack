@@ -1,4 +1,6 @@
 #include "ddl_cmd.h"
+#include "ddl_api.h"
+#include <qcommon/cmd.h>
 
 void __cdecl DDL_Cmd_GetAsset_f()
 {
@@ -78,6 +80,9 @@ LABEL_6:
         DDL_NoCheckPrintf("USAGE: ddlShow <DDL Asset Name>\n");
     }
 }
+
+cmd_function_s DDL_Cmd_GetAsset_f_VAR;
+cmd_function_s DDL_Cmd_Show_f_VAR;
 
 void __cdecl DDL_Cmd_Init()
 {

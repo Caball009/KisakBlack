@@ -65,6 +65,12 @@ struct ddlState_t // sizeof=0x10
                                         // MatchRecordSpawn(gclient_s *)+24B/r ...
 };
 
+struct ddlRoot_t // sizeof=0x8
+{                                       // XREF: XAssetPoolEntry<ddlRoot_t>/r
+    const char *name;
+    ddlDef_t *ddlDef;
+};
+
 void __cdecl DDL_Init();
 int __cdecl DDL_GetTotalBufferBitSize(ddlDef_t *ddl);
 void DDL_Printf(const char *fmt, ...);

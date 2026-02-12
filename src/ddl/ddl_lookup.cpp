@@ -1,4 +1,6 @@
 #include "ddl_lookup.h"
+#include <universal/q_shared.h>
+#include "ddl_converter.h"
 
 int __cdecl DDL_Lookup_IsMemberAtOffset(
                 ddlMemberDef_t *member,

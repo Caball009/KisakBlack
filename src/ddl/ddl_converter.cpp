@@ -1,4 +1,7 @@
 #include "ddl_converter.h"
+#include <universal/q_shared.h>
+#include <win32/win_shared.h>
+#include <cstring>
 
 bool __cdecl DDL_Converter_IsLeaf(ddlMemberDef_t *member)
 {
@@ -130,7 +133,7 @@ int __cdecl DDL_Converter_Versions(
                 char *backupBuffer,
                 int bufferSize)
 {
-    unsigned intv5; // eax
+    unsigned int v5; // eax
     ddlState_t newRootState; // [esp+0h] [ebp-24h] BYREF
     ddlState_t oldRootState; // [esp+10h] [ebp-14h] BYREF
     int startTime; // [esp+20h] [ebp-4h]

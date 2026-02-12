@@ -1,4 +1,5 @@
 #pragma once
+#include "ddl_api.h"
 
 bool __cdecl DDL_Converter_IsLeaf(ddlMemberDef_t *member);
 void __cdecl DDL_Converter_CopyStates(

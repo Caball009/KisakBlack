@@ -1,4 +1,15 @@
 #include "ddl_api.h"
+#include <universal/dvar.h>
+#include <cstdarg>
+#include <stdio.h>
+#include <qcommon/common.h>
+#include "ddl_converter.h"
+#include "ddl_buffer.h"
+#include <database/db_registry.h>
+#include "ddl_lookup.h"
+#include <cstring>
+
+const dvar_t *ddl_verbose;
 
 void __cdecl DDL_Init()
 {
@@ -180,7 +191,7 @@ ddlDef_t *__cdecl DDL_LoadAssetWithVersion(const char *fileName, int version)
     ddlDef_t *currDef; // [esp+8h] [ebp-8h]
     ddlDef_t *maxDef; // [esp+Ch] [ebp-4h]
 
-    ddlRoot = DB_FindXAssetHeader(ASSET_TYPE_DDL, fileName, 1, -1).ddlRoot;
+    ddlRoot = DB_FindXAssetHeader(ASSET_TYPE_DDL, (char*)fileName, 1, -1).ddlRoot;
     if ( !ddlRoot )
         return 0;
     currDef = ddlRoot->ddlDef;
@@ -601,6 +612,7 @@ unsigned int __cdecl DDL_ReadInt64ValueInternal(ddlMemberDef_t *member, int abso
     }
 }
 
+unsigned __int8 stringResult[68];
 char *__cdecl DDL_ReadStringValueInternal(ddlMemberDef_t *member, int absoluteOffset, char *buffer)
 {
     int v4; // [esp+0h] [ebp-14h]

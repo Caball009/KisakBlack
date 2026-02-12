@@ -1,4 +1,5 @@
 #pragma once
+#include "ddl_api.h"
 
 int __cdecl DDL_Lookup_IsMemberAtOffset(
                 ddlMemberDef_t *member,

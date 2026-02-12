@@ -1,5 +1,8 @@
 #include "ddl_buffer.h"
 
+#include <cstring>
+#include "ddl_api.h"
+
 void __cdecl DDL_Buffer_WriteHeader(char *buffer, ddlBufferHeader_t *header)
 {
     memcpy(buffer, header, 0x28u);
