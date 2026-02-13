@@ -13,6 +13,26 @@
 #include <sound/snd_bank.h>
 #include <physics/phys_colgeom.h>
 #include <gfx_d3d/fxprimitives.h>
+#include <physics/physconstraints_load_obj.h>
+#include <physics/physpreset_load_obj.h>
+#include <game/pathnode.h>
+#include <DynEntity/DynEntity_client.h>
+#include <DynEntity/DynEntity_load_obj.h>
+#include <ui/ui_utils.h>
+#include <ui/ui_shared.h>
+#include <universal/com_expressions.h>
+#include <qcommon/com_bsp.h>
+#include <physics/rope.h>
+#include <glass/glass_shard.h>
+#include <glass/glass.h>
+#include <gfx_d3d/r_reflection_probe.h>
+#include <gfx_d3d/r_extracam.h>
+#include <bgame/bg_emblems.h>
+#include <stringed/stringed_hooks.h>
+#include <cgame/cg_effects_load_obj.h>
+#include <qcommon/cm_load_obj.h>
+#include <game/g_bsp.h>
+#include <qcommon/cm_staticmodel.h>
 
 // This seriously has to be one of the most aids parts of the COD codebases
 unsigned __int8 *varbyte;
@@ -355,9 +375,9 @@ Glasses **varGlassesPtr;
 Glass *varGlass;
 XAsset *varXAsset;
 XAssetHeader *varXAssetHeader;
-
-
-
+pathnode_tree_info_t *varpathnode_tree_info_t;
+pathnode_tree_t **varpathnode_tree_ptr;
+cStaticModel_s *varcStaticModel_t;
 
 
 void __cdecl Load_byteArray(bool atStreamStart, int count)
@@ -1482,7 +1502,7 @@ void __cdecl Load_snd_alias_t(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varsnd_alias_t->soundFile);
+            DB_ConvertOffsetToPointer((unsigned int*)&varsnd_alias_t->soundFile);
         }
     }
 }
@@ -1628,7 +1648,7 @@ void __cdecl Load_SndPatch(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varSndPatch->files);
+            DB_ConvertOffsetToPointer((unsigned int*)&varSndPatch->files);
         }
     }
     DB_PopStreamPos();
@@ -1842,7 +1862,7 @@ void __cdecl Load_XSurface(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varXSurface->verts0);
+            DB_ConvertOffsetToPointer((unsigned int *)&varXSurface->verts0);
         }
     }
     if ( varXSurface->vertList )
@@ -1981,13 +2001,13 @@ void __cdecl Load_GfxImagePtr(bool atStreamStart)
             else
                 inserted = 0;
             Load_GfxImage(1);
-            Load_GfxImageAsset(varGfxImagePtr);
+            Load_GfxImageAsset((XAssetHeader*)varGfxImagePtr);
             if ( inserted )
                 *inserted = *varGfxImagePtr;
         }
         else
         {
-            DB_ConvertOffsetToAlias(varGfxImagePtr);
+            DB_ConvertOffsetToAlias((unsigned int *)varGfxImagePtr);
         }
     }
     DB_PopStreamPos();
@@ -2061,7 +2081,7 @@ void __cdecl Load_GfxVertexShaderLoadDef(bool atStreamStart)
     Load_Stream(atStreamStart, (unsigned __int8 *)varGfxVertexShaderLoadDef, 8);
     if ( varGfxVertexShaderLoadDef->program )
     {
-        varGfxVertexShaderLoadDef->program = (unsigned int *)AllocLoad_FxElemVisStateSample();
+        varGfxVertexShaderLoadDef->program = (DWORD *)AllocLoad_FxElemVisStateSample();
         varDWORD = varGfxVertexShaderLoadDef->program;
         Load_DWORDArray(1, varGfxVertexShaderLoadDef->programSize);
     }
@@ -2072,7 +2092,7 @@ void __cdecl Load_GfxPixelShaderLoadDef(bool atStreamStart)
     Load_Stream(atStreamStart, (unsigned __int8 *)varGfxPixelShaderLoadDef, 8);
     if ( varGfxPixelShaderLoadDef->program )
     {
-        varGfxPixelShaderLoadDef->program = (unsigned int *)AllocLoad_FxElemVisStateSample();
+        varGfxPixelShaderLoadDef->program = (DWORD *)AllocLoad_FxElemVisStateSample();
         varDWORD = varGfxPixelShaderLoadDef->program;
         Load_DWORDArray(1, varGfxPixelShaderLoadDef->programSize);
     }
@@ -2453,7 +2473,7 @@ void __cdecl Load_Material(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varMaterial->textureTable);
+            DB_ConvertOffsetToPointer((unsigned int *)&varMaterial->textureTable);
         }
     }
     if ( varMaterial->localConstantTable )
@@ -2466,7 +2486,7 @@ void __cdecl Load_Material(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varMaterial->localConstantTable);
+            DB_ConvertOffsetToPointer((unsigned int *)&varMaterial->localConstantTable);
         }
     }
     if ( varMaterial->stateBitsTable )
@@ -2479,7 +2499,7 @@ void __cdecl Load_Material(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varMaterial->stateBitsTable);
+            DB_ConvertOffsetToPointer((unsigned int *)&varMaterial->stateBitsTable);
         }
     }
     DB_PopStreamPos();
@@ -3064,7 +3084,7 @@ void __cdecl Load_BrushWrapper(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varBrushWrapper->verts);
+            DB_ConvertOffsetToPointer((unsigned int *)&varBrushWrapper->verts);
         }
     }
     if ( varBrushWrapper->planes )
@@ -3077,7 +3097,7 @@ void __cdecl Load_BrushWrapper(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varBrushWrapper->planes);
+            DB_ConvertOffsetToPointer((unsigned int *)&varBrushWrapper->planes);
         }
     }
 }
@@ -3095,7 +3115,7 @@ void __cdecl Load_PhysGeomInfo(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(varPhysGeomInfo);
+            DB_ConvertOffsetToPointer((unsigned int*)varPhysGeomInfo);
         }
     }
 }
@@ -3162,13 +3182,14 @@ void __cdecl Load_XModel(bool atStreamStart)
     {
         if ( varXModel->localBoneNames == (unsigned __int16 *)-1 )
         {
-            varXModel->localBoneNames = AllocLoad_XBlendInfo();
+            varXModel->localBoneNames = (unsigned short*)AllocLoad_XBlendInfo();
             varScriptString = varXModel->localBoneNames;
             Load_ScriptStringArray(1, varXModel->numBones);
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varXModel->8);
+            //DB_ConvertOffsetToPointer(&varXModel->8);
+            DB_ConvertOffsetToPointer((uint32_t *)&varXModel->boneNames);
         }
     }
     if ( varXModel->localParentList )
@@ -3181,7 +3202,8 @@ void __cdecl Load_XModel(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varXModel->12);
+            //DB_ConvertOffsetToPointer(&varXModel->12);
+            DB_ConvertOffsetToPointer((uint32_t *)&varXModel->parentList);
         }
     }
     if ( varXModel->localQuats )
@@ -3194,7 +3216,8 @@ void __cdecl Load_XModel(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varXModel->16);
+            //DB_ConvertOffsetToPointer(&varXModel->16);
+            DB_ConvertOffsetToPointer((uint32_t *)&varXModel->quats);
         }
     }
     if ( varXModel->localTrans )
@@ -3207,7 +3230,8 @@ void __cdecl Load_XModel(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varXModel->20);
+            //DB_ConvertOffsetToPointer(&varXModel->20);
+            DB_ConvertOffsetToPointer((uint32_t *)&varXModel->trans);
         }
     }
     if ( varXModel->partClassification )
@@ -3220,7 +3244,8 @@ void __cdecl Load_XModel(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varXModel->partClassification);
+            //DB_ConvertOffsetToPointer(&varXModel->partClassification);
+            DB_ConvertOffsetToPointer((uint32_t *)&varXModel->partClassification);
         }
     }
     if ( varXModel->baseMat )
@@ -3233,7 +3258,8 @@ void __cdecl Load_XModel(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varXModel->baseMat);
+            //DB_ConvertOffsetToPointer(&varXModel->baseMat);
+            DB_ConvertOffsetToPointer((uint32_t *)&varXModel->baseMat);
         }
     }
     if ( varXModel->surfs )
@@ -3531,7 +3557,7 @@ void __cdecl Load_pathnode_tree_ptr(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(varpathnode_tree_ptr);
+            DB_ConvertOffsetToPointer((unsigned int*) varpathnode_tree_ptr);
         }
     }
 }
@@ -3802,7 +3828,7 @@ void __cdecl Load_FxEffectDefHandle(bool atStreamStart)
         if ( *varFxEffectDefHandle == (const FxEffectDef *)-1 || value == -2 )
         {
             *varFxEffectDefHandle = (const FxEffectDef *)AllocLoad_FxElemVisStateSample();
-            varFxEffectDef = *varFxEffectDefHandle;
+            varFxEffectDef = *(FxEffectDef**)varFxEffectDefHandle;  //de-const
             if ( value == -2 )
                 inserted = DB_InsertPointer();
             else
@@ -3977,13 +4003,13 @@ void __cdecl Load_FxElemDef(bool atStreamStart)
     if ( varFxElemDef->velSamples )
     {
         varFxElemDef->velSamples = (const FxElemVelStateSample *)AllocLoad_FxElemVisStateSample();
-        varFxElemVelStateSample = varFxElemDef->velSamples;
+        varFxElemVelStateSample = (FxElemVelStateSample *)varFxElemDef->velSamples;
         Load_FxElemVelStateSampleArray(1, varFxElemDef->velIntervalCount + 1);
     }
     if ( varFxElemDef->visSamples )
     {
         varFxElemDef->visSamples = (const FxElemVisStateSample *)AllocLoad_FxElemVisStateSample();
-        varFxElemVisStateSample = varFxElemDef->visSamples;
+        varFxElemVisStateSample = (FxElemVisStateSample *)varFxElemDef->visSamples;
         Load_FxElemVisStateSampleArray(1, varFxElemDef->visStateIntervalCount + 1);
     }
     varFxElemDefVisuals = &varFxElemDef->visuals;
@@ -4030,7 +4056,7 @@ void __cdecl Load_FxEffectDef(bool atStreamStart)
     if ( varFxEffectDef->elemDefsEA )
     {
         varFxEffectDef->elemDefsEA = (const FxElemDef *)AllocLoad_FxElemVisStateSample();
-        varFxElemDef = varFxEffectDef->elemDefsEA;
+        varFxElemDef = (FxElemDef*)varFxEffectDef->elemDefsEA;
         Load_FxElemDefArray(
             1,
             varFxEffectDef->elemDefCountEmission + varFxEffectDef->elemDefCountOneShot + varFxEffectDef->elemDefCountLooping);
@@ -4042,7 +4068,7 @@ void __cdecl Mark_FxEffectDefHandle()
 {
     if ( *varFxEffectDefHandle )
     {
-        varFxEffectDef = *varFxEffectDefHandle;
+        varFxEffectDef = *(FxEffectDef**)varFxEffectDefHandle; //de-const
         Mark_FxEffectDefAsset(varFxEffectDef);
         Mark_FxEffectDef();
     }
@@ -4162,7 +4188,7 @@ void __cdecl Mark_FxEffectDef()
 {
     if ( varFxEffectDef->elemDefsEA )
     {
-        varFxElemDef = varFxEffectDef->elemDefsEA;
+        varFxElemDef = (FxElemDef*)varFxEffectDef->elemDefsEA;
         Mark_FxElemDefArray(varFxEffectDef->elemDefCountEmission + varFxEffectDef->elemDefCountOneShot
                                                                                                                          + varFxEffectDef->elemDefCountLooping);
     }
@@ -4344,7 +4370,7 @@ void __cdecl Load_cNode_t(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(varcNode_t);
+            DB_ConvertOffsetToPointer((unsigned int*)varcNode_t);
         }
     }
 }
@@ -4382,7 +4408,7 @@ void __cdecl Load_cLeafBrushNodeLeaf_t(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(varcLeafBrushNodeLeaf_t);
+            DB_ConvertOffsetToPointer((unsigned int *)varcLeafBrushNodeLeaf_t);
         }
     }
 }
@@ -4454,7 +4480,7 @@ void __cdecl Load_CollisionPartition(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varCollisionPartition->borders);
+            DB_ConvertOffsetToPointer((unsigned int *)&varCollisionPartition->borders);
         }
     }
 }
@@ -4502,7 +4528,7 @@ void __cdecl Load_cbrush_t(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varcbrush_t->sides);
+            DB_ConvertOffsetToPointer((unsigned int *)&varcbrush_t->sides);
         }
     }
     if ( varcbrush_t->verts )
@@ -4515,7 +4541,7 @@ void __cdecl Load_cbrush_t(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varcbrush_t->verts);
+            DB_ConvertOffsetToPointer((unsigned int *)&varcbrush_t->verts);
         }
     }
 }
@@ -4561,7 +4587,7 @@ void __cdecl Load_clipMap_t(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varclipMap_t->planes);
+            DB_ConvertOffsetToPointer((unsigned int *)&varclipMap_t->planes);
         }
     }
     if ( varclipMap_t->staticModelList )
@@ -4690,7 +4716,7 @@ void __cdecl Load_clipMap_t(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varclipMap_t->box_brush);
+            DB_ConvertOffsetToPointer((unsigned int *)&varclipMap_t->box_brush);
         }
     }
     if ( varclipMap_t->dynEntDefList[0] )
@@ -4926,7 +4952,7 @@ void __cdecl Load_ComBurnableCell(bool atStreamStart)
     Load_Stream(atStreamStart, (unsigned __int8 *)varComBurnableCell, 12);
     if ( varComBurnableCell->data )
     {
-        varComBurnableCell->data = AllocLoad_raw_byte();
+        varComBurnableCell->data = (ComBurnableSample*)AllocLoad_raw_byte();
         varComBurnableSample = varComBurnableCell->data;
         Load_ComBurnableSampleArray(1, 32);
     }
@@ -5100,7 +5126,7 @@ void __cdecl Load_ExpressionStatement(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varExpressionStatement->rpn);
+            DB_ConvertOffsetToPointer((unsigned int *)&varExpressionStatement->rpn);
         }
     }
 }
@@ -5778,7 +5804,7 @@ void __cdecl Load_menuDef_ptr(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToAlias(varmenuDef_ptr);
+            DB_ConvertOffsetToAlias((unsigned int *)varmenuDef_ptr);
         }
     }
     DB_PopStreamPos();
@@ -6458,7 +6484,7 @@ void __cdecl Load_WeaponDef(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varWeaponDef->gunXModel);
+            DB_ConvertOffsetToPointer((unsigned int *)&varWeaponDef->gunXModel);
         }
     }
     varXModelPtr = &varWeaponDef->handXModel;
@@ -6475,7 +6501,7 @@ void __cdecl Load_WeaponDef(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varWeaponDef->notetrackSoundMapKeys);
+            DB_ConvertOffsetToPointer((unsigned int *)&varWeaponDef->notetrackSoundMapKeys);
         }
     }
     if ( varWeaponDef->notetrackSoundMapValues )
@@ -6488,7 +6514,7 @@ void __cdecl Load_WeaponDef(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varWeaponDef->notetrackSoundMapValues);
+            DB_ConvertOffsetToPointer((unsigned int *)&varWeaponDef->notetrackSoundMapValues);
         }
     }
     varXString = &varWeaponDef->parentWeaponName;
@@ -6631,7 +6657,7 @@ void __cdecl Load_WeaponDef(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varWeaponDef->bounceSound);
+            DB_ConvertOffsetToPointer((unsigned int *)&varWeaponDef->bounceSound);
         }
     }
     varXString = &varWeaponDef->standMountedWeapdef;
@@ -6662,7 +6688,7 @@ void __cdecl Load_WeaponDef(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varWeaponDef->worldModel);
+            DB_ConvertOffsetToPointer((unsigned int *)&varWeaponDef->worldModel);
         }
     }
     varXModelPtr = &varWeaponDef->worldClipModel;
@@ -6735,7 +6761,7 @@ void __cdecl Load_WeaponDef(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varWeaponDef->parallelBounce);
+            DB_ConvertOffsetToPointer((unsigned int *)&varWeaponDef->parallelBounce);
         }
     }
     if ( varWeaponDef->perpendicularBounce )
@@ -6748,7 +6774,7 @@ void __cdecl Load_WeaponDef(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varWeaponDef->perpendicularBounce);
+            DB_ConvertOffsetToPointer((unsigned int *)&varWeaponDef->perpendicularBounce);
         }
     }
     varFxEffectDefHandle = &varWeaponDef->projTrailEffect;
@@ -6769,7 +6795,7 @@ void __cdecl Load_WeaponDef(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(varWeaponDef->accuracyGraphKnots);
+            DB_ConvertOffsetToPointer((unsigned int *)varWeaponDef->accuracyGraphKnots);
         }
     }
     if ( varWeaponDef->originalAccuracyGraphKnots[0] )
@@ -6782,7 +6808,7 @@ void __cdecl Load_WeaponDef(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(varWeaponDef->originalAccuracyGraphKnots);
+            DB_ConvertOffsetToPointer((unsigned int *)varWeaponDef->originalAccuracyGraphKnots);
         }
     }
     varXString = &varWeaponDef->accuracyGraphName[1];
@@ -6797,7 +6823,7 @@ void __cdecl Load_WeaponDef(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varWeaponDef->accuracyGraphKnots[1]);
+            DB_ConvertOffsetToPointer((unsigned int *)&varWeaponDef->accuracyGraphKnots[1]);
         }
     }
     if ( varWeaponDef->originalAccuracyGraphKnots[1] )
@@ -6810,7 +6836,7 @@ void __cdecl Load_WeaponDef(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varWeaponDef->originalAccuracyGraphKnots[1]);
+            DB_ConvertOffsetToPointer((unsigned int *)&varWeaponDef->originalAccuracyGraphKnots[1]);
         }
     }
     varXString = &varWeaponDef->szUseHintString;
@@ -6829,7 +6855,7 @@ void __cdecl Load_WeaponDef(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varWeaponDef->locationDamageMultipliers);
+            DB_ConvertOffsetToPointer((unsigned int *)&varWeaponDef->locationDamageMultipliers);
         }
     }
     varXString = &varWeaponDef->fireRumble;
@@ -6852,7 +6878,7 @@ void __cdecl Load_WeaponDef(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varWeaponDef->flameTableFirstPersonPtr);
+            DB_ConvertOffsetToPointer((unsigned int *)&varWeaponDef->flameTableFirstPersonPtr);
         }
     }
     if ( varWeaponDef->flameTableThirdPersonPtr )
@@ -6865,7 +6891,7 @@ void __cdecl Load_WeaponDef(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varWeaponDef->flameTableThirdPersonPtr);
+            DB_ConvertOffsetToPointer((unsigned int *)&varWeaponDef->flameTableThirdPersonPtr);
         }
     }
     varFxEffectDefHandle = &varWeaponDef->tagFx_preparationEffect;
@@ -6890,7 +6916,7 @@ void __cdecl Load_WeaponVariantDef(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varWeaponVariantDef->weapDef);
+            DB_ConvertOffsetToPointer((unsigned int *)&varWeaponVariantDef->weapDef);
         }
     }
     varXString = &varWeaponVariantDef->szDisplayName;
@@ -6907,7 +6933,7 @@ void __cdecl Load_WeaponVariantDef(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varWeaponVariantDef->szXAnims);
+            DB_ConvertOffsetToPointer((unsigned int *)&varWeaponVariantDef->szXAnims);
         }
     }
     if ( varWeaponVariantDef->hideTags )
@@ -6920,7 +6946,7 @@ void __cdecl Load_WeaponVariantDef(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varWeaponVariantDef->hideTags);
+            DB_ConvertOffsetToPointer((unsigned int *)&varWeaponVariantDef->hideTags);
         }
     }
     varXString = &varWeaponVariantDef->szAmmoName;
@@ -7808,7 +7834,7 @@ void __cdecl Load_GfxAabbTree(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varGfxAabbTree->smodelIndexes);
+            DB_ConvertOffsetToPointer((unsigned int *)&varGfxAabbTree->smodelIndexes);
         }
     }
 }
@@ -7885,7 +7911,7 @@ void __cdecl Load_GfxPortal(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varGfxPortal->cell);
+            DB_ConvertOffsetToPointer((unsigned int *)&varGfxPortal->cell);
         }
     }
     if ( varGfxPortal->vertices )
@@ -8405,7 +8431,7 @@ void __cdecl Load_GfxWorldDpvsPlanes(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varGfxWorldDpvsPlanes->planes);
+            DB_ConvertOffsetToPointer((unsigned int *)&varGfxWorldDpvsPlanes->planes);
         }
     }
     if ( varGfxWorldDpvsPlanes->nodes )
@@ -8530,7 +8556,7 @@ void __cdecl Load_GfxWorld(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varGfxWorld->sunLight);
+            DB_ConvertOffsetToPointer((unsigned int *)&varGfxWorld->sunLight);
         }
     }
     if ( varGfxWorld->coronas )
@@ -8868,7 +8894,7 @@ void __cdecl Load_Font(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(&varFont->glyphs);
+            DB_ConvertOffsetToPointer((unsigned int *)&varFont->glyphs);
         }
     }
     DB_PopStreamPos();
@@ -8959,7 +8985,7 @@ void __cdecl Load_Glass(bool atStreamStart)
         }
         else
         {
-            DB_ConvertOffsetToPointer(varGlass);
+            DB_ConvertOffsetToPointer((unsigned int *)varGlass);
         }
     }
     if ( varGlass->outline )

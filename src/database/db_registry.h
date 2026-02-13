@@ -1,5 +1,16 @@
 #pragma once
 #include <win32/win_common.h>
+#include <cstddef>
+#include <sound/snd_bank.h>
+#include <qcommon/com_bsp.h>
+#include <game/g_bsp.h>
+#include <qcommon/cm_load_obj.h>
+#include <stringed/stringed_hooks.h>
+#include <cgame/cg_effects_load_obj.h>
+#include "db_load.h"
+#include <gfx_d3d/r_extracam.h>
+#include <glass/glass.h>
+#include <bgame/bg_emblems.h>
 
 enum FF_DIR : __int32
 {                                       // XREF: XZoneName/r
@@ -58,6 +69,17 @@ enum XAssetType : __int32
     ASSET_TYPE_STRING = 0x2B,
     ASSET_TYPE_ASSETLIST = 0x2C,
 };
+inline XAssetType &operator++(XAssetType &t)
+{
+    t = static_cast<XAssetType>((static_cast<int>(t) + 1));
+    return t;
+}
+inline XAssetType operator++(XAssetType &t, int)
+{
+    XAssetType old = t;
+    t = static_cast<XAssetType>((static_cast<int>(t) + 1));
+    return old;
+}
 
 enum DBCloneMethod : __int32
 {                                       // XREF: DB_DynamicCloneMenu/r
@@ -123,6 +145,12 @@ union XAssetHeader // sizeof=0x4
     {
         data = p;
     }
+};
+
+struct XZoneInfoInternal // sizeof=0x44
+{                                       // XREF: .data:g_zoneInfo/r
+    char name[64];
+    int flags;                          // XREF: DB_LoadXZone+12D/w
 };
 
 struct XAsset // sizeof=0x8
@@ -208,6 +236,43 @@ struct XZone // sizeof=0x40
     XBlock blocks[7];
 };
 
+struct __declspec(align(4)) XZoneName // sizeof=0x50
+{                                       // XREF: .data:g_zoneNames/r
+    char name[64];                      // XREF: DB_LinkXAssetEntry+236/r
+                                        // DB_LinkXAssetEntry+A1E/r ...
+    int flags;                          // XREF: DB_OverrideAsset+64/r
+                                        // DB_OverrideAsset+82/r ...
+    int fileSize;                       // XREF: DB_TryLoadXFileInternal+34D/w
+                                        // DB_ReferencedFFChecksums(void)+B3/r
+    FF_DIR dir;                         // XREF: DB_TryLoadXFileInternal+362/w
+                                        // DB_ReferencedFFNameList(void)+A3/r ...
+    bool loaded;                        // XREF: DB_IsZoneLoaded(char const *)+50/r
+                                        // DB_IsZoneTypeLoaded(int)+44/r ...
+    // padding byte
+    // padding byte
+    // padding byte
+};
+
+template <typename T>
+union XAssetPoolEntry // sizeof=0x10
+{                                       // ...
+    XAssetPoolEntry()
+    {
+        next = NULL;
+    }
+    T entry;
+    XAssetPoolEntry<T> *next;
+};
+
+template <typename T, int LEN>
+struct XAssetPool
+{
+    XAssetPoolEntry<T> *freeHead;
+    XAssetPoolEntry<T> entries[LEN];
+};
+
+struct Material;
+
 void __cdecl DB_InitSingleton(void *pool, int size);
 void __cdecl Load_PhysPresetAsset(XAssetHeader *physPreset);
 void __cdecl Mark_PhysPresetAsset(PhysPreset *physPreset);
@@ -235,10 +300,10 @@ void __cdecl DB_RemoveSound(XAssetHeader header);
 void __cdecl DB_RemoveSoundPatch(XAssetHeader header);
 void __cdecl Load_ClipMapAsset(XAssetHeader *clipMap);
 void __cdecl Mark_ClipMapAsset(clipMap_t *clipMap);
-void __cdecl DB_RemoveClipMap();
+void __cdecl DB_RemoveClipMap(XAssetHeader);
 void __cdecl Load_ComWorldAsset(XAssetHeader *comWorld);
 void __cdecl Mark_ComWorldAsset(ComWorld *comWorld);
-void __cdecl DB_RemoveComWorld();
+void __cdecl DB_RemoveComWorld(XAssetHeader);
 void __cdecl Load_GameWorldSpAsset(XAssetHeader *gameWorldSp);
 void __cdecl Mark_GameWorldSpAsset(GameWorldSp *gameWorldSp);
 void __cdecl Load_GameWorldMpAsset(XAssetHeader *gameWorldMp);
@@ -249,7 +314,7 @@ void __cdecl Load_DDLAsset(XAssetHeader *ddlRoot);
 void __cdecl Mark_DDLAsset(ddlRoot_t *ddlRoot);
 void __cdecl Load_GfxWorldAsset(XAssetHeader *gfxWorld);
 void __cdecl Mark_GfxWorldAsset(GfxWorld *gfxWorld);
-void __cdecl DB_RemoveGfxWorld();
+void __cdecl DB_RemoveGfxWorld(XAssetHeader);
 void __cdecl Load_LightDefAsset(XAssetHeader *lightDef);
 void __cdecl Mark_LightDefAsset(GfxLightDef *lightDef);
 void __cdecl Load_FontAsset(XAssetHeader *font);
@@ -258,7 +323,7 @@ void __cdecl Load_MenuListAsset(XAssetHeader *menuList);
 void __cdecl Mark_MenuListAsset(MenuList *menuList);
 void __cdecl Load_MenuAsset(XAssetHeader *menu);
 void __cdecl Mark_MenuAsset(menuDef_t *menu);
-void __cdecl DB_DynamicCloneMenu(XAssetHeader from, XAssetHeader to);
+void __cdecl DB_DynamicCloneMenu(const XAssetHeader from, XAssetHeader to, DBCloneMethod __formal);
 void __cdecl DB_RemoveWindowFocus(windowDef_t *window);
 void __cdecl Load_LocalizeEntryAsset(XAssetHeader *localize);
 void __cdecl Mark_LocalizeEntryAsset(LocalizeEntry *localize);
@@ -319,7 +384,7 @@ void DB_EndReorderZone();
 char __cdecl DB_CompareReorderEntries(const DBReorderAssetEntry *e0, const DBReorderAssetEntry *e1);
 void DB_SetReorderIncludeSequence();
 char __cdecl DB_RegisterAllReorderAssetsOfType(int type, XAssetEntry *assetEntry);
-void __cdecl DB_Sleep(unsigned intmsec);
+void __cdecl DB_Sleep(unsigned int msec);
 XAssetEntryPoolEntry *__cdecl DB_FindXAssetEntry(XAssetType type, const char *name);
 XAssetEntry *__cdecl DB_CreateDefaultEntry(XAssetType type, const char *name);
 XAssetEntryPoolEntry *__cdecl DB_AllocXAssetEntry(XAssetType type, unsigned __int8 zoneIndex);
@@ -408,3 +473,6 @@ char __cdecl DB_ModFileExists();
 void __cdecl DB_AddUserMapDir(char *zoneName);
 void __cdecl DB_LoadFastFilesForPC();
 void __cdecl DB_LoadGraphicsAssetsForPC();
+
+
+extern int skipLoadingMaterialsHack;

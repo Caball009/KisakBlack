@@ -6,6 +6,17 @@
 #include <xanim/xmodel.h>
 #include <universal/q_shared.h>
 
+#include <physics/physpreset_load_obj.h>
+#include <physics/physconstraints_load_obj.h>
+#include <glass/glass.h>
+#include "db_load.h"
+#include <bgame/bg_weapons.h>
+#include <bgame/bg_local.h>
+#include <gfx_d3d/r_bsp_load_obj.h>
+#include <bgame/bg_emblems.h>
+#include <qcommon/com_bsp.h>
+#include <gfx_d3d/r_extracam.h>
+
 const char *(__cdecl *DB_XAssetGetNameHandler[43])(const XAssetHeader *) =
 {
   &DB_DDLGetName,
@@ -147,11 +158,136 @@ void(__cdecl *DB_XAssetSetNameHandler[43])(XAssetHeader *, const char *) =
   NULL
 };
 
+static_assert(sizeof(RawFile) == 12);
 int __cdecl DB_SizeofXAsset_RawFile_()
 {
-    iassert(sizeof(RawFile) == 12);
     return 12;
 }
+
+static_assert(sizeof(PhysPreset) == 84);
+int __cdecl DB_SizeofXAsset_PhysPreset_()
+{
+    return 84;
+}
+
+static_assert(sizeof(PhysConstraints) == 2696);
+int __cdecl DB_SizeofXAsset_PhysConstraints_()
+{
+    return 2696;
+}
+
+int __cdecl SV_GetMaxAttachCount()
+{
+    return 24;
+}
+
+int __cdecl PM_MediumLandingForSurface()
+{
+    return 104;
+}
+
+static_assert(sizeof(XModel) == 252);
+int __cdecl DB_SizeofXAsset_XModel_()
+{
+    return 252;
+}
+
+// (for some reason the intellisense size is wrong unless it's right next to the struct definition)
+int __cdecl DB_SizeofXAsset_Material_()
+{
+    return 192;
+}
+
+static_assert(sizeof(MaterialTechniqueSet) == 528);
+int __cdecl DB_SizeofXAsset_MaterialTechniqueSet_()
+{
+    return 528;
+}
+
+static_assert(sizeof(SndDriverGlobals) == 52);
+int __cdecl DB_SizeofXAsset_SndDriverGlobals_()
+{
+    return 52;
+}
+
+static_assert(sizeof(XGlobals) == 40);
+int __cdecl DB_SizeofXAsset_XGlobals_()
+{
+    return 40;
+}
+
+static_assert(sizeof(StringTable) == 20);
+int __cdecl DB_SizeofXAsset_StringTable_()
+{
+    return 20;
+}
+
+static_assert(sizeof(clipMap_t) == 332);
+int __cdecl DB_SizeofXAsset_clipMap_t_()
+{
+    return 332;
+}
+
+static_assert(sizeof(ComWorld) == 64);
+int __cdecl DB_SizeofXAsset_ComWorld_()
+{
+    return 64;
+}
+
+static_assert(sizeof(EmblemSet) == 44);
+int __cdecl DB_SizeofXAsset_EmblemSet_()
+{
+    return 44;
+}
+
+static_assert(sizeof(GfxWorld) == 1084);
+int __cdecl DB_SizeofXAsset_GfxWorld_()
+{
+    return 1084;
+}
+
+static_assert(sizeof(GfxLightDef) == 16);
+int __cdecl DB_SizeofXAsset_GfxLightDef_()
+{
+    return 16;
+}
+
+static_assert(sizeof(menuDef_t) == 400);
+int __cdecl DB_SizeofXAsset_menuDef_t_()
+{
+    return 400;
+}
+
+static_assert(sizeof(XAnimTree_s) == 8);
+int __cdecl XAnimTreeSize()
+{
+    return 8;
+}
+
+static_assert(sizeof(WeaponVariantDef) == 228);
+int __cdecl DB_SizeofXAsset_WeaponVariantDef_()
+{
+    return 228;
+}
+
+static_assert(sizeof(FxEffectDef) == 60);
+int __cdecl DB_SizeofXAsset_FxEffectDef_()
+{
+    return 60;
+}
+
+static_assert(sizeof(PackIndex) == 28);
+int __cdecl DB_SizeofXAsset_PackIndex_()
+{
+    return 28;
+}
+
+static_assert(sizeof(Glasses) == 56);
+int __cdecl DB_SizeofXAsset_Glasses_()
+{
+    return 56;
+}
+
 int(__cdecl *DB_GetXAssetSizeHandler[43])() =
 {
   &DB_SizeofXAsset_RawFile_,

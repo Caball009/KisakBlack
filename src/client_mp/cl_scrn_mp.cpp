@@ -31,6 +31,7 @@
 #include <ui/ui_viewer.h>
 #include <client/splitscreen.h>
 #include <gfx_d3d/r_ui3d.h>
+#include <DW/dwLogOn_pc.h>
 
 int scr_initialized;
 bool updateScreenCalled;

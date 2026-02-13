@@ -77,3 +77,5 @@ char __cdecl DB_LoadXFile(
                 unsigned __int8 *buf,
                 int allocType,
                 int flags);
+
+extern XAssetList *varXAssetList;

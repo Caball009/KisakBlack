@@ -1,4 +1,23 @@
 #include "db_memory.h"
+#include "db_file_load.h"
+#include "db_registry.h"
+#include <universal/physicalmemory.h>
+#include <universal/com_memory.h>
+
+const char *g_block_mem_name[7] =
+{
+  "temp",
+  "runtime",
+  "large_runtime",
+  "physical_runtime",
+  "virtual",
+  "large",
+  "physical"
+};
+
+int g_block_mem_type[7] =
+{ 0, 1, 1, 2, 1, 1, 2 };
+
 
 void __cdecl DB_AllocXBlocks(
                 unsigned int *blockSize,

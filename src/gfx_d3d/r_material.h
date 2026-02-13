@@ -391,6 +391,8 @@ struct Material // sizeof=0xC0
         };
         GfxStateBits *stateBitsTable;
 };
+static_assert(sizeof(Material) == 192);
+
 
 struct stream_source_info_t // sizeof=0x3
 {                                                                             // XREF: .rdata:s_streamSourceInfo/r
@@ -501,3 +503,6 @@ int __cdecl GetCodeConst_GenericParamB();
 int __cdecl GetCodeConst_GameTimeParam();
 int __cdecl Material_GetTextureCount(Material *handle);
 GfxImage *__cdecl Material_GetTexture(Material *handle, int index);
+
+
+extern bool skipShaderCreationHack;

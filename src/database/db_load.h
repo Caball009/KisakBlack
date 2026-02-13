@@ -569,3 +569,7 @@ void __cdecl Load_XAssetHeader(bool atStreamStart);
 void __cdecl Load_XAsset(bool atStreamStart);
 void __cdecl Mark_XAssetHeader();
 void __cdecl Mark_XAsset();
+
+
+extern XAsset *varXAsset;
+extern ScriptStringList *varScriptStringList;
