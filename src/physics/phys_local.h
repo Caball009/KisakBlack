@@ -83,6 +83,17 @@ struct phys_vec3 // sizeof=0x10
         r.w = 0.0f;
         return r;
     }
+
+    // negate
+    inline phys_vec3 operator-() const
+    {
+        phys_vec3 r;
+        r.x = -x;
+        r.y = -y;
+        r.z = -z;
+        r.w = w;
+        return r;
+    }
 };
 
 // KISAKTODO: operator cleanup
@@ -1505,6 +1516,24 @@ phys_vec3 *phys_cross(phys_vec3 *result, const phys_vec3 *a, const phys_vec3 *b)
 void phys_full_multiply_mat(phys_mat44 *dest, const phys_mat44 *left, const phys_mat44 *right);
 void Phys_Mat4ToNitrousMat(float (*inMat)[3], phys_mat44 *outMat);
 void Phys_NitrousMat44ToVec33(const phys_mat44 *inMat, float (*outAxis)[3]);
+
+void make_rotate(
+    phys_mat44 *mat,
+    const phys_vec3 *v,
+    float theta_factor,
+    float max_rotation_radians);
+//void    make_rotate(
+//    phys_mat44 *mat,
+//    const phys_vec3 *v,
+//    float theta_factor,
+//    float max_rotation_radians);
+
+void make_rotate(phys_mat44 *m, const phys_vec3 *u, float ca, float sa);
+//void __cdecl make_rotate(phys_mat44 *m, const phys_vec3 *u, float ca, float sa);
+
+void make_rotate(phys_mat44 *mat, const phys_vec3 *v1, const phys_vec3 *v2);
+//void make_rotate(phys_mat44 *mat, const phys_vec3 *v1, const phys_vec3 *v2);
+
 
 // dumb
 inline void __cdecl Phys_Vec3ToNitrousVec(const float * const inVector, phys_vec3 *outVector)

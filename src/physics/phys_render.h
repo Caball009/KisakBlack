@@ -85,12 +85,7 @@ struct __declspec(align(4)) colgeom_debug_renderer_t : colgeom_visitor_t // size
         const float *expand_vec);
 };
 
-void    make_rotate(
-                phys_mat44 *mat,
-                const phys_vec3 *v,
-                float theta_factor,
-                float max_rotation_radians);
-void __cdecl make_rotate(phys_mat44 *m, const phys_vec3 *u, float ca, float sa);
+
 void __cdecl DebugPatchesAndBrushesProlog();
 void __cdecl DebugPatchesAndBrushesEpilog();
 void __cdecl clear_debug_brushes_and_patches();
@@ -144,7 +139,6 @@ void __cdecl Phys_DebugBox(const phys_mat44 *mat, const float *color, float scal
 void __cdecl Phys_DebugBox(const phys_mat44 *mat, const phys_vec3 *dims, const float *color);
 void    Phys_RenderBase(const phys_mat44 *mat, float scale);
 void    Phys_JointDebugRender(int id);
-void    make_rotate(phys_mat44 *mat, const phys_vec3 *v1, const phys_vec3 *v2);
 void    render_contact(rigid_body_constraint_contact *rbc);
 void __cdecl render_collision_tree(const CollisionAabbTree *tree, const float *color);
 void __cdecl render_prims(col_prim_t *prims, int nprims);

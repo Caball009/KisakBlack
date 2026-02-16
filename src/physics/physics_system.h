@@ -80,31 +80,31 @@ struct phys_sys // sizeof=0x0
 
     static user_rigid_body *__cdecl create_user_rigid_body(int no_error);
 
-    rigid_body_constraint_hinge *__cdecl create_rbc_hinge(
+    static rigid_body_constraint_hinge *__cdecl create_rbc_hinge(
         environment_rigid_body *b1,
         environment_rigid_body *b2,
         int no_error);
-    rigid_body_constraint_distance *__cdecl create_rbc_dist(
+    static rigid_body_constraint_distance *__cdecl create_rbc_dist(
         environment_rigid_body *b1,
         environment_rigid_body *b2,
         int no_error);
-    rigid_body_constraint_ragdoll *__cdecl create_rbc_ragdoll(
+    static rigid_body_constraint_ragdoll *__cdecl create_rbc_ragdoll(
         environment_rigid_body *b1,
         environment_rigid_body *b2,
         int no_error);
-    rigid_body_constraint_wheel *__cdecl create_rbc_wheel(
+    static rigid_body_constraint_wheel *__cdecl create_rbc_wheel(
         environment_rigid_body *b1,
         environment_rigid_body *b2,
         int no_error);
-    rigid_body_constraint_angular_actuator *__cdecl create_rbc_angular_actuator(
+    static rigid_body_constraint_angular_actuator *__cdecl create_rbc_angular_actuator(
         environment_rigid_body *b1,
         environment_rigid_body *b2,
         int no_error);
-    rigid_body_constraint_upright *__cdecl create_rbc_upright(
+    static rigid_body_constraint_upright *__cdecl create_rbc_upright(
         environment_rigid_body *b1,
         environment_rigid_body *b2,
         int no_error);
-    rigid_body_constraint_custom_path *__cdecl create_rbc_custom_path(
+    static rigid_body_constraint_custom_path *__cdecl create_rbc_custom_path(
         environment_rigid_body *b1,
         environment_rigid_body *b2,
         int no_error);

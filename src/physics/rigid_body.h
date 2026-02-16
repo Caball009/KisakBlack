@@ -62,36 +62,88 @@ struct    __declspec(align(16)) rigid_body_constraint_hinge : rigid_body_constra
         // padding byte
         // padding byte
         // padding byte
+        void set(
+            const phys_vec3 *b1_r_loc,
+            const phys_vec3 *b2_r_loc,
+            const phys_vec3 *b1_axis_loc,
+            const phys_vec3 *b2_axis_loc,
+            const phys_vec3 *b1_ref_loc,
+            const phys_vec3 *b2_ref_loc,
+            float theta_min,
+            float theta_max,
+            float damp_k);
+
+        void setup_constraint(
+            pulse_sum_constraint_solver *psys,
+            float delta_t);
 };
 
-struct    __declspec(align(16)) rigid_body_constraint_distance : rigid_body_constraint // sizeof=0x60
-{                                                                             // XREF: phys_free_list<rigid_body_constraint_distance>::T_internal/r
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
-        phys_vec3 m_b1_r_loc;
-        phys_vec3 m_b2_r_loc;
-        float m_min_distance;
-        float m_max_distance;
-        float m_next_max_distance;
-        float m_max_distance_vel;
-        float m_damp_coef;
-        unsigned int m_flags;
-        pulse_sum_cache m_ps_cache_list[3];
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
-        // padding byte
+// aislop used to gen methods
+struct __declspec(align(16)) rigid_body_constraint_distance : rigid_body_constraint
+{
+    phys_vec3 m_b1_r_loc;
+    phys_vec3 m_b2_r_loc;
+
+    float m_min_distance;
+    float m_max_distance;
+    float m_next_max_distance;
+    float m_max_distance_vel;
+    float m_damp_coef;
+
+    unsigned int m_flags;
+
+    pulse_sum_cache m_ps_cache_list[3];
+
+    /* ============================================================
+       Basic Setup
+    ============================================================ */
+
+    inline void set(
+        const phys_vec3 *b1_r_loc,
+        const phys_vec3 *b2_r_loc,
+        float min_distance,
+        float max_distance)
+    {
+        m_b1_r_loc = *b1_r_loc;
+        m_b2_r_loc = *b2_r_loc;
+
+        m_flags = 1;
+
+        m_min_distance = min_distance;
+        m_max_distance = max_distance;
+        m_next_max_distance = max_distance;
+
+        m_max_distance_vel = 0.0f;
+        m_damp_coef = 0.0f;
+    }
+
+    /* ============================================================
+       Distance Update Phases
+    ============================================================ */
+
+    inline void outer_prolog_update(float delta_t)
+    {
+        m_max_distance_vel =
+            (m_next_max_distance - m_max_distance) / delta_t;
+    }
+
+    inline void inner_update(float delta_t)
+    {
+        m_max_distance += m_max_distance_vel * delta_t;
+    }
+
+    inline void outer_epilog_update(float /*delta_t*/)
+    {
+        m_max_distance = m_next_max_distance;
+    }
+
+    /* ============================================================
+       Constraint Setup (cleaned, but logically identical)
+    ============================================================ */
+
+    void setup_constraint(struct pulse_sum_constraint_solver *psys, float delta_t);
 };
+
 
 struct    __declspec(align(8)) ragdoll_joint_limit_info // sizeof=0x20
 {                                                                             // XREF: rigid_body_constraint_ragdoll/r

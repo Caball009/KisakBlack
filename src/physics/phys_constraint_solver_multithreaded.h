@@ -111,6 +111,11 @@ struct pulse_sum_normal : phys_link_list_base<pulse_sum_normal> // sizeof=0xA0
 
     void set_pulse_sum_limits_parent_ratio(float limit_ratio, pulse_sum_normal *const parent);
     void setup_vel_uni_standard(float delta_t, float max_penalty_restitution_vel);
+
+    void setup_vel_uni_standard_pos_adjust(
+        float delta_t,
+        float pos_adjust,
+        float max_penalty_restitution_vel);
 };
 
 struct __declspec(align(8)) pulse_sum_wheel : phys_link_list_base<pulse_sum_wheel> // sizeof=0xC0
@@ -198,6 +203,8 @@ struct pulse_sum_angular : phys_link_list_base<pulse_sum_angular> // sizeof=0x90
     void apply(const float *s_);
     double clamp_pulse_sum(float ps);
     void SOLVER_apply_relaxation(float *error_sq);
+
+    void setup_vel_uni_standard(float delta_t, float max_penalty_restitution_vel);
 };
 
 struct pulse_sum_point : phys_link_list_base<pulse_sum_point> // sizeof=0x110

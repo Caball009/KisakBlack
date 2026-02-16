@@ -900,287 +900,251 @@ void    DynEnt_SetupConstraints(const DynEntityDef *dynEntDef)
     int PhysObj; // eax
     int v3; // eax
     int v4; // eax
-    _BYTE v5[12]; // [esp+Ch] [ebp-22Ch] BYREF
-    phys_vec3 b2refloc; // [esp+18h] [ebp-220h] BYREF
-    _BYTE b2axisloc_8[12]; // [esp+30h] [ebp-208h] OVERLAPPED BYREF
-    float b2axis[3][3]; // [esp+3Ch] [ebp-1FCh] BYREF
-    float poseinvaxis2[3][3]; // [esp+60h] [ebp-1D8h] BYREF
-    float poseaxis2[3][3]; // [esp+84h] [ebp-1B4h] BYREF
-    phys_vec3 b1refloc; // [esp+A8h] [ebp-190h] BYREF
-    _BYTE b1axisloc_8[12]; // [esp+C0h] [ebp-178h] OVERLAPPED BYREF
-    float b1axis[3][3]; // [esp+CCh] [ebp-16Ch] BYREF
-    float poseinvaxis[3][3]; // [esp+F0h] [ebp-148h] BYREF
-    float poseaxis[3][3]; // [esp+114h] [ebp-124h] BYREF
-    float caxis[3][3]; // [esp+138h] [ebp-100h] BYREF
-    _BYTE v17[8]; // [esp+15Ch] [ebp-DCh] BYREF
-    phys_vec3 b2loc; // [esp+168h] [ebp-D0h] BYREF
-    float v19; // [esp+188h] [ebp-B0h]
-    cg_s *v20; // [esp+18Ch] [ebp-ACh]
-    float v21; // [esp+190h] [ebp-A8h]
-    float temp[3]; // [esp+194h] [ebp-A4h] BYREF
-    cg_s *cgameGlob; // [esp+1A0h] [ebp-98h]
-    float z; // [esp+1A4h] [ebp-94h]
-    float b2_anchor_loc[3]; // [esp+1A8h] [ebp-90h] BYREF
-    float trans2[3]; // [esp+1B4h] [ebp-84h]
-    float dyn_ent2_anchor_loc[3]; // [esp+1C0h] [ebp-78h]
-    float y; // [esp+1CCh] [ebp-6Ch] BYREF
-    int damage2; // [esp+1D0h] [ebp-68h]
-    float w; // [esp+1D4h] [ebp-64h]
-    float b1_anchor_loc[3]; // [esp+1D8h] [ebp-60h] BYREF
-    float trans1[3]; // [esp+1E4h] [ebp-54h]
-    float dyn_ent1_anchor_loc[3]; // [esp+1F0h] [ebp-48h]
-    const DynEntityPose *ClientPose; // [esp+1FCh] [ebp-3Ch]
-    int damage1; // [esp+200h] [ebp-38h]
-    const DynEntityPose *dynEnt2Pose; // [esp+204h] [ebp-34h]
-    const DynEntityPose *dynEnt1Pose; // [esp+208h] [ebp-30h]
-    DynEntityClient *dynEnt2; // [esp+20Ch] [ebp-2Ch]
-    DynEntityClient *dynEnt1; // [esp+210h] [ebp-28h]
-    const DynEntityDef *dedef2; // [esp+214h] [ebp-24h]
-    const DynEntityDef *dedef1; // [esp+218h] [ebp-20h]
-    rigid_body *rb2; // [esp+21Ch] [ebp-1Ch]
-    rigid_body *rb1; // [esp+220h] [ebp-18h]
-    PhysObjUserData *userData2; // [esp+224h] [ebp-14h]
-    PhysObjUserData *userData1; // [esp+228h] [ebp-10h]
-    PhysConstraint *c; // [esp+22Ch] [ebp-Ch] BYREF
-    void *cindex; // [esp+230h] [ebp-8h]
-    void *retaddr; // [esp+238h] [ebp+0h]
-
-    c = a1;
-    cindex = retaddr;
-    for ( userData1 = 0; (int)userData1 < 4; userData1 = (PhysObjUserData *)((char *)userData1 + 1) )
+    phys_vec3 b2refloc; // [esp+Ch] [ebp-22Ch] BYREF
+    phys_vec3 b2axisloc; // [esp+1Ch] [ebp-21Ch] BYREF
+    float b2axis[3][3]; // [esp+30h] [ebp-208h] BYREF
+    float poseinvaxis2[3][3]; // [esp+54h] [ebp-1E4h] BYREF
+    float poseaxis2[3][3]; // [esp+78h] [ebp-1C0h] BYREF
+    phys_vec3 b1refloc; // [esp+9Ch] [ebp-19Ch] BYREF
+    phys_vec3 b1axisloc; // [esp+ACh] [ebp-18Ch] BYREF
+    float b1axis[3][3]; // [esp+C0h] [ebp-178h] BYREF
+    float poseinvaxis[3][3]; // [esp+E4h] [ebp-154h] BYREF
+    float poseaxis[3][3]; // [esp+108h] [ebp-130h] BYREF
+    float caxis[3][3]; // [esp+12Ch] [ebp-10Ch] BYREF
+    rigid_body_constraint_hinge *rbc_hinge; // [esp+150h] [ebp-E8h]
+    rigid_body_constraint_distance *rbc_dist; // [esp+154h] [ebp-E4h]
+    rigid_body_constraint_point *constraint; // [esp+158h] [ebp-E0h]
+    phys_vec3 b2loc; // [esp+15Ch] [ebp-DCh] BYREF
+    phys_vec3 b1loc; // [esp+16Ch] [ebp-CCh] BYREF
+    float temp[3]; // [esp+188h] [ebp-B0h]
+    cg_s *cgameGlob; // [esp+194h] [ebp-A4h]
+    float *pos2; // [esp+198h] [ebp-A0h]
+    float b2_anchor_loc[3]; // [esp+19Ch] [ebp-9Ch] BYREF
+    float trans2[3]; // [esp+1A8h] [ebp-90h] BYREF
+    float dyn_ent2_anchor_loc[4]; // [esp+1B4h] [ebp-84h]
+    int damage2; // [esp+1C4h] [ebp-74h]
+    float *pos; // [esp+1C8h] [ebp-70h]
+    float b1_anchor_loc[3]; // [esp+1CCh] [ebp-6Ch] BYREF
+    float trans1[3]; // [esp+1D8h] [ebp-60h] BYREF
+    float dyn_ent1_anchor_loc[4]; // [esp+1E4h] [ebp-54h]
+    int damage1; // [esp+1F4h] [ebp-44h]
+    const DynEntityPose *dynEnt2Pose; // [esp+1F8h] [ebp-40h]
+    const DynEntityPose *dynEnt1Pose; // [esp+1FCh] [ebp-3Ch]
+    DynEntityClient *dynEnt2; // [esp+200h] [ebp-38h]
+    DynEntityClient *dynEnt1; // [esp+204h] [ebp-34h]
+    const DynEntityDef *dedef2; // [esp+208h] [ebp-30h]
+    const DynEntityDef *dedef1; // [esp+20Ch] [ebp-2Ch]
+    rigid_body *rb2; // [esp+210h] [ebp-28h]
+    rigid_body *rb1; // [esp+214h] [ebp-24h]
+    PhysObjUserData *userData2; // [esp+218h] [ebp-20h]
+    PhysObjUserData *userData1; // [esp+21Ch] [ebp-1Ch]
+    PhysConstraint *c; // [esp+220h] [ebp-18h]
+    int cindex; // [esp+224h] [ebp-14h]
+    int i; // [esp+228h] [ebp-10h]
+    //_UNKNOWN *v46[2]; // [esp+22Ch] [ebp-Ch] BYREF
+    //int vars0; // [esp+238h] [ebp+0h]
+    //
+    //v46[0] = a1;
+    //v46[1] = (_UNKNOWN *)vars0;
+    for (i = 0; i < 4; ++i)
     {
-        LOWORD(userData2) = dynEntDef->physConstraints[(unsigned int)userData1];
-        if ( (__int16)userData2 != 511 )
+        LOWORD(cindex) = dynEntDef->physConstraints[i];
+        if ((__int16)cindex != 511)
         {
-            if ( !cm.constraints
+            if (!cm.constraints
                 && !Assert_MyHandler(
-                            "C:\\projects_pc\\cod\\codsrc\\src\\DynEntity\\DynEntity_client.cpp",
-                            889,
-                            0,
-                            "%s",
-                            "cm.constraints") )
+                    "C:\\projects_pc\\cod\\codsrc\\src\\DynEntity\\DynEntity_client.cpp",
+                    889,
+                    0,
+                    "%s",
+                    "cm.constraints"))
             {
                 __debugbreak();
             }
-            rb1 = (rigid_body *)&cm.constraints[(__int16)userData2];
-            if ( !LODWORD(rb1->m_t_vel.x) )
+            c = &cm.constraints[(__int16)cindex];
+            if (!c->constraintHandle)
             {
-                rb2 = 0;
+                userData1 = 0;
+                userData2 = 0;
+                rb1 = phys_sys::get_environment_rigid_body();
+                rb2 = phys_sys::get_environment_rigid_body();
                 dedef1 = 0;
-                dedef2 = (const DynEntityDef *)phys_sys::get_environment_rigid_body();
-                dynEnt1 = (DynEntityClient *)phys_sys::get_environment_rigid_body();
+                dedef2 = 0;
+                dynEnt1 = 0;
                 dynEnt2 = 0;
                 dynEnt1Pose = 0;
                 dynEnt2Pose = 0;
-                damage1 = 0;
-                ClientPose = 0;
-                dyn_ent1_anchor_loc[2] = 0.0;
-                if ( LODWORD(rb1->m_last_position.z) == 1 )
+                if (c->attach_point_type1 == ATTACH_POINT_DYNENT)
                 {
-                    dynEnt2 = (DynEntityClient *)DynEnt_GetEntityDef(LOWORD(rb1->m_last_position.w));
-                    dynEnt2Pose = (const DynEntityPose *)DynEnt_GetClientEntity(LOWORD(rb1->m_last_position.w));
-                    ClientPose = DynEnt_GetClientPose(LOWORD(rb1->m_last_position.w));
-                    if ( !LODWORD(dynEnt2Pose->pose.quat[0]) )
+                    dedef1 = DynEnt_GetEntityDef(c->target_index1);
+                    dynEnt1 = DynEnt_GetClientEntity(c->target_index1);
+                    dynEnt1Pose = DynEnt_GetClientPose(c->target_index1);
+                    if (!dynEnt1->physObjId)
                     {
-                        LODWORD(rb1->m_t_vel.x) = 1;
-                        PhysObj = DynEntCl_CreatePhysObj(
-                                                (const DynEntityDef *)dynEnt2,
-                                                (DynEntityClient *)dynEnt2Pose,
-                                                &ClientPose->pose);
-                        LODWORD(dynEnt2Pose->pose.quat[0]) = PhysObj;
+                        c->constraintHandle = 1;
+                        PhysObj = DynEntCl_CreatePhysObj(dedef1, dynEnt1, &dynEnt1Pose->pose);
+                        dynEnt1->physObjId = PhysObj;
                     }
-                    if ( !LODWORD(dynEnt2Pose->pose.quat[0]) )
+                    if (!dynEnt1->physObjId)
                         continue;
-                    rb2 = (rigid_body *)LODWORD(dynEnt2Pose->pose.quat[0]);
-                    dedef2 = (const DynEntityDef *)LODWORD(rb2->m_last_position.x);
-                    LODWORD(dyn_ent1_anchor_loc[1]) = DynEnt_GetDamage(
-                                                                                            (DynEntityClient *)dynEnt2Pose,
-                                                                                            (const DynEntityDef *)dynEnt2);
-                    if ( LODWORD(rb1->m_mat.w.x) && SLODWORD(rb1->m_mat.w.x) < SLODWORD(dyn_ent1_anchor_loc[1]) )
+                    userData1 = (PhysObjUserData *)dynEnt1->physObjId;
+                    rb1 = userData1->body;
+                    damage1 = DynEnt_GetDamage(dynEnt1, dedef1);
+                    if (c->min_health && c->min_health < damage1)
                     {
-                        if ( LODWORD(rb1->m_last_position.y) == 8 && Rope_IsValid(LODWORD(rb1->m_t_vel.y)) )
-                            Rope_RemoveAnchor(LODWORD(rb1->m_t_vel.y), 0);
+                        if (c->type == CONSTRAINT_ROPE && Rope_IsValid(c->rope_index))
+                            Rope_RemoveAnchor(c->rope_index, 0);
                         continue;
                     }
-                    LODWORD(dyn_ent1_anchor_loc[0]) = &rb1->m_mat.x.y;
-                    trans1[0] = rb1->m_mat.x.y;
-                    trans1[1] = rb1->m_mat.x.z;
-                    trans1[2] = rb1->m_mat.x.w;
-                    Phys_NitrousVecToVec3(&rb2->m_mat.z, b1_anchor_loc);
-                    y = trans1[0] + b1_anchor_loc[0];
-                    *(float *)&damage2 = trans1[1] + b1_anchor_loc[1];
-                    w = trans1[2] + b1_anchor_loc[2];
+                    //LODWORD(dyn_ent1_anchor_loc[3]) = c->pos;
+                    dyn_ent1_anchor_loc[0] = c->pos[0];
+                    dyn_ent1_anchor_loc[1] = c->pos[1];
+                    dyn_ent1_anchor_loc[2] = c->pos[2];
+                    Phys_NitrousVecToVec3(&userData1->cg2rb.w, trans1);
+                    b1_anchor_loc[0] = dyn_ent1_anchor_loc[0] + trans1[0];
+                    b1_anchor_loc[1] = dyn_ent1_anchor_loc[1] + trans1[1];
+                    b1_anchor_loc[2] = dyn_ent1_anchor_loc[2] + trans1[2];
                 }
                 else
                 {
-                    LODWORD(dyn_ent2_anchor_loc[2]) = &rb1->m_mat.x.y;
-                    y = rb1->m_mat.x.y;
-                    damage2 = SLODWORD(rb1->m_mat.x.z);
-                    w = rb1->m_mat.x.w;
+                    pos = c->pos;
+                    b1_anchor_loc[0] = c->pos[0];
+                    b1_anchor_loc[1] = c->pos[1];
+                    b1_anchor_loc[2] = c->pos[2];
                 }
-                if ( LODWORD(rb1->m_moved_vec.z) != 1 )
+                if (c->attach_point_type2 != ATTACH_POINT_DYNENT)
                 {
-                    LODWORD(temp[1]) = &rb1->m_mat.y;
-                    temp[2] = rb1->m_mat.y.x;
-                    cgameGlob = (cg_s *)LODWORD(rb1->m_mat.y.y);
-                    z = rb1->m_mat.y.z;
-LABEL_33:
+                    pos2 = c->pos2;
+                    b2_anchor_loc[0] = c->pos2[0];
+                    b2_anchor_loc[1] = c->pos2[1];
+                    b2_anchor_loc[2] = c->pos2[2];
+                LABEL_33:
                     v4 = RETURN_ZERO32();
-                    LODWORD(temp[0]) = CG_GetLocalClientGlobals(v4);
-                    if ( dynEnt2Pose )
-                        dynEnt2Pose->pose.origin[0] = *(float *)(LODWORD(temp[0]) + 263304);
-                    if ( damage1 )
-                        *(unsigned int *)(damage1 + 16) = *(unsigned int *)(LODWORD(temp[0]) + 263304);
-                    if ( dedef2 == (const DynEntityDef *)phys_sys::get_environment_rigid_body() )
+                    cgameGlob = CG_GetLocalClientGlobals(v4);
+                    if (dynEnt1)
+                        dynEnt1->physicsStartTime = cgameGlob->time;
+                    if (dynEnt2)
+                        dynEnt2->physicsStartTime = cgameGlob->time;
+                    if (rb1 == phys_sys::get_environment_rigid_body())
                     {
-                        dedef2 = (const DynEntityDef *)dynEnt1;
-                        dynEnt1 = (DynEntityClient *)phys_sys::get_environment_rigid_body();
-                        v19 = temp[2];
-                        v20 = cgameGlob;
-                        v21 = z;
-                        temp[2] = y;
-                        cgameGlob = (cg_s *)damage2;
-                        z = w;
-                        y = v19;
-                        damage2 = (int)v20;
-                        w = v21;
+                        rb1 = rb2;
+                        rb2 = phys_sys::get_environment_rigid_body();
+                        temp[0] = b2_anchor_loc[0];
+                        temp[1] = b2_anchor_loc[1];
+                        temp[2] = b2_anchor_loc[2];
+                        b2_anchor_loc[0] = b1_anchor_loc[0];
+                        b2_anchor_loc[1] = b1_anchor_loc[1];
+                        b2_anchor_loc[2] = b1_anchor_loc[2];
+                        b1_anchor_loc[0] = temp[0];
+                        b1_anchor_loc[1] = temp[1];
+                        b1_anchor_loc[2] = temp[2];
                     }
-                    dedef2[3].pose.origin[0] = 0.0;
-                    if ( (*(unsigned int *)&dynEnt2[3].burnTime & 2) == 0
-                        && (LODWORD(rb1->m_last_position.y) == 1 || LODWORD(rb1->m_last_position.y) == 3) )
+                    rb1->m_stable_min_contact_count = 0;
+                    if ((dedef1->flags & 2) == 0 && (c->type == CONSTRAINT_POINT || c->type == CONSTRAINT_HINGE))
+                        Phys_ObjRemoveCollFlags(dynEnt1->physObjId, 450);
+                    Phys_Vec3ToNitrousVec(b1_anchor_loc, &b1loc);
+                    Phys_Vec3ToNitrousVec(b2_anchor_loc, &b2loc);
+                    switch (c->type)
                     {
-                        Phys_ObjRemoveCollFlags(LODWORD(dynEnt2Pose->pose.quat[0]), 450);
-                    }
-                    Phys_Vec3ToNitrousVec(&y, (phys_vec3 *)&b2loc.y);
-                    Phys_Vec3ToNitrousVec(&temp[2], (phys_vec3 *)v17);
-                    switch ( LODWORD(rb1->m_last_position.y) )
-                    {
-                        case 1:
-                            LODWORD(caxis[2][2]) = phys_sys::create_rbc_point(
-                                                                             (environment_rigid_body *)dedef2,
-                                                                             (environment_rigid_body *)dynEnt1,
-                                                                             0);
-                            if ( LODWORD(caxis[2][2]) )
+                    case CONSTRAINT_POINT:
+                        constraint = phys_sys::create_rbc_point((environment_rigid_body *)rb1, (environment_rigid_body *)rb2, 0);
+                        if (constraint)
+                        {
+                            //rigid_body_constraint_point::set(constraint, &b1loc, &b2loc);
+                            constraint->set(&b1loc, &b2loc);
+                            c->constraintHandle = (int)constraint;
+                        }
+                        else
+                        {
+                            c->constraintHandle = 0;
+                        }
+                        break;
+                    case CONSTRAINT_DISTANCE:
+                    case CONSTRAINT_ROPE:
+                        rbc_dist = phys_sys::create_rbc_dist((environment_rigid_body *)rb1, (environment_rigid_body *)rb2, 0);
+                        if (rbc_dist)
+                        {
+                            //rigid_body_constraint_distance::set(rbc_dist, &b1loc, &b2loc, 0.0, c->distance);
+                            rbc_dist->set(&b1loc, &b2loc, 0.0, c->distance);
+                            c->constraintHandle = (int)rbc_dist;
+                        }
+                        else
+                        {
+                            c->constraintHandle = 0;
+                        }
+                        break;
+                    case CONSTRAINT_HINGE:
+                        Phys_ObjRemoveCollFlags(dynEnt1->physObjId, 1);
+                        rbc_hinge = phys_sys::create_rbc_hinge((environment_rigid_body *)rb1, (environment_rigid_body *)rb2, 0);
+                        if (rbc_hinge)
+                        {
+                            AnglesToAxis(c->dir, caxis);
+                            UnitQuatToAxis(dynEntDef->pose.quat, poseaxis);
+                            MatrixTranspose(poseaxis, poseinvaxis);
+                            MatrixMultiply(caxis, poseinvaxis, b1axis);
+                            Phys_Vec3ToNitrousVec(b1axis[2], &b1axisloc);
+                            Phys_Vec3ToNitrousVec(b1axis[0], &b1refloc);
+                            if (dedef2)
                             {
-                                rigid_body_constraint_point::set(
-                                    (rigid_body_constraint_point *)LODWORD(caxis[2][2]),
-                                    (phys_vec3 *)&b2loc.y,
-                                    (const phys_vec3 *)v17);
-                                rb1->m_t_vel.x = caxis[2][2];
+                                UnitQuatToAxis(dedef2->pose.quat, poseaxis2);
+                                MatrixTranspose(poseaxis2, poseinvaxis2);
+                                MatrixMultiply(caxis, poseinvaxis2, b2axis);
+                                Phys_Vec3ToNitrousVec(b2axis[2], &b2axisloc);
+                                Phys_Vec3ToNitrousVec(b2axis[0], &b2refloc);
                             }
                             else
                             {
-                                rb1->m_t_vel.x = 0.0;
+                                Phys_Vec3ToNitrousVec(caxis[2], &b2axisloc);
+                                Phys_Vec3ToNitrousVec(caxis[0], &b2refloc);
                             }
-                            break;
-                        case 2:
-                        case 8:
-                            LODWORD(caxis[2][1]) = phys_sys::create_rbc_dist(
-                                                                             (environment_rigid_body *)dedef2,
-                                                                             (environment_rigid_body *)dynEnt1,
-                                                                             0);
-                            if ( LODWORD(caxis[2][1]) )
-                            {
-                                rigid_body_constraint_distance::set(
-                                    (rigid_body_constraint_distance *)LODWORD(caxis[2][1]),
-                                    (phys_vec3 *)&b2loc.y,
-                                    (const phys_vec3 *)v17,
-                                    0.0,
-                                    rb1->m_mat.w.z);
-                                rb1->m_t_vel.x = caxis[2][1];
-                            }
-                            else
-                            {
-                                rb1->m_t_vel.x = 0.0;
-                            }
-                            break;
-                        case 3:
-                            Phys_ObjRemoveCollFlags(LODWORD(dynEnt2Pose->pose.quat[0]), 1);
-                            LODWORD(caxis[2][0]) = phys_sys::create_rbc_hinge(
-                                                                             (environment_rigid_body *)dedef2,
-                                                                             (environment_rigid_body *)dynEnt1,
-                                                                             0);
-                            if ( LODWORD(caxis[2][0]) )
-                            {
-                                AnglesToAxis(&rb1->m_mat.y.w, (float (*)[3])poseaxis[2]);
-                                UnitQuatToAxis(dynEntDef->pose.quat, (float (*)[3])poseinvaxis[2]);
-                                MatrixTranspose((const float (*)[3])poseinvaxis[2], (float (*)[3])b1axis[2]);
-                                MatrixMultiply(
-                                    (const float (*)[3])poseaxis[2],
-                                    (const float (*)[3])b1axis[2],
-                                    (float (*)[3])b1axisloc_8);
-                                Phys_Vec3ToNitrousVec(b1axis[1], (phys_vec3 *)&b1refloc.y);
-                                Phys_Vec3ToNitrousVec((float *)b1axisloc_8, (phys_vec3 *)poseaxis2[2]);
-                                if ( dynEnt1Pose )
-                                {
-                                    UnitQuatToAxis(&dynEnt1Pose->pose.quat[1], (float (*)[3])poseinvaxis2[2]);
-                                    MatrixTranspose((const float (*)[3])poseinvaxis2[2], (float (*)[3])b2axis[2]);
-                                    MatrixMultiply(
-                                        (const float (*)[3])poseaxis[2],
-                                        (const float (*)[3])b2axis[2],
-                                        (float (*)[3])b2axisloc_8);
-                                    Phys_Vec3ToNitrousVec(b2axis[1], (phys_vec3 *)&b2refloc.y);
-                                    Phys_Vec3ToNitrousVec((float *)b2axisloc_8, (phys_vec3 *)v5);
-                                }
-                                else
-                                {
-                                    Phys_Vec3ToNitrousVec(caxis[1], (phys_vec3 *)&b2refloc.y);
-                                    Phys_Vec3ToNitrousVec(poseaxis[2], (phys_vec3 *)v5);
-                                }
-                                rigid_body_constraint_hinge::set(
-                                    (rigid_body_constraint_hinge *)LODWORD(caxis[2][0]),
-                                    (int)&c,
-                                    (phys_vec3 *)&b2loc.y,
-                                    (const phys_vec3 *)v17,
-                                    (phys_vec3 *)&b1refloc.y,
-                                    (phys_vec3 *)&b2refloc.y,
-                                    (const phys_vec3 *)poseaxis2[2],
-                                    (const phys_vec3 *)v5,
-                                    rb1->m_gravity_acc_vec.y * 0.017453292,
-                                    rb1->m_gravity_acc_vec.z * 0.017453292,
-                                    rb1->m_mat.w.w);
-                            }
-                            else
-                            {
-                                rb1->m_t_vel.x = 0.0;
-                            }
-                            break;
+                            //rigid_body_constraint_hinge::set(
+                                rbc_hinge->set(
+                                &b1loc,
+                                &b2loc,
+                                &b1axisloc,
+                                &b2axisloc,
+                                &b1refloc,
+                                &b2refloc,
+                                c->minAngle * 0.017453292,
+                                c->maxAngle * 0.017453292,
+                                c->damp);
+                        }
+                        else
+                        {
+                            c->constraintHandle = 0;
+                        }
+                        break;
                     }
                     continue;
                 }
-                dynEnt1Pose = (const DynEntityPose *)DynEnt_GetEntityDef(LOWORD(rb1->m_moved_vec.w));
-                damage1 = (int)DynEnt_GetClientEntity(LOWORD(rb1->m_moved_vec.w));
-                LODWORD(dyn_ent1_anchor_loc[2]) = DynEnt_GetClientPose(LOWORD(rb1->m_moved_vec.w));
-                if ( !*(unsigned int *)damage1 )
+                dedef2 = DynEnt_GetEntityDef(c->target_index2);
+                dynEnt2 = DynEnt_GetClientEntity(c->target_index2);
+                dynEnt2Pose = DynEnt_GetClientPose(c->target_index2);
+                if (!dynEnt2->physObjId)
                 {
-                    LODWORD(rb1->m_t_vel.x) = 1;
-                    v3 = DynEntCl_CreatePhysObj(
-                                 (const DynEntityDef *)dynEnt1Pose,
-                                 (DynEntityClient *)damage1,
-                                 (const GfxPlacement *)LODWORD(dyn_ent1_anchor_loc[2]));
-                    *(unsigned int *)damage1 = v3;
+                    c->constraintHandle = 1;
+                    v3 = DynEntCl_CreatePhysObj(dedef2, dynEnt2, &dynEnt2Pose->pose);
+                    dynEnt2->physObjId = v3;
                 }
-                if ( *(unsigned int *)damage1 )
+                if (dynEnt2->physObjId)
                 {
-                    dedef1 = *(const DynEntityDef **)damage1;
-                    dynEnt1 = (DynEntityClient *)dedef1->type;
-                    LODWORD(dyn_ent2_anchor_loc[1]) = DynEnt_GetDamage(
-                                                                                            (DynEntityClient *)damage1,
-                                                                                            (const DynEntityDef *)dynEnt1Pose);
-                    if ( LODWORD(rb1->m_mat.w.x) && SLODWORD(rb1->m_mat.w.x) < SLODWORD(dyn_ent2_anchor_loc[1]) )
+                    userData2 = (PhysObjUserData *)dynEnt2->physObjId;
+                    rb2 = userData2->body;
+                    damage2 = DynEnt_GetDamage(dynEnt2, dedef2);
+                    if (c->min_health && c->min_health < damage2)
                     {
-                        if ( LODWORD(rb1->m_last_position.y) == 8 && Rope_IsValid(LODWORD(rb1->m_t_vel.y)) )
-                            Rope_RemoveAnchor(LODWORD(rb1->m_t_vel.y), 0);
+                        if (c->type == CONSTRAINT_ROPE && Rope_IsValid(c->rope_index))
+                            Rope_RemoveAnchor(c->rope_index, 0);
                         continue;
                     }
-                    LODWORD(dyn_ent2_anchor_loc[0]) = &rb1->m_mat.y;
-                    trans2[0] = rb1->m_mat.y.x;
-                    trans2[1] = rb1->m_mat.y.y;
-                    trans2[2] = rb1->m_mat.y.z;
-                    Phys_NitrousVecToVec3((const phys_vec3 *)&dedef1->targetname, b2_anchor_loc);
-                    temp[2] = trans2[0] + b2_anchor_loc[0];
-                    *(float *)&cgameGlob = trans2[1] + b2_anchor_loc[1];
-                    z = trans2[2] + b2_anchor_loc[2];
+                    //LODWORD(dyn_ent2_anchor_loc[3]) = c->pos2;
+                    dyn_ent2_anchor_loc[0] = c->pos2[0];
+                    dyn_ent2_anchor_loc[1] = c->pos2[1];
+                    dyn_ent2_anchor_loc[2] = c->pos2[2];
+                    Phys_NitrousVecToVec3(&userData2->cg2rb.w, trans2);
+                    b2_anchor_loc[0] = dyn_ent2_anchor_loc[0] + trans2[0];
+                    b2_anchor_loc[1] = dyn_ent2_anchor_loc[1] + trans2[1];
+                    b2_anchor_loc[2] = dyn_ent2_anchor_loc[2] + trans2[2];
                     goto LABEL_33;
                 }
             }
@@ -1278,7 +1242,7 @@ int __cdecl DynEntCl_CreatePhysObj(
     }
     gjk_geom_list.m_first_geom = 0;
     gjk_geom_list.m_geom_count = 0;
-    collision_visitor.__vftable = (create_gjk_geom_collision_visitor_vtbl *)&create_gjk_geom_collision_visitor::`vftable';
+    //collision_visitor.__vftable = (create_gjk_geom_collision_visitor_vtbl *)&create_gjk_geom_collision_visitor::`vftable';
     collision_visitor.gjk_geom_list = &gjk_geom_list;
     create_gjk_geom(dynEntDef, &collision_visitor, 0x280EC93u);
     physId = (int)Phys_ObjCreate(0, pose->origin, pose->quat, vec3_origin, dynEntDef->physPreset, &gjk_geom_list, 1, -1);
@@ -1288,12 +1252,14 @@ int __cdecl DynEntCl_CreatePhysObj(
         phys_user_data = (PhysObjUserData *)dynEntClient->physObjId;
         if ( (phys_user_data->m_bpb->m_flags & 1) != 0 )
         {
-            bpi = broad_phase_base::get_bpi(phys_user_data->m_bpb);
+            //bpi = broad_phase_base::get_bpi(phys_user_data->m_bpb);
+            bpi = phys_user_data->m_bpb->get_bpi();
             bpi->m_my_collision_type_flags |= 4u;
         }
         else
         {
-            for ( i = broad_phase_base::get_bpg(phys_user_data->m_bpb)->m_list_bpi_head;
+            //for ( i = broad_phase_base::get_bpg(phys_user_data->m_bpb)->m_list_bpi_head;
+            for ( i = phys_user_data->m_bpb->get_bpg()->m_list_bpi_head;
                         i;
                         i = (broad_phase_info *)i->m_list_bpb_next )
             {

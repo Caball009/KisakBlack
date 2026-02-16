@@ -482,13 +482,7 @@ struct PhysObjUserData *__cdecl Phys_ObjCreateNitrousVehicle(
 
 
 double __cdecl AbsSquared(const phys_vec3 *a);
-// local variable allocation has failed, the output may be wrong!
-void    make_rotate(
-                phys_mat44 *mat,
-                const phys_vec3 *v,
-                float theta_factor,
-                float max_rotation_radians);
-void __cdecl make_rotate(phys_mat44 *m, const phys_vec3 *u, float ca, float sa);
+
 bool __cdecl CompareVec3ToPhysVec(const float *a, const phys_vec3 *b, float acceptableError);
 
 void __cdecl G_SetVehDriverInputs(int localClientNum, int vehEntNum, usercmd_s *cmd);
@@ -496,5 +490,4 @@ void __cdecl G_ClearVehicleInputs();
 void __cdecl CG_SetVehDriverInputs(int localClientNum, int vehEntNum, usercmd_s *cmd);
 void __cdecl Vehicle_Launch(int localClientNum, centity_s *cent, float *hitp, const float *force, bool relative);
 
-void    make_rotate(phys_mat44 *mat, const phys_vec3 *v1, const phys_vec3 *v2);
 
