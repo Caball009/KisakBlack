@@ -1,4 +1,5 @@
 #include "flame_sound.h"
+#include "flame_class_stream.h"
 #include <cgame_mp/cg_main_mp.h>
 #include <sound/snd_utils.h>
 #include <cgame/cg_sound.h>

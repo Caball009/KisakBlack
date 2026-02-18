@@ -1,5 +1,6 @@
 #include "flame_physics.h"
 #include "flame_system.h"
+#include "flame_class_stream.h"
 #include <tl/tl_system.h>
 #include <DynEntity/DynEntity_coll.h>
 #include <server_mp/sv_main_mp.h>

@@ -1,4 +1,5 @@
 #include "flame_class_smoke.h"
+#include "flame_class_stream.h"
 
 #include <cstring>
 #include "flame_system.h"

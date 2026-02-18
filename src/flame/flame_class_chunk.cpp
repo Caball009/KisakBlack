@@ -1,4 +1,5 @@
 #include "flame_class_chunk.h"
+#include "flame_class_stream.h"
 #include "flame_class_fire.h"
 #include "flame_class_drips.h"
 #include "flame_class_smoke.h"

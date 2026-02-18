@@ -1,4 +1,5 @@
 #include "flame_class_drips.h"
+#include "flame_class_stream.h"
 #include <cstring>
 #include <cgame_mp/cg_local_mp.h>
 #include <universal/com_math_anglevectors.h>
