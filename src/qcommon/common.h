@@ -356,3 +356,4 @@ extern float com_timescaleValue;
 extern int com_frameTime;
 extern int com_inServerFrame;
 extern int com_fixedConsolePosition;
+extern unsigned int com_errorPrintsCount;

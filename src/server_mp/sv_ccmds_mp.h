@@ -1,5 +1,7 @@
 #pragma once
 
+#include <server/server.h>
+
 char *__cdecl SV_GetMapBaseName(char *mapname);
 void __cdecl SV_ReconnectClients(int savepersist);
 void __cdecl SV_MapRestart(int fast_restart);

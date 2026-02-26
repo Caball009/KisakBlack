@@ -2,6 +2,12 @@
 
 #include <qcommon/net_chan_mp.h>
 
+struct reservedslot_t // sizeof=0x19
+{                                       // XREF: .data:s_reservedSlots/r
+    char pass[24];
+    bool inUse;                         // XREF: SV_GetSlotForPasswordIfFree(char const *)+55/r
+};
+
 void __cdecl SV_ResetDWState();
 int __cdecl SV_GetRegion();
 void __cdecl SV_SetRegion(int region);

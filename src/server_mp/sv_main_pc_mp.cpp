@@ -1,4 +1,30 @@
 #include "sv_main_pc_mp.h"
+#include <qcommon/common.h>
+#include "sv_main_mp.h"
+#include <client_mp/sv_client_mp.h>
+#include "sv_init_mp.h"
+#include <game_mp/g_main_mp.h>
+#include <live/live_win.h>
+#include <game_mp/pregame.h>
+#include <DW/dwUtils_pc.h>
+#include <live/live_storage_pub.h>
+#include <ui/ui_playlists.h>
+#include <win32/win_main.h>
+#include <cstring>
+#include <win32/win_shared.h>
+#include <game_mp/g_cmds_mp.h>
+#include <client/cl_console.h>
+#include <live/live_storage_win.h>
+
+int s_region = 1;
+int s_licensetype = -1;
+
+
+int s_LSGTime;
+bool sessionCreated;
+bool sessionCreateFinished;
+int s_numslotpasses;
+reservedslot_t s_reservedSlots[6];
 
 void __cdecl SV_ResetDWState()
 {
@@ -226,11 +252,13 @@ bool __cdecl SV_HasInfoChanged()
         g_matchmakingInfo->m_maxPlayers = sv_maxclients->current.unsignedInt;
         retval = 1;
     }
+#ifdef KISAK_LIVE
     if ( Com_GametypeToInt(g_gametype->current.string) != g_matchmakingInfo->m_memberGAME_TYPE )
     {
         g_matchmakingInfo->m_memberGAME_TYPE = Com_GametypeToInt(g_gametype->current.string);
         retval = 1;
     }
+#endif
     if ( LiveStorage_DoWeHavePlaylists() )
     {
         if ( g_matchmakingInfo->m_memberPLAYLIST_VERSION != Playlist_GetVersionNumber() )
@@ -300,6 +328,7 @@ bool __cdecl SV_IsServerRanked(int licensetype)
 
 void __cdecl SV_MasterHeartbeat(int controllerIndex)
 {
+#ifdef KISAK_LIVE
     int LicenseType; // eax
     bdTrulyRandomImpl *Instance; // eax
     const struct bdSecurityID *SessionSecID; // eax
@@ -636,11 +665,12 @@ void __cdecl SV_MasterHeartbeat(int controllerIndex)
 #endif
         }
     }
+#endif
 }
 
 void SV_ReadWhiteListfile()
 {
-    _BYTE *v0; // eax
+    char *v0; // eax
     _iobuf *fp; // [esp+4h] [ebp-8h]
     int i; // [esp+8h] [ebp-4h]
 
@@ -651,7 +681,7 @@ void SV_ReadWhiteListfile()
         while ( !feof(fp) && i < sv_numreservedslots->current.integer && i < com_maxclients->current.integer )
         {
             fgets(s_reservedSlots[i].pass, 24, fp);
-            strchr((unsigned __int8 *)&s_reservedSlots[i], 0xAu);
+            v0 = strchr(s_reservedSlots[i].pass, 0xAu);
             if ( v0 )
                 *v0 = 0;
             ++i;
@@ -661,11 +691,13 @@ void SV_ReadWhiteListfile()
     Com_DPrintf(15, "Parsed %i reserved slot passwords\n", s_numslotpasses);
 }
 
+int s_dwBackOff = 2000;
+int s_lastDwGoodUpdate;
 int SV_QuitIfNeeded()
 {
     int result; // eax
 
-    if ( !s_lastDwGoodUpdate || (int)(Sys_Milliseconds() - s_lastDwGoodUpdate) > (int)&loc_A4CB7D + 3 )
+    if (!s_lastDwGoodUpdate || (int)(Sys_Milliseconds() - s_lastDwGoodUpdate) > 10800000)
     {
         Com_PrintWarning(0, "Session creation failed. Killing server\n");
         Sys_Quit();
@@ -688,16 +720,25 @@ void __cdecl SV_FlushRedirect(char *outputbuf)
         outputbuf[1156] = 0;
         buf[0] = 1;
         Com_sprintf(&buf[1], 0x48Bu, "print\n%s", outputbuf);
+#ifdef KISAK_LIVE
         dwRawSendTo(&svs.redirectAddress, (unsigned __int8 *)buf, 0x48Cu);
+#else
+        NET_OutOfBandPrint(NS_SERVER, svs.redirectAddress, buf);
+#endif
         len -= 1156;
         outputbuf += 1156;
         *outputbuf = c;
     }
     buf[0] = 1;
     Com_sprintf(&buf[1], 0x48Bu, "print\n%s", outputbuf);
+#ifdef KISAK_LIVE
     dwRawSendTo(&svs.redirectAddress, (unsigned __int8 *)buf, 0x48Cu);
+#else
+    NET_OutOfBandPrint(NS_SERVER, svs.redirectAddress, buf);
+#endif
 }
 
+static int lasttime;
 void __cdecl SVC_RemoteCommand(netadr_t from)
 {
     char *v1; // eax
@@ -779,13 +820,14 @@ void __cdecl SV_MatchEnd()
         if ( onlinegame->current.enabled )
         {
             Com_DPrintf(0, "\n*******SERVER: SV_MatchEnd called, uploading leaderboards.\n");
-            SV_CommitClientLeaderboards(v0);
+            SV_CommitClientLeaderboards();
         }
     }
 }
 
 void __cdecl SV_SysLog_LogMessage(int severity, const char *msg)
 {
+#ifdef KISAK_LIVE
     netadr_t to; // [esp+10h] [ebp-420h] BYREF
     char syslogMsg[1036]; // [esp+20h] [ebp-410h] BYREF
 
@@ -802,6 +844,7 @@ void __cdecl SV_SysLog_LogMessage(int severity, const char *msg)
         Com_sprintf(syslogMsg, 0x400u, "<%u>BLACKOPS: %s: %s", severity + 128, sv_hostname->current.string, msg);
         dwSendSysLogPacket(&to, syslogMsg, &syslogMsg[strlen(syslogMsg) + 1] - &syslogMsg[1]);
     }
+#endif
 }
 
 void __cdecl SV_SysLog_LogMessage_f()
@@ -843,6 +886,7 @@ bool __cdecl SV_CanLoadCustomGameType()
 
 void __cdecl SV_RegisterRconKey_f()
 {
+#ifdef KISAK_LIVE
     unsigned __int8 *v0; // eax
     unsigned int v1; // [esp+0h] [ebp-5Ch]
     int v2; // [esp+18h] [ebp-44h]
@@ -879,5 +923,6 @@ void __cdecl SV_RegisterRconKey_f()
     {
         Com_Printf(15, "usage: setrconkey key\n");
     }
+#endif
 }
 

@@ -495,3 +495,4 @@ extern int svsHeaderValid;
 extern server_t sv;
 
 extern int gameInitialized;
+extern unsigned __int8 tempServerMsgBuf[65536];

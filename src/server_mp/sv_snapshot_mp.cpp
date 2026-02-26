@@ -13,6 +13,22 @@
 #include <cgame/cg_draw_debug.h>
 #include <client_mp/sv_client_mp.h>
 #include <qcommon/msg.h>
+#include <bgame/bg_misc.h>
+#include <game_mp/g_active_mp.h>
+#include <qcommon/com_gamemodes.h>
+#include <live/live_stats.h>
+#include <server/sv_game.h>
+#include <qcommon/cm_test.h>
+#include <qcommon/cm_load.h>
+#include <win32/win_shared.h>
+#include "sv_net_chan_mp.h"
+#include <win32/win_net.h>
+#include <client_mp/console_mp.h>
+#include "sv_bot_mp.h"
+#include <demo/demo_recording.h>
+#include "sv_archive_mp.h"
+
+msg_t g_archiveMsg;
 
 void __cdecl SV_WriteSnapshotToClient(client_t *client, msg_t *msg)
 {
@@ -109,7 +125,7 @@ void __cdecl SV_WriteSnapshotToClient(client_t *client, msg_t *msg)
                     svs.nextSnapshotEntities,
                     oldframe->num_entities);
                 oldframe = 0;
-                LOBYTE(lastframe) = 0;
+                (lastframe) = 0;
                 lastServerTime = 0;
             }
         }
@@ -117,14 +133,14 @@ void __cdecl SV_WriteSnapshotToClient(client_t *client, msg_t *msg)
         {
             Com_DPrintf(15, "%s: Delta request from out of date packet.\n", client->name);
             oldframe = 0;
-            LOBYTE(lastframe) = 0;
+            (lastframe) = 0;
             lastServerTime = 0;
         }
     }
     else
     {
         oldframe = 0;
-        LOBYTE(lastframe) = 0;
+        (lastframe) = 0;
         lastServerTime = 0;
     }
     MSG_WriteByte(msg, 0xCu);
@@ -1133,7 +1149,7 @@ cachedSnapshot_t *__cdecl SV_GetCachedSnapshotInternal(int archivedFrame, int de
         {
             newnumb = MSG_ReadEntityIndex(&msg, 5u);
             if ( msg.overflowed )
-                Com_Error(ERR_DROP, &byte_CEF0BC);
+                Com_Error(ERR_DROP, "SV_GetCachedSnapshot: end of message");
             cachedClient = &svs.cachedSnapshotClients[svs.nextCachedSnapshotClients % svs.numCachedSnapshotClients];
             MSG_ReadDeltaClient(&msg, cachedFrame->time, 0, &cachedClient->cs, newnumb);
             v11 = MSG_ReadBit(&msg);
@@ -1151,7 +1167,7 @@ cachedSnapshot_t *__cdecl SV_GetCachedSnapshotInternal(int archivedFrame, int de
                 __debugbreak();
             }
             if ( ++svs.nextCachedSnapshotClients >= 2147483646 )
-                Com_Error(ERR_FATAL, &byte_CEF064);
+                Com_Error(ERR_FATAL, "svs.nextCachedSnapshotClients wrapped");
             ++cachedFrame->num_clients;
         }
         MSG_ClearLastReferencedEntity(&msg);
@@ -1161,7 +1177,7 @@ cachedSnapshot_t *__cdecl SV_GetCachedSnapshotInternal(int archivedFrame, int de
             if ( newnumc == 1023 )
                 break;
             if ( msg.overflowed )
-                Com_Error(ERR_DROP, &byte_CEF0BC);
+                Com_Error(ERR_DROP, "SV_GetCachedSnapshot: end of message");
             MSG_ReadDeltaArchivedEntity(
                 &msg,
                 cachedFrame->time,
@@ -1169,11 +1185,11 @@ cachedSnapshot_t *__cdecl SV_GetCachedSnapshotInternal(int archivedFrame, int de
                 &svs.cachedSnapshotEntities[svs.nextCachedSnapshotEntities % svs.numCachedSnapshotEntities],
                 newnumc);
             if ( ++svs.nextCachedSnapshotEntities >= 2147483646 )
-                Com_Error(ERR_FATAL, &byte_CEF03C);
+                Com_Error(ERR_FATAL, "svs.nextCachedSnapshotEntities wrapped");
             ++cachedFrame->num_entities;
         }
         if ( ++svs.nextCachedSnapshotFrames >= 2147483646 )
-            Com_Error(ERR_FATAL, &byte_CEF014);
+            Com_Error(ERR_FATAL, "svs.nextCachedSnapshotFrames wrapped");
     }
     else
     {
@@ -1250,7 +1266,6 @@ cachedSnapshot_t *__cdecl SV_GetCachedSnapshotInternal(int archivedFrame, int de
         cachedFrame->physicsTime = v6;
         MSG_ClearLastReferencedEntity(&msg);
         MSG_ReadDeltaMatchState(
-            (int)&savedregs,
             &msg,
             cachedFrame->time,
             &svs.cachedSnapshotMatchStates[oldCachedFrame->matchState % svs.numCachedSnapshotMatchStates],
@@ -1283,7 +1298,7 @@ cachedSnapshot_t *__cdecl SV_GetCachedSnapshotInternal(int archivedFrame, int de
                 __debugbreak();
             }
             if ( msg.overflowed )
-                Com_Error(ERR_DROP, &byte_CEF0BC);
+                Com_Error(ERR_DROP, "SV_GetCachedSnapshot: end of message");
             while ( oldnum < newnum )
             {
                 if ( ++oldindex < oldCachedFrame->num_clients )
@@ -1331,7 +1346,7 @@ cachedSnapshot_t *__cdecl SV_GetCachedSnapshotInternal(int archivedFrame, int de
                     __debugbreak();
                 }
                 if ( ++svs.nextCachedSnapshotClients >= 2147483646 )
-                    Com_Error(ERR_FATAL, &byte_CEF064);
+                    Com_Error(ERR_FATAL, "svs.nextCachedSnapshotClients wrapped");
                 ++cachedFrame->num_clients;
                 if ( ++oldindex < oldCachedFrame->num_clients )
                 {
@@ -1373,7 +1388,7 @@ cachedSnapshot_t *__cdecl SV_GetCachedSnapshotInternal(int archivedFrame, int de
                     __debugbreak();
                 }
                 if ( ++svs.nextCachedSnapshotClients >= 2147483646 )
-                    Com_Error(ERR_FATAL, &byte_CEF064);
+                    Com_Error(ERR_FATAL, "svs.nextCachedSnapshotClients wrapped");
                 ++cachedFrame->num_clients;
             }
         }
@@ -1384,7 +1399,7 @@ cachedSnapshot_t *__cdecl SV_GetCachedSnapshotInternal(int archivedFrame, int de
             if ( newnuma == 1023 )
                 break;
             if ( msg.overflowed )
-                Com_Error(ERR_DROP, &byte_CEF0BC);
+                Com_Error(ERR_DROP, "SV_GetCachedSnapshot: end of message");
             MSG_ReadDeltaArchivedEntity(
                 &msg,
                 cachedFrame->time,
@@ -1392,11 +1407,11 @@ cachedSnapshot_t *__cdecl SV_GetCachedSnapshotInternal(int archivedFrame, int de
                 &svs.cachedSnapshotEntities[svs.nextCachedSnapshotEntities % svs.numCachedSnapshotEntities],
                 newnuma);
             if ( ++svs.nextCachedSnapshotEntities >= 2147483646 )
-                Com_Error(ERR_FATAL, &byte_CEF03C);
+                Com_Error(ERR_FATAL, "svs.nextCachedSnapshotEntities wrapped");
             ++cachedFrame->num_entities;
         }
         if ( ++svs.nextCachedSnapshotFrames >= 2147483646 )
-            Com_Error(ERR_FATAL, &byte_CEF014);
+            Com_Error(ERR_FATAL, "svs.nextCachedSnapshotFrames wrapped");
     }
     if ( cachedFrame->num_entities >= svs.numCachedSnapshotEntities
         && !Assert_MyHandler(
@@ -2163,7 +2178,7 @@ void __cdecl SV_BuildClientSnapshot(client_t *client)
                     v4->bombTimer[1] = p_archivedState->bombTimer[1];
                     memcpy(&v10->unarchivedState, &G_GetMatchState()->unarchivedState, sizeof(v10->unarchivedState));
                     if ( ++svs.nextSnapshotMatchStates >= 2147483646 )
-                        Com_Error(ERR_FATAL, &byte_CEF6BC);
+                        Com_Error(ERR_FATAL, "svs.nextSnapshotMatchStates wrapped");
                     for ( i = 0; i < eNums.numSnapshotEntities; ++i )
                     {
                         v11 = &svs.cachedSnapshotEntities[(eNums.snapshotEntities[i] + CachedSnapshot->first_entity)
@@ -2185,7 +2200,7 @@ void __cdecl SV_BuildClientSnapshot(client_t *client)
                             v6->lerp.u.actor.actorNum += v23;
                         }
                         if ( ++svs.nextSnapshotEntities >= 2147483646 )
-                            Com_Error(ERR_FATAL, &byte_CEF698);
+                            Com_Error(ERR_FATAL, "svs.nextSnapshotEntities wrapped");
                         ++v7->num_entities;
                     }
                     for ( i = 0; i < CachedSnapshot->num_clients; ++i )
@@ -2205,7 +2220,7 @@ void __cdecl SV_BuildClientSnapshot(client_t *client)
                         }
                         v15[v12->clientIndex] = 1;
                         if ( ++svs.nextSnapshotClients >= 2147483646 )
-                            Com_Error(ERR_FATAL, &byte_CEF654);
+                            Com_Error(ERR_FATAL, "svs.nextSnapshotClients wrapped");
                         ++v7->num_clients;
                     }
                 }
@@ -2215,7 +2230,7 @@ void __cdecl SV_BuildClientSnapshot(client_t *client)
                     v10 = &svs.snapshotMatchStates[svs.nextSnapshotMatchStates % svs.numSnapshotMatchStates];
                     memcpy(v10, G_GetMatchState(), sizeof(MatchState));
                     if ( ++svs.nextSnapshotMatchStates >= 2147483646 )
-                        Com_Error(ERR_FATAL, &byte_CEF6BC);
+                        Com_Error(ERR_FATAL, "svs.nextSnapshotMatchStates wrapped");
                     for ( i = 0; i < eNums.numSnapshotEntities; ++i )
                     {
                         v18 = (const void *)(sv.bpsWindow[8] + eNums.snapshotEntities[i] * sv.bpsWindow[9]);
@@ -2224,7 +2239,7 @@ void __cdecl SV_BuildClientSnapshot(client_t *client)
                             v18,
                             sizeof(svs.snapshotEntities[svs.nextSnapshotEntities++ % svs.numSnapshotEntities]));
                         if ( svs.nextSnapshotEntities >= 2147483646 )
-                            Com_Error(ERR_FATAL, &byte_CEF698);
+                            Com_Error(ERR_FATAL, "svs.nextSnapshotEntities wrapped");
                         ++v7->num_entities;
                     }
                     i = 0;
@@ -2258,7 +2273,7 @@ void __cdecl SV_BuildClientSnapshot(client_t *client)
                             }
                             v15[v12->clientIndex] = 1;
                             if ( ++svs.nextSnapshotClients >= 2147483646 )
-                                Com_Error(ERR_FATAL, &byte_CEF654);
+                                Com_Error(ERR_FATAL, "svs.nextSnapshotClients wrapped");
                             ++v7->num_clients;
                         }
                         ++i;
@@ -2475,6 +2490,8 @@ LABEL_20:
     }
 }
 
+unsigned __int8 svCompressedBuf[65536];
+unsigned __int8 to[65536];
 void __cdecl SV_SendMessageToClient(msg_t *msg, client_t *client, bool reliable)
 {
     int lowest_send_count; // [esp+10h] [ebp-Ch]
@@ -2503,7 +2520,7 @@ void __cdecl SV_SendMessageToClient(msg_t *msg, client_t *client, bool reliable)
         __debugbreak();
     }
     *(unsigned int *)svCompressedBuf = *(unsigned int *)msg->data;
-    compressedSize = MSG_WriteBitsCompress(client->header.state == 5, msg->data + 4, msg->cursize - 4, &to, 65532) + 4;
+    compressedSize = MSG_WriteBitsCompress(client->header.state == 5, msg->data + 4, msg->cursize - 4, to, 65532) + 4;
     if ( sv_showHuffmanData->current.enabled )
     {
         showHuffmanData();
@@ -2605,7 +2622,7 @@ int __cdecl SV_WindowedRateMsec(client_t *client)
     int rate; // [esp+0h] [ebp-1Ch]
     int msec; // [esp+Ch] [ebp-10h]
     int history; // [esp+10h] [ebp-Ch]
-    unsigned intrateTime; // [esp+14h] [ebp-8h]
+    unsigned int rateTime; // [esp+14h] [ebp-8h]
     int accumSize; // [esp+18h] [ebp-4h]
 
     rateTime = Sys_Milliseconds();
@@ -2638,6 +2655,7 @@ int __cdecl SV_WindowedRateMsec(client_t *client)
     return 1000 * (accumSize - rate) / rate;
 }
 
+unsigned __int8 tempSnapshotMsgBuf[65536];
 void __cdecl SV_BeginClientSnapshot(client_t *client, msg_t *msg)
 {
     unsigned int clientNum; // [esp+0h] [ebp-4h]
@@ -3115,10 +3133,11 @@ void __cdecl SV_GetServerStaticHeader()
     svsHeaderValid = 0;
 }
 
+int lastClientSent = -1;
 void __cdecl SV_SendClientMessages()
 {
-    const char *v0; // eax
-    int v1; // eax
+    char *v1; // eax
+    int v2; // eax
     float comp_ratio; // [esp+74h] [ebp-98h]
     float ave; // [esp+78h] [ebp-94h]
     float uave; // [esp+7Ch] [ebp-90h]
@@ -3144,26 +3163,26 @@ void __cdecl SV_SendClientMessages()
     numclients = 0;
     //PIXBeginNamedEvent(-1, "SV_SendClientMessages");
     sv.ubpsWindow[14] = 0;
-    *(unsigned int *)&sv.gametype[36] = 0;
+    *(_DWORD *)&sv.gametype[36] = 0;
     memset(valid, 0, sizeof(valid));
     maxclients = com_maxclients->current.integer;
     maxBytesPerFrame = Live_GetNecessaryBandwidth() / 160;
     startClient = (lastClientSent + 1) % maxclients;
     //PIXBeginNamedEvent(-1, "extra messages");
-    for ( clientCounter = 0; clientCounter < maxclients; ++clientCounter )
+    for (clientCounter = 0; clientCounter < maxclients; ++clientCounter)
     {
         clientNum = (clientCounter + startClient) % maxclients;
         c = &svs.clients[clientNum];
-        if ( c->header.state
+        if (c->header.state
             && svs.time >= c->nextSnapshotTime
-            && (!c->bIsTestClient || c->header.netchan.remoteAddress.type || sv_botSnapshotDebug->current.enabled) )
+            && (!c->bIsTestClient || c->header.netchan.remoteAddress.type || sv_botSnapshotDebug->current.enabled))
         {
-            if ( sv.ubpsWindow[14] > maxBytesPerFrame )
+            if (sv.ubpsWindow[14] > maxBytesPerFrame)
                 break;
             ++numclients;
-            if ( c->header.netchan.unsentFragments )
+            if (c->header.netchan.unsentFragments)
             {
-                if ( c->header.netchan.remoteAddress.type == NA_LOOPBACK )
+                if (c->header.netchan.remoteAddress.type == NA_LOOPBACK)
                     c->nextSnapshotTime = svs.time - 1;
                 else
                     c->nextSnapshotTime = 50 * c->header.netchan.lowest_send_count + svs.time + SV_WindowedRateMsec(c);
@@ -3174,75 +3193,75 @@ void __cdecl SV_SendClientMessages()
             else
             {
                 valid[clientNum] = 1;
-                if ( sv.ubpsWindow[14] < maxBytesPerFrame && (c->header.state == 5 || c->header.state == 1) )
+                if (sv.ubpsWindow[14] < maxBytesPerFrame && (c->header.state == 5 || c->header.state == 1))
                 {
                     //PIXBeginNamedEvent(-1, "SV_BuildClientSnapshot");
                     SV_BuildClientSnapshot(c);
-                    //if ( GetCurrentThreadId() == g_DXDeviceThread )
-                        //D3DPERF_EndEvent();
+                    //if (GetCurrentThreadId() == g_DXDeviceThread)
+                    //    D3DPERF_EndEvent();
                 }
             }
         }
     }
-    //if ( GetCurrentThreadId() == g_DXDeviceThread )
-        //D3DPERF_EndEvent();
+    //if (GetCurrentThreadId() == g_DXDeviceThread)
+    //    D3DPERF_EndEvent();
     SV_SetServerStaticHeader();
     //PIXBeginNamedEvent(-1, "SV_SendClientSnapshot");
-    for ( clientCounter = 0; clientCounter < maxclients; ++clientCounter )
+    for (clientCounter = 0; clientCounter < maxclients; ++clientCounter)
     {
         clientNum = (clientCounter + startClient) % maxclients;
         ca = &svs.clients[clientNum];
-        if ( valid[clientNum] )
+        if (valid[clientNum])
         {
-            if ( sv.ubpsWindow[14] >= maxBytesPerFrame )
+            if (sv.ubpsWindow[14] >= maxBytesPerFrame)
                 break;
             lastClientSent = clientNum;
-            v0 = va("SV_SendClientSnapshot %d", clientNum);
-            //PIXBeginNamedEvent(-1, v0);
+            v1 = va("SV_SendClientSnapshot %d", clientNum);
+            //PIXBeginNamedEvent(-1, v1);
             SV_BeginClientSnapshot(ca, &msg);
-            if ( ca->header.state == 5 || ca->header.state == 1 )
+            if (ca->header.state == 5 || ca->header.state == 1)
             {
                 //PIXBeginNamedEvent(-1, "SV_WriteSnapshotToClient");
                 SV_WriteSnapshotToClient(ca, &msg);
-                //if ( GetCurrentThreadId() == g_DXDeviceThread )
-                    //D3DPERF_EndEvent();
+                //if (GetCurrentThreadId() == g_DXDeviceThread)
+                //    D3DPERF_EndEvent();
             }
             SV_EndClientSnapshot(ca, &msg);
-            //if ( GetCurrentThreadId() == g_DXDeviceThread )
+            //if (GetCurrentThreadId() == g_DXDeviceThread)
                 //D3DPERF_EndEvent();
             SV_SendClientVoiceData(ca);
         }
     }
-    //if ( GetCurrentThreadId() == g_DXDeviceThread )
+    //if (GetCurrentThreadId() == g_DXDeviceThread)
         //D3DPERF_EndEvent();
-    if ( sv.ubpsWindow[14] >= maxBytesPerFrame )
-        StatMon_Warning(13, 3000, "code_warning_bandwidthlimited");
+    if (sv.ubpsWindow[14] >= maxBytesPerFrame)
+        StatMon_Warning(13, 3000, (char*)"code_warning_bandwidthlimited");
     else
         lastClientSent = -1;
-    if ( Demo_ShouldBuildDemoSnapshot() && Demo_IsRecording() )
+    if (Demo_ShouldBuildDemoSnapshot() && Demo_IsRecording())
     {
         //PIXBeginNamedEvent(-1, "Demo_BuildDemoSnapshot");
         cb = &svs.clients[Demo_GetDemoClientIndex()];
-        if ( !cb->bIsDemoClient
+        if (!cb->bIsDemoClient
             && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\server_mp\\sv_snapshot_mp.cpp",
-                        3839,
-                        0,
-                        "%s",
-                        "c->bIsDemoClient") )
+                "C:\\projects_pc\\cod\\codsrc\\src\\server_mp\\sv_snapshot_mp.cpp",
+                3839,
+                0,
+                "%s",
+                "c->bIsDemoClient"))
         {
             __debugbreak();
         }
-        if ( cb->header.state == 5 || cb->header.state == 1 )
+        if (cb->header.state == 5 || cb->header.state == 1)
             Demo_BuildDemoSnapshot();
-        //if ( g_DXDeviceThread == GetCurrentThreadId() )
+        //if (g_DXDeviceThread == GetCurrentThreadId())
             //D3DPERF_EndEvent();
     }
-    if ( numclients > 0 )
+    if (numclients > 0)
     {
         uave = 0.0f;
         total = 0;
-        for ( i = 0; i < 19; ++i )
+        for (i = 0; i < 19; ++i)
         {
             sv.bpsWindow[i + 16] = sv.bpsWindow[i + 17];
             total += sv.ubpsWindow[14];
@@ -3250,20 +3269,20 @@ void __cdecl SV_SendClientMessages()
             uave = (float)sv.ubpsWindow[i + 16] + uave;
         }
         sv.ubpsWindow[12] = sv.ubpsWindow[14];
-        *(unsigned int *)&sv.gametype[32] = *(unsigned int *)&sv.gametype[36];
+        *(_DWORD *)&sv.gametype[32] = *(_DWORD *)&sv.gametype[36];
         uavea = (float)*(int *)&sv.gametype[36] + uave;
-        if ( sv.ubpsWindow[14] >= sv.ubpsWindow[15] )
+        if (sv.ubpsWindow[14] >= sv.ubpsWindow[15])
             sv.ubpsWindow[15] = sv.ubpsWindow[14];
-        if ( *(int *)&sv.gametype[36] >= *(int *)&sv.gametype[40] )
-            *(unsigned int *)&sv.gametype[40] = *(unsigned int *)&sv.gametype[36];
-        if ( ++sv.ubpsWindow[13] >= 20 && sv_showAverageBPS->current.enabled )
+        if (*(int *)&sv.gametype[36] >= *(int *)&sv.gametype[40])
+            *(_DWORD *)&sv.gametype[40] = *(_DWORD *)&sv.gametype[36];
+        if (++sv.ubpsWindow[13] >= 20 && sv_showAverageBPS->current.enabled)
         {
             sv.ubpsWindow[13] = 0;
             ave = (float)(sv.ubpsWindow[14] + total) / 20.0;
             uaveb = uavea / 20.0;
             comp_ratio = (float)(1.0 - (float)(ave / uaveb)) * 100.0;
             *(float *)&sv.gametype[44] = *(float *)&sv.gametype[44] + comp_ratio;
-            ++*(unsigned int *)&sv.gametype[48];
+            ++*(_DWORD *)&sv.gametype[48];
             Com_DPrintf(
                 15,
                 "bpspc(%2.0f) bps(%2.0f) pk(%i) ubps(%2.0f) upk(%i) cr(%2.2f) acr(%2.2f)\n",
@@ -3271,47 +3290,47 @@ void __cdecl SV_SendClientMessages()
                 ave,
                 sv.ubpsWindow[15],
                 uaveb,
-                *(unsigned int *)&sv.gametype[40],
+                *(_DWORD *)&sv.gametype[40],
                 comp_ratio,
                 (float)(*(float *)&sv.gametype[44] / (float)*(int *)&sv.gametype[48]));
         }
     }
     g_archivingSnapshot = 1;
-    if ( sv.state == SS_GAME )
+    if (sv.state == SS_GAME)
     {
         //PIXBeginNamedEvent(-1, "SV_ArchiveSnapshot");
         MSG_Init(&g_archiveMsg, tempServerMsgBuf, 0x10000);
         SV_ArchiveSnapshot(&g_archiveMsg);
-        //if ( GetCurrentThreadId() == g_DXDeviceThread )
-            //D3DPERF_EndEvent();
+        //if (GetCurrentThreadId() == g_DXDeviceThread)
+        //    D3DPERF_EndEvent();
     }
     SV_GetServerStaticHeader();
-    if ( sv.state == SS_GAME )
+    if (sv.state == SS_GAME)
     {
-        if ( g_archiveMsg.overflowed )
+        if (g_archiveMsg.overflowed)
         {
             Com_DPrintf(15, "SV_ArchiveSnapshot: ignoring snapshot because it overflowed.\n");
         }
         else
         {
-            if ( !svs.archivedSnapshotFrames
+            if (!svs.archivedSnapshotFrames
                 && !Assert_MyHandler(
-                            "C:\\projects_pc\\cod\\codsrc\\src\\server_mp\\sv_snapshot_mp.cpp",
-                            3963,
-                            0,
-                            "%s",
-                            "svs.archivedSnapshotFrames") )
+                    "C:\\projects_pc\\cod\\codsrc\\src\\server_mp\\sv_snapshot_mp.cpp",
+                    3963,
+                    0,
+                    "%s",
+                    "svs.archivedSnapshotFrames"))
             {
                 __debugbreak();
             }
             frame = &svs.archivedSnapshotFrames[svs.nextArchivedSnapshotFrames % 1200];
             frame->start = svs.nextArchivedSnapshotBuffer;
             frame->size = g_archiveMsg.cursize;
-            v1 = svs.nextArchivedSnapshotBuffer % 0x1000000;
+            v2 = svs.nextArchivedSnapshotBuffer % 0x1000000;
             startIndex = svs.nextArchivedSnapshotBuffer % 0x1000000;
             svs.nextArchivedSnapshotBuffer = (g_archiveMsg.cursize + svs.nextArchivedSnapshotBuffer) % 671088640;
-            partSize = (int)&cls.rankedServers[711].game[-v1 + 35];
-            if ( g_archiveMsg.cursize > (int)&cls.rankedServers[711].game[-v1 + 35] )
+            partSize = 0x1000000 - v2;
+            if (g_archiveMsg.cursize > 0x1000000 - v2)
             {
                 memcpy(&svs.archivedSnapshotBuffer[startIndex], g_archiveMsg.data, partSize);
                 memcpy(svs.archivedSnapshotBuffer, &g_archiveMsg.data[partSize], g_archiveMsg.cursize - partSize);
@@ -3320,12 +3339,12 @@ void __cdecl SV_SendClientMessages()
             {
                 memcpy(&svs.archivedSnapshotBuffer[startIndex], g_archiveMsg.data, g_archiveMsg.cursize);
             }
-            if ( ++svs.nextArchivedSnapshotFrames >= 2147483646 )
-                Com_Error(ERR_FATAL, &byte_CF0094);
+            if (++svs.nextArchivedSnapshotFrames >= 2147483646)
+                Com_Error(ERR_FATAL, "svs.nextArchivedSnapshotFrames wrapped");
         }
     }
     g_archivingSnapshot = 0;
-    //if ( GetCurrentThreadId() == g_DXDeviceThread )
-        //D3DPERF_EndEvent();
+    //if (GetCurrentThreadId() == g_DXDeviceThread)
+    //    D3DPERF_EndEvent();
 }
 

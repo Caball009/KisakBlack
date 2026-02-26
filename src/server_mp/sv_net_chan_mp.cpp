@@ -1,4 +1,5 @@
 #include "sv_net_chan_mp.h"
+#include "sv_main_mp.h"
 
 bool __cdecl SV_Netchan_TransmitNextFragment(client_t *client, netchan_t *chan)
 {

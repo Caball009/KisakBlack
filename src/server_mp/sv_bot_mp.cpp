@@ -1,4 +1,136 @@
 #include "sv_bot_mp.h"
+#include <server/server.h>
+#include <game/actor_navigation.h>
+#include "sv_main_mp.h"
+#include <game_mp/g_main_mp.h>
+#include <qcommon/msg_mp.h>
+#include <server/sv_world.h>
+#include <universal/com_math_anglevectors.h>
+#include <bgame/bg_weapons_ammo.h>
+#include <bgame/bg_misc.h>
+#include <game_mp/g_active_mp.h>
+#include <game_mp/g_spawn_mp.h>
+#include <clientscript/scr_const.h>
+#include <clientscript/cscr_stringlist.h>
+#include <bgame/bg_pmove.h>
+#include <cgame/cg_drawtools.h>
+#include <live/live_friends_pc.h>
+#include <client_mp/sv_client_mp.h>
+#include <client_mp/g_client_mp.h>
+#include <game/g_debug.h>
+
+const char *botNames[47] =
+{
+  "DVonderhaar",
+  "DBunting",
+  "AConserva",
+  "MScronce",
+  "RFeltrin",
+  "SJCrowe",
+  "BNandakumar",
+  "RMoffat",
+  "AHoggatt",
+  "CCowell",
+  "SNouriani",
+  "SRoud",
+  "LAJohansen",
+  "PBabar",
+  "JMattis",
+  "PTasker",
+  "AEady",
+  "IJKowalski",
+  "CCSchneider",
+  "GIDoron",
+  "TJSchneider",
+  "VKSharma",
+  "MCG Gordon",
+  "MLLeslie",
+  "MLAM1A",
+  "DLH Harper",
+  "DMRoche",
+  "DAA Anthony",
+  "JBojorquez",
+  "MDonlon",
+  "AKrauss",
+  "GJNg",
+  "EFRich",
+  "TEWells",
+  "TJKeegan",
+  "ABhura",
+  "BLMercado",
+  "JMorelli",
+  "KTouevsky",
+  "EOughton",
+  "LZide",
+  "JShubert",
+  "KTakacs",
+  "CStastny",
+  "ARomo",
+  "RFord",
+  "Larry"
+};
+
+const dvar_t *sv_botsAllowMovement;
+const dvar_t *sv_botsForceStand;
+const dvar_t *sv_botsForceCrouch;
+const dvar_t *sv_botsForceProne;
+const dvar_t *sv_botsPressAttackBtn;
+const dvar_t *sv_botsPressMeleeBtn;
+const dvar_t *sv_botsForceFragOnly;
+const dvar_t *sv_botsForceSpecialOnly;
+const dvar_t *sv_botsIgnoreHumans;
+const dvar_t *sv_botSnapshotDebug;
+const dvar_t *sv_botForceYaw;
+const dvar_t *sv_botDebug;
+const dvar_t *sv_botDebugX;
+const dvar_t *sv_botDebugY;
+const dvar_t *sv_botDebugThreat;
+const dvar_t *sv_botDebugPaths;
+const dvar_t *sv_botFov;
+const dvar_t *sv_botGoalRadius;
+const dvar_t *sv_botCloseDistance;
+const dvar_t *sv_botSprintDistance;
+const dvar_t *sv_botCrouchDistance;
+const dvar_t *sv_botTargetLeadBias;
+const dvar_t *sv_botUseFriendNames;
+const dvar_t *sv_botAllowGrenades;
+const dvar_t *sv_botMinGrenadeTime;
+const dvar_t *sv_botMaxGrenadeTime;
+const dvar_t *sv_botMinAdsTime;
+const dvar_t *sv_botMaxAdsTime;
+const dvar_t *sv_botMinPitchTime;
+const dvar_t *sv_botMaxPitchTime;
+const dvar_t *sv_botMinCrouchTime;
+const dvar_t *sv_botMaxCrouchTime;
+const dvar_t *sv_botMinDeathTime;
+const dvar_t *sv_botMaxDeathTime;
+const dvar_t *sv_botMinFireTime;
+const dvar_t *sv_botMaxFireTime;
+const dvar_t *sv_botMinReactionTime;
+const dvar_t *sv_botMaxReactionTime;
+const dvar_t *sv_botYawSpeed;
+const dvar_t *sv_botYawSpeedAds;
+const dvar_t *sv_botPitchUp;
+const dvar_t *sv_botPitchDown;
+const dvar_t *sv_botPitchSpeed;
+const dvar_t *sv_botPitchSpeedAds;
+const dvar_t *sv_botStrafeChance;
+const dvar_t *sv_botMinStrafeTime;
+const dvar_t *sv_botMaxStrafeTime;
+
+bot_info_t botInfos[32];
+
+float g_botFovCos;
+
+float botFov = -1.0f;
+const char right_0[4] =
+{ '\x81', '\xC0', '@', '\x7F' };
+
+char rightAds[4] =
+{ '\x81', '\x7F', '\0', '\0' };
+
+char forward_0[8] =
+{ '\xC0', '@', '\0', '\0', '\0', '\0', '\0', '\0' };
 
 void __cdecl SV_BotSwitchWeapon(const client_t *bot, int weapIndex)
 {
@@ -173,16 +305,16 @@ void __cdecl SV_BotThink(client_t *bot, usercmd_s *cmd)
         cmd->button_bits.array[i] = 0;
     if ( !bot->gentity )
     {
-        if ( GetCurrentThreadId() != g_DXDeviceThread )
-            return;
+        //if ( GetCurrentThreadId() != g_DXDeviceThread )
+        //    return;
 LABEL_41:
         //D3DPERF_EndEvent();
         return;
     }
     if ( G_GetClientArchiveTime(clientNum) )
     {
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_41;
     }
     if ( bot->lastUsercmd.serverTime <= 0 )
@@ -194,8 +326,8 @@ LABEL_41:
     if ( bot->gentity->health <= 0 )
     {
         Bot_Clear(botInfo);
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_41;
     }
     if ( fabs(botFov - sv_botFov->current.value) > 0.000001 )
@@ -214,8 +346,8 @@ LABEL_41:
         cmd->rightmove = 0;
         if ( botInfo->useButtonEndTime )
         {
-            bitarray<51>::setBit(&cmd->button_bits, 9u);
-            bitarray<51>::setBit(&cmd->button_bits, 5u);
+            cmd->button_bits.setBit(9);
+            cmd->button_bits.setBit(5);
         }
         bot->header.deltaMessage = bot->header.netchan.outgoingSequence - 1;
         //if ( GetCurrentThreadId() == g_DXDeviceThread )
@@ -234,30 +366,30 @@ LABEL_41:
         {
             for ( j = 0; j < 2; ++j )
                 cmd->button_bits.array[j] = 0;
-            bitarray<51>::setBit(&cmd->button_bits, 9u);
-            bitarray<51>::setBit(&cmd->button_bits, 5u);
+            cmd->button_bits.setBit(9);
+            cmd->button_bits.setBit(5);
         }
         if ( sv_botsForceStand->current.enabled )
         {
-            bitarray<51>::resetBit(&cmd->button_bits, 9u);
-            bitarray<51>::resetBit(&cmd->button_bits, 8u);
-            bitarray<51>::resetBit(&cmd->button_bits, 0xCu);
+            cmd->button_bits.resetBit(9);
+            cmd->button_bits.resetBit(8);
+            cmd->button_bits.resetBit(0xC);
         }
         if ( sv_botsForceCrouch->current.enabled )
         {
-            bitarray<51>::setBit(&cmd->button_bits, 9u);
-            bitarray<51>::resetBit(&cmd->button_bits, 8u);
-            bitarray<51>::resetBit(&cmd->button_bits, 1u);
-            bitarray<51>::resetBit(&cmd->button_bits, 0x2Cu);
-            bitarray<51>::resetBit(&cmd->button_bits, 0xCu);
+            cmd->button_bits.setBit(9);
+            cmd->button_bits.resetBit(8);
+            cmd->button_bits.resetBit(1);
+            cmd->button_bits.resetBit(0x2C);
+            cmd->button_bits.resetBit(0xC);
         }
         if ( sv_botsForceProne->current.enabled )
         {
-            bitarray<51>::setBit(&cmd->button_bits, 8u);
-            bitarray<51>::resetBit(&cmd->button_bits, 9u);
-            bitarray<51>::resetBit(&cmd->button_bits, 1u);
-            bitarray<51>::resetBit(&cmd->button_bits, 0x2Cu);
-            bitarray<51>::resetBit(&cmd->button_bits, 0xCu);
+            cmd->button_bits.setBit(8);
+            cmd->button_bits.resetBit(9);
+            cmd->button_bits.resetBit(1);
+            cmd->button_bits.resetBit(0x2C);
+            cmd->button_bits.resetBit(0xC);
         }
         bot->header.deltaMessage = bot->header.netchan.outgoingSequence - 1;
         //if ( g_DXDeviceThread == GetCurrentThreadId() )
@@ -286,11 +418,11 @@ void __cdecl Bot_UpdateTimedAction(int *timedAction)
 
 void __cdecl Bot_UpdateSight(bot_info_t *botInfo, const client_t *bot)
 {
-    float *v4; // [esp+24h] [ebp-7Ch]
-    float *v5; // [esp+30h] [ebp-70h]
+    const float *v4; // [esp+24h] [ebp-7Ch]
+    const float *v5; // [esp+30h] [ebp-70h]
     const gentity_s *v6; // [esp+34h] [ebp-6Ch]
     const gentity_s *enemy; // [esp+38h] [ebp-68h]
-    float *v8; // [esp+3Ch] [ebp-64h]
+    const float *v8; // [esp+3Ch] [ebp-64h]
     float *currentOrigin; // [esp+40h] [ebp-60h]
     col_context_t context; // [esp+5Ch] [ebp-44h] BYREF
     bool hadSight; // [esp+87h] [ebp-19h]
@@ -306,8 +438,8 @@ void __cdecl Bot_UpdateSight(bot_info_t *botInfo, const client_t *bot)
             if ( g_botFovCos > botInfo->threat.dot )
             {
                 botInfo->sightHitNum = -1;
-                if ( g_DXDeviceThread != GetCurrentThreadId() )
-                    return;
+                //if ( g_DXDeviceThread != GetCurrentThreadId() )
+                //    return;
                 goto LABEL_41;
             }
         }
@@ -443,8 +575,8 @@ void __cdecl Bot_UpdateThreat(bot_info_t *botInfo, const client_t *bot)
     {
         botInfo->threat.deathEndTime = svs.time
                                                                  + irand(sv_botMinDeathTime->current.integer, sv_botMaxDeathTime->current.integer);
-        if ( GetCurrentThreadId() != g_DXDeviceThread )
-            return;
+        //if ( GetCurrentThreadId() != g_DXDeviceThread )
+        //    return;
         goto LABEL_82;
     }
     if ( botInfo->threat.enemy && botInfo->threat.enemy->health > 0 )
@@ -454,22 +586,22 @@ void __cdecl Bot_UpdateThreat(bot_info_t *botInfo, const client_t *bot)
     }
     if ( (botInfo->flags & 8) != 0 )
     {
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_82;
     }
     if ( botInfo->threat.enemy
         && botInfo->threat.enemy->health > 0
         && (float)(sv_botCloseDistance->current.value * sv_botCloseDistance->current.value) > botInfo->threat.distSq )
     {
-        if ( GetCurrentThreadId() != g_DXDeviceThread )
-            return;
+        //if ( GetCurrentThreadId() != g_DXDeviceThread )
+        //    return;
         goto LABEL_82;
     }
     if ( botInfo->threat.enemy && Bot_IsInLastStand(bot) )
     {
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_82;
     }
     if ( botInfo->sightHitNum && ps->damageCount )
@@ -483,8 +615,8 @@ void __cdecl Bot_UpdateThreat(bot_info_t *botInfo, const client_t *bot)
             Bot_IsInRangeOfEnemy(bot, botInfo->threat.enemy, &botInfo->threat.distSq);
             botInfo->threat.acquireTime = svs.time;
             botInfo->flags |= 1u;
-            if ( g_DXDeviceThread != GetCurrentThreadId() )
-                return;
+            //if ( g_DXDeviceThread != GetCurrentThreadId() )
+            //    return;
             goto LABEL_82;
         }
         botInfo->attackerEnt = 0;
@@ -753,8 +885,8 @@ void __cdecl Bot_UpdateWeapon(const bot_info_t *botInfo, const client_t *bot, us
     ps = G_GetPlayerState(bot->gentity->s.number);
     if ( ps->ps.weaponstate )
     {
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_59;
     }
     if ( botInfo->weapon )
@@ -850,22 +982,22 @@ void __cdecl Bot_UpdateMovement(bot_info_t *botInfo, const client_t *bot, usercm
             cmd->angles[1] = (unsigned __int16)(int)(float)((float)((float)sv_botForceYaw->current.integer
                                                                                                                         - bot->gentity->client->ps.delta_angles[1])
                                                                                                         * 182.04445);
-        if ( GetCurrentThreadId() != g_DXDeviceThread )
-            return;
+        //if ( GetCurrentThreadId() != g_DXDeviceThread )
+        //    return;
         goto LABEL_31;
     }
     if ( (bot->gentity->client->ps.pm_flags & 4) != 0 || (bot->gentity->client->ps.pm_flags & 0x4000) != 0 )
     {
         Bot_UpdateMantle(botInfo, bot, cmd);
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_31;
     }
     if ( Bot_IsFlashbanged(bot) )
     {
         Bot_RandomInput(botInfo, cmd);
-        if ( GetCurrentThreadId() != g_DXDeviceThread )
-            return;
+        //if ( GetCurrentThreadId() != g_DXDeviceThread )
+        //    return;
         goto LABEL_31;
     }
     Bot_GetStrafeInput(bot, botInfo, cmd);
@@ -877,14 +1009,14 @@ void __cdecl Bot_UpdateMovement(bot_info_t *botInfo, const client_t *bot, usercm
             Bot_UpdateDirection(botInfo, bot, cmd);
             Bot_UpdateSpeed(botInfo, bot, cmd);
             Bot_UpdateMantle(botInfo, bot, cmd);
-            if ( g_DXDeviceThread != GetCurrentThreadId() )
-                return;
+            //if ( g_DXDeviceThread != GetCurrentThreadId() )
+            //    return;
         }
         else
         {
             Bot_RandomInput(botInfo, cmd);
-            if ( g_DXDeviceThread != GetCurrentThreadId() )
-                return;
+            //if ( g_DXDeviceThread != GetCurrentThreadId() )
+            //    return;
         }
         goto LABEL_31;
     }
@@ -904,14 +1036,19 @@ LABEL_31:
         //D3DPERF_EndEvent();
 }
 
+char right[12] =
+{ '\x81', '\xC0', '@', '\x7F', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0' };
+
+char forward[8] =
+{ '\xC0', '@', '\x7F', '\x7F', '\x7F', '\x81', '\0', '\0' };
+
 void __cdecl Bot_RandomInput(bot_info_t *botInfo, usercmd_s *cmd)
 {
     if ( svs.time >= botInfo->threat.strafeEndTime )
     {
         cmd->forwardmove = forward[irand(0, 6)];
         cmd->rightmove = right[irand(0, 9)];
-        botInfo->threat.strafeEndTime = svs.time
-                                                                    + irand(sv_botMinStrafeTime->current.integer, sv_botMaxStrafeTime->current.integer);
+        botInfo->threat.strafeEndTime = svs.time + irand(sv_botMinStrafeTime->current.integer, sv_botMaxStrafeTime->current.integer);
     }
 }
 
@@ -954,8 +1091,8 @@ void __cdecl Bot_GetStrafeInput(const client_t *bot, bot_info_t *botInfo, usercm
     }
     if ( !botInfo->sightHitNum && !Bot_IsInRangeOfEnemy(bot, botInfo->threat.enemy, &distSq) )
     {
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_21;
     }
     v4 = !botInfo->sightHitNum && ((botInfo->flags & 0x20) != 0 || svs.time >= botInfo->threat.strafeEndTime);
@@ -998,33 +1135,33 @@ void __cdecl Bot_UpdatePath(bot_info_t *botInfo, const client_t *bot)
     //PIXBeginNamedEvent(-1, "Bot_UpdatePath");
     if ( botInfo->sightHitNum && Bot_UpdateScriptGoal(botInfo, bot) )
     {
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_46;
     }
     if ( Bot_UpdateScriptEnemy(botInfo, bot) )
     {
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_46;
     }
     if ( Bot_IsInLastStand(bot) )
     {
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_46;
     }
     if ( (botInfo->flags & 0x80) != 0 )
     {
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_46;
     }
     ps = G_GetPlayerState(bot - svs.clients);
     if ( (ps->ps.pm_flags & 4) != 0 || (ps->ps.pm_flags & 0x4000) != 0 )
     {
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_46;
     }
     if ( (botInfo->flags & 2) == 0
@@ -1056,16 +1193,16 @@ void __cdecl Bot_UpdatePath(bot_info_t *botInfo, const client_t *bot)
         botInfo->flags &= ~2u;
         botInfo->flags &= ~1u;
         Bot_GetPathToGoal(bot, botInfo->threat.enemy->r.currentOrigin, &botInfo->path, 1);
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_46;
     }
     if ( botInfo->threat.enemy && !Bot_PointInGoal(botInfo->threat.enemy->r.currentOrigin, &botInfo->path, 0.0) )
     {
         Bot_GetPathToGoal(bot, botInfo->threat.enemy->r.currentOrigin, &botInfo->path, 1);
         botInfo->flags &= ~2u;
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_46;
     }
     if ( !Path_Exists(&botInfo->path) )
@@ -1548,7 +1685,7 @@ LABEL_4:
     }
     else
     {
-        if ( botInfo->sightHitNum || !bitarray<51>::testBit(&cmd->button_bits, 0xBu) || ps->fWeaponPosFrac >= 1.0 )
+        if ( botInfo->sightHitNum || !cmd->button_bits.testBit(0xBu) || ps->fWeaponPosFrac >= 1.0 )
         {
             if ( botInfo->sightHitNum )
             {
@@ -1739,15 +1876,12 @@ double __cdecl Bot_UpdatePitch(float currentPitch, float targetPitch, bool force
     if ( forceSlow )
         rate = sv_botPitchSpeedAds->current.value;
     v5 = AngleNormalize180(targetPitch - currentPitch);
-    if ( (float)((float)(rate
-                                         - (float)(COERCE_FLOAT(
-                                                                 COERCE_UNSIGNED_INT(fabs(v5) / 180.0)
-                                                             ^ _mask__NegFloat_)
-                                                         * rate))
-                         - rate) < 0.0 )
-        v4 = rate
-             - (float)(COERCE_FLOAT(COERCE_UNSIGNED_INT(fabs(v5) / 180.0) ^ _mask__NegFloat_)
-                             * rate);
+    //if ( (float)((float)(rate - (float)(COERCE_FLOAT(COERCE_UNSIGNED_INT(fabs(v5) / 180.0) ^ _mask__NegFloat_) * rate)) - rate) < 0.0 )
+    if ((float)((float)(rate - (float)((-(fabs(v5) / 180.0)) * rate)) - rate) < 0.0)
+    {
+        //v4 = rate - (float)(COERCE_FLOAT(COERCE_UNSIGNED_INT(fabs(v5) / 180.0) ^ _mask__NegFloat_) * rate);
+        v4 = rate - (float)((-(fabs(v5) / 180.0)) * rate);
+    }
     else
         v4 = rate;
     v6 = DiffTrackAngle(targetPitch, currentPitch, v4, 0.050000001);
@@ -1776,9 +1910,12 @@ double __cdecl Bot_UpdateYaw(float currentYaw, float targetYaw, bool forceSlow, 
     diff = fabs(v8);
     if ( fabs(v8) < 100.0 )
     {
-        if ( (float)((float)(rate - (float)(COERCE_FLOAT(COERCE_UNSIGNED_INT(diff / 180.0) ^ _mask__NegFloat_) * rate))
-                             - rate) < 0.0 )
-            v6 = rate - (float)(COERCE_FLOAT(COERCE_UNSIGNED_INT(diff / 180.0) ^ _mask__NegFloat_) * rate);
+        //if ( (float)((float)(rate - (float)(COERCE_FLOAT(COERCE_UNSIGNED_INT(diff / 180.0) ^ _mask__NegFloat_) * rate)) - rate) < 0.0 )
+        if ((float)((float)(rate - (float)((-(diff / 180.0)) * rate)) - rate) < 0.0)
+        {
+            //v6 = rate - (float)(COERCE_FLOAT(COERCE_UNSIGNED_INT(diff / 180.0) ^ _mask__NegFloat_) * rate);
+            v6 = rate - (float)((-(diff / 180.0)) * rate);
+        }
         else
             v6 = rate;
         rateb = v6;
@@ -1817,38 +1954,38 @@ void __cdecl Bot_UpdateMantle(bot_info_t *botInfo, const client_t *bot, usercmd_
         botInfo->flags &= ~0x80u;
         botInfo->flags &= ~0x100u;
         botInfo->flags &= ~0x200u;
-        if ( GetCurrentThreadId() != g_DXDeviceThread )
-            return;
+        //if ( GetCurrentThreadId() != g_DXDeviceThread )
+        //    return;
 LABEL_22:
         //D3DPERF_EndEvent();
         return;
     }
     if ( !Bot_IsAtNegotiationNode(botInfo, bot, &botInfo->path) )
     {
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_22;
     }
     if ( (botInfo->flags & 0x100) == 0 )
     {
         cmd->forwardmove = 127;
         cmd->rightmove = 0;
-        bitarray<51>::resetBit(&cmd->button_bits, 9u);
-        bitarray<51>::resetBit(&cmd->button_bits, 8u);
+        cmd->button_bits.resetBit(9);
+        cmd->button_bits.resetBit(8);
         if ( (ps->ps.mantleState.flags & 0x10) != 0 )
             goto LABEL_20;
         if ( bot->lastUsercmd.forwardmove > 0 && !Bot_IsMovingFoward(botInfo, bot, &ps->ps) && (botInfo->flags & 0x200) != 0 )
         {
             botInfo->flags &= ~0x200u;
-            bitarray<51>::setBit(&cmd->button_bits, 2u);
+            cmd->button_bits.setBit(2);
             goto LABEL_21;
         }
         if ( bot->lastUsercmd.forwardmove > 0 && !Bot_IsMovingFoward(botInfo, bot, &ps->ps) && !ps->ps.weaponstate )
 LABEL_20:
-            bitarray<51>::setBit(&cmd->button_bits, 0xAu);
+            cmd->button_bits.setBit(0xAu);
 LABEL_21:
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_22;
     }
     cmd->forwardmove = 0;
@@ -1895,8 +2032,8 @@ void __cdecl Bot_UpdateSpeed(bot_info_t *botInfo, const client_t *bot, usercmd_s
             cmd->forwardmove = 127;
     }
     if ( botInfo->adsEndTime )
-        bitarray<51>::setBit(&cmd->button_bits, 0xBu);
-    if ( weapVariantDef->overlayMaterial && bitarray<51>::testBit(&cmd->button_bits, 0xBu) )
+        cmd->button_bits.setBit(0xBu);
+    if ( weapVariantDef->overlayMaterial && cmd->button_bits.testBit(0xBu) )
     {
         cmd->forwardmove = 0;
         cmd->rightmove = 0;
@@ -1912,7 +2049,7 @@ void __cdecl Bot_UpdateSpeed(bot_info_t *botInfo, const client_t *bot, usercmd_s
     {
         cmd->forwardmove = 0;
         cmd->rightmove = 0;
-        bitarray<51>::resetBit(&cmd->button_bits, 1u);
+        cmd->button_bits.resetBit(1);
     }
     if ( !botInfo->sightHitNum )
     {
@@ -1958,8 +2095,8 @@ void __cdecl Bot_SetTimedAction(
                 usercmd_s *cmd,
                 const usercmd_s *lastCmd)
 {
-    bitarray<51>::setBit(&cmd->button_bits, button);
-    if ( !bitarray<51>::testBit(&lastCmd->button_bits, button) )
+    cmd->button_bits.setBit(button);
+    if ( !lastCmd->button_bits.testBit(button) )
         *timedAction = svs.time + irand(minTime->current.integer, maxTime->current.integer);
 }
 
@@ -1979,10 +2116,10 @@ void __cdecl Bot_UpdateStance(bot_info_t *botInfo, const client_t *bot, usercmd_
             Bot_SetTimedAction(0xBu, &botInfo->adsEndTime, sv_botMinAdsTime, sv_botMaxAdsTime, cmd, &bot->lastUsercmd);
     }
     if ( botInfo->crouchEndTime )
-        bitarray<51>::setBit(&cmd->button_bits, 9u);
+        cmd->button_bits.setBit(9);
     else
-        bitarray<51>::resetBit(&cmd->button_bits, 9u);
-    bitarray<51>::resetBit(&cmd->button_bits, 8u);
+        cmd->button_bits.resetBit(9);
+    cmd->button_bits.resetBit(8);
     ps = G_GetPlayerState(bot - svs.clients);
     if ( botInfo->sightHitNum
         && !Bot_IsMovingFoward(botInfo, bot, &ps->ps)
@@ -2007,10 +2144,10 @@ void __cdecl Bot_UpdateSprint(bot_info_t *botInfo, const client_t *bot, usercmd_
 
     //PIXBeginNamedEvent(-1, "Bot_UpdateSprint");
     ps = (const playerState_s *)G_GetPlayerState(bot->gentity->s.number);
-    if ( bitarray<51>::testBit(&cmd->button_bits, 0xBu) )
+    if ( cmd->button_bits.testBit(0xB) )
     {
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_12;
     }
     if ( ps->weaponstate != 10
@@ -2035,21 +2172,21 @@ void __cdecl Bot_UpdateSprint(bot_info_t *botInfo, const client_t *bot, usercmd_
                     && botInfo->path.fLookaheadDist >= sv_botSprintDistance->current.value
                     && svs.time >= botInfo->lastMoveTime )
                 {
-                    bitarray<51>::setBit(&cmd->button_bits, 1u);
+                    cmd->button_bits.setBit(1);
                 }
                 if ( (ps->pm_flags & 0x8000) != 0 && ps->damageCount > 1 && random() < 0.30000001 )
-                    bitarray<51>::setBit(&cmd->button_bits, 0x2Cu);
+                    cmd->button_bits.setBit(0x2C);
                 //if ( g_DXDeviceThread == GetCurrentThreadId() )
                     //D3DPERF_EndEvent();
                 return;
             }
-            if ( g_DXDeviceThread != GetCurrentThreadId() )
-                return;
+            //if ( g_DXDeviceThread != GetCurrentThreadId() )
+            //    return;
         }
-        else if ( g_DXDeviceThread != GetCurrentThreadId() )
-        {
-            return;
-        }
+        //else if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //{
+        //    return;
+        //}
         //D3DPERF_EndEvent();
         return;
     }
@@ -2087,7 +2224,7 @@ void __cdecl Bot_UpdateReload(bot_info_t *botInfo, const client_t *bot, usercmd_
         maxClip = BG_GetClipSize(ps->ps.weapon);
         v3 = maxClip > 999 ? 999 : maxClip;
         if ( (float)((float)v3 * weapDef->lowAmmoWarningThreshold) >= (float)v4 && (botInfo->sightHitNum || random() < 0.1) )
-            bitarray<51>::setBit(&cmd->button_bits, 5u);
+            cmd->button_bits.setBit(5);
     }
     //if ( GetCurrentThreadId() == g_DXDeviceThread )
         //D3DPERF_EndEvent();
@@ -2098,7 +2235,7 @@ void __cdecl Bot_UpdateGlassSmash(const client_t *bot, usercmd_s *cmd)
     if ( !(svs.time % 1000) )
     {
         if ( g_pmove[bot->gentity->s.number].numGlassTouch )
-            bitarray<51>::setBit(&cmd->button_bits, 2u);
+            cmd->button_bits.setBit(2);
     }
 }
 
@@ -2118,51 +2255,51 @@ void __cdecl Bot_UpdateCombat(bot_info_t *botInfo, const client_t *bot, usercmd_
     if ( Bot_IsFlashbanged(bot) )
     {
         if ( random() < 0.0099999998 )
-            bitarray<51>::setBit(&cmd->button_bits, 2u);
-        if ( GetCurrentThreadId() != g_DXDeviceThread )
-            return;
+            cmd->button_bits.setBit(2);
+        //if ( GetCurrentThreadId() != g_DXDeviceThread )
+        //    return;
 LABEL_98:
         //D3DPERF_EndEvent();
         return;
     }
     if ( ps->ps.throwBackGrenadeTimeLeft > 0 && random() < 0.89999998 )
     {
-        bitarray<51>::resetBit(&cmd->button_bits, 0);
-        bitarray<51>::resetBit(&cmd->button_bits, 0xBu);
-        bitarray<51>::resetBit(&cmd->button_bits, 1u);
-        bitarray<51>::setBit(&cmd->button_bits, 0xEu);
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        cmd->button_bits.resetBit(0);
+        cmd->button_bits.resetBit(0xB);
+        cmd->button_bits.resetBit(1);
+        cmd->button_bits.setBit(0xE);
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_98;
     }
     if ( Bot_UpdateGrenadeThrow(botInfo, bot, cmd) )
     {
-        if ( GetCurrentThreadId() != g_DXDeviceThread )
-            return;
+        //if ( GetCurrentThreadId() != g_DXDeviceThread )
+        //    return;
         goto LABEL_98;
     }
     if ( botInfo->sightHitNum )
     {
-        if ( GetCurrentThreadId() != g_DXDeviceThread )
-            return;
+        //if ( GetCurrentThreadId() != g_DXDeviceThread )
+        //    return;
         goto LABEL_98;
     }
     if ( botInfo->threat.enemy->health <= 0 )
     {
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_98;
     }
     if ( Bot_UpdateMelee(botInfo, bot, cmd) )
     {
-        if ( GetCurrentThreadId() != g_DXDeviceThread )
-            return;
+        //if ( GetCurrentThreadId() != g_DXDeviceThread )
+        //    return;
         goto LABEL_98;
     }
     if ( !sv_botsPressAttackBtn->current.enabled )
     {
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_98;
     }
     weapDef = BG_GetWeaponDef(ps->ps.weapon);
@@ -2178,20 +2315,20 @@ LABEL_98:
     }
     if ( svs.time < botInfo->threat.reactionEndTime )
     {
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_98;
     }
     if ( !BG_WeaponAmmo(&ps->ps, ps->ps.weapon) )
     {
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_98;
     }
     if ( weapDef->fireType && weapDef->fireType != WEAPON_FIRETYPE_MINIGUN && svs.time < botInfo->weaponDelayEndTime )
     {
-        if ( GetCurrentThreadId() != g_DXDeviceThread )
-            return;
+        //if ( GetCurrentThreadId() != g_DXDeviceThread )
+        //    return;
         goto LABEL_98;
     }
     enemy = botInfo->threat.enemy;
@@ -2202,24 +2339,24 @@ LABEL_98:
             botInfo->threat.acquireTime = svs.time;
         if ( svs.time - botInfo->threat.acquireTime < weapDef->lockOnSpeed + 500 )
         {
-            if ( g_DXDeviceThread != GetCurrentThreadId() )
-                return;
+            //if ( g_DXDeviceThread != GetCurrentThreadId() )
+            //    return;
             goto LABEL_98;
         }
         botInfo->threat.acquireTime = svs.time;
-        bitarray<51>::setBit(&cmd->button_bits, 0);
+        cmd->button_bits.setBit(0);
     }
     if ( !ps->ps.weaponstate )
     {
         if ( sv_botsForceFragOnly->current.enabled )
         {
             if ( random() < 0.0099999998 )
-                bitarray<51>::setBit(&cmd->button_bits, 0xEu);
+                cmd->button_bits.setBit(0xE);
         }
         else if ( sv_botsForceSpecialOnly->current.enabled )
         {
             if ( random() < 0.0099999998 )
-                bitarray<51>::setBit(&cmd->button_bits, 0xFu);
+                cmd->button_bits.setBit(0xF);
         }
         else
         {
@@ -2230,7 +2367,7 @@ LABEL_98:
                 || ((v7 = botInfo->threat.enemy) == 0 || !v7->pTurretInfo ? (v4 = 0) : (v4 = 1),
                         v4 && botInfo->threat.distSq < 4194304.0 && random() < 0.050000001) )
             {
-                bitarray<51>::setBit(&cmd->button_bits, 0xFu);
+                cmd->button_bits.setBit(0xF);
                 goto LABEL_95;
             }
             v6 = botInfo->threat.enemy;
@@ -2238,22 +2375,22 @@ LABEL_98:
             if ( v3 && botInfo->threat.distSq < 4194304.0 && random() < 0.050000001 )
             {
 LABEL_87:
-                bitarray<51>::setBit(&cmd->button_bits, 0xEu);
+                cmd->button_bits.setBit(0xE);
             }
-            else if ( bitarray<51>::testBit(&cmd->button_bits, 0xBu) && ps->ps.fWeaponPosFrac >= 1.0 )
+            else if ( cmd->button_bits.testBit(0xB) && ps->ps.fWeaponPosFrac >= 1.0 )
             {
-                bitarray<51>::setBit(&cmd->button_bits, 0);
+                cmd->button_bits.setBit(0);
             }
-            else if ( !bitarray<51>::testBit(&cmd->button_bits, 0xBu) )
+            else if ( !cmd->button_bits.testBit(0xB) )
             {
-                bitarray<51>::setBit(&cmd->button_bits, 0);
+                cmd->button_bits.setBit(0);
                 if ( weapDef->bDualWield && random() < 0.89999998 )
-                    bitarray<51>::setBit(&cmd->button_bits, 0x18u);
+                    cmd->button_bits.setBit(0x18);
             }
         }
     }
 LABEL_95:
-    if ( bitarray<51>::testBit(&cmd->button_bits, 0) )
+    if ( cmd->button_bits.testBit(0) )
         botInfo->weaponDelayEndTime = svs.time
                                                                 + irand(sv_botMinFireTime->current.integer, sv_botMaxFireTime->current.integer);
     //if ( g_DXDeviceThread == GetCurrentThreadId() )
@@ -2279,7 +2416,7 @@ char __cdecl Bot_UpdateMelee(bot_info_t *botInfo, const client_t *bot, usercmd_s
         }
         else
         {
-            bitarray<51>::setBit(&cmd->button_bits, 2u);
+            cmd->button_bits.setBit(2);
             //if ( g_DXDeviceThread == GetCurrentThreadId() )
                 //D3DPERF_EndEvent();
             return 1;
@@ -2295,9 +2432,10 @@ char __cdecl Bot_UpdateMelee(bot_info_t *botInfo, const client_t *bot, usercmd_s
 
 char __cdecl Bot_UpdateGrenadeThrow(bot_info_t *botInfo, const client_t *bot, usercmd_s *cmd)
 {
-    double v4; // st7
     double v5; // st7
     double v6; // st7
+    double v7; // st7
+    float pitchDiff; // [esp+78h] [ebp-24h]
     float range; // [esp+80h] [ebp-1Ch]
     OffhandSlot offhandSlot; // [esp+84h] [ebp-18h] BYREF
     float desiredPitch; // [esp+88h] [ebp-14h] BYREF
@@ -2307,85 +2445,97 @@ char __cdecl Bot_UpdateGrenadeThrow(bot_info_t *botInfo, const client_t *bot, us
     int offHandIndex; // [esp+98h] [ebp-4h]
 
     //PIXBeginNamedEvent(-1, "Bot_UpdateGrenadeThrow");
-    if ( sv_botsPressAttackBtn->current.enabled )
+    if (sv_botsPressAttackBtn->current.enabled)
     {
         ps = (const playerState_s *)G_GetPlayerState(bot->gentity->s.number);
         weapDef = BG_GetWeaponDef(ps->offHandIndex);
-        if ( Bot_IsThrowingGrenade(botInfo, bot) )
+        if (Bot_IsThrowingGrenade(botInfo, bot))
         {
             cmd->forwardmove = 0;
             cmd->rightmove = 0;
             botInfo->grenadeTime = svs.time + 2000;
         }
-        if ( (botInfo->flags & 0x400) != 0 || (botInfo->flags & 0x800) != 0 )
+        if ((botInfo->flags & 0x400) != 0 || (botInfo->flags & 0x800) != 0)
         {
-            AngleNormalize180(ps->viewangles[0] - botInfo->targetPitch);
-            bitarray<51>::setBit(&cmd->button_bits, 15 - ((botInfo->flags & 0x400) != 0));
-            JUMPOUT(0x700000);
+            pitchDiff = AngleNormalize180(ps->viewangles[0] - botInfo->targetPitch);
+            cmd->button_bits.setBit(15 - ((botInfo->flags & 0x400) != 0));
+            if (pitchDiff < 5.0
+                && pitchDiff > -5.0
+                && ps->weaponstate >= 22
+                && (ps->damageCount >= 1 || !weapDef->bCookOffHold || ps->grenadeTimeLeft <= irand(1700, 2500)))
+            {
+                cmd->button_bits.resetBit(15 - ((botInfo->flags & 0x400) != 0));
+                botInfo->flags &= ~0x400u;
+                botInfo->flags &= ~0x800u;
+            }
+            cmd->button_bits.resetBit(0xB);
+            //if (GetCurrentThreadId() == g_DXDeviceThread)
+            //    D3DPERF_EndEvent();
+            return 1;
         }
-        if ( Bot_ShouldThrowGrenade(botInfo, bot) )
+        else if (Bot_ShouldThrowGrenade(botInfo, bot))
         {
-            if ( Bot_GrenadePickType(botInfo, ps, &offhandSlot) )
+            if (Bot_GrenadePickType(botInfo, ps, &offhandSlot))
             {
                 range = Vec3Distance(bot->gentity->r.currentOrigin, botInfo->threat.enemy->r.currentOrigin);
                 offHandIndex = BG_GetFirstAvailableOffhand(ps, offhandSlot);
                 weapDef = BG_GetWeaponDef(offHandIndex);
-                if ( offhandSlot == OFFHAND_SLOT_LETHAL_GRENADE && (float)weapDef->iExplosionRadius > range )
+                if (offhandSlot == OFFHAND_SLOT_LETHAL_GRENADE && (float)weapDef->iExplosionRadius > range)
                 {
-                    //if ( g_DXDeviceThread == GetCurrentThreadId() )
-                        //D3DPERF_EndEvent();
+                    //if (g_DXDeviceThread == GetCurrentThreadId())
+                    //    D3DPERF_EndEvent();
                     return 0;
                 }
                 else
                 {
                     heightDiff = botInfo->threat.enemy->r.currentOrigin[2] - bot->gentity->r.currentOrigin[2];
-                    if ( Bot_GrenadeInRange(range, heightDiff, ps->viewangles, weapDef, &desiredPitch) )
+                    if (Bot_GrenadeInRange(range, heightDiff, ps->viewangles, weapDef, &desiredPitch))
                     {
-                        if ( weapDef->rotateType == WEAPROTATE_BLADE_ROTATE )
+                        if (weapDef->rotateType == WEAPROTATE_BLADE_ROTATE)
                         {
-                            v4 = flrand(1.0, 3.0);
-                            desiredPitch = v4 + desiredPitch;
+                            v5 = flrand(1.0, 3.0);
+                            desiredPitch = v5 + desiredPitch;
                         }
-                        else if ( heightDiff <= -5.0 || heightDiff >= 5.0 )
+                        else if (heightDiff <= -5.0 || heightDiff >= 5.0)
                         {
-                            v6 = flrand(7.0, 10.0);
-                            desiredPitch = v6 + desiredPitch;
+                            v7 = flrand(7.0, 10.0);
+                            desiredPitch = v7 + desiredPitch;
                         }
                         else
                         {
-                            v5 = flrand(10.0, 13.0);
-                            desiredPitch = v5 + desiredPitch;
+                            v6 = flrand(10.0, 13.0);
+                            desiredPitch = v6 + desiredPitch;
                         }
-                        if ( Bot_GrenadeSightTrace(bot, (float)weapDef->iProjectileSpeed, desiredPitch) )
+                        if (Bot_GrenadeSightTrace(bot, (float)weapDef->iProjectileSpeed, desiredPitch))
                         {
                             botInfo->targetPitch = desiredPitch;
                             botInfo->pitchEndTime = 0;
-                            bitarray<51>::resetBit(&cmd->button_bits, 0xBu);
-                            if ( offhandSlot == OFFHAND_SLOT_LETHAL_GRENADE )
+                            cmd->button_bits.resetBit(0xB);
+                            if (offhandSlot == OFFHAND_SLOT_LETHAL_GRENADE)
                             {
                                 botInfo->flags |= 0x400u;
-                                bitarray<51>::setBit(&cmd->button_bits, 0xEu);
+                                cmd->button_bits.setBit(0xE);
                             }
                             else
                             {
                                 botInfo->flags |= 0x800u;
-                                bitarray<51>::setBit(&cmd->button_bits, 0xFu);
+                                cmd->button_bits.setBit(0xF);
                             }
-                            //if ( g_DXDeviceThread == GetCurrentThreadId() )
+                            //if (g_DXDeviceThread == GetCurrentThreadId())
                                 //D3DPERF_EndEvent();
                             return 1;
                         }
                         else
                         {
                             botInfo->grenadeTime = svs.time + 2000;
-                            //if ( g_DXDeviceThread == GetCurrentThreadId() )
+                            //if (g_DXDeviceThread == GetCurrentThreadId())
                                 //D3DPERF_EndEvent();
                             return 0;
                         }
                     }
                     else
                     {
-                        //if ( g_DXDeviceThread == GetCurrentThreadId() )
+                        //if (g_DXDeviceThread == GetCurrentThreadId())
                             //D3DPERF_EndEvent();
                         return 0;
                     }
@@ -2394,22 +2544,22 @@ char __cdecl Bot_UpdateGrenadeThrow(bot_info_t *botInfo, const client_t *bot, us
             else
             {
                 botInfo->grenadeTime = svs.time + 2000;
-                //if ( GetCurrentThreadId() == g_DXDeviceThread )
+                //if (GetCurrentThreadId() == g_DXDeviceThread)
                     //D3DPERF_EndEvent();
                 return 0;
             }
         }
         else
         {
-            //if ( GetCurrentThreadId() == g_DXDeviceThread )
+            //if (GetCurrentThreadId() == g_DXDeviceThread)
                 //D3DPERF_EndEvent();
             return 0;
         }
     }
     else
     {
-        //if ( GetCurrentThreadId() == g_DXDeviceThread )
-            //D3DPERF_EndEvent();
+        //if (GetCurrentThreadId() == g_DXDeviceThread)
+        //    D3DPERF_EndEvent();
         return 0;
     }
 }
@@ -2515,9 +2665,9 @@ char __cdecl Bot_GrenadeInRange(
     else
     {
         v6 = (float)(numerator / denominator);
-        __libm_sse2_atan(v7);
-        *(float *)&v6 = v6;
-        *outPitch = *(float *)&v6;
+        //__libm_sse2_atan(v7);
+        //*(float *)&v6 = v6;
+        *outPitch = atan(v6);//*(float *)&v6;
         if ( (*(unsigned int *)outPitch & 0x7F800000) == 0x7F800000 )
         {
             *outPitch = 0.0f;
@@ -3049,7 +3199,7 @@ void __cdecl Bot_DrawDebug(const ScreenPlacement *scrPlace)
     float y; // [esp+DCh] [ebp-4h] BYREF
 
     clientNum = sv_botDebug->current.integer;
-    name = "<None>";
+    name = (char *)"<None>";
     x = sv_botDebugX->current.integer;
     y = sv_botDebugY->current.value;
     if ( clientNum >= 0 )
@@ -3071,31 +3221,31 @@ void __cdecl Bot_DrawDebug(const ScreenPlacement *scrPlace)
             {
                 name = SL_ConvertToString(botInfo->threat.enemy->classname, SCRIPTINSTANCE_SERVER);
             }
-            Bot_DrawString(scrPlace, v50->name, *(float *)&x, &y, colorMdCyan);
+            Bot_DrawString(scrPlace, (char*)v50->name, *(float *)&x, &y, colorMdCyan);
             Bot_DrawString(scrPlace, (char *)"", *(float *)&x, &y, colorWhite);
-            Bot_DrawString(scrPlace, "MOVEMENT", *(float *)&x, &y, colorMdCyan);
+            Bot_DrawString(scrPlace, (char *)"MOVEMENT", *(float *)&x, &y, colorMdCyan);
             if ( dead )
             {
-                Bot_DrawString(scrPlace, "STANCE: Dead", *(float *)&x, &y, colorRedFaded);
+                Bot_DrawString(scrPlace, (char *)"STANCE: Dead", *(float *)&x, &y, colorRedFaded);
             }
             else
             {
                 switch ( ps->ps.viewHeightTarget )
                 {
                     case 0xB:
-                        Bot_DrawString(scrPlace, "STANCE: Prone", *(float *)&x, &y, colorWhite);
+                        Bot_DrawString(scrPlace, (char *)"STANCE: Prone", *(float *)&x, &y, colorWhite);
                         break;
                     case 0x16:
-                        Bot_DrawString(scrPlace, "STANCE: Last Stand", *(float *)&x, &y, colorWhite);
+                        Bot_DrawString(scrPlace, (char *)"STANCE: Last Stand", *(float *)&x, &y, colorWhite);
                         break;
                     case 0x28:
-                        Bot_DrawString(scrPlace, "STANCE: Crouched", *(float *)&x, &y, colorWhite);
+                        Bot_DrawString(scrPlace, (char *)"STANCE: Crouched", *(float *)&x, &y, colorWhite);
                         break;
                     case 0x3C:
-                        Bot_DrawString(scrPlace, "STANCE: Standing", *(float *)&x, &y, colorWhite);
+                        Bot_DrawString(scrPlace, (char *)"STANCE: Standing", *(float *)&x, &y, colorWhite);
                         break;
                     default:
-                        Bot_DrawString(scrPlace, "STANCE: <Unknown>", *(float *)&x, &y, colorWhite);
+                        Bot_DrawString(scrPlace, (char *)"STANCE: <Unknown>", *(float *)&x, &y, colorWhite);
                         break;
                 }
             }
@@ -3140,28 +3290,28 @@ void __cdecl Bot_DrawDebug(const ScreenPlacement *scrPlace)
                 Bot_DrawString(scrPlace, (char *)"", *(float *)&x, &y, colorWhiteFaded);
             else
                 Bot_DrawString(scrPlace, (char *)"", *(float *)&x, &y, colorWhite);
-            Bot_DrawString(scrPlace, "GOAL", *(float *)&x, &y, colorMdCyan);
+            Bot_DrawString(scrPlace, (char *)"GOAL", *(float *)&x, &y, colorMdCyan);
             if ( (botInfo->flags & 4) != 0 )
             {
                 if ( dead )
-                    Bot_DrawString(scrPlace, "TYPE: <Script Goal>", *(float *)&x, &y, colorWhiteFaded);
+                    Bot_DrawString(scrPlace, (char *)"TYPE: <Script Goal>", *(float *)&x, &y, colorWhiteFaded);
                 else
-                    Bot_DrawString(scrPlace, "TYPE: <Script Goal>", *(float *)&x, &y, colorWhite);
+                    Bot_DrawString(scrPlace, (char *)"TYPE: <Script Goal>", *(float *)&x, &y, colorWhite);
             }
             else if ( (botInfo->flags & 2) != 0 )
             {
                 if ( dead )
-                    Bot_DrawString(scrPlace, "TYPE: <Random Node>", *(float *)&x, &y, colorWhiteFaded);
+                    Bot_DrawString(scrPlace, (char *)"TYPE: <Random Node>", *(float *)&x, &y, colorWhiteFaded);
                 else
-                    Bot_DrawString(scrPlace, "TYPE: <Random Node>", *(float *)&x, &y, colorWhite);
+                    Bot_DrawString(scrPlace, (char *)"TYPE: <Random Node>", *(float *)&x, &y, colorWhite);
             }
             else if ( dead )
             {
-                Bot_DrawString(scrPlace, "TYPE: <Threat>", *(float *)&x, &y, colorWhiteFaded);
+                Bot_DrawString(scrPlace, (char *)"TYPE: <Threat>", *(float *)&x, &y, colorWhiteFaded);
             }
             else
             {
-                Bot_DrawString(scrPlace, "TYPE: <Threat>", *(float *)&x, &y, colorWhite);
+                Bot_DrawString(scrPlace, (char *)"TYPE: <Threat>", *(float *)&x, &y, colorWhite);
             }
             if ( dead )
                 v40 = (float *)colorWhiteFaded;
@@ -3190,7 +3340,7 @@ void __cdecl Bot_DrawDebug(const ScreenPlacement *scrPlace)
             v8 = va("LOOK AHEAD DIST: %.1f", fLookaheadDist);
             Bot_DrawString(scrPlace, v8, *(float *)&x, &y, v37);
             Bot_DrawString(scrPlace, (char *)"", *(float *)&x, &y, colorWhite);
-            Bot_DrawString(scrPlace, "THREAT", *(float *)&x, &y, colorMdCyan);
+            Bot_DrawString(scrPlace, (char *)"THREAT", *(float *)&x, &y, colorMdCyan);
             if ( dead )
                 v35 = (float *)colorWhiteFaded;
             else
@@ -3216,9 +3366,9 @@ void __cdecl Bot_DrawDebug(const ScreenPlacement *scrPlace)
             if ( botInfo->threat.enemy && botInfo->threat.lastSightTime == svs.time )
             {
                 if ( dead )
-                    Bot_DrawString(scrPlace, "LAST SEEN: <NOW>", *(float *)&x, &y, colorWhiteFaded);
+                    Bot_DrawString(scrPlace, (char *)"LAST SEEN: <NOW>", *(float *)&x, &y, colorWhiteFaded);
                 else
-                    Bot_DrawString(scrPlace, "LAST SEEN: <NOW>", *(float *)&x, &y, colorWhite);
+                    Bot_DrawString(scrPlace, (char *)"LAST SEEN: <NOW>", *(float *)&x, &y, colorWhite);
             }
             else
             {
@@ -3267,7 +3417,7 @@ void __cdecl Bot_DrawDebug(const ScreenPlacement *scrPlace)
                 Bot_DrawString(scrPlace, (char *)"", *(float *)&x, &y, colorWhiteFaded);
             else
                 Bot_DrawString(scrPlace, (char *)"", *(float *)&x, &y, colorWhite);
-            Bot_DrawString(scrPlace, "COMBAT", *(float *)&x, &y, colorMdCyan);
+            Bot_DrawString(scrPlace, (char *)"COMBAT", *(float *)&x, &y, colorMdCyan);
             if ( dead )
                 v23 = (float *)colorWhiteFaded;
             else
@@ -3363,131 +3513,126 @@ void __cdecl SV_DrawBotThreat()
             {
                 __debugbreak();
             }
-            Bot_DrawThreat((const gentity_s *)&savedregs, &svs.clients[clientNuma]);
+            Bot_DrawThreat(&svs.clients[clientNuma]);
         }
         else
         {
             for ( clientNum = 0; clientNum < com_maxclients->current.integer; ++clientNum )
-                Bot_DrawThreat((const gentity_s *)&savedregs, &svs.clients[clientNum]);
+                Bot_DrawThreat(&svs.clients[clientNum]);
         }
     }
 }
 
-void    Bot_DrawThreat(const gentity_s *a1@<ebp>, const client_t *bot)
+void    Bot_DrawThreat(const client_t *bot)
 {
-    double v2; // xmm0_8
-    long double v3; // [esp-18h] [ebp-BCh]
-    float *v4; // [esp-10h] [ebp-B4h]
-    float v5[3]; // [esp-Ch] [ebp-B0h] BYREF
+    float v2; // xmm0_4
+    float *v3; // [esp-10h] [ebp-B4h]
+    float v4[3]; // [esp-Ch] [ebp-B0h] BYREF
     float ends[4][3]; // [esp+0h] [ebp-A4h] BYREF
-    float len; // [esp+30h] [ebp-74h]
-    float v8; // [esp+34h] [ebp-70h] BYREF
-    float v9; // [esp+38h] [ebp-6Ch]
-    int v10; // [esp+3Ch] [ebp-68h]
-    float angles[3]; // [esp+40h] [ebp-64h]
-    float v12; // [esp+4Ch] [ebp-58h] BYREF
-    int i; // [esp+50h] [ebp-54h]
-    float v14; // [esp+54h] [ebp-50h]
-    float vForward[3]; // [esp+58h] [ebp-4Ch]
-    const float (*color)[4]; // [esp+64h] [ebp-40h] BYREF
-    float v17; // [esp+68h] [ebp-3Ch]
-    float v18; // [esp+6Ch] [ebp-38h]
-    float vEnd[3]; // [esp+70h] [ebp-34h] BYREF
-    float v20; // [esp+7Ch] [ebp-28h]
-    float vStart[3]; // [esp+80h] [ebp-24h]
-    int iReloadQuickEmptyAddTime; // [esp+8Ch] [ebp-18h]
-    const WeaponDef *weapDef; // [esp+90h] [ebp-14h]
-    const playerState_s *ps; // [esp+94h] [ebp-10h]
-    const gentity_s *enemy; // [esp+98h] [ebp-Ch]
-    const bot_info_t *botInfo; // [esp+9Ch] [ebp-8h]
-    const bot_info_t *retaddr; // [esp+A4h] [ebp+0h]
-
-    enemy = a1;
-    botInfo = retaddr;
-    if ( bot->header.state == 5 && bot->bIsTestClient && bot->gentity->health > 0 )
+    int len; // [esp+30h] [ebp-74h]
+    float angles[4]; // [esp+34h] [ebp-70h] BYREF
+    int i; // [esp+44h] [ebp-60h]
+    float fMinDamageRange; // [esp+48h] [ebp-5Ch]
+    float vForward[3]; // [esp+4Ch] [ebp-58h] BYREF
+    const float (*color)[4]; // [esp+58h] [ebp-4Ch]
+    const float *v12; // [esp+5Ch] [ebp-48h]
+    float vEnd[4]; // [esp+64h] [ebp-40h] BYREF
+    float vStart[3]; // [esp+74h] [ebp-30h] BYREF
+    float *currentOrigin; // [esp+80h] [ebp-24h]
+    const WeaponDef *weapDef; // [esp+84h] [ebp-20h]
+    const playerState_s *ps; // [esp+88h] [ebp-1Ch]
+    const gentity_s *enemy; // [esp+8Ch] [ebp-18h]
+    const bot_info_t *botInfo; // [esp+90h] [ebp-14h]
+    int clientNum; // [esp+94h] [ebp-10h]
+    //_UNKNOWN *v22; // [esp+98h] [ebp-Ch]
+    //const client_t *bota; // [esp+9Ch] [ebp-8h]
+    //int vars0; // [esp+A4h] [ebp+0h]
+    //
+    //v22 = a1;
+    //bota = (const client_t *)vars0;
+    if (bot->header.state == 5 && bot->bIsTestClient && bot->gentity->health > 0)
     {
-        ps = (const playerState_s *)bot->gentity->s.number;
-        weapDef = (const WeaponDef *)&botInfos[(unsigned int)ps];
-        iReloadQuickEmptyAddTime = weapDef->iReloadQuickEmptyAddTime;
-        LODWORD(vStart[2]) = G_GetPlayerState(bot->gentity->s.number);
-        LODWORD(vStart[1]) = BG_GetWeaponDef(*(unsigned __int16 *)(LODWORD(vStart[2]) + 324));
-        LODWORD(vStart[0]) = bot->gentity->r.currentOrigin;
-        vEnd[1] = *(float *)LODWORD(vStart[0]);
-        vEnd[2] = *(float *)(LODWORD(vStart[0]) + 4);
-        v20 = *(float *)(LODWORD(vStart[0]) + 8) + *(float *)(LODWORD(vStart[2]) + 400);
-        if ( iReloadQuickEmptyAddTime )
+        clientNum = bot->gentity->s.number;
+        botInfo = &botInfos[clientNum];
+        enemy = botInfo->threat.enemy;
+        ps = (const playerState_s *)G_GetPlayerState(bot->gentity->s.number);
+        weapDef = BG_GetWeaponDef(ps->weapon);
+        currentOrigin = bot->gentity->r.currentOrigin;
+        vStart[0] = *currentOrigin;
+        vStart[1] = currentOrigin[1];
+        vStart[2] = currentOrigin[2] + ps->viewHeightCurrent;
+        if (enemy)
         {
-            LODWORD(vEnd[0]) = iReloadQuickEmptyAddTime + 292;
-            color = *(const float (**)[4])(iReloadQuickEmptyAddTime + 292);
-            v17 = *(float *)(iReloadQuickEmptyAddTime + 296);
-            v18 = *(float *)(iReloadQuickEmptyAddTime + 300);
-            LODWORD(vForward[2]) = *(unsigned int *)(iReloadQuickEmptyAddTime + 324) != 0;
-            if ( LOBYTE(vForward[2]) )
-                v18 = v18 + *(float *)(*(unsigned int *)(iReloadQuickEmptyAddTime + 324) + 400);
-            if ( weapDef->lowReadyInTime )
-                LODWORD(vForward[1]) = colorYellow;
+            //LODWORD(vEnd[3]) = enemy->r.currentOrigin;
+            vEnd[0] = enemy->r.currentOrigin[0];
+            vEnd[1] = enemy->r.currentOrigin[1];
+            vEnd[2] = enemy->r.currentOrigin[2];
+            if (enemy->client != 0)
+                vEnd[2] = vEnd[2] + enemy->client->ps.viewHeightCurrent;
+            if (botInfo->sightHitNum)
+                v12 = colorYellow;
             else
-                LODWORD(vForward[1]) = colorRed;
-            vForward[0] = vForward[1];
-            G_DebugLine(&vEnd[1], (const float *)&color, colorRed, 0);
+                v12 = colorRed;
+            color = (const float (*)[4])v12;
+            G_DebugLine(vStart, vEnd, colorRed, 0);
         }
         else
         {
-            LODWORD(vForward[0]) = colorGreen;
-            AngleVectors((const float *)(LODWORD(vStart[2]) + 384), &v12, 0, 0);
-            angles[2] = *(float *)(LODWORD(vStart[1]) + 1964);
-            *(float *)&color = (float)(angles[2] * v12) + vEnd[1];
-            v17 = (float)(angles[2] * *(float *)&i) + vEnd[2];
-            v18 = (float)(angles[2] * v14) + v20;
-            G_DebugLine(&vEnd[1], (const float *)&color, (const float *)LODWORD(vForward[0]), 0);
+            color = (const float (*)[4])colorGreen;
+            AngleVectors(ps->viewangles, vForward, 0, 0);
+            fMinDamageRange = weapDef->fMinDamageRange;
+            vEnd[0] = (float)(fMinDamageRange * vForward[0]) + vStart[0];
+            vEnd[1] = (float)(fMinDamageRange * vForward[1]) + vStart[1];
+            vEnd[2] = (float)(fMinDamageRange * vForward[2]) + vStart[2];
+            G_DebugLine(vStart, vEnd, (const float *)color, 0);
         }
-        for ( angles[1] = 0.0; SLODWORD(angles[1]) < 4; ++LODWORD(angles[1]) )
+        for (i = 0; i < 4; ++i)
         {
-            LODWORD(angles[0]) = LODWORD(vStart[2]) + 384;
-            v8 = *(float *)(LODWORD(vStart[2]) + 384);
-            v9 = *(float *)(LODWORD(vStart[2]) + 388);
-            v10 = *(unsigned int *)(LODWORD(vStart[2]) + 392);
-            len = angles[1];
-            switch ( LODWORD(angles[1]) )
+            //LODWORD(angles[3]) = ps->viewangles;
+            angles[0] = ps->viewangles[0];
+            angles[1] = ps->viewangles[1];
+            angles[2] = ps->viewangles[2];
+            len = i;
+            switch (i)
             {
-                case 0:
-                    v9 = (float)(sv_botFov->current.value * 0.5) + v9;
-                    break;
-                case 1:
-                    v9 = (float)(COERCE_FLOAT(sv_botFov->current.integer ^ _mask__NegFloat_) * 0.5) + v9;
-                    break;
-                case 2:
-                    v8 = (float)(sv_botFov->current.value * 0.5) + v8;
-                    break;
-                case 3:
-                    v8 = (float)(COERCE_FLOAT(sv_botFov->current.integer ^ _mask__NegFloat_) * 0.5) + v8;
-                    break;
-                default:
-                    break;
+            case 0:
+                angles[1] = (float)(sv_botFov->current.value * 0.5) + angles[1];
+                break;
+            case 1:
+                angles[1] = (float)(-(sv_botFov->current.integer) * 0.5) + angles[1];
+                break;
+            case 2:
+                angles[0] = (float)(sv_botFov->current.value * 0.5) + angles[0];
+                break;
+            case 3:
+                angles[0] = (float)(-(sv_botFov->current.integer) * 0.5) + angles[0];
+                break;
+            default:
+                break;
             }
             ends[3][2] = (float)(sv_botFov->current.value * 0.5) * 0.017453292;
-            v2 = ends[3][2];
-            __libm_sse2_cos(v3);
-            *(float *)&v2 = v2;
-            ends[3][1] = *(float *)&v2;
-            ends[3][0] = (float)(1.0 / *(float *)&v2) * *(float *)(LODWORD(vStart[1]) + 1964);
-            AngleVectors(&v8, &v12, 0, 0);
-            *(float *)&color = (float)(ends[3][0] * v12) + vEnd[1];
-            v17 = (float)(ends[3][0] * *(float *)&i) + vEnd[2];
-            v18 = (float)(ends[3][0] * v14) + v20;
-            G_DebugLine(&vEnd[1], (const float *)&color, (const float *)LODWORD(vForward[0]), 0);
-            v4 = &v5[3 * LODWORD(angles[1])];
-            *v4 = *(float *)&color;
-            v4[1] = v17;
-            v4[2] = v18;
+            //v2 = __libm_sse2_cos(ends[3][2]);
+            //ends[3][1] = v2;
+            ends[3][1] = cosf(ends[3][2]);
+            ends[3][0] = (float)(1.0 / v2) * weapDef->fMinDamageRange;
+            AngleVectors(angles, vForward, 0, 0);
+            vEnd[0] = (float)(ends[3][0] * vForward[0]) + vStart[0];
+            vEnd[1] = (float)(ends[3][0] * vForward[1]) + vStart[1];
+            vEnd[2] = (float)(ends[3][0] * vForward[2]) + vStart[2];
+            G_DebugLine(vStart, vEnd, (const float *)color, 0);
+            v3 = &v4[3 * i];
+            *v3 = vEnd[0];
+            v3[1] = vEnd[1];
+            v3[2] = vEnd[2];
         }
-        G_DebugLine(v5, ends[1], (const float *)LODWORD(vForward[0]), 0);
-        G_DebugLine(v5, ends[2], (const float *)LODWORD(vForward[0]), 0);
-        G_DebugLine(ends[0], ends[1], (const float *)LODWORD(vForward[0]), 0);
-        G_DebugLine(ends[0], ends[2], (const float *)LODWORD(vForward[0]), 0);
+        G_DebugLine(v4, ends[1], (const float *)color, 0);
+        G_DebugLine(v4, ends[2], (const float *)color, 0);
+        G_DebugLine(ends[0], ends[1], (const float *)color, 0);
+        G_DebugLine(ends[0], ends[2], (const float *)color, 0);
     }
 }
 
+int nameIndex = -1;
 const char *__cdecl SV_BotNameRandom()
 {
     if ( nameIndex == -1 )

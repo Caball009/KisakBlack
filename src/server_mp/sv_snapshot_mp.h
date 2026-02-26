@@ -8,7 +8,12 @@ struct SnapshotInfo_s;
 struct entityState_s;
 struct clientState_s;
 struct cachedSnapshot_t;
-struct snapshotEntityNumbers_t;
+
+struct snapshotEntityNumbers_t // sizeof=0x1004
+{                                       // XREF: ?SV_BuildClientSnapshot@@YAXPAUclient_t@@@Z/r
+    int numSnapshotEntities;            // XREF: SV_BuildClientSnapshot(client_t *):loc_71BF18/w
+    int snapshotEntities[1024];         // XREF: SV_BuildClientSnapshot(client_t *)+324/r
+};
 
 struct clientSnapshot_t // sizeof=0x26CC
 {                                       // XREF: client_t/r

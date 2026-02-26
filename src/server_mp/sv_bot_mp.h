@@ -1,5 +1,52 @@
 #pragma once
 
+#include <universal/dvar.h>
+#include <game/pathnode.h>
+
+struct bot_threat_t // sizeof=0x38
+{                                       // XREF: bot_info_t/r
+    const gentity_s *enemy;
+    float dot;
+    float distSq;
+    int acquireTime;
+    int lastSightTime;
+    int reactionEndTime;
+    int deathEndTime;
+    int strafeEndTime;
+    float lastOrigin[3];
+    float grenadeOrigin[3];
+};
+
+struct __declspec(align(4)) bot_info_t // sizeof=0x460
+{                                       // XREF: .data:botInfos/r
+    path_t path;
+    bot_threat_t threat;
+    int weapon;
+    int sightHitNum;
+    const gentity_s *attackerEnt;
+    int adsEndTime;
+    int pitchEndTime;
+    int crouchEndTime;
+    int useButtonEndTime;
+    int weaponDelayEndTime;
+    int lastMoveTime;
+    int grenadeTime;
+    float targetPitch;
+    float scriptGoal[3];
+    float scriptGoalRadius;
+    __int16 flags;
+    // padding byte
+    // padding byte
+};
+
+struct client_t;
+struct usercmd_s;
+struct playerState_s;
+struct gentity_s;
+struct WeaponDef;
+enum OffhandSlot : __int32;
+struct ScreenPlacement;
+
 void __cdecl SV_BotSwitchWeapon(const client_t *bot, int weapIndex);
 void __cdecl SV_BotSetScriptGoal(const client_t *bot, const float *goal, float goalRadius);
 void __cdecl SV_BotClearScriptGoal(const client_t *bot);
@@ -71,9 +118,58 @@ void __cdecl Bot_DrawString(const ScreenPlacement *scrPlace, char *text, float x
 void __cdecl SV_DrawBotPath();
 void __cdecl Bot_DrawPath(const client_t *bot);
 void __cdecl SV_DrawBotThreat();
-void    Bot_DrawThreat(const gentity_s *a1@<ebp>, const client_t *bot);
+void    Bot_DrawThreat(const client_t *bot);
 const char *__cdecl SV_BotNameRandom();
 char __cdecl Friends_IsInCurrentSession(const char *name);
 char __cdecl SV_BotNameRandomFriend(int controller, char *buf, int bufLen);
 client_t *__cdecl Bot_NameUsed(const char *name);
 void __cdecl SV_BotNameUpdate(const char *name);
+
+
+extern const dvar_t *sv_botsAllowMovement;
+extern const dvar_t *sv_botsForceStand;
+extern const dvar_t *sv_botsForceCrouch;
+extern const dvar_t *sv_botsForceProne;
+extern const dvar_t *sv_botsPressAttackBtn;
+extern const dvar_t *sv_botsPressMeleeBtn;
+extern const dvar_t *sv_botsForceFragOnly;
+extern const dvar_t *sv_botsForceSpecialOnly;
+extern const dvar_t *sv_botsIgnoreHumans;
+extern const dvar_t *sv_botSnapshotDebug;
+extern const dvar_t *sv_botForceYaw;
+extern const dvar_t *sv_botDebug;
+extern const dvar_t *sv_botDebugX;
+extern const dvar_t *sv_botDebugY;
+extern const dvar_t *sv_botDebugThreat;
+extern const dvar_t *sv_botDebugPaths;
+extern const dvar_t *sv_botFov;
+extern const dvar_t *sv_botGoalRadius;
+extern const dvar_t *sv_botCloseDistance;
+extern const dvar_t *sv_botSprintDistance;
+extern const dvar_t *sv_botCrouchDistance;
+extern const dvar_t *sv_botTargetLeadBias;
+extern const dvar_t *sv_botUseFriendNames;
+extern const dvar_t *sv_botAllowGrenades;
+extern const dvar_t *sv_botMinGrenadeTime;
+extern const dvar_t *sv_botMaxGrenadeTime;
+extern const dvar_t *sv_botMinAdsTime;
+extern const dvar_t *sv_botMaxAdsTime;
+extern const dvar_t *sv_botMinPitchTime;
+extern const dvar_t *sv_botMaxPitchTime;
+extern const dvar_t *sv_botMinCrouchTime;
+extern const dvar_t *sv_botMaxCrouchTime;
+extern const dvar_t *sv_botMinDeathTime;
+extern const dvar_t *sv_botMaxDeathTime;
+extern const dvar_t *sv_botMinFireTime;
+extern const dvar_t *sv_botMaxFireTime;
+extern const dvar_t *sv_botMinReactionTime;
+extern const dvar_t *sv_botMaxReactionTime;
+extern const dvar_t *sv_botYawSpeed;
+extern const dvar_t *sv_botYawSpeedAds;
+extern const dvar_t *sv_botPitchUp;
+extern const dvar_t *sv_botPitchDown;
+extern const dvar_t *sv_botPitchSpeed;
+extern const dvar_t *sv_botPitchSpeedAds;
+extern const dvar_t *sv_botStrafeChance;
+extern const dvar_t *sv_botMinStrafeTime;
+extern const dvar_t *sv_botMaxStrafeTime;

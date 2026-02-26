@@ -34,3 +34,4 @@ void __cdecl SV_PacketAnalyze_TrackPS_AmmoClipBits(int bits);
 void __cdecl SV_PacketAnalyze_TrackPS_ObjectivesBits(int bits);
 
 extern int sv_quickBitsTotal;
+extern bool g_archivingSnapshot;

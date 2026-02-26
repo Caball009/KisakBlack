@@ -4,6 +4,32 @@
 #include <clientscript/cscr_stringlist.h>
 
 #include <cstring>
+#include "sv_main_mp.h"
+#include "sv_main_pc_mp.h"
+#include <game_mp/g_main_mp.h>
+#include <universal/com_files.h>
+#include <universal/com_memory.h>
+#include <universal/q_parse.h>
+#include <game_mp/g_utils_mp.h>
+#include <qcommon/dvar_cmds.h>
+#include <qcommon/com_profilemapload.h>
+#include <server/sv_game.h>
+#include <win32/win_net.h>
+#include <live/live_steam_server.h>
+#include <win32/win_shared.h>
+#include <client_mp/cl_cgame_mp.h>
+#include <qcommon/com_clients.h>
+#include <qcommon/com_bsp_load_obj.h>
+#include <qcommon/cm_load.h>
+#include <qcommon/cm_world.h>
+#include <universal/com_constantconfigstrings.h>
+#include <game_mp/pregame.h>
+#include <client_mp/sv_client_mp.h>
+#include <ik/ik.h>
+#include "sv_ccmds_mp.h"
+#include "sv_bot_mp.h"
+#include <qcommon/com_gamemodes.h>
+#include <qcommon/threads.h>
 
 const dvar_t *sv_gametype;
 const dvar_t *sv_privateClients;
@@ -87,6 +113,7 @@ const dvar_t *sv_network_fps;
 const dvar_t *sv_assistWorkers;
 const dvar_t *sv_clientArchive;
 
+volatile unsigned int sv_thread_owns_game;
 
 void __cdecl SV_SetConfigstring(int index, char *val)
 {
@@ -104,7 +131,7 @@ void __cdecl SV_SetConfigstring(int index, char *val)
     char cmd; // [esp+467h] [ebp-1h]
 
     if ( (unsigned int)index >= 0xCBC )
-        Com_Error(ERR_DROP, &byte_CEC244, index);
+        Com_Error(ERR_DROP, "SV_SetConfigstring: bad index %i", index);
     if ( sv.configstrings[index] )
     {
         if ( !val )
@@ -153,7 +180,7 @@ void __cdecl SV_SetConfigstring(int index, char *val)
                                 while ( remaining > chunkSize && val[chunkSize + sent] == 32 )
                                 {
                                     if ( !--chunkSize )
-                                        Com_Error(ERR_DROP, &byte_CEC1C8, maxChunk);
+                                        Com_Error(ERR_DROP, "SV_SetConfigstring: big config string with %d empty spaces", maxChunk);
                                 }
                                 I_strncpyz(buf, &val[sent], chunkSize + 1);
                                 SV_SendServerCommand(client, SV_CMD_RELIABLE, "%c %i %s", cmd, index, buf);
@@ -179,9 +206,9 @@ void __cdecl SV_GetConfigstring(unsigned int index, char *buffer, int bufferSize
     char *v3; // eax
 
     if ( bufferSize < 1 )
-        Com_Error(ERR_DROP, &byte_CEC2A4, bufferSize);
+        Com_Error(ERR_DROP, "SV_GetConfigstring: bufferSize == %i", bufferSize);
     if ( index >= 0xCBC )
-        Com_Error(ERR_DROP, &byte_CEC280, index);
+        Com_Error(ERR_DROP, "SV_GetConfigstring: bad index %i", index);
     if ( !sv.configstrings[index]
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\server_mp\\sv_init_mp.cpp",
@@ -251,7 +278,7 @@ void __cdecl SV_SetConfigValueForKey(int start, int max, char *key, char *value)
             v4 = SL_ConvertToString(sv.configstrings[i + start], SCRIPTINSTANCE_SERVER);
             Com_Printf(15, "%i: %i ( %s )\n", i + start, sv.configstrings[i + start], v4);
         }
-        Com_Error(ERR_DROP, &byte_CEC2F0);
+        Com_Error(ERR_DROP, "SV_SetConfigValueForKey: overflow");
     }
     SV_SetConfigstring(i + max + start, value);
 }
@@ -261,7 +288,7 @@ void __cdecl SV_SetUserinfo(int index, char *val)
     char *v2; // eax
 
     if ( index < 0 || index >= com_maxclients->current.integer )
-        Com_Error(ERR_DROP, &byte_CEC370, index);
+        Com_Error(ERR_DROP, "SV_SetUserinfo: bad index %i", index);
     if ( !val )
         val = (char *)"";
     I_strncpyz(svs.clients[index].userinfo, val, 1024);
@@ -283,9 +310,9 @@ void __cdecl SV_GetUserinfo(int index, char *buffer, int bufferSize)
         __debugbreak();
     }
     if ( bufferSize < 1 )
-        Com_Error(ERR_DROP, &byte_CEC3B0, bufferSize);
+        Com_Error(ERR_DROP, "SV_GetUserinfo: bufferSize == %i", bufferSize);
     if ( index < 0 || index >= com_maxclients->current.integer )
-        Com_Error(ERR_DROP, &byte_CEC390, index);
+        Com_Error(ERR_DROP, "SV_GetUserinfo: bad index %i", index);
     I_strncpyz(buffer, svs.clients[index].userinfo, bufferSize);
 }
 
@@ -365,9 +392,12 @@ void __cdecl SV_Startup(int controllerIndex)
     }
     SV_ResetDWState();
     Dvar_SetBoolByName("r_gfxopt_water_simulation", 0);
+
+#ifdef KISAK_LIVE
     dwNetStart(1);
     while ( g_dwNetStatus == DW_NET_STARTING_ONLINE )
         dwNetPump();
+
     if ( g_svdedicatedauthstate != SV_DWAUTHORIZED )
     {
         DW_DedicatedLogonStart(controllerIndex);
@@ -377,6 +407,7 @@ void __cdecl SV_Startup(int controllerIndex)
             Com_Error(ERR_DROP, "Dedicated server authentication failure.\n");
         Com_Printf(0, "should be logged in ok\n");
     }
+#endif
     //BLOPS_NULLSUB();
     if ( com_maxclients->current.integer > 32
         && !Assert_MyHandler(
@@ -398,14 +429,14 @@ void __cdecl SV_Startup(int controllerIndex)
 void __cdecl SV_SetExpectedHunkUsage(char *mapname)
 {
     int handle; // [esp+0h] [ebp-18h] BYREF
-    char *memlistfile; // [esp+4h] [ebp-14h]
+    const char *memlistfile; // [esp+4h] [ebp-14h]
     char *buf; // [esp+8h] [ebp-10h]
     int len; // [esp+Ch] [ebp-Ch]
     const char *token; // [esp+10h] [ebp-8h]
     const char *buftrav; // [esp+14h] [ebp-4h] BYREF
 
     memlistfile = "hunkusage.dat";
-    len = FS_FOpenFileByMode("hunkusage.dat", &handle, FS_READ);
+    len = FS_FOpenFileByMode((char*)"hunkusage.dat", &handle, FS_READ);
     if ( len >= 0 )
     {
         buf = (char *)Z_Malloc(len + 1, "SV_SetExpectedHunkUsage", 11);
@@ -500,13 +531,13 @@ void __cdecl SV_SetServerDvarsBeforeScriptsInit()
 
 void __cdecl    SV_SpawnServer(int controllerIndex, char *server, int mapIsPreloaded, int savegame)
 {
-    int v4; // eax
+    char *v4; // eax
     unsigned int v5; // eax
     int v6; // esi
     int v7; // esi
     int v8; // eax
     unsigned __int16 String; // ax
-    jpeg_decompress_struct *v10; // [esp+0h] [ebp-84h]
+    //jpeg_decompress_struct *v10; // [esp+0h] [ebp-84h]
     unsigned int bspVersion; // [esp+1Ch] [ebp-68h]
     client_t *client; // [esp+20h] [ebp-64h]
     char filename[68]; // [esp+24h] [ebp-60h] BYREF
@@ -516,7 +547,9 @@ void __cdecl    SV_SpawnServer(int controllerIndex, char *server, int mapIsPrelo
     int i; // [esp+80h] [ebp-4h]
 
     Com_SyncThreads();
+#ifdef KISAK_LIVE
     MatchRecord_InitMatchData();
+#endif
     if ( SV_GetServerThreadOwnsGame()
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\server_mp\\sv_init_mp.cpp",
@@ -531,9 +564,9 @@ void __cdecl    SV_SpawnServer(int controllerIndex, char *server, int mapIsPrelo
     {
         DB_AddUserMapDir(server);
         FS_DisablePureCheck(1);
-        Com_LoadMapLoadingScreenFastFile(server);
+        Com_LoadMapLoadingScreenFastFile();
     }
-    CL_AllocatePerLocalClientMemory(0, 0);
+    CL_AllocatePerLocalClientMemory();
     Scr_ParseGameTypeList();
     SV_SetGametype();
     if ( !mapIsPreloaded )
@@ -542,7 +575,7 @@ void __cdecl    SV_SpawnServer(int controllerIndex, char *server, int mapIsPrelo
         DB_SyncXAssets();
     R_BeginRemoteScreenUpdate();
     if ( fs_debug->current.integer == 2 )
-        Dvar_SetInt(fs_debug, 0);
+        Dvar_SetInt((dvar_s*)fs_debug, 0);
     ProfLoad_Activate();
     if ( SV_GetServerThreadOwnsGame()
         && !Assert_MyHandler(
@@ -575,7 +608,7 @@ void __cdecl    SV_SpawnServer(int controllerIndex, char *server, int mapIsPrelo
     {
         savepersist = 0;
     }
-    strstr((unsigned __int8 *)server, "\\");
+    v4 = strstr(server, "\\");
     if ( v4
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\server_mp\\sv_init_mp.cpp",
@@ -586,12 +619,12 @@ void __cdecl    SV_SpawnServer(int controllerIndex, char *server, int mapIsPrelo
     {
         __debugbreak();
     }
-    Dvar_SetString(sv_mapname, server);
+    Dvar_SetString((dvar_s*)sv_mapname, server);
     LiveSteam_Server_Init();
     R_EndRemoteScreenUpdate(0);
     if ( !mapIsPreloaded )
     {
-        CL_MapLoading(server, 0);
+        CL_MapLoading(server);
         R_BeginRemoteScreenUpdate();
         R_EndRemoteScreenUpdate(0);
         CL_ShutdownAll();
@@ -602,13 +635,15 @@ void __cdecl    SV_SpawnServer(int controllerIndex, char *server, int mapIsPrelo
     SV_ClearServer();
     if ( !useFastFile->current.enabled )
     {
-        FS_Shutdown(1);
+        FS_Shutdown();
         FS_ClearIwdReferences();
     }
     if ( !mapIsPreloaded )
         Com_Restart();
-    if ( com_sv_running->current.enabled )
-        BLOPS_NULLSUB(v10);
+    if (com_sv_running->current.enabled)
+    {
+        //BLOPS_NULLSUB(v10);
+    }
     else
         SV_Startup(controllerIndex);
     Dvar_ClearModified(com_maxclients);
@@ -627,7 +662,7 @@ void __cdecl    SV_SpawnServer(int controllerIndex, char *server, int mapIsPrelo
     if ( !mapIsPreloaded )
     {
         ProfLoad_Begin("start loading client");
-        CL_StartLoading(server, (const char *)&sv.killServer);
+        CL_StartLoading();
         ProfLoad_End();
         if ( useFastFile->current.enabled )
         {
@@ -645,7 +680,7 @@ void __cdecl    SV_SpawnServer(int controllerIndex, char *server, int mapIsPrelo
             if ( sv_loadMyChanges->current.enabled )
             {
                 v8 = Com_LocalClient_GetControllerIndex(0);
-                Cbuf_ExecuteBuffer(0, v8, "loadzone mychanges\n");
+                Cbuf_ExecuteBuffer(0, v8, (char*)"loadzone mychanges\n");
             }
         }
     }
@@ -662,8 +697,8 @@ void __cdecl    SV_SpawnServer(int controllerIndex, char *server, int mapIsPrelo
     SV_InitArchivedSnapshot();
     SV_InitSnapshot();
     svs.snapFlagServerBit ^= 4u;
-    Dvar_SetString(nextmap, "map_restart");
-    Dvar_SetInt(cl_paused, 0);
+    Dvar_SetString((dvar_s*)nextmap, "map_restart");
+    Dvar_SetInt((dvar_s *)cl_paused, 0);
     Com_GetBspFilename(filename, 64, server);
     if ( !useFastFile->current.enabled )
         Com_LoadBsp(filename);
@@ -712,9 +747,11 @@ void __cdecl    SV_SpawnServer(int controllerIndex, char *server, int mapIsPrelo
     Pregame_Reset();
     SV_SetServerDvarsBeforeScriptsInit();
     ProfLoad_Begin("Init game");
-    SV_InitGameProgs(savepersist, savegame);
+    SV_InitGameProgs(savepersist);
 }
 
+const int ikStateSize = 3680;
+unsigned __int8 *sv_ikBuf;
 char *__cdecl SV_AllocateClientMemory_SizeRequired(int maxLocalClients, int maxClients)
 {
     int v3; // [esp+0h] [ebp-Ch]
@@ -1156,7 +1193,8 @@ void __cdecl SV_Shutdown(const char *finalmsg)
         Dvar_SetBool((dvar_s *)com_sv_running, 0);
         CL_FreePerLocalClientMemory();
         memset((unsigned __int8 *)&svs, 0, sizeof(svs));
-        *(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) = 0;
+        //*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) = 0;
+        bgs = 0;
         Com_Printf(15, "---------------------------\n");
     }
 }
@@ -1169,7 +1207,7 @@ void __cdecl SV_FinalMessage(const char *message)
     msg_t msg; // [esp+Ch] [ebp-34h] BYREF
     int i; // [esp+3Ch] [ebp-4h]
 
-    translationForReason = SEH_StringEd_GetString(message) != 0;
+    translationForReason = SEH_StringEd_GetString((char*)message) != 0;
     for ( j = 0; j < 2; ++j )
     {
         i = 0;

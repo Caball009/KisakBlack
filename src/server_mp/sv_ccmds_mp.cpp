@@ -1,4 +1,27 @@
 #include "sv_ccmds_mp.h"
+#include <qcommon/files.h>
+#include <server/server.h>
+#include "sv_main_mp.h"
+#include <client_mp/g_client_mp.h>
+#include <client_mp/sv_client_mp.h>
+#include <qcommon/mem_track.h>
+#include <server/sv_game.h>
+#include <universal/com_files.h>
+#include "sv_init_mp.h"
+#include <live/live_storage_win.h>
+#include "sv_main_pc_mp.h"
+#include <game_mp/g_cmds_mp.h>
+#include <monkey/monkey.h>
+#include <qcommon/dvar_cmds.h>
+#include <clientscript/cscr_memorytree.h>
+#include <bgame/bg_perks.h>
+#include <game_mp/g_client_script_cmd_mp.h>
+#include <ui/ui_main_pc.h>
+#include <ui/ui_playlists.h>
+#include <live/live_storage_pub.h>
+#include <universal/q_parse.h>
+
+int sv_migrate;
 
 char *__cdecl SV_GetMapBaseName(char *mapname)
 {
@@ -107,6 +130,62 @@ void __cdecl SV_Heartbeat_f()
     svs.nextHeartbeatTime = 0x80000000;
 }
 
+cmd_function_s SV_Heartbeat_f_VAR;
+cmd_function_s SV_Heartbeat_f_VAR_SERVER;
+cmd_function_s SV_Drop_f_VAR;
+cmd_function_s SV_Drop_f_VAR_SERVER;
+cmd_function_s SV_Ban_f_VAR;
+cmd_function_s SV_Ban_f_VAR_SERVER;
+cmd_function_s SV_BanNum_f_VAR;
+cmd_function_s SV_BanNum_f_VAR_SERVER;
+cmd_function_s SV_TempBan_f_VAR_0;
+cmd_function_s SV_TempBan_f_VAR_SERVER_0;
+cmd_function_s SV_TempBan_f_VAR;
+cmd_function_s SV_TempBan_f_VAR_SERVER;
+cmd_function_s SV_TempBanNum_f_VAR;
+cmd_function_s SV_TempBanNum_f_VAR_SERVER;
+cmd_function_s SV_Unban_f_VAR;
+cmd_function_s SV_Unban_f_VAR_SERVER;
+cmd_function_s SV_DropNum_f_VAR;
+cmd_function_s SV_DropNum_f_VAR_SERVER;
+cmd_function_s SV_Status_f_VAR;
+cmd_function_s SV_Status_f_VAR_SERVER;
+cmd_function_s SV_TeamStatus_f_VAR;
+cmd_function_s SV_TeamStatus_f_VAR_SERVER;
+cmd_function_s SV_Serverinfo_f_VAR;
+cmd_function_s SV_Serverinfo_f_VAR_SERVER;
+cmd_function_s SV_Systeminfo_f_VAR;
+cmd_function_s SV_Systeminfo_f_VAR_SERVER;
+cmd_function_s SV_DumpUser_f_VAR;
+cmd_function_s SV_DumpUser_f_VAR_SERVER;
+cmd_function_s SV_MapRestart_f_VAR;
+cmd_function_s SV_MapRestart_f_VAR_SERVER;
+cmd_function_s SV_FastRestart_f_VAR;
+cmd_function_s SV_FastRestart_f_VAR_SERVER;
+cmd_function_s SV_Map_f_VAR_0;
+cmd_function_s SV_Map_f_VAR_SERVER_0;
+cmd_function_s SV_MapRotate_f_VAR;
+cmd_function_s SV_MapRotate_f_VAR_SERVER;
+cmd_function_s SV_GameCompleteStatus_f_VAR;
+cmd_function_s SV_GameCompleteStatus_f_VAR_SERVER;
+cmd_function_s SV_Map_f_VAR;
+cmd_function_s SV_Map_f_VAR_SERVER;
+cmd_function_s SV_KillServer_f_VAR;
+cmd_function_s SV_KillServer_f_VAR_SERVER;
+cmd_function_s SV_ScriptUsage_f_VAR;
+cmd_function_s SV_ScriptUsage_f_VAR_SERVER;
+cmd_function_s SV_StringUsage_f_VAR;
+cmd_function_s SV_StringUsage_f_VAR_SERVER;
+cmd_function_s SV_SetPerk_f_VAR;
+cmd_function_s SV_SetPerk_f_VAR_SERVER;
+cmd_function_s SV_SysLog_LogMessage_f_VAR;
+cmd_function_s SV_SysLog_LogMessage_f_VAR_SERVER;
+cmd_function_s SV_RegisterRconKey_f_VAR;
+cmd_function_s SV_RegisterRconKey_f_VAR_SERVER;
+cmd_function_s SV_RankUp_f_VAR;
+cmd_function_s SV_RankUp_f_VAR_SERVER;
+
+static bool initialized_0 = 0;
 void __cdecl SV_AddOperatorCommands()
 {
     if ( !initialized_0 )
@@ -265,9 +344,9 @@ void __cdecl ShowLoadErrorsSummary(const char *mapName, unsigned int count)
     if ( !Monkey_IsRunning() && com_errorPrintsCount )
     {
         if ( count == 1 )
-            Com_PrintError(16, (char *)ERRMSG_SINGLE, mapName, com_errorPrintsCount);
+            Com_PrintError(16, (char *)"%s - There was %u error when loading this map See the console log for details", mapName, com_errorPrintsCount);
         else
-            Com_PrintError(16, (char *)ERRMSG_PLURAL, mapName, com_errorPrintsCount);
+            Com_PrintError(16, (char *)"%s - There were %u errors when loading this map. See the console log for details", mapName, com_errorPrintsCount);
     }
 }
 
@@ -981,6 +1060,11 @@ void __cdecl SV_SetPerk_f()
     }
 }
 
+cmd_function_s SV_ConSay_f_VAR;
+cmd_function_s SV_ConSay_f_VAR_SERVER;
+cmd_function_s SV_ConTell_f_VAR;
+cmd_function_s SV_ConTell_f_VAR_SERVER;
+
 void __cdecl SV_AddDedicatedCommands()
 {
     SV_RemoveDedicatedCommands();
@@ -999,7 +1083,7 @@ void __cdecl SV_ConSay_f()
         if ( SV_Cmd_Argc() >= 2 )
         {
             SV_AssembleConSayMessage(1, text, 1024);
-            SV_SendServerCommand(0, SV_CMD_CAN_IGNORE, aC_3, 104, text);
+            SV_SendServerCommand(0, SV_CMD_CAN_IGNORE, "\"%c %s\"", 104, text);
         }
     }
     else
@@ -1055,7 +1139,7 @@ void __cdecl SV_ConTell_f()
                 if ( v1->header.state == 5 )
                 {
                     SV_AssembleConSayMessage(2, text, 1024);
-                    SV_SendServerCommand(v1, SV_CMD_CAN_IGNORE, aC_3, 104, text);
+                    SV_SendServerCommand(v1, SV_CMD_CAN_IGNORE, "\"%c %s\"", 104, text);
                 }
             }
         }

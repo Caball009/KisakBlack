@@ -1,4 +1,10 @@
 #include "sv_archive_mp.h"
+#include <qcommon/msg_mp.h>
+#include <demo/demo_common.h>
+#include "sv_main_mp.h"
+#include <qcommon/sv_msg_write_mp.h>
+#include <qcommon/threads.h>
+#include <qcommon/sv_msg_write.h>
 
 void __cdecl SV_ArchiveSnapshot(msg_t *msg)
 {
@@ -132,7 +138,7 @@ void __cdecl SV_ArchiveSnapshot(msg_t *msg)
         MSG_ClearLastReferencedEntity(msg);
         from = &svsHeader.cachedSnapshotMatchStates[v39->matchState % svsHeader.numCachedSnapshotMatchStates];
         MatchStateLocal = (MatchState *)G_GetMatchStateLocal();
-        MSG_WriteDeltaMatchState((int)&savedregs, &snapInfo, msg, svsHeader.time, from, MatchStateLocal);
+        MSG_WriteDeltaMatchState(&snapInfo, msg, svsHeader.time, from, MatchStateLocal);
         MSG_ClearLastReferencedEntity(msg);
         maxclients = svsHeader.maxclients;
         num_clients = v39->num_clients;
@@ -290,8 +296,8 @@ void __cdecl SV_ArchiveSnapshot(msg_t *msg)
                 }
             }
         }
-        if ( GetCurrentThreadId() != g_DXDeviceThread )
-            goto skipDelta;
+        //if ( GetCurrentThreadId() != g_DXDeviceThread )
+        //    goto skipDelta;
 LABEL_120:
         //D3DPERF_EndEvent();
         goto skipDelta;
@@ -317,9 +323,9 @@ LABEL_84:
     v34 = &svsHeader.cachedSnapshotMatchStates[svsHeader.nextCachedSnapshotMatchStates
                                                                                      % svsHeader.numCachedSnapshotMatchStates];
     memcpy(v34, G_GetMatchStateLocal(), sizeof(MatchState));
-    MSG_WriteDeltaMatchState((int)&savedregs, &snapInfo, msg, svsHeader.time, 0, v34);
+    MSG_WriteDeltaMatchState(&snapInfo, msg, svsHeader.time, 0, v34);
     if ( ++svsHeader.nextCachedSnapshotMatchStates >= 2147483646 )
-        Com_Error(ERR_FATAL, &byte_CE7408);
+        Com_Error(ERR_FATAL, "svsHeader.nextCachedSnapshotMatchStates wrapped");
     MSG_ClearLastReferencedEntity(msg);
     i = 0;
     clients = svsHeader.clients;
@@ -343,7 +349,7 @@ LABEL_84:
                 MSG_WriteBit0(msg);
             }
             if ( ++svsHeader.nextCachedSnapshotClients >= 2147483646 )
-                Com_Error(ERR_FATAL, &byte_CE73D8);
+                Com_Error(ERR_FATAL, "svsHeader.nextCachedSnapshotClients wrapped");
             ++v24->num_clients;
         }
         ++i;
@@ -416,13 +422,13 @@ LABEL_84:
                 ++svsHeader.archivedEntityCount;
                 snapInfo.fromBaseline = 0;
                 if ( ++svsHeader.nextCachedSnapshotEntities >= 2147483646 )
-                    Com_Error(ERR_FATAL, &byte_CE73A8);
+                    Com_Error(ERR_FATAL, "svsHeader.nextCachedSnapshotEntities wrapped");
                 ++v24->num_entities;
             }
         }
     }
     if ( ++svsHeader.nextCachedSnapshotFrames >= 2147483646 )
-        Com_Error(ERR_FATAL, &byte_CE737C);
+        Com_Error(ERR_FATAL, "svsHeader.nextCachedSnapshotFrames wrapped");
     //if ( GetCurrentThreadId() == g_DXDeviceThread )
         goto LABEL_120;
 skipDelta:
@@ -474,6 +480,7 @@ const MatchState *__cdecl G_GetMatchStateLocal()
     return svsHeader.matchState;
 }
 
+hudelem_s g_dummyHudCurrent_1;
 int __cdecl GetFollowPlayerStateLocal(int clientNum, playerState_s *ps)
 {
     unsigned int index; // [esp+8h] [ebp-8h]

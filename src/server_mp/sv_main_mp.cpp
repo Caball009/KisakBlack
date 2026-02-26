@@ -44,6 +44,8 @@ char *g_shutdownMsg; // not real name
 
 int gameInitialized;
 
+unsigned __int8 tempServerMsgBuf[65536];
+
 char string_0[1024];
 char *__cdecl SV_ExpandNewlines(char *in)
 {
@@ -425,8 +427,6 @@ void __cdecl SVC_Status(netadr_t from, bdSecurityID *secID)
     NET_OutOfBandPrint(NS_SERVER, from, (char*)dst);
 #endif
 }
-
-unsigned __int8 tempServerMsgBuf[65536];
 
 void __cdecl SVC_StatusScoreBoard(netadr_t from, bdSecurityID *secID)
 {

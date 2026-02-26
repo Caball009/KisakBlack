@@ -1,4 +1,5 @@
 #pragma once
+#include <server/server.h>
 
 bool __cdecl SV_Netchan_TransmitNextFragment(client_t *client, netchan_t *chan);
 void __cdecl SV_Netchan_OutgoingSequenceIncremented(client_t *client, netchan_t *chan);
