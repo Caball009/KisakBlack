@@ -1,4 +1,16 @@
 #include "sv_autoplaylist.h"
+#include <universal/dvar.h>
+#include <qcommon/common.h>
+#include <universal/q_parse.h>
+#include <qcommon/cmd.h>
+#include <live/live_storage_win.h>
+#include <live/live_storage_pub.h>
+
+sv_apstate_t s_apstate = AP_SLEEPING;
+
+dwFileOperationInfo s_finfo;
+
+int s_probabilities[64];
 
 void __cdecl SV_AP_DumpTable()
 {
@@ -147,6 +159,7 @@ bool __cdecl SV_AP_ParseControlFile(unsigned __int8 *controlFile)
 
 int __cdecl SV_AP_PlaylistFromDistribution()
 {
+#ifdef KISAK_LIVE
     const char *v0; // eax
     bdTrulyRandomImpl *Instance; // eax
     unsigned int RandomUInt; // eax
@@ -248,6 +261,9 @@ int __cdecl SV_AP_PlaylistFromDistribution()
         firstTimeRunning = 0;
         return playlist->current.integer;
     }
+#else
+    return playlist->current.integer;
+#endif
 }
 
 int __cdecl comparePlaylists(unsigned int *p1, unsigned int *p2)
@@ -259,7 +275,8 @@ void __cdecl SV_AP_GetControlFileComplete()
 {
     if ( Dvar_GetBool("sv_ap_debug") )
         Com_Printf(15, "AP: %s\n", "Received control file, attempting to parse\n");
-    operator++(&s_apstate);
+    //operator++(&s_apstate);
+    s_apstate++;
 }
 
 int __cdecl SV_AP_GetControlFileFailure()
@@ -273,6 +290,7 @@ int __cdecl SV_AP_GetControlFileFailure()
 
 TaskRecord *__cdecl SV_AP_GetControlFile()
 {
+#ifdef KISAK_LIVE
     TaskRecord *nestedTask; // [esp+0h] [ebp-8h]
     TaskRecord *task; // [esp+4h] [ebp-4h]
 
@@ -317,10 +335,14 @@ TaskRecord *__cdecl SV_AP_GetControlFile()
         Com_PrintError(15, "AP Error: %s\n", "Couldn't start fetch control file dw task. Probable connectivity issue\n");
     }
     return task;
+#else
+    return NULL;
+#endif
 }
 
 void __cdecl SV_AP_GetControlFileName(char *buf, int buflen)
 {
+#ifdef KISAK_LIVE
     char *filename; // [esp+0h] [ebp-4h]
 
     if ( (!sv_geolocation || !*(_BYTE *)sv_geolocation->current.integer)
@@ -352,10 +374,12 @@ void __cdecl SV_AP_GetControlFileName(char *buf, int buflen)
             "AP Error: %s\n",
             "sv_geolocation isn't set. This has to be set for the autoplaylist tech to work\n");
     }
+#endif
 }
 
 void __cdecl SV_SetGroupCountsComplete()
 {
+#ifdef KISAK_LIVE
     Com_Printf(15, "Group set complete\n");
     s_apstate = AP_SLEEPING;
     s_numgroupErrors = 0;
@@ -364,10 +388,12 @@ void __cdecl SV_SetGroupCountsComplete()
         SV_SetShouldMapRotate(0);
         Cbuf_AddText(0, "map_rotate\n");
     }
+#endif
 }
 
 void __cdecl SV_GetGroupCountsComplete()
 {
+#ifdef KISAK_LIVE
     Com_Printf(15, "Groups get complete\n");
     s_numgroupErrors = 0;
     if ( !LiveStorage_DoWeHavePlaylists()
@@ -381,10 +407,12 @@ void __cdecl SV_GetGroupCountsComplete()
         __debugbreak();
     }
     operator++(&s_apstate);
+#endif
 }
 
 void __cdecl SV_GroupsFailure(TaskRecord *task)
 {
+#ifdef KISAK_LIVE
     enum bdLobbyErrorCode ErrorCode; // [esp+0h] [ebp-10h]
 
     if ( task->remoteTask.m_ptr )
@@ -392,6 +420,7 @@ void __cdecl SV_GroupsFailure(TaskRecord *task)
     else
         ErrorCode = -1;
     SV_GroupError("Remote async task failed: %i", ErrorCode);
+#endif
 }
 
 void SV_GroupError(const char *fmt, ...)
@@ -406,6 +435,7 @@ void SV_GroupError(const char *fmt, ...)
 
 TaskRecord *__cdecl SV_GetGroupCounts()
 {
+#ifdef KISAK_LIVE
     const bdReference<bdCommonAddr> *GroupCounts; // eax
     bdReference<bdCommonAddr> v2; // [esp+1Ch] [ebp-218h] BYREF
     int j; // [esp+20h] [ebp-214h]
@@ -431,10 +461,14 @@ TaskRecord *__cdecl SV_GetGroupCounts()
     bdReference<bdRemoteTask>::~bdReference<bdRemoteTask>(&v2);
     TaskManager2_StartTask(task);
     return task;
+#else
+    return NULL;
+#endif
 }
 
 void __cdecl SV_Groups_SetGroupMembership(bool full)
 {
+#ifdef KISAK_LIVE
     int LicenseType; // eax
     const bdReference<bdCommonAddr> *v2; // eax
     bdReference<bdCommonAddr> v3; // [esp+1Ch] [ebp-1Ch] BYREF
@@ -490,10 +524,12 @@ void __cdecl SV_Groups_SetGroupMembership(bool full)
             }
         }
     }
+#endif
 }
 
 void __cdecl SV_Groups_ParseGeos(const char *geoblob)
 {
+#ifdef KISAK_LIVE
     int v1; // eax
     parseInfo_t *country; // [esp+0h] [ebp-10h]
     parseInfo_t *geoID; // [esp+4h] [ebp-Ch]
@@ -554,10 +590,12 @@ void __cdecl SV_Groups_ParseGeos(const char *geoblob)
     {
         SV_Groups_SetGroupMembership(0);
     }
+#endif
 }
 
 void __cdecl SV_AP_Start()
 {
+#ifdef KISAK_LIVE
     if ( Dvar_GetBool("sv_ap_enabled") )
     {
         if ( s_apstate == AP_SLEEPING )
@@ -573,10 +611,12 @@ void __cdecl SV_AP_Start()
             __debugbreak();
         }
     }
+#endif
 }
 
 void __cdecl SV_AP_Frame()
 {
+#ifdef KISAK_LIVE
     switch ( s_apstate )
     {
         case AP_START:
@@ -641,10 +681,12 @@ void __cdecl SV_AP_Frame()
         default:
             return;
     }
+#endif
 }
 
 bool __cdecl SV_AP_ServerIsFull()
 {
+#ifdef KISAK_LIVE
     int i; // [esp+0h] [ebp-8h]
     bool retval; // [esp+7h] [ebp-1h]
 
@@ -658,6 +700,9 @@ bool __cdecl SV_AP_ServerIsFull()
         }
     }
     return retval;
+#else
+    return false;
+#endif
 }
 
 

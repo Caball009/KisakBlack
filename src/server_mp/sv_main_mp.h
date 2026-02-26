@@ -493,3 +493,5 @@ extern serverStatic_t svs;
 extern serverStaticHeader_t svsHeader;
 extern int svsHeaderValid;
 extern server_t sv;
+
+extern int gameInitialized;

@@ -82,3 +82,8 @@ int __cdecl cmpr(float *e0, float *e1);
 int __cdecl CG_GetEntityBoneInfo(int entID, int boneIndex, float *bonePos, float (*boneAxis)[3], char **boneName);
 
 extern int cgCollWorldLocalClientNum;
+
+extern float actorLocationalMinsBig[3];
+extern float actorLocationalMaxsBig[3];
+extern float actorLocationalMins[3];
+extern float actorLocationalMaxs[3];

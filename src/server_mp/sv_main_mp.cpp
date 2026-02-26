@@ -19,11 +19,30 @@
 #include <game_mp/pregame.h>
 #include <universal/com_files.h>
 #include "sv_main_pc_mp.h"
+#include <live/live_steam.h>
+#include "sv_net_chan_mp.h"
+#include <server/sv_game.h>
+#include <win32/win_shared.h>
+#include <client/cl_debugdata.h>
+#include "sv_bot_mp.h"
+#include <win32/win_main.h>
+#include <universal/com_workercmds.h>
+#include <universal/com_tasks.h>
+#include <cgame/cg_perf.h>
+#include <clientscript/cscr_debugger.h>
+#include <universal/com_memory.h>
+#include <clientscript/cscr_vm.h>
+#include <setjmp.h>
 
 serverStatic_t svs;
 serverStaticHeader_t svsHeader;
 int svsHeaderValid;
 server_t sv;
+
+bool g_shouldKillLocalServer = false; // not real name
+char *g_shutdownMsg; // not real name
+
+int gameInitialized;
 
 char string_0[1024];
 char *__cdecl SV_ExpandNewlines(char *in)
@@ -400,11 +419,15 @@ void __cdecl SVC_Status(netadr_t from, bdSecurityID *secID)
     *(bdSecurityID *)&dst[1] = *secID;
     v17 = &dst[9];
     memcpy(&dst[9], (unsigned __int8 *)&s, &v12[strlen(&s)] - v12);
+#ifdef KISAK_LIVE
     dwRawSendTo(&from, dst, &v12[strlen(&s)] - v12 + 9);
+#else
+    NET_OutOfBandPrint(NS_SERVER, from, (char*)dst);
+#endif
 }
 
 unsigned __int8 tempServerMsgBuf[65536];
-int gameInitialized;
+
 void __cdecl SVC_StatusScoreBoard(netadr_t from, bdSecurityID *secID)
 {
     team_t ClientTeam; // eax
@@ -497,7 +520,11 @@ void __cdecl SVC_StatusScoreBoard(netadr_t from, bdSecurityID *secID)
     *(bdSecurityID *)&dst[1] = *secID;
     v18 = &dst[9];
     memcpy(&dst[9], tempServerMsgBuf, count);
+#ifdef KISAK_LIVE
     dwRawSendTo(&from, dst, strlen((const char *)tempServerMsgBuf) + 9);
+#else
+    NET_OutOfBandPrint(NS_SERVER, from, (char*)dst);
+#endif
 }
 
 void __cdecl SVC_Info(netadr_t from, bdSecurityID *secID, bool quick)
@@ -648,7 +675,7 @@ void __cdecl SVC_Info(netadr_t from, bdSecurityID *secID, bool quick)
                 for ( i = 0; i < count; ++i )
                 {
                     v14 = (char *)SV_Cmd_Argv(i);
-                    if ( !FS_iwIwd(v14, "main") )
+                    if ( !FS_iwIwd(v14, (char*)"main") )
                     {
                         serverModded = 1;
                         break;
@@ -701,7 +728,11 @@ void __cdecl SVC_Info(netadr_t from, bdSecurityID *secID, bool quick)
             (unsigned __int8 *)&response[9],
             (unsigned __int8 *)infostring,
             &infostring[strlen(infostring) + 1] - &infostring[1] + 1);
+#ifdef KISAK_LIVE
         dwRawSendTo(&from, (unsigned __int8 *)response, &infostring[strlen(infostring) + 1] - &infostring[1] + 10);
+#else
+        NET_OutOfBandPrint(NS_SERVER, from, response); // this should work, it's still used in other places in the codebase
+#endif
     }
 }
 
@@ -739,6 +770,7 @@ void __cdecl SV_ConnectionlessPacket(netadr_t from, msg_t *msg)
                 {
                     if ( !I_stricmp(c, "connect") )
                     {
+#ifdef KISAK_PUNKBUSTER
                         if ( NET_IsLocalAddress(from) )
                         {
                             PbPassConnectString("localhost", (char *)msg->data);
@@ -748,6 +780,7 @@ void __cdecl SV_ConnectionlessPacket(netadr_t from, msg_t *msg)
                             fromAddr = NET_AdrToString(from);
                             PbPassConnectString(fromAddr, (char *)msg->data);
                         }
+#endif
                         SV_DirectConnect(from);
                         goto LABEL_43;
                     }
@@ -815,8 +848,10 @@ LABEL_43:
         ++i;
         ++v4;
     }
+#ifdef KISAK_PUNKBUSTER
     if ( msg->data[7] != 67 && msg->data[7] != 49 && msg->data[7] != 74 )
         PbSvAddEvent(13, clientIndex, msg->cursize - 4, (char *)msg->data + 4);
+#endif
 }
 
 void __cdecl SV_PacketEvent(netadr_t from, msg_t *msg)
@@ -859,17 +894,7 @@ void __cdecl SV_PacketEvent(netadr_t from, msg_t *msg)
                     {
                         if ( ClientByAddress->header.state != 1 )
                         {
-                            if ( *(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) )
-                            {
-                                if ( !Assert_MyHandler(
-                                                "C:\\projects_pc\\cod\\codsrc\\src\\server_mp\\sv_main_mp.cpp",
-                                                1908,
-                                                0,
-                                                "%s\n\t(bgs) = %p",
-                                                "(bgs == 0)",
-                                                *(const void **)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8)) )
-                                    __debugbreak();
-                            }
+                            iassert(bgs == 0);
                             ClientByAddress->lastPacketTime = svs.time;
                             SV_ExecuteClientMessage(ClientByAddress, msg);
                         }
@@ -1020,7 +1045,9 @@ void __cdecl SV_CheckTimeouts()
             Com_Printf(15, "Going from CS_ZOMBIE to CS_FREE for client #%i\n", clientNum);
             drop->header.state = 0;
             drop->lastPacketTime = 0;
+#ifdef KISAK_LIVE // why is this here? I dont see this in kcod4
             dwCloseConnection(&drop->header.netchan.remoteAddress);
+#endif
         }
         else if ( drop->header.state == 5 && drop->lastPacketTime < droppoint )
         {
@@ -1076,21 +1103,23 @@ int __cdecl SV_CheckPaused()
     }
 }
 
-void    SV_RunFrame(__m128 a1@<xmm0>)
+void    SV_RunFrame()
 {
-    unsigned intv1; // eax
-    unsigned intstart; // [esp+0h] [ebp-4h]
+    unsigned int v1; // eax
+    unsigned int start; // [esp+0h] [ebp-4h]
 
     start = Sys_Milliseconds();
     SV_ResetSkeletonCache();
     CL_FlushDebugServerData();
-    G_RunFrame(a1, svs.time);
+    G_RunFrame(svs.time);
     sv.physicsTime = Phys_GetCurrentTime();
     CL_UpdateDebugServerData();
     v1 = Sys_Milliseconds();
     SV_UpdatePerformanceFrame(v1 - start);
 }
 
+int serverPreviousFrameTimes[10];
+int serverDebugFrame;
 void __cdecl SV_UpdatePerformanceFrame(int time)
 {
     int total; // [esp+0h] [ebp-10h]
@@ -1146,17 +1175,20 @@ void __cdecl SV_UpdateBots()
 
 void __cdecl SV_InitThreadVariables()
 {
-    *(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) = 0;
+    //*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) = 0;
+    bgs = 0;
     CL_DebugInitSVThreadVariables();
 }
 
 void __cdecl SV_InitServerThread()
 {
     if ( !Sys_SpawnServerThread((void (__cdecl *)(unsigned int))SV_ServerThread) )
-        Sys_Error("Failed to create server thread");
+        Sys_Error((char*)"Failed to create server thread");
 }
 
-void     SV_ServerThread(__m128 a1@<xmm0>, unsigned int threadContext)
+int g_startServer;
+int g_checkServerTime;
+void     SV_ServerThread(unsigned int threadContext)
 {
     void *Value; // eax
     LARGE_INTEGER v3; // [esp+8h] [ebp-38h] BYREF
@@ -1164,7 +1196,7 @@ void     SV_ServerThread(__m128 a1@<xmm0>, unsigned int threadContext)
     int v5; // [esp+14h] [ebp-2Ch]
     __int64 v6; // [esp+18h] [ebp-28h]
     LARGE_INTEGER PerformanceCount; // [esp+20h] [ebp-20h] BYREF
-    unsigned intCurrentThreadId; // [esp+28h] [ebp-18h]
+    unsigned int CurrentThreadId; // [esp+28h] [ebp-18h]
     int v9; // [esp+2Ch] [ebp-14h]
     unsigned __int64 runStart; // [esp+30h] [ebp-10h]
     int timeout; // [esp+38h] [ebp-8h]
@@ -1181,9 +1213,12 @@ void     SV_ServerThread(__m128 a1@<xmm0>, unsigned int threadContext)
     {
         __debugbreak();
     }
+
     do
         Value = Sys_GetValue(2);
-    while ( _setjmp3(Value, 0) );
+    while ( _setjmp(*(jmp_buf *)Value) );
+    //while ( _setjmp3(Value, 0) );
+
     SV_InitThreadVariables();
     Sys_InitServerEvents();
     SV_ClearServerThreadOwnsGame();
@@ -1212,7 +1247,7 @@ void     SV_ServerThread(__m128 a1@<xmm0>, unsigned int threadContext)
         }
         CurrentThreadId = GetCurrentThreadId();
         v9 = 0;
-        if ( CurrentThreadId == g_DXDeviceThread )
+        //if ( CurrentThreadId == g_DXDeviceThread )
             //D3DPERF_EndEvent();
         G_ClearVehicleInputs();
         SV_RunEventLoop();
@@ -1227,15 +1262,15 @@ void     SV_ServerThread(__m128 a1@<xmm0>, unsigned int threadContext)
             runStart = PerformanceCount.QuadPart;
             SV_PreFrame();
             //PIXBeginNamedEvent(65280, "SERVER: run frame");
-            SV_RunFrame(a1);
+            SV_RunFrame();
             v6 = GetCurrentThreadId();
-            if ( v6 == g_DXDeviceThread )
+            //if ( v6 == g_DXDeviceThread )
                 //D3DPERF_EndEvent();
             //PIXBeginNamedEvent((int)&cls.rankedServers[537].minPing, "SERVER: post frame");
             SV_PostFrame();
-            v4 = GetCurrentThreadId();
-            v5 = 0;
-            if ( v4 == g_DXDeviceThread )
+            //v4 = GetCurrentThreadId();
+            //v5 = 0;
+            //if ( v4 == g_DXDeviceThread )
                 //D3DPERF_EndEvent();
             QueryPerformanceCounter(&v3);
             gRunFrameTicks = v3.QuadPart - runStart;
@@ -1286,8 +1321,8 @@ void SV_RunEventLoop()
 void __cdecl SV_WaitServer()
 {
     bool i; // eax
-    unsigned inttimeout; // [esp+8h] [ebp-4h]
-    unsigned inttimeouta; // [esp+8h] [ebp-4h]
+    unsigned int timeout; // [esp+8h] [ebp-4h]
+    unsigned int timeouta; // [esp+8h] [ebp-4h]
 
     if ( !Sys_IsMainThread()
         && !Assert_MyHandler(
@@ -1367,7 +1402,7 @@ void __cdecl SV_InitSnapshot()
 void __cdecl SV_KillLocalServer()
 {
     if ( com_sv_running->current.enabled )
-        byte_9842C50 = 1;
+        g_shouldKillLocalServer = 1;
 }
 
 void __cdecl SV_PreFrame()
@@ -1405,14 +1440,14 @@ int __cdecl SV_Frame(int controllerIndex, int msec)
 {
     Hunk_CheckTempMemoryClear();
     Hunk_CheckTempMemoryHighClear();
-    if ( byte_9842C50 )
+    if ( g_shouldKillLocalServer )
     {
-        if ( dword_9842C54 && *dword_9842C54 )
-            Com_Shutdown(dword_9842C54);
+        if ( g_shutdownMsg && *g_shutdownMsg )
+            Com_Shutdown(g_shutdownMsg);
         else
             Com_Shutdown("EXE_SERVERKILLED");
-        byte_9842C50 = 0;
-        dword_9842C54 = 0;
+        g_shouldKillLocalServer = 0;
+        g_shutdownMsg = 0;
         return msec;
     }
     else if ( com_sv_running->current.enabled )
@@ -1543,7 +1578,7 @@ char __cdecl SV_CheckOverflow()
                                 else
                                 {
                                     I_strncpyz(mapname, sv_mapname->current.string, 64);
-                                    Com_Shutdown(aExeServerresta_3);
+                                    Com_Shutdown("EXE_SERVERRESTARTMISC numSnapshotClients");
                                     v8 = va("map %s\n", mapname);
                                     Cbuf_AddText(0, v8);
                                     return 1;
@@ -1552,7 +1587,7 @@ char __cdecl SV_CheckOverflow()
                             else
                             {
                                 I_strncpyz(mapname, sv_mapname->current.string, 64);
-                                Com_Shutdown(aExeServerresta_2);
+                                Com_Shutdown("EXE_SERVERRESTARTMISC nextCachedSnapshotFrames");
                                 v7 = va("map %s\n", mapname);
                                 Cbuf_AddText(0, v7);
                                 return 1;
@@ -1561,7 +1596,7 @@ char __cdecl SV_CheckOverflow()
                         else
                         {
                             I_strncpyz(mapname, sv_mapname->current.string, 64);
-                            Com_Shutdown(aExeServerresta_1);
+                            Com_Shutdown("EXE_SERVERRESTARTMISC nextArchivedSnapshotBuffer");
                             v6 = va("map %s\n", mapname);
                             Cbuf_AddText(0, v6);
                             return 1;
@@ -1570,7 +1605,7 @@ char __cdecl SV_CheckOverflow()
                     else
                     {
                         I_strncpyz(mapname, sv_mapname->current.string, 64);
-                        Com_Shutdown(aExeServerresta_4);
+                        Com_Shutdown("EXE_SERVERRESTARTMISC nextArchivedSnapshotFrames");
                         v5 = va("map %s\n", mapname);
                         Cbuf_AddText(0, v5);
                         return 1;
@@ -1579,7 +1614,7 @@ char __cdecl SV_CheckOverflow()
                 else
                 {
                     I_strncpyz(mapname, sv_mapname->current.string, 64);
-                    Com_Shutdown(aExeServerresta_0);
+                    Com_Shutdown("EXE_SERVERRESTARTMISC nextCachedSnapshotClients");
                     v4 = va("map %s\n", mapname);
                     Cbuf_AddText(0, v4);
                     return 1;
@@ -1588,7 +1623,7 @@ char __cdecl SV_CheckOverflow()
             else
             {
                 I_strncpyz(mapname, sv_mapname->current.string, 64);
-                Com_Shutdown(aExeServerresta_6);
+                Com_Shutdown("EXE_SERVERRESTARTMISC nextChachedSnapshotEntities");
                 v3 = va("map %s\n", mapname);
                 Cbuf_AddText(0, v3);
                 return 1;
@@ -1597,7 +1632,7 @@ char __cdecl SV_CheckOverflow()
         else
         {
             I_strncpyz(mapname, sv_mapname->current.string, 64);
-            Com_Shutdown(aExeServerresta_5);
+            Com_Shutdown("EXE_SERVERRESTARTMISC numSnapshotEntities");
             v2 = va("map %s\n", mapname);
             Cbuf_AddText(0, v2);
             return 1;

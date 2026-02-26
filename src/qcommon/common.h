@@ -354,3 +354,5 @@ extern int com_errorEntered;
 extern int com_expectedHunkUsage;
 extern float com_timescaleValue;
 extern int com_frameTime;
+extern int com_inServerFrame;
+extern int com_fixedConsolePosition;

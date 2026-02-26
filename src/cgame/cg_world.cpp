@@ -19,8 +19,8 @@
 
 float actorLocationalMinsBig[3] = { -54.0, -54.0, -32.0 };
 float actorLocationalMaxsBig[3] = { 54.0, 54.0, 72.0 };
-float actorLocationalMins[3] = { -36.0, -36.0, -10.0 };
-float actorLocationalMaxs[3] = { 36.0, 36.0, 72.0 };
+float actorLocationalMins[3]    = { -36.0, -36.0, -10.0 };
+float actorLocationalMaxs[3]    = { 36.0, 36.0, 72.0 };
 
 int cgCollWorldLocalClientNum;
 

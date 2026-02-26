@@ -1,5 +1,21 @@
 #include "sv_world.h"
 
+#include <bgame/bg_public.h>
+#include "sv_game.h"
+#include <qcommon/cm_world.h>
+#include <universal/com_math_anglevectors.h>
+#include <bgame/bg_slidemove.h>
+#include <qcommon/cm_test.h>
+#include <qcommon/cm_load.h>
+#include <qcommon/dobj_management.h>
+#include <cgame/cg_world.h>
+#include <qcommon/cm_tracebox.h>
+#include <bgame/bg_misc.h>
+#include <game_mp/g_utils_mp.h>
+#include <game_mp/g_main_mp.h>
+#include <glass/glass_server.h>
+#include <DynEntity/DynEntity_server.h>
+
 unsigned int __cdecl SV_ClipHandleForEntity(const gentity_s *ent)
 {
     if ( ent->r.bmodel )
@@ -24,94 +40,96 @@ void    SV_LinkEntity(gentity_s *gEnt)
     float v4; // [esp-8h] [ebp-2E4h]
     float v5; // [esp-4h] [ebp-2E0h]
     float absmax[3]; // [esp+0h] [ebp-2DCh] BYREF
-    float absmin[3]; // [esp+Ch] [ebp-2D0h]
-    DObj *obj; // [esp+18h] [ebp-2C4h]
-    unsigned int clipHandle; // [esp+1Ch] [ebp-2C0h]
-    unsigned __int16 cluster[4]; // [esp+20h] [ebp-2BCh] BYREF
-    unsigned __int16 leafs[128]; // [esp+2Ch] [ebp-2B0h] BYREF
-    float v12; // [esp+12Ch] [ebp-1B0h]
-    int lastLeaf; // [esp+130h] [ebp-1ACh]
-    float *v14; // [esp+134h] [ebp-1A8h]
-    float *max; // [esp+138h] [ebp-1A4h]
-    float *v16; // [esp+13Ch] [ebp-1A0h]
-    _BYTE v17[12]; // [esp+140h] [ebp-19Ch] BYREF
-    phys_vec3 aabb_mn; // [esp+14Ch] [ebp-190h] BYREF
-    phys_vec3 aabb_mx; // [esp+15Ch] [ebp-180h] BYREF
-    phys_mat44 xform; // [esp+16Ch] [ebp-170h] BYREF
-    float v21[9]; // [esp+1ACh] [ebp-130h] BYREF
-    float v22[3]; // [esp+1D0h] [ebp-10Ch] BYREF
-    phys_vec3 ctr; // [esp+1DCh] [ebp-100h]
-    float v24; // [esp+1F4h] [ebp-E8h]
-    float v25; // [esp+1F8h] [ebp-E4h]
-    float v26; // [esp+1FCh] [ebp-E0h]
-    float v27; // [esp+200h] [ebp-DCh]
-    float v28; // [esp+204h] [ebp-D8h]
-    float v29; // [esp+208h] [ebp-D4h]
-    float v30; // [esp+214h] [ebp-C8h]
-    float v31; // [esp+218h] [ebp-C4h]
-    float v32; // [esp+21Ch] [ebp-C0h]
-    float v33[3]; // [esp+220h] [ebp-BCh] BYREF
-    phys_vec3 rvec; // [esp+22Ch] [ebp-B0h]
-    float v35; // [esp+244h] [ebp-98h]
-    float v36; // [esp+248h] [ebp-94h]
-    float v37; // [esp+24Ch] [ebp-90h]
-    float v38; // [esp+250h] [ebp-8Ch]
-    float v39; // [esp+254h] [ebp-88h]
-    float v40; // [esp+258h] [ebp-84h]
-    float v41; // [esp+264h] [ebp-78h]
-    float v42; // [esp+268h] [ebp-74h]
-    float v43; // [esp+26Ch] [ebp-70h]
-    float v44; // [esp+270h] [ebp-6Ch] BYREF
-    float v45; // [esp+274h] [ebp-68h]
-    float v46; // [esp+278h] [ebp-64h]
-    phys_vec3 mx; // [esp+27Ch] [ebp-60h] BYREF
-    int v48; // [esp+29Ch] [ebp-40h]
-    int v49; // [esp+2A0h] [ebp-3Ch]
-    float v50; // [esp+2A4h] [ebp-38h]
-    int v51; // [esp+2A8h] [ebp-34h]
-    int v52; // [esp+2ACh] [ebp-30h]
-    float v53; // [esp+2B0h] [ebp-2Ch]
+    const DObj *absmin; // [esp+Ch] [ebp-2D0h]
+    unsigned int clipHandle; // [esp+10h] [ebp-2CCh]
+    unsigned __int16 cluster[4]; // [esp+14h] [ebp-2C8h]
+    int num_leafs; // [esp+1Ch] [ebp-2C0h]
+    unsigned __int16 leafs[130]; // [esp+20h] [ebp-2BCh] BYREF
+    int lastLeaf; // [esp+124h] [ebp-1B8h] BYREF
+    int m; // [esp+128h] [ebp-1B4h]
+    float max; // [esp+12Ch] [ebp-1B0h]
+    float *maxs; // [esp+130h] [ebp-1ACh]
+    float *v16; // [esp+134h] [ebp-1A8h]
+    float *mins; // [esp+138h] [ebp-1A4h]
+    float *v18; // [esp+13Ch] [ebp-1A0h]
+    phys_vec3 aabb_mn; // [esp+140h] [ebp-19Ch] BYREF
+    phys_vec3 aabb_mn_4; // [esp+150h] [ebp-18Ch] BYREF
+    phys_mat44 xform; // [esp+160h] [ebp-17Ch] BYREF
+    float v22[9]; // [esp+1ACh] [ebp-130h] BYREF
+    phys_vec3 ctr; // [esp+1D0h] [ebp-10Ch] BYREF
+    float ctr_4; // [esp+1E0h] [ebp-FCh]
+    float ctr_8; // [esp+1E4h] [ebp-F8h]
+    float ctr_12; // [esp+1E8h] [ebp-F4h]
+    float v27; // [esp+1F4h] [ebp-E8h]
+    float v28; // [esp+1F8h] [ebp-E4h]
+    float v29; // [esp+1FCh] [ebp-E0h]
+    float v30; // [esp+200h] [ebp-DCh]
+    float v31; // [esp+204h] [ebp-D8h]
+    float v32; // [esp+208h] [ebp-D4h]
+    float v33; // [esp+214h] [ebp-C8h]
+    float v34; // [esp+218h] [ebp-C4h]
+    float v35; // [esp+21Ch] [ebp-C0h]
+    phys_vec3 rvec; // [esp+220h] [ebp-BCh] BYREF
+    float rvec_4; // [esp+230h] [ebp-ACh]
+    float rvec_8; // [esp+234h] [ebp-A8h]
+    float rvec_12; // [esp+238h] [ebp-A4h]
+    float v40; // [esp+244h] [ebp-98h]
+    float v41; // [esp+248h] [ebp-94h]
+    float v42; // [esp+24Ch] [ebp-90h]
+    float v43; // [esp+250h] [ebp-8Ch]
+    float v44; // [esp+254h] [ebp-88h]
+    float v45; // [esp+258h] [ebp-84h]
+    float v46; // [esp+264h] [ebp-78h]
+    float v47; // [esp+268h] [ebp-74h]
+    float v48; // [esp+26Ch] [ebp-70h]
+    phys_vec3 mx; // [esp+270h] [ebp-6Ch] BYREF
+    phys_vec3 mn; // [esp+280h] [ebp-5Ch] BYREF
+    int v51; // [esp+29Ch] [ebp-40h]
+    int v52; // [esp+2A0h] [ebp-3Ch]
+    float v53; // [esp+2A4h] [ebp-38h]
+    int v54; // [esp+2A8h] [ebp-34h]
+    int v55; // [esp+2ACh] [ebp-30h]
+    float *angles; // [esp+2B0h] [ebp-2Ch]
     float *currentOrigin; // [esp+2B4h] [ebp-28h]
     float *currentAngles; // [esp+2B8h] [ebp-24h]
-    int v56; // [esp+2BCh] [ebp-20h]
-    float *origin; // [esp+2C0h] [ebp-1Ch]
-    float *angles; // [esp+2C4h] [ebp-18h]
-    int k; // [esp+2C8h] [ebp-14h]
-    int i; // [esp+2D0h] [ebp-Ch] BYREF
-    svEntity_s *ent; // [esp+2D4h] [ebp-8h]
-    svEntity_s *retaddr; // [esp+2DCh] [ebp+0h]
-
-    i = a1;
-    ent = retaddr;
-    if ( !gEnt->r.inuse
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\server\\sv_world.cpp", 83, 0, "%s", "gEnt->r.inuse") )
+    int k; // [esp+2BCh] [ebp-20h]
+    int j; // [esp+2C0h] [ebp-1Ch]
+    int i; // [esp+2C4h] [ebp-18h]
+    svEntity_s *ent; // [esp+2C8h] [ebp-14h]
+    //_UNKNOWN *v63[2]; // [esp+2D0h] [ebp-Ch] BYREF
+    //int vars0; // [esp+2DCh] [ebp+0h]
+    //
+    //v63[0] = a1;
+    //v63[1] = (_UNKNOWN *)vars0;
+    if (!gEnt->r.inuse
+        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\server\\sv_world.cpp", 83, 0, "%s", "gEnt->r.inuse"))
     {
         __debugbreak();
     }
-    k = (int)SV_SvEntityForGentity(gEnt);
-    if ( gEnt->r.bmodel )
+    ent = SV_SvEntityForGentity(gEnt);
+    if (gEnt->r.bmodel)
     {
-        gEnt->s.solid = (int)&cls.rankedServers[711].game[34];
+        gEnt->s.solid = 0xFFFFFF;
     }
-    else if ( ((unsigned int)&cls.wagerServers[5418].city[55] & gEnt->r.contents) != 0 )
+    else if ((gEnt->r.contents & 0x2008001) != 0)
     {
-        angles = (float *)(int)gEnt->r.maxs[0];
-        if ( (int)angles < 1 )
-            angles = (float *)1;
-        if ( (int)angles > 255 )
-            angles = (float *)255;
-        origin = (float *)(int)(float)(COERCE_FLOAT(LODWORD(gEnt->r.mins[2]) ^ _mask__NegFloat_) + 1.0);
-        if ( (int)origin < 1 )
-            origin = (float *)1;
-        if ( (int)origin > 255 )
-            origin = (float *)255;
-        v56 = (int)(float)(gEnt->r.maxs[2] + 32.0);
-        if ( v56 < 1 )
-            v56 = 1;
-        if ( v56 > 255 )
-            v56 = 255;
-        gEnt->s.solid = (unsigned int)angles | ((unsigned int)origin << 8) | (v56 << 16);
-        if ( (char *)gEnt->s.solid == &cls.rankedServers[711].game[34] )
+        i = (int)gEnt->r.maxs[0];
+        if (i < 1)
+            i = 1;
+        if (i > 255)
+            i = 255;
+        j = (int)(float)((-(gEnt->r.mins[2])) + 1.0);
+        if (j < 1)
+            j = 1;
+        if (j > 255)
+            j = 255;
+        k = (int)(float)(gEnt->r.maxs[2] + 32.0);
+        if (k < 1)
+            k = 1;
+        if (k > 255)
+            k = 255;
+        gEnt->s.solid = i | (j << 8) | (k << 16);
+        if (gEnt->s.solid == 0xFFFFFF)
             gEnt->s.solid = 1;
     }
     else
@@ -120,102 +138,94 @@ void    SV_LinkEntity(gentity_s *gEnt)
     }
     currentAngles = gEnt->r.currentAngles;
     currentOrigin = gEnt->r.currentOrigin;
-    v53 = gEnt->r.currentAngles[0];
-    if ( (LODWORD(v53) & 0x7F800000) == 0x7F800000
-        || (v52 = *((unsigned int *)currentAngles + 1), (v52 & 0x7F800000) == 0x7F800000)
-        || (v51 = *((unsigned int *)currentAngles + 2), (v51 & 0x7F800000) == 0x7F800000) )
+    angles = (float *)LODWORD(gEnt->r.currentAngles[0]);
+    if (((unsigned int)angles & 0x7F800000) == 0x7F800000
+        || (v55 = *((_DWORD *)currentAngles + 1), (v55 & 0x7F800000) == 0x7F800000)
+        || (v54 = *((_DWORD *)currentAngles + 2), (v54 & 0x7F800000) == 0x7F800000))
     {
-        if ( !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\server\\sv_world.cpp",
-                        131,
-                        0,
-                        "%s",
-                        "!IS_NAN((angles)[0]) && !IS_NAN((angles)[1]) && !IS_NAN((angles)[2])") )
+        if (!Assert_MyHandler(
+            "C:\\projects_pc\\cod\\codsrc\\src\\server\\sv_world.cpp",
+            131,
+            0,
+            "%s",
+            "!IS_NAN((angles)[0]) && !IS_NAN((angles)[1]) && !IS_NAN((angles)[2])"))
             __debugbreak();
     }
-    v50 = *currentOrigin;
-    if ( (LODWORD(v50) & 0x7F800000) == 0x7F800000
-        || (v49 = *((unsigned int *)currentOrigin + 1), (v49 & 0x7F800000) == 0x7F800000)
-        || (v48 = *((unsigned int *)currentOrigin + 2), (v48 & 0x7F800000) == 0x7F800000) )
+    v53 = *currentOrigin;
+    if ((LODWORD(v53) & 0x7F800000) == 0x7F800000
+        || (v52 = *((_DWORD *)currentOrigin + 1), (v52 & 0x7F800000) == 0x7F800000)
+        || (v51 = *((_DWORD *)currentOrigin + 2), (v51 & 0x7F800000) == 0x7F800000))
     {
-        if ( !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\server\\sv_world.cpp",
-                        132,
-                        0,
-                        "%s",
-                        "!IS_NAN((origin)[0]) && !IS_NAN((origin)[1]) && !IS_NAN((origin)[2])") )
+        if (!Assert_MyHandler(
+            "C:\\projects_pc\\cod\\codsrc\\src\\server\\sv_world.cpp",
+            132,
+            0,
+            "%s",
+            "!IS_NAN((origin)[0]) && !IS_NAN((origin)[1]) && !IS_NAN((origin)[2])"))
             __debugbreak();
     }
     SnapAngles(currentAngles);
-    if ( gEnt->r.bmodel )
+    if (gEnt->r.bmodel)
     {
-        Phys_Vec3ToNitrousVec(gEnt->r.mins, (phys_vec3 *)&mx.y);
-        Phys_Vec3ToNitrousVec(gEnt->r.maxs, (phys_vec3 *)&v44);
-        v43 = v44 - mx.y;
-        v42 = v45 - mx.z;
-        v41 = v46 - mx.w;
-        v38 = v44 - mx.y;
-        v39 = v45 - mx.z;
-        v40 = v46 - mx.w;
-        v37 = 0.5 * (float)(v44 - mx.y);
-        v36 = 0.5 * (float)(v45 - mx.z);
-        v35 = 0.5 * (float)(v46 - mx.w);
-        rvec.y = v37;
-        rvec.z = v36;
-        rvec.w = v35;
-        v33[0] = v37;
-        v33[1] = v36;
-        v33[2] = v35;
-        v32 = v44 + mx.y;
-        v31 = v45 + mx.z;
-        v30 = v46 + mx.w;
-        v27 = v44 + mx.y;
-        v28 = v45 + mx.z;
-        v29 = v46 + mx.w;
-        v26 = 0.5 * (float)(v44 + mx.y);
-        v25 = 0.5 * (float)(v45 + mx.z);
-        v24 = 0.5 * (float)(v46 + mx.w);
-        ctr.y = v26;
-        ctr.z = v25;
-        ctr.w = v24;
-        v22[0] = v26;
-        v22[1] = v25;
-        v22[2] = v24;
-        AnglesToAxis(gEnt->r.currentAngles, (float (*)[3])v21);
-        Phys_AxisToNitrousMat((float (*)[3])v21, (phys_mat44 *)&aabb_mx.y);
-        Phys_Vec3ToNitrousVec(gEnt->r.currentOrigin, (phys_vec3 *)&xform.z.y);
-        phys_calc_world_aabb(
-            COERCE_FLOAT(&i),
-            (const phys_vec3 *)v22,
-            (const phys_vec3 *)v33,
-            (const phys_mat44 *)&aabb_mx.y,
-            (phys_vec3 *)v17,
-            (phys_vec3 *)&aabb_mn.y);
-        Phys_NitrousVecToVec3((const phys_vec3 *)v17, gEnt->r.absmin);
-        Phys_NitrousVecToVec3((phys_vec3 *)&aabb_mn.y, gEnt->r.absmax);
+        Phys_Vec3ToNitrousVec(gEnt->r.mins, &mn);
+        Phys_Vec3ToNitrousVec(gEnt->r.maxs, &mx);
+        v48 = mx.x - mn.x;
+        v47 = mx.y - mn.y;
+        v46 = mx.z - mn.z;
+        v43 = mx.x - mn.x;
+        v44 = mx.y - mn.y;
+        v45 = mx.z - mn.z;
+        v42 = 0.5 * (float)(mx.x - mn.x);
+        v41 = 0.5 * (float)(mx.y - mn.y);
+        v40 = 0.5 * (float)(mx.z - mn.z);
+        rvec_4 = v42;
+        rvec_8 = v41;
+        rvec_12 = v40;
+        rvec.x = v42;
+        rvec.y = v41;
+        rvec.z = v40;
+        v35 = mx.x + mn.x;
+        v34 = mx.y + mn.y;
+        v33 = mx.z + mn.z;
+        v30 = mx.x + mn.x;
+        v31 = mx.y + mn.y;
+        v32 = mx.z + mn.z;
+        v29 = 0.5 * (float)(mx.x + mn.x);
+        v28 = 0.5 * (float)(mx.y + mn.y);
+        v27 = 0.5 * (float)(mx.z + mn.z);
+        ctr_4 = v29;
+        ctr_8 = v28;
+        ctr_12 = v27;
+        ctr.x = v29;
+        ctr.y = v28;
+        ctr.z = v27;
+        AnglesToAxis(gEnt->r.currentAngles, (float (*)[3])v22);
+        Phys_AxisToNitrousMat((float (*)[3])v22, &xform);
+        Phys_Vec3ToNitrousVec(gEnt->r.currentOrigin, &xform.w);
+        phys_calc_world_aabb(&ctr, &rvec, &xform, &aabb_mn, &aabb_mn_4);
+        Phys_NitrousVecToVec3(&aabb_mn, gEnt->r.absmin);
+        Phys_NitrousVecToVec3(&aabb_mn_4, gEnt->r.absmax);
     }
-    else if ( gEnt->sentient )
+    else if (gEnt->sentient)
     {
-        v16 = gEnt->r.absmin;
-        max = gEnt->r.mins;
+        v18 = gEnt->r.absmin;
+        mins = gEnt->r.mins;
         gEnt->r.absmin[0] = *currentOrigin + gEnt->r.mins[0];
-        v16[1] = currentOrigin[1] + max[1];
-        v16[2] = currentOrigin[2] + max[2];
-        v14 = gEnt->r.absmax;
-        lastLeaf = (int)gEnt->r.maxs;
+        v18[1] = currentOrigin[1] + mins[1];
+        v18[2] = currentOrigin[2] + mins[2];
+        v16 = gEnt->r.absmax;
+        maxs = gEnt->r.maxs;
         gEnt->r.absmax[0] = *currentOrigin + gEnt->r.maxs[0];
-        v14[1] = currentOrigin[1] + *(float *)(lastLeaf + 4);
-        v14[2] = currentOrigin[2] + *(float *)(lastLeaf + 8);
+        v16[1] = currentOrigin[1] + maxs[1];
+        v16[2] = currentOrigin[2] + maxs[2];
     }
     else
     {
-        v12 = RadiusFromBounds(gEnt->r.mins, gEnt->r.maxs);
-        *(unsigned int *)&leafs[126] = 0;
-        while ( *(int *)&leafs[126] < 3 )
+        max = RadiusFromBounds(gEnt->r.mins, gEnt->r.maxs);
+        for (m = 0; m < 3; ++m)
         {
-            gEnt->r.absmin[*(unsigned int *)&leafs[126]] = currentOrigin[*(unsigned int *)&leafs[126]] - v12;
-            gEnt->r.absmax[*(unsigned int *)&leafs[126]] = currentOrigin[*(unsigned int *)&leafs[126]] + v12;
-            ++*(unsigned int *)&leafs[126];
+            gEnt->r.absmin[m] = currentOrigin[m] - max;
+            gEnt->r.absmax[m] = currentOrigin[m] + max;
         }
     }
     gEnt->r.absmin[0] = gEnt->r.absmin[0] - 1.0;
@@ -224,52 +234,52 @@ void    SV_LinkEntity(gentity_s *gEnt)
     gEnt->r.absmax[0] = gEnt->r.absmax[0] + 1.0;
     gEnt->r.absmax[1] = gEnt->r.absmax[1] + 1.0;
     gEnt->r.absmax[2] = gEnt->r.absmax[2] + 1.0;
-    *(unsigned int *)(k + 260) = 0;
-    *(unsigned int *)(k + 328) = 0;
-    if ( (gEnt->r.svFlags & 0x19) == 0 )
+    ent->numClusters = 0;
+    ent->lastCluster = 0;
+    if ((gEnt->r.svFlags & 0x19) == 0)
     {
-        clipHandle = CM_BoxLeafnums(gEnt->r.absmin, gEnt->r.absmax, cluster, 128, (int *)&leafs[124]);
-        if ( !clipHandle )
+        num_leafs = CM_BoxLeafnums(gEnt->r.absmin, gEnt->r.absmax, leafs, 128, &lastLeaf);
+        if (!num_leafs)
         {
-LABEL_42:
-            CM_UnlinkEntity((svEntity_s *)k);
+        LABEL_42:
+            CM_UnlinkEntity(ent);
             return;
         }
-        for ( obj = 0; (int)obj < (int)clipHandle; obj = (DObj *)((char *)obj + 1) )
+        for (*(_DWORD *)&cluster[2] = 0; *(int *)&cluster[2] < num_leafs; ++*(_DWORD *)&cluster[2])
         {
-            LODWORD(absmin[2]) = CM_LeafCluster(cluster[(unsigned int)obj]);
-            if ( LODWORD(absmin[2]) != -1 )
+            *(_DWORD *)cluster = CM_LeafCluster(leafs[*(_DWORD *)&cluster[2]]);
+            if (*(_DWORD *)cluster != -1)
             {
-                *(float *)(k + 4 * (*(unsigned int *)(k + 260))++ + 264) = absmin[2];
-                if ( *(unsigned int *)(k + 260) == 16 )
+                ent->clusternums[ent->numClusters++] = *(_DWORD *)cluster;
+                if (ent->numClusters == 16)
                     break;
             }
         }
-        if ( obj != (DObj *)clipHandle )
+        if (*(_DWORD *)&cluster[2] != num_leafs)
         {
-            v2 = CM_LeafCluster(*(unsigned int *)&leafs[124]);
-            *(unsigned int *)(k + 328) = v2;
+            v2 = CM_LeafCluster(lastLeaf);
+            ent->lastCluster = v2;
         }
     }
     gEnt->r.linked = 1;
-    if ( !gEnt->r.contents )
+    if (!gEnt->r.contents)
         goto LABEL_42;
-    LODWORD(absmin[1]) = SV_ClipHandleForEntity(gEnt);
-    LODWORD(absmin[0]) = Com_GetServerDObj(gEnt->s.number);
-    if ( LODWORD(absmin[0]) && (gEnt->r.svFlags & 6) != 0 )
+    clipHandle = SV_ClipHandleForEntity(gEnt);
+    absmin = Com_GetServerDObj(gEnt->s.number);
+    if (absmin && (gEnt->r.svFlags & 6) != 0)
     {
-        if ( (gEnt->r.svFlags & 2) != 0 )
+        if ((gEnt->r.svFlags & 2) != 0)
         {
             absmax[0] = *currentOrigin + actorLocationalMins[0];
-            absmax[1] = currentOrigin[1] + *(float *)&dword_E0B814;
-            absmax[2] = currentOrigin[2] + *(float *)&dword_E0B818;
+            absmax[1] = currentOrigin[1] + actorLocationalMins[1];
+            absmax[2] = currentOrigin[2] + actorLocationalMins[2];
             v3 = *currentOrigin + actorLocationalMaxs[0];
-            v4 = currentOrigin[1] + *(float *)&dword_E0B820;
-            v5 = currentOrigin[2] + *(float *)&dword_E0B824;
+            v4 = currentOrigin[1] + actorLocationalMaxs[1];
+            v5 = currentOrigin[2] + actorLocationalMaxs[2];
         }
         else
         {
-            DObjGetBounds((const DObj *)LODWORD(absmin[0]), absmax, &v3);
+            DObjGetBounds(absmin, absmax, &v3);
             absmax[0] = *currentOrigin + absmax[0];
             absmax[1] = currentOrigin[1] + absmax[1];
             absmax[2] = currentOrigin[2] + absmax[2];
@@ -277,11 +287,11 @@ LABEL_42:
             v4 = currentOrigin[1] + v4;
             v5 = currentOrigin[2] + v5;
         }
-        CM_LinkEntity((svEntity_s *)k, absmax, &v3, LODWORD(absmin[1]));
+        CM_LinkEntity(ent, absmax, &v3, clipHandle);
     }
     else
     {
-        CM_LinkEntity((svEntity_s *)k, gEnt->r.absmin, gEnt->r.absmax, LODWORD(absmin[1]));
+        CM_LinkEntity(ent, gEnt->r.absmin, gEnt->r.absmax, clipHandle);
     }
 }
 
@@ -321,9 +331,9 @@ void __cdecl SV_TraceCapsuleToEntity(const moveclip_t *clip, svEntity_s *check, 
     if ( (touch->r.contents & clip->contentmask) != 0
         && (clip->passEntityNum == 1023
          || entnum != clip->passEntityNum
-         && (!EntHandle::isDefined(&touch->r.ownerNum)
-            || EntHandle::entnum(&touch->r.ownerNum) != clip->passEntityNum
-            && EntHandle::entnum(&touch->r.ownerNum) != clip->passOwnerNum)) )
+         && (!touch->r.ownerNum.isDefined()
+            || touch->r.ownerNum.entnum() != clip->passEntityNum
+            && touch->r.ownerNum.entnum() != clip->passOwnerNum)) )
     {
         absmin[0] = touch->r.absmin[0] + clip->mins[0];
         absmin[1] = touch->r.absmin[1] + clip->mins[1];
@@ -466,12 +476,12 @@ void __cdecl SV_TracePointToEntity(const pointtrace_t *clip, svEntity_s *check, 
         && clip->ignoreEntParams->baseEntity != 1023
         && (clip->ignoreEntParams->ignoreSelf && entnum == clip->ignoreEntParams->baseEntity
          || clip->ignoreEntParams->ignoreParent && entnum == clip->ignoreEntParams->parentEntity
-         || EntHandle::isDefined(&touch->r.ownerNum)
+         || touch->r.ownerNum.isDefined()
          && (clip->ignoreEntParams->ignoreSiblings
-            && EntHandle::entnum(&touch->r.ownerNum) == clip->ignoreEntParams->parentEntity
+            && touch->r.ownerNum.entnum() == clip->ignoreEntParams->parentEntity
             && entnum != clip->ignoreEntParams->baseEntity
             || clip->ignoreEntParams->ignoreChildren
-            && EntHandle::entnum(&touch->r.ownerNum) == clip->ignoreEntParams->baseEntity)) )
+            && touch->r.ownerNum.entnum() == clip->ignoreEntParams->baseEntity)))
     {
         return;
     }
@@ -483,8 +493,8 @@ void __cdecl SV_TracePointToEntity(const pointtrace_t *clip, svEntity_s *check, 
         {
             if ( (check->linkcontents & clip->contentmask) == 0 )
             {
-                if ( g_DXDeviceThread != GetCurrentThreadId() )
-                    return;
+                //if ( g_DXDeviceThread != GetCurrentThreadId() )
+                //    return;
                 goto LABEL_79;
             }
             if ( !intersect_extents_aabb(&clip->extents, touch->r.absmin, touch->r.absmax, trace->fraction) )
@@ -514,8 +524,8 @@ LABEL_79:
                 angles);
             if ( trace->fraction >= oldFraction )
             {
-                if ( g_DXDeviceThread != GetCurrentThreadId() )
-                    return;
+                //if ( g_DXDeviceThread != GetCurrentThreadId() )
+                //    return;
                 goto LABEL_79;
             }
             trace->modelIndex = 0;
@@ -547,8 +557,8 @@ LABEL_79:
             trace->hitId = number;
             trace->cflags = touch->r.contents;
         }
-        if ( g_DXDeviceThread != GetCurrentThreadId() )
-            return;
+        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //    return;
         goto LABEL_79;
     }
     //PIXBeginNamedEvent(-1, "SV_TracePointToEntity 1");
@@ -556,8 +566,8 @@ LABEL_79:
     {
         if ( !DObjHasContents(obj, clip->contentmask) )
         {
-            if ( g_DXDeviceThread != GetCurrentThreadId() )
-                return;
+            //if ( g_DXDeviceThread != GetCurrentThreadId() )
+            //    return;
             goto LABEL_79;
         }
         absmin[0] = touch->r.absmin[0];
@@ -621,8 +631,8 @@ LABEL_79:
         SV_XModelDebugBoxes(touch, colorWhite, partBits, 50);
     if ( objTrace.fraction >= trace->fraction )
     {
-        if ( GetCurrentThreadId() != g_DXDeviceThread )
-            return;
+        //if ( GetCurrentThreadId() != g_DXDeviceThread )
+        //    return;
 LABEL_40:
         //D3DPERF_EndEvent();
         return;
@@ -715,14 +725,14 @@ int __cdecl SV_SightTraceCapsuleToEntity(const sightclip_t *clip, int entnum)
     {
         if ( entnum == clip->passEntityNum[0] )
             return 0;
-        if ( EntHandle::isDefined(&touch->r.ownerNum) && EntHandle::entnum(&touch->r.ownerNum) == clip->passEntityNum[0] )
+        if ( touch->r.ownerNum.isDefined() && touch->r.ownerNum.entnum() == clip->passEntityNum[0])
             return 0;
     }
     if ( clip->passEntityNum[1] != 1023 )
     {
         if ( entnum == clip->passEntityNum[1] )
             return 0;
-        if ( EntHandle::isDefined(&touch->r.ownerNum) && EntHandle::entnum(&touch->r.ownerNum) == clip->passEntityNum[1] )
+        if ( touch->r.ownerNum.isDefined() && touch->r.ownerNum.entnum() == clip->passEntityNum[1])
             return 0;
     }
     for ( i = 0; i < 3; ++i )
@@ -828,9 +838,9 @@ int __cdecl SV_SightTracePointToEntity(const sightpointtrace_t *clip, int entnum
         {
             if ( entnum == clip->passEntityNum[passEntityIdx] )
                 return 0;
-            if ( EntHandle::isDefined(&touch->r.ownerNum) )
+            if ( touch->r.ownerNum.isDefined() )
             {
-                v3 = EntHandle::entnum(&touch->r.ownerNum);
+                v3 = touch->r.ownerNum.entnum();
                 if ( v3 == clip->passEntityNum[passEntityIdx] )
                     return 0;
             }
@@ -970,8 +980,8 @@ void __cdecl SV_SetupIgnoreEntParams(IgnoreEntParams *ignoreEntParams, int baseE
     else
     {
         base = (gentity_s *)(sv.bpsWindow[8] + baseEntity * sv.bpsWindow[9]);
-        if ( EntHandle::isDefined(&base->r.ownerNum) )
-            ignoreEntParams->parentEntity = EntHandle::entnum(&base->r.ownerNum);
+        if ( base->r.ownerNum.isDefined() )
+            ignoreEntParams->parentEntity = base->r.ownerNum.entnum();
         else
             ignoreEntParams->parentEntity = -1;
     }
@@ -1076,8 +1086,8 @@ void __cdecl SV_TracePoint(trace_t *results, const float *start, const float *en
         }
         if ( results->fraction == 0.0 )
         {
-            if ( g_DXDeviceThread != GetCurrentThreadId() )
-                return;
+            //if ( g_DXDeviceThread != GetCurrentThreadId() )
+            //    return;
             goto LABEL_43;
         }
     }
@@ -1092,21 +1102,16 @@ void __cdecl SV_TracePoint(trace_t *results, const float *start, const float *en
     clip.priorityMap = context->priorityMap;
     if ( context->ignoreEntParams->baseEntity != 1023 && context->ignoreEntParams->parentEntity != -1 )
     {
-        if ( !EntHandle::isDefined((EntHandle *)(sv.bpsWindow[8]
-                                                                                     + context->ignoreEntParams->baseEntity * sv.bpsWindow[9]
-                                                                                     + 316))
+        //if ( !EntHandle::isDefined((EntHandle *)(sv.bpsWindow[8] + context->ignoreEntParams->baseEntity * sv.bpsWindow[9] + 316))
+        if ( !((EntHandle *)(sv.bpsWindow[8] + context->ignoreEntParams->baseEntity * sv.bpsWindow[9] + 316))->isDefined()
             || (ignoreEntParams = context->ignoreEntParams,
-                    ignoreEntParams->parentEntity != EntHandle::entnum((EntHandle *)(sv.bpsWindow[8]
-                                                                                                                                                 + ignoreEntParams->baseEntity * sv.bpsWindow[9]
-                                                                                                                                                 + 316))) )
+                    ignoreEntParams->parentEntity != ((EntHandle *)(sv.bpsWindow[8] + ignoreEntParams->baseEntity * sv.bpsWindow[9] + 316))->entnum()) )
         {
-            if ( EntHandle::isDefined((EntHandle *)(sv.bpsWindow[8]
-                                                                                        + context->ignoreEntParams->baseEntity * sv.bpsWindow[9]
-                                                                                        + 316)) )
+            //if ( EntHandle::isDefined((EntHandle *)(sv.bpsWindow[8] + context->ignoreEntParams->baseEntity * sv.bpsWindow[9] + 316)) )
+            if ( ((EntHandle *)(sv.bpsWindow[8] + context->ignoreEntParams->baseEntity * sv.bpsWindow[9] + 316))->isDefined() )
             {
-                v6 = EntHandle::entnum((EntHandle *)(sv.bpsWindow[8]
-                                                                                     + context->ignoreEntParams->baseEntity * sv.bpsWindow[9]
-                                                                                     + 316));
+                //v6 = EntHandle::entnum((EntHandle *)(sv.bpsWindow[8] + context->ignoreEntParams->baseEntity * sv.bpsWindow[9] + 316));
+                v6 = ((EntHandle *)(sv.bpsWindow[8] + context->ignoreEntParams->baseEntity * sv.bpsWindow[9] + 316))->entnum();
                 v5 = va(
                              "base: %d; parent: %d; base's parent: %d\n",
                              context->ignoreEntParams->baseEntity,
@@ -1276,22 +1281,17 @@ void __cdecl SV_TraceCapsule(
         clip.passEntityNum = context->ignoreEntParams->baseEntity;
         if ( context->ignoreEntParams->baseEntity != 1023 && context->ignoreEntParams->parentEntity != -1 )
         {
-            if ( !EntHandle::isDefined((EntHandle *)(sv.bpsWindow[8]
-                                                                                         + context->ignoreEntParams->baseEntity * sv.bpsWindow[9]
-                                                                                         + 316))
+            //if ( !EntHandle::isDefined((EntHandle *)(sv.bpsWindow[8] + context->ignoreEntParams->baseEntity * sv.bpsWindow[9] + 316))
+            if ( !((EntHandle *)(sv.bpsWindow[8] + context->ignoreEntParams->baseEntity * sv.bpsWindow[9] + 316))->isDefined()
                 || (ignoreEntParams = context->ignoreEntParams,
-                        ignoreEntParams->parentEntity != EntHandle::entnum((EntHandle *)(sv.bpsWindow[8]
-                                                                                                                                                     + ignoreEntParams->baseEntity
-                                                                                                                                                     * sv.bpsWindow[9]
-                                                                                                                                                     + 316))) )
+                        //ignoreEntParams->parentEntity != EntHandle::entnum((EntHandle *)(sv.bpsWindow[8] + ignoreEntParams->baseEntity * sv.bpsWindow[9] + 316))) )
+                        ignoreEntParams->parentEntity != ((EntHandle *)(sv.bpsWindow[8] + ignoreEntParams->baseEntity * sv.bpsWindow[9] + 316))->entnum()) )
             {
-                if ( EntHandle::isDefined((EntHandle *)(sv.bpsWindow[8]
-                                                                                            + context->ignoreEntParams->baseEntity * sv.bpsWindow[9]
-                                                                                            + 316)) )
+                //if ( EntHandle::isDefined((EntHandle *)(sv.bpsWindow[8] + context->ignoreEntParams->baseEntity * sv.bpsWindow[9] + 316)) )
+                if ( ((EntHandle *)(sv.bpsWindow[8] + context->ignoreEntParams->baseEntity * sv.bpsWindow[9] + 316))->isDefined() )
                 {
-                    v8 = EntHandle::entnum((EntHandle *)(sv.bpsWindow[8]
-                                                                                         + context->ignoreEntParams->baseEntity * sv.bpsWindow[9]
-                                                                                         + 316));
+                    //v8 = EntHandle::entnum((EntHandle *)(sv.bpsWindow[8] + context->ignoreEntParams->baseEntity * sv.bpsWindow[9] + 316));
+                    v8 = ((EntHandle *)(sv.bpsWindow[8] + context->ignoreEntParams->baseEntity * sv.bpsWindow[9] + 316))->entnum();
                     v7 = va(
                                  "base: %d; parent: %d; base's parent: %d\n",
                                  context->ignoreEntParams->baseEntity,
@@ -1614,7 +1614,8 @@ void __cdecl G_LocationalTrace(
     SV_SetupIgnoreEntParams(&ignoreEntParams, passEntityNum);
     //col_context_t::col_context_t(&context, contentmask);
     context.ignoreEntParams = &ignoreEntParams;
-    col_context_t::init_locational(&context, passEntityNum);
+    //col_context_t::init_locational(&context, passEntityNum);
+    context.init_locational(passEntityNum);
     context.priorityMap = priorityMap;
     context.collide_entity_func = collide_entity_func;
     SV_TracePoint(results, start, end, &context);
@@ -1635,7 +1636,8 @@ void __cdecl G_LocationalTraceAllowChildren(
     ignoreEntParams.ignoreChildren = 0;
     //col_context_t::col_context_t(&context, contentmask);
     context.ignoreEntParams = &ignoreEntParams;
-    col_context_t::init_locational(&context, passEntityNum);
+    //col_context_t::init_locational(&context, passEntityNum);
+    context.init_locational(passEntityNum);
     context.priorityMap = priorityMap;
     SV_TracePoint(results, start, end, &context);
 }

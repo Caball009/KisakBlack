@@ -43,3 +43,5 @@ void __cdecl CG_PerfUpdate();
 void __cdecl UpdateData(CG_PerfData *data, int value);
 
 CG_PerfInfo cg_perfInfo;
+
+extern unsigned __int64 gRunFrameTicks;

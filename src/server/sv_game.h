@@ -1,4 +1,5 @@
 #pragma once
+#include <server_mp/sv_main_mp.h>
 
 playerState_s *__cdecl SV_GameClientNum(int num);
 svEntity_s *__cdecl SV_SvEntityForGentity(const gentity_s *gEnt);

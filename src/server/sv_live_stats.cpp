@@ -1,4 +1,6 @@
 #include "sv_live_stats.h"
+#include <qcommon/common.h>
+#include <server_mp/sv_main_mp.h>
 
 int __cdecl SV_GetClientNumForBdOnlineUserID(unsigned __int64 uid)
 {

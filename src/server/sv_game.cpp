@@ -1,4 +1,59 @@
 #include "sv_game.h"
+#include <bgame/bg_local.h>
+#include <server_mp/sv_main_mp.h>
+#include <client_mp/sv_client_mp.h>
+#include <server_mp/sv_init_mp.h>
+#include <qcommon/cm_load.h>
+#include <qcommon/dobj_management.h>
+#include "sv_world.h"
+#include <qcommon/cm_test.h>
+#include <game_mp/g_main_mp.h>
+#include <qcommon/dvar_cmds.h>
+#include <universal/com_memory.h>
+#include <xanim/dobj_utils.h>
+#include <xanim/xmodel_utils.h>
+#include <universal/com_math_anglevectors.h>
+#include <cgame/cg_drawtools.h>
+#include <server_mp/sv_ccmds_mp.h>
+#include <universal/com_files.h>
+#include <qcommon/com_bsp_load_obj.h>
+#include <client/cl_debugdata.h>
+#include <qcommon/threads.h>
+#include <game/g_load_utils.h>
+#include <win32/win_main.h>
+#include <win32/win_shared.h>
+#include <game/g_svcmds.h>
+
+int boxVerts_1[24][3] =
+{
+  { 0, 0, 0 },
+  { 1, 0, 0 },
+  { 0, 0, 0 },
+  { 0, 1, 0 },
+  { 1, 1, 0 },
+  { 1, 0, 0 },
+  { 1, 1, 0 },
+  { 0, 1, 0 },
+  { 0, 0, 1 },
+  { 1, 0, 1 },
+  { 0, 0, 1 },
+  { 0, 1, 1 },
+  { 1, 1, 1 },
+  { 1, 0, 1 },
+  { 1, 1, 1 },
+  { 0, 1, 1 },
+  { 0, 0, 0 },
+  { 0, 0, 1 },
+  { 1, 0, 0 },
+  { 1, 0, 1 },
+  { 0, 1, 0 },
+  { 0, 1, 1 },
+  { 1, 1, 0 },
+  { 1, 1, 1 }
+};
+
+char *g_sv_skel_memory_start;
+char g_sv_skel_memory[262144];
 
 playerState_s *__cdecl SV_GameClientNum(int num)
 {
@@ -10,9 +65,9 @@ svEntity_s *__cdecl SV_SvEntityForGentity(const gentity_s *gEnt)
     if ( !gEnt || gEnt->s.number >= 1024 )
     {
         if ( gEnt )
-            Com_Error(ERR_DROP, &byte_CEBF14, gEnt->s.number);
+            Com_Error(ERR_DROP, "SV_SvEntityForGentity: bad gEnt %d", gEnt->s.number);
         else
-            Com_Error(ERR_DROP, &byte_CEBF14, 0);
+            Com_Error(ERR_DROP, "SV_SvEntityForGentity: bad gEnt %d", 0);
     }
     return (svEntity_s *)sv.svEntities[gEnt->s.number].baseline.s.lerp.apos.trBase;
 }
@@ -134,7 +189,7 @@ char __cdecl SV_SetBrushModel(gentity_s *ent)
             ent->r.contents |= DObjGetContents(obj);
         }
     }
-    SV_LinkEntity((int)&savedregs, ent);
+    SV_LinkEntity(ent);
     return 1;
 }
 
@@ -272,7 +327,7 @@ void __cdecl SV_GetServerinfo(char *buffer, int bufferSize)
     char *v2; // eax
 
     if ( bufferSize < 1 )
-        Com_Error(ERR_DROP, &byte_CEC018, bufferSize);
+        Com_Error(ERR_DROP, "SV_GetServerinfo: bufferSize == %i", bufferSize);
     v2 = Dvar_InfoString(0, 4);
     I_strncpyz(buffer, v2, bufferSize);
 }
@@ -409,6 +464,7 @@ char *__cdecl SV_AllocSkelMemory(unsigned int size)
         sv.bpsWindow[15] += sizea;
         if ( sv.bpsWindow[15] <= 262128 )
             break;
+        static int warnCount_2;
         if ( warnCount_2 != sv.bpsWindow[14] )
         {
             warnCount_2 = sv.bpsWindow[14];
@@ -637,7 +693,7 @@ bool __cdecl SV_DObjExists(gentity_s *ent)
 
 void __cdecl SV_track_shutdown()
 {
-    track_shutdown(2);
+    //track_shutdown(2);
 }
 
 void __cdecl SV_SavePaths(unsigned __int8 *buf, unsigned int size)
@@ -745,7 +801,7 @@ void __cdecl    SV_RestartGameProgs(int savepersist)
 
 void __cdecl    SV_InitGameVM(int restart, int registerDvars)
 {
-    unsigned intv2; // eax
+    unsigned int v2; // eax
     int i; // [esp+Ch] [ebp-4h]
 
     //PIXBeginNamedEvent(-1, "SV_InitGameVM");

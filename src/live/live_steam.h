@@ -29,3 +29,5 @@ char __cdecl LiveSteam_AuthRequestTicket(const void *authBlob, unsigned int auth
 char __cdecl LiveSteam_AuthGetRequestedTicket(void *ticketBuf, unsigned int ticketBufSize, unsigned int *ticketSize);
 int __cdecl LiveSteam_Client_ConnectToSteamServer(unsigned __int64 serverID, void *authBlob, unsigned int bufferSize);
 void LiveSteam_Client_SteamDisconnect();
+
+extern const dvar_t *livesteam_sv_vac;

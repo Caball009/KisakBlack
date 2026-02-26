@@ -5,6 +5,11 @@ struct gentity_s;
 struct trace_t;
 struct col_context_t;
 struct pointtrace_t;
+struct DObj;
+struct moveclip_t;
+struct sightpointtrace_t;
+struct sightclip_t;
+struct IgnoreEntParams;
 
 
 unsigned int __cdecl SV_ClipHandleForEntity(const gentity_s *ent);
