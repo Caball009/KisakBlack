@@ -19,6 +19,8 @@
 #include <physics/phys_render.h>
 #include <physics/physics_system.h>
 
+#include <algorithm>
+
 StateEnt stateEntries[6] =
 {
   { Ragdoll_EnterDead, Ragdoll_ExitDead, NULL },
@@ -322,11 +324,12 @@ void __cdecl Ragdoll_ExplosionEvent(
             hitEntsSorter[hitCount].distSq = Vec3DistanceSq(origin, ragdollOrigin);
             hitEntsSorter[hitCount++].body = body;
         }
-        std::_Sort<RagdollSortStruct *,int,bool (__cdecl *)(RagdollSortStruct const &,RagdollSortStruct const &)>(
-            (MaterialMemory *)hitEntsSorter,
-            (MaterialMemory *)&hitEntsSorter[hitCount],
-            (8 * hitCount) >> 3,
-            (bool (__cdecl *)(const MaterialMemory *, const MaterialMemory *))DynEntCl_CompareDynEntsForExplosion);
+        std::sort(&hitEntsSorter[0], &hitEntsSorter[hitCount], DynEntCl_CompareDynEntsForExplosion);
+        //std::_Sort<RagdollSortStruct *,int,bool (__cdecl *)(RagdollSortStruct const &,RagdollSortStruct const &)>(
+        //    (MaterialMemory *)hitEntsSorter,
+        //    (MaterialMemory *)&hitEntsSorter[hitCount],
+        //    (8 * hitCount) >> 3,
+        //    (bool (__cdecl *)(const MaterialMemory *, const MaterialMemory *))DynEntCl_CompareDynEntsForExplosion);
         for ( i = 0; i < 4 && i < hitCount; ++i )
         {
             v13 = hitEntsSorter[i].body;
@@ -1436,187 +1439,176 @@ void __cdecl Ragdoll_EstimateInitialVelocities(RagdollBody *body)
 
 char    Ragdoll_TunnelTest(RagdollBody *body)
 {
-    float *v3; // [esp+44h] [ebp-1D0h]
+    rigid_body *v3; // [esp+44h] [ebp-1D0h]
     float v4; // [esp+70h] [ebp-1A4h]
-    float v5; // [esp+74h] [ebp-1A0h]
-    float v6; // [esp+78h] [ebp-19Ch] BYREF
-    float v7; // [esp+7Ch] [ebp-198h]
-    float ndif; // [esp+80h] [ebp-194h]
-    phys_vec3 dif; // [esp+84h] [ebp-190h]
-    float v10; // [esp+94h] [ebp-180h]
-    float v11; // [esp+98h] [ebp-17Ch]
-    float v12; // [esp+9Ch] [ebp-178h]
-    float v13; // [esp+A0h] [ebp-174h]
-    phys_vec3 last_position; // [esp+A4h] [ebp-170h]
-    float v15; // [esp+B4h] [ebp-160h]
-    int v16; // [esp+B8h] [ebp-15Ch]
-    PhysObjUserData *userData; // [esp+BCh] [ebp-158h]
-    float sphere_radius; // [esp+C0h] [ebp-154h]
-    float v19; // [esp+C8h] [ebp-14Ch] BYREF
-    float v20; // [esp+CCh] [ebp-148h]
-    float v21; // [esp+D0h] [ebp-144h]
-    phys_vec3 sphere_center; // [esp+D4h] [ebp-140h] BYREF
-    float newPos[3]; // [esp+ECh] [ebp-128h] BYREF
-    float center[4]; // [esp+F8h] [ebp-11Ch] BYREF
-    float end[3]; // [esp+108h] [ebp-10Ch] BYREF
-    float v26; // [esp+114h] [ebp-100h]
-    float start[3]; // [esp+118h] [ebp-FCh] BYREF
-    float boneMat[3][3]; // [esp+124h] [ebp-F0h] BYREF
-    float orientation[4]; // [esp+148h] [ebp-CCh]
-    BoneOrientation *v30; // [esp+158h] [ebp-BCh]
-    BoneOrientation *v31; // [esp+15Ch] [ebp-B8h]
-    int i; // [esp+160h] [ebp-B4h]
-    BoneOrientation *boneOrientations; // [esp+164h] [ebp-B0h]
-    BoneOrientation *curOrientation; // [esp+168h] [ebp-ACh]
-    BoneDef *boneDef; // [esp+16Ch] [ebp-A8h] BYREF
-    Bone *bone; // [esp+170h] [ebp-A4h]
-    RagdollDef *def; // [esp+174h] [ebp-A0h]
-    trace_t revTrace; // [esp+178h] [ebp-9Ch] BYREF
-    col_context_t context; // [esp+1B0h] [ebp-64h] BYREF
-    trace_t trace; // [esp+1D8h] [ebp-3Ch] BYREF
-    int retaddr; // [esp+214h] [ebp+0h]
-
-    trace.staticModel = a1;
-    trace.hitPartition = retaddr;
-    memset(&context.locational, 0, 12);
-    trace.normal.vec.u[0] = 0;
-    col_context_t::col_context_t((col_context_t *)&revTrace.walkable);
-    boneDef = *(BoneDef **)&FLOAT_0_0;
-    bone = *(Bone **)&FLOAT_0_0;
-    def = *(RagdollDef **)&FLOAT_0_0;
-    revTrace.normal.vec.u[0] = 0;
-    if ( !body
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\ragdoll\\ragdoll_update.cpp", 1447, 0, "%s", "body") )
+    float ndif; // [esp+74h] [ebp-1A0h]
+    phys_vec3 dif; // [esp+78h] [ebp-19Ch] BYREF
+    float v7; // [esp+8Ch] [ebp-188h]
+    float v8; // [esp+90h] [ebp-184h]
+    float v9; // [esp+94h] [ebp-180h]
+    phys_vec3 last_position; // [esp+98h] [ebp-17Ch]
+    phys_mat44 *p_m_mat; // [esp+ACh] [ebp-168h]
+    PhysObjUserData *userData; // [esp+B0h] [ebp-164h]
+    float sphere_radius; // [esp+B4h] [ebp-160h]
+    int v14; // [esp+B8h] [ebp-15Ch]
+    int v15; // [esp+BCh] [ebp-158h]
+    float v16; // [esp+C0h] [ebp-154h]
+    phys_vec3 sphere_center; // [esp+C8h] [ebp-14Ch] BYREF
+    const cpose_t *pose; // [esp+DCh] [ebp-138h]
+    float newPos[3]; // [esp+E0h] [ebp-134h] BYREF
+    float center[4]; // [esp+ECh] [ebp-128h] BYREF
+    float end[3]; // [esp+FCh] [ebp-118h] BYREF
+    float length; // [esp+108h] [ebp-10Ch]
+    float start[3]; // [esp+10Ch] [ebp-108h] BYREF
+    float boneMat[3][3]; // [esp+118h] [ebp-FCh] BYREF
+    float orientation[4]; // [esp+13Ch] [ebp-D8h] BYREF
+    float *v26; // [esp+14Ch] [ebp-C8h]
+    int v27; // [esp+150h] [ebp-C4h]
+    int i; // [esp+154h] [ebp-C0h]
+    BoneOrientation *boneOrientations; // [esp+158h] [ebp-BCh]
+    BoneOrientation *curOrientation; // [esp+15Ch] [ebp-B8h]
+    BoneDef *boneDef; // [esp+160h] [ebp-B4h]
+    Bone *bone; // [esp+164h] [ebp-B0h]
+    RagdollDef *def; // [esp+168h] [ebp-ACh]
+    trace_t revTrace; // [esp+16Ch] [ebp-A8h] BYREF
+    col_context_t context; // [esp+1A4h] [ebp-70h] BYREF
+    trace_t trace; // [esp+1CCh] [ebp-48h] BYREF
+    //_UNKNOWN *v37[2]; // [esp+208h] [ebp-Ch] BYREF
+    //int v38; // [esp+210h] [ebp-4h] BYREF
+    //int vars0; // [esp+214h] [ebp+0h]
+    //
+    //v37[0] = a1;
+    //v37[1] = (_UNKNOWN *)vars0;
+    memset(&trace, 0, 16);
+    //col_context_t::col_context_t(&context);
+    memset(&revTrace, 0, 16);
+    if (!body
+        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\ragdoll\\ragdoll_update.cpp", 1447, 0, "%s", "body"))
     {
         __debugbreak();
     }
-    curOrientation = (BoneOrientation *)Ragdoll_BodyDef(body);
-    if ( !curOrientation
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\ragdoll\\ragdoll_update.cpp", 1450, 0, "%s", "def") )
-    {
+    def = Ragdoll_BodyDef(body);
+    if (!def && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\ragdoll\\ragdoll_update.cpp", 1450, 0, "%s", "def"))
         __debugbreak();
-    }
-    boneOrientations = (BoneOrientation *)body->bones;
-    i = (int)&curOrientation->origin[2];
-    v31 = Ragdoll_BodyBoneOrientations(body);
-    v30 = v31;
-    orientation[3] = 0.0;
-    while ( SLODWORD(orientation[3]) < body->numBones )
+    bone = body->bones;
+    boneDef = def->boneDefs;
+    curOrientation = Ragdoll_BodyBoneOrientations(body);
+    boneOrientations = curOrientation;
+    i = 0;
+    while (i < body->numBones)
     {
-        if ( LODWORD(boneOrientations->origin[2]) )
+        if (bone->rigidBody)
         {
-            LOBYTE(orientation[2]) = *(_BYTE *)(i + 52);
-            LODWORD(orientation[1]) = v31->orientation;
-            if ( LOBYTE(orientation[2]) )
+            (v27) = boneDef->mirror;
+            v26 = curOrientation->orientation;
+            if (v27)
             {
-                Ragdoll_QuatMul((const float *)LODWORD(orientation[1]), quatZRot, boneMat[2]);
+                Ragdoll_QuatMul(v26, quatZRot, orientation);
             }
             else
             {
-                *(_QWORD *)&boneMat[2][0] = *(_QWORD *)LODWORD(orientation[1]);
-                boneMat[2][2] = *(float *)(LODWORD(orientation[1]) + 8);
-                orientation[0] = *(float *)(LODWORD(orientation[1]) + 12);
+                orientation[0] = *v26;
+                orientation[1] = v26[1];
+                orientation[2] = v26[2];
+                orientation[3] = v26[3];
             }
-            QuatToAxis(boneMat[2], (float (*)[3])start);
-            end[1] = v31->origin[0];
-            end[2] = v31->origin[1];
-            v26 = v31->origin[2];
-            end[0] = *(float *)&boneOrientations->boneFlags;
-            center[1] = (float)(end[0] * start[0]) + v31->origin[0];
-            center[2] = (float)(end[0] * start[1]) + v31->origin[1];
-            center[3] = (float)(end[0] * start[2]) + v31->origin[2];
-            if ( LODWORD(orientation[3]) )
+            QuatToAxis(orientation, boneMat);
+            start[0] = curOrientation->origin[0];
+            start[1] = curOrientation->origin[1];
+            start[2] = curOrientation->origin[2];
+            length = bone->length;
+            end[0] = (float)(length * boneMat[0][0]) + curOrientation->origin[0];
+            end[1] = (float)(length * boneMat[0][1]) + curOrientation->origin[1];
+            end[2] = (float)(length * boneMat[0][2]) + curOrientation->origin[2];
+            if (i)
             {
-                center[0] = *(float *)&boneOrientations->boneFlags * 0.5;
-                newPos[0] = (float)(center[0] * start[0]) + end[1];
-                newPos[1] = (float)(center[0] * start[1]) + end[2];
-                newPos[2] = (float)(center[0] * start[2]) + v26;
+                center[3] = bone->length * 0.5;
+                center[0] = (float)(center[3] * boneMat[0][0]) + start[0];
+                center[1] = (float)(center[3] * boneMat[0][1]) + start[1];
+                center[2] = (float)(center[3] * boneMat[0][2]) + start[2];
                 CM_BoxTrace(
-                    (trace_t *)&context.locational,
-                    v30->origin,
-                    newPos,
+                    &trace,
+                    boneOrientations->origin,
+                    center,
                     vec3_origin,
                     vec3_origin,
-                    (int)&cls.recentServers[7546].city[57],
-                    (col_context_t *)&revTrace.walkable);
-                if ( HIBYTE(trace.hitType) )
+                    0x280EC93,
+                    &context);
+                if (trace.startsolid)
                     return 0;
-                if ( BYTE2(trace.hitType)
+                if (trace.allsolid
                     && !Assert_MyHandler(
-                                "C:\\projects_pc\\cod\\codsrc\\src\\ragdoll\\ragdoll_update.cpp",
-                                1486,
-                                0,
-                                "%s",
-                                "!trace.allsolid") )
+                        "C:\\projects_pc\\cod\\codsrc\\src\\ragdoll\\ragdoll_update.cpp",
+                        1486,
+                        0,
+                        "%s",
+                        "!trace.allsolid"))
                 {
                     __debugbreak();
                 }
-                if ( trace.normal.vec.v[1] < 1.0 )
+                if (trace.fraction < 1.0)
                 {
-                    trace.normal.vec.v[1] = trace.normal.vec.v[1] * 0.80000001;
-                    Vec3Lerp(v30->origin, newPos, trace.normal.vec.v[1], &sphere_center.w);
-                    Phys_ObjSetPosition((int)&trace.staticModel, LODWORD(boneOrientations->origin[2]), &sphere_center.w);
+                    trace.fraction = trace.fraction * 0.80000001;
+                    Vec3Lerp(boneOrientations->origin, center, trace.fraction, newPos);
+                    Phys_ObjSetPosition(bone->rigidBody, newPos);
                 }
             }
-            else if ( !Ragdoll_BoneTrace((trace_t *)&context.locational, (trace_t *)&boneDef, &end[1], &center[1]) )
+            else if (!Ragdoll_BoneTrace(&trace, &revTrace, start, end))
             {
                 return 0;
             }
         }
-        ++LODWORD(orientation[3]);
-        boneOrientations = (BoneOrientation *)((char *)boneOrientations + 28);
-        i += 80;
-        ++v31;
+        ++i;
+        ++bone;
+        ++boneDef;
+        ++curOrientation;
     }
-    LODWORD(sphere_center.z) = Ragdoll_BodyPose(body);
-    Phys_Vec3ToNitrousVec((float *)(LODWORD(sphere_center.z) + 48), (phys_vec3 *)&v19);
-    v16 = 0;
-    userData = *(PhysObjUserData **)&FLOAT_0_0;
-    sphere_radius = 15.0f;
-    v19 = v19 + 0.0;
-    v20 = v20 + 0.0;
-    v21 = v21 + 15.0;
-    v15 = 10.0f;
-    boneOrientations = (BoneOrientation *)body->bones;
-    LODWORD(orientation[3]) = 1;
-    while ( SLODWORD(orientation[3]) < body->numBones )
+    pose = (const cpose_t *)Ragdoll_BodyPose(body);
+    Phys_Vec3ToNitrousVec(pose->origin, &sphere_center);
+    v14 = 0.0f;
+    v15 = 0.0f;
+    v16 = 15.0f;
+    sphere_center.x = sphere_center.x + 0.0;
+    sphere_center.y = sphere_center.y + 0.0;
+    sphere_center.z = sphere_center.z + 15.0;
+    sphere_radius = 10.0f;
+    bone = body->bones;
+    i = 1;
+    while (i < body->numBones)
     {
-        if ( LODWORD(boneOrientations->origin[2]) )
+        if (bone->rigidBody)
         {
-            last_position.w = boneOrientations->origin[2];
-            LODWORD(last_position.z) = *(unsigned int *)LODWORD(last_position.w) + 48;
-            v11 = *(float *)(LODWORD(last_position.z) + 48);
-            v12 = *(float *)(LODWORD(last_position.z) + 52);
-            v13 = *(float *)(LODWORD(last_position.z) + 56);
-            last_position.x = *(float *)(LODWORD(last_position.z) + 60);
-            v10 = v11 - v19;
-            dif.w = v12 - v20;
-            dif.z = v13 - v21;
-            v6 = v11 - v19;
-            v7 = v12 - v20;
-            ndif = v13 - v21;
-            v5 = Abs(&v6);
-            if ( v5 > v15 )
+            userData = (PhysObjUserData *)bone->rigidBody;
+            p_m_mat = &userData->body->m_mat;
+            last_position = p_m_mat->w;
+            v9 = last_position.x - sphere_center.x;
+            v8 = last_position.y - sphere_center.y;
+            v7 = last_position.z - sphere_center.z;
+            dif.x = last_position.x - sphere_center.x;
+            dif.y = last_position.y - sphere_center.y;
+            dif.z = last_position.z - sphere_center.z;
+            ndif = Abs(&dif.x);
+            if (ndif > sphere_radius)
             {
-                v4 = (float)(v5 - v15) / v5;
-                v11 = v11 - (float)(v4 * v6);
-                v12 = v12 - (float)(v4 * v7);
-                v13 = v13 - (float)(v4 * ndif);
+                v4 = (float)(ndif - sphere_radius) / ndif;
+                last_position.x = last_position.x - (float)(v4 * dif.x);
+                last_position.y = last_position.y - (float)(v4 * dif.y);
+                last_position.z = last_position.z - (float)(v4 * dif.z);
             }
-            v3 = *(float **)LODWORD(last_position.w);
-            *v3 = v11;
-            v3[1] = v12;
-            v3[2] = v13;
-            if ( fabs(**(unsigned int **)LODWORD(last_position.w)) > 100000.0
-                || fabs(*(unsigned int *)(*(unsigned int *)LODWORD(last_position.w) + 4)) > 100000.0
-                || fabs(*(unsigned int *)(*(unsigned int *)LODWORD(last_position.w) + 8)) > 100000.0 )
+            v3 = userData->body;
+            v3->m_last_position.x = last_position.x;
+            v3->m_last_position.y = last_position.y;
+            v3->m_last_position.z = last_position.z;
+            if (   (fabs(userData->body->m_last_position.x)) > 100000.0
+                || (fabs(userData->body->m_last_position.y)) > 100000.0
+                || (fabs(userData->body->m_last_position.z)) > 100000.0)
             {
-                phys_exec_debug_callback(*(void **)LODWORD(last_position.w));
+                phys_exec_debug_callback(userData->body);
             }
-            //BLOPS_NULLSUB();
+            //BG_EvalVehicleName();
         }
-        ++LODWORD(orientation[3]);
-        boneOrientations = (BoneOrientation *)((char *)boneOrientations + 28);
+        ++i;
+        ++bone;
     }
     body->m_bpg->m_flags |= 0x200u;
     return 1;
@@ -2124,10 +2116,10 @@ void    Ragdoll_DebugRender(RagdollBody *body)
     int v16; // [esp+2Ch] [ebp-14h]
     int i; // [esp+30h] [ebp-10h]
     Joint joint; // [esp+34h] [ebp-Ch] BYREF
-    int retaddr; // [esp+40h] [ebp+0h]
-
-    joint.joint = a1;
-    joint.joint2 = retaddr;
+    //int retaddr; // [esp+40h] [ebp+0h]
+    //
+    //joint.joint = a1;
+    //joint.joint2 = retaddr;
     if ( ragdoll_debug->current.integer > 0 )
     {
         if ( ragdoll_debug->current.integer == 4 )
@@ -2174,7 +2166,8 @@ void    Ragdoll_DebugRender(RagdollBody *body)
         envRigBody = phys_sys::get_environment_rigid_body();
         body->debug_hang_point = phys_sys::create_rbc_point(v9, envRigBody, 0);
         memset(&v4, 0, 12);
-        rigid_body_constraint_point::set(body->debug_hang_point, &v4, (const phys_vec3 *)v6);
+        //rigid_body_constraint_point::set(body->debug_hang_point, &v4, (const phys_vec3 *)v6);
+        body->debug_hang_point->set(&v4, (const phys_vec3 *)v6);
         //rigid_body::set_flag(v9, 0x40u, 1);
         v9->set_flag(0x40, 1);
     }
