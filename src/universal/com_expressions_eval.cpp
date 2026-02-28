@@ -1,5 +1,1610 @@
 #include "com_expressions_eval.h"
 #include "assertive.h"
+#include <ui/ui_localvars.h>
+#include <qcommon/com_clients.h>
+#include <win32/win_shared.h>
+#include <cgame_mp/cg_players_mp.h>
+#include <client/cl_rank.h>
+#include <client_mp/cl_ui_mp.h>
+#include <bgame/bg_misc.h>
+#include <client/splitscreen.h>
+#include <live/live_win.h>
+#include <cgame/cg_compass.h>
+#include <client/client.h>
+#include <bgame/bg_unlockable_items.h>
+#include <live/live_fileshare.h>
+#include <live/live_fileshare_search.h>
+#include <live/live_counter.h>
+#include <ui/ui_utils.h>
+#include <client_mp/cl_ui_pc_mp.h>
+#include <cgame/cg_ammocounter.h>
+#include <cgame_mp/cg_consolecmds_mp.h>
+#include <ui/ui_playlists.h>
+#include <game_mp/g_main_mp.h>
+#include <client/cl_console.h>
+#include <live/live_friends_pc.h>
+#include <ui/ui_emblem.h>
+#include <ui_mp/ui_main_mp.h>
+#include <demo/demo_playback.h>
+#include <demo/demo_ui.h>
+#include <ui_mp/ui_gametype_custom_mp.h>
+#include <live/live_groups_dw.h>
+#include <live/live_storage_win.h>
+#include <live/live_meetplayer.h>
+#include <live/live_contracts.h>
+#include "com_tasks.h"
+#include <live/live_clans.h>
+#include <live/live_pcache_profile.h>
+#include <client_mp/cl_main_pc_mp.h>
+#include <win32/win_gamerprofile.h>
+#include <live/live_storage_pub.h>
+#include <ui/ui_feeders.h>
+#include <cgame/cg_drawtools.h>
+
+void __cdecl GetToastPopupTitle(int localClientNum, itemDef_s *item, OperandStack *dataStack)
+{
+    Operand result; // [esp+0h] [ebp-Ch] BYREF
+    uiInfo_s *uiInfo; // [esp+8h] [ebp-4h]
+
+    uiInfo = UI_GetInfo(localClientNum);
+    result.dataType = VAL_STRING;
+    result.internals.string = uiInfo->toastPopupTitle;
+    if (uiscript_debug && uiscript_debug->current.integer)
+        Expression_TraceInternal("GetToastPopupTitle() = %s\n", result.internals.string);
+    AddOperandToStack(dataStack, &result);
+}
+
+void IsVisible_0(int localClientNum, itemDef_s *item, OperandStack *dataStack)
+{
+    char *SourceString; // eax
+    int UIContextIndex; // eax
+    itemDef_s *v6; // [esp-4h] [ebp-18h]
+    Operand result; // [esp+0h] [ebp-14h] BYREF
+    Operand data; // [esp+8h] [ebp-Ch] BYREF
+    itemDef_s *actualItem; // [esp+10h] [ebp-4h]
+
+    GetOperand(dataStack, &data);
+    result.dataType = VAL_INT;
+    result.internals.intVal = 0;
+    SourceString = GetSourceString(data);
+    actualItem = Menu_GetMatchingItemByNumber(item->parent, 0, SourceString);
+    if (actualItem)
+    {
+        v6 = actualItem;
+        UIContextIndex = Com_LocalClient_GetUIContextIndex(localClientNum);
+        result.internals.intVal = Window_IsVisible(UIContextIndex, &v6->window);
+    }
+    AddOperandToStack(dataStack, &result);
+}
+
+void(__cdecl *rpnFunctions[480])(const int, itemDef_s *, OperandStack *) =
+{
+  &RPN_OP_NOOP,
+  NULL,
+  &RPN_OP_MULTIPLY,
+  &RPN_OP_DIVIDE,
+  &RPN_OP_MODULUS,
+  &RPN_OP_ADD,
+  &RPN_OP_SUBTRACT,
+  &RPN_OP_NEGATE,
+  &RPN_OP_NOT,
+  &RPN_OP_LESSTHAN,
+  &RPN_OP_LESSTHANEQUALTO,
+  &RPN_OP_GREATERTHAN,
+  &RPN_OP_GREATERTHANEQUALTO,
+  &RPN_OP_EQUALS,
+  &RPN_OP_NOTEQUAL,
+  &RPN_OP_AND,
+  &RPN_OP_OR,
+  NULL,
+  &RPN_OP_COMMA,
+  &RPN_OP_BITWISEAND,
+  &RPN_OP_BITWISEOR,
+  &RPN_OP_BITWISENOT,
+  &RPN_OP_BITSHIFTLEFT,
+  &RPN_OP_BITSHIFTRIGHT,
+  &RPN_FUNC_INVALID,
+  &GetSinValue,
+  &GetCosValue,
+  &MinValue,
+  &MaxValue,
+  &GetMilliseconds,
+  &GetDvarValue,
+  &GetDvarIntValue,
+  &GetDvarBoolValue,
+  &GetDvarFloatValue,
+  &GetDvarStringValue,
+  &GetUIActive,
+  &GetFlashbanged,
+  &GetScoped,
+  &GetScoreboardVisible,
+  &InKillcam,
+  &IsDualWield,
+  &IsFuelWeapon,
+  &GetPlayerField,
+  &GetSelectingLocation,
+  &GetTeamField,
+  &GetOtherTeamField,
+  &GetTeamMarinesField,
+  &GetTeamOpForField,
+  &IsMenuOpen,
+  &WritingData,
+  &InLobby,
+  &InPrivateParty,
+  &PrivatePartyHost,
+  &PrivatePartyHostInLobby,
+  &AloneInPrivateParty,
+  &IsGroup,
+  &AloneInLobby,
+  &GetAdsJavelin,
+  &GetWeapLockBlink,
+  &GetWeapAttackTop,
+  &GetWeapAttackDirect,
+  &SecondsAsTimeDisplay,
+  &TableLookup,
+  &StatsTableLookup,
+  &GetClassBonus,
+  &LocalizeString,
+  &GetLocalVarIntValue,
+  &GetLocalVarBoolValue,
+  &GetLocalVarFloatValue,
+  &GetLocalVarStringValue,
+  &GetTimeLeft,
+  &SecondsAsCountdownDisplay,
+  &GetGameMessageWindowActive,
+  &RPN_FUNC_TOINT,
+  &RPN_FUNC_TOSTRING,
+  &RPN_FUNC_TOFLOAT,
+  &GetGametypeName,
+  &GetGametypeInternal,
+  &GetGametypeObjective,
+  &GetScore,
+  &UI_GetOnlineFriendCount,
+  &GetFollowing,
+  &GetKeyBinding,
+  &GetActionSlotUsable,
+  &GetHudFade,
+  &IsGroup,
+  &IsGroup,
+  &GameHost,
+  &IsVisibilityBitSet,
+  &Splitscreen,
+  &SplitscreenHost,
+  &SplitscreenNum,
+  &IsCinematicFinished,
+  &IsSelectingLocationalKillstreak,
+  &IsSelectingAirstrike,
+  &IsSelectingArtillery,
+  &IsSelectingNapalm,
+  &IsSelectingMortar,
+  &IsSelectingComlink,
+  &IsGroup,
+  &IsGroup,
+  &GetGameInvitesCount,
+  &IsGroup,
+  &GetPartyMissingMapPackError,
+  &IsGroup,
+  &GetIsIntermission,
+  &GetIsSuperUser,
+  &GetIsAutoJoinDevUser,
+  &IsItemLocked,
+  &IsItemDualWieldLocked,
+  &IsItemDualWieldPurchased,
+  &IsItemNew,
+  &GetItemRef,
+  &GetItemName,
+  &GetItemImage,
+  &GetItemUnlockLevel,
+  &GetItemUnlockPLevel,
+  &GetItemDesc,
+  &GetItemIndex,
+  &GetItemDualWieldIndex,
+  &GetItemDualWieldBaseIndex,
+  &GetItemCost,
+  &GetItemDualWieldCost,
+  &GetItemSellPrice,
+  &GetItemCount,
+  &GetItemGroup,
+  &GetPlayerStatByName,
+  &RPN_FUNC_ISCLANMEMBER,
+  &RPN_FUNC_ISCLANMEMBER,
+  &RPN_FUNC_ISCLANMEMBER,
+  &GetClanDateFounded,
+  &GetXUID,
+  &GetSelfGamertag,
+  &GetRankByXUID,
+  &GetPrestigeByXUID,
+  &GetCodpointsByXUID,
+  &GetDisplayLevelByXUID,
+  &GetClanDateFounded,
+  &GetClanDateFounded,
+  &GetClanDateFounded,
+  &ClanMemberRankIsAtleast,
+  &IsGroup,
+  &GetClanName,
+  &GetClanMOTD,
+  &GetClanTagAndName,
+  &IsGroup,
+  &GetMutedStatus,
+  &GetUIRect,
+  &GetFeederData,
+  &HasFocus,
+  &IsVisible_0,
+  &GetRank,
+  &GetPrestige,
+  &GetPlayerCardTitle,
+  &GetDefaultClassSlot,
+  &GetCacFactionNameWithButtons,
+  &GetItemAttachment,
+  &GetStatForFriendOrSelf,
+  &GetSortedStatsForFriendOrSelf,
+  &GetFloatAsFormattedString,
+  &ChangeSortedStatsPivot,
+  &CanScrollUpOrDown,
+  &GetCurrentScrollBarPosition,
+  &GetCombatRecordInfoBarWidth,
+  &GetCombatRecordInfoBarText,
+  &GetCombatRecordInfoBarTagText,
+  &GetCombatRecordHistogramHeight,
+  &GetCombatRecordPieChartText,
+  &GetCombatRecordMinMaxScore,
+  &GetCombatRecordFailedContracts,
+  &GetCombatRecordLockedString,
+  &GetNumWagerMatchesPlayed,
+  &GetNumWagerMatchesWon,
+  &GetAfterActionReportAwardsInfo,
+  &GetNumPersonalBests,
+  &GetPersonalBestName,
+  &GetPersonalBestValue,
+  &GetPersonalBestDelta,
+  &GetPersonalBestPrefix,
+  &GetNumWeaponUnlocks,
+  &GetNumFeatureUnlocks,
+  &GetUnlockedWeaponItemIndex,
+  &GetUnlockedFeatureItemIndex,
+  &GetNumStatsMilestones,
+  &GetStatsMilestoneValue,
+  &GetStatsMilestoneName,
+  &GetCurrentChallengeXpReward,
+  &GetCurrentChallengeCpReward,
+  &GetCurrentChallengeProgress,
+  &IsCurrentChallengeItemClassified,
+  &GetNumChallenges,
+  &GetTotalMatchesPlayed,
+  &GetCopyClassConfirmationText,
+  &GetCopyClassDialogTitle,
+  &IsFileshareDataSummaryValid,
+  &GetFileshareRecentGamesCount,
+  &GetFileshareGameMap,
+  &GetFileshareGameMapName,
+  &GetFileshareGameType,
+  &GetFileshareGameTypeName,
+  &GetFileshareGameDate,
+  &GetFileshareFileName,
+  &GetFileshareFileId,
+  &GetFileshareFileSize,
+  &GetImageWidth,
+  &GetTextWidth,
+  &GetTextHeight,
+  &GetComposite,
+  &IsCompositeValid,
+  &IsSignedIn,
+  &IsProfileSignedIn,
+  &GetToastPopupWidth,
+  &GetToastPopupIcon,
+  &GetToastPopupTitle,
+  &GetToastPopupDescription,
+  &GetNumLives,
+  &PlayersAlive,
+  &GetPlaylistMaxPartySize,
+  &GetGameTime,
+  &GetBombTime,
+  &CanSpecCycle,
+  &CanSpecFree,
+  &GetDStat,
+  &GetDStatForPreviousMatch,
+  &IsStableStatsBufferInitialized,
+  &GetClientInPlace,
+  &GetClientName,
+  &ToOrdinal,
+  &GetScoreForClient,
+  &IsDemoPlaying,
+  &IsDemoClipRecording,
+  &IsDemoClipPlaying,
+  &IsDemoMovieRendering,
+  &IsDemoThirdPersonCamera,
+  &IsDemoMovieCamera,
+  &IsDisplayingPartyScoreboard,
+  &GetDemoTitleName,
+  &GetDemoTitleDescription,
+  &GetDemoAuthor,
+  &GetDemoTimeInfo,
+  &GetDemoDuration,
+  &GetDemoSegmentCount,
+  &GetDemoSegmentInformation,
+  &IsClipModified,
+  &CanStartDemoPlayback,
+  &GetDemoSaveScreenName,
+  &GetDemoSaveScreenDescription,
+  &GetTheaterFilmNotSelectedMessage,
+  &IsItemPurchased,
+  &IsCurrentItemPurchased,
+  &IsCurrentItemAttachmentPurchased,
+  &IsCurrentItemOptionPurchased,
+  &IsItemAttachmentPointPurchased,
+  &GetCurrentItemCost,
+  &GetCurrentItemSellPrice,
+  &GetCurrentItemAttachmentCost,
+  &GetCurrentItemName,
+  &GetCurrentItemIndex,
+  &GetCurrentItemAttachmentName,
+  &GetCurrentItemAttachmentDesc,
+  &GetCurrentItemNumAttachments,
+  &GetCurrentItemAttachmentNum,
+  &GetCurrentItemAttachmentPoint,
+  &GetItemNumAttachmentsEquipped,
+  &GetItemEquippedAttachment,
+  &PlaylistPlayerCount,
+  &CategoryPlayerCountForPlaylist,
+  &TotalPlayersInPlaylists,
+  &GetPlayersRegisteredOnline,
+  &GetPreviousGameType,
+  &GetLeaderboardMinReqText,
+  &GetBaseLbMenuName,
+  &GetPreviousGameType,
+  &GetPreviousGameType,
+  &GetPreviousGameType,
+  &IsGroup,
+  &IsExtraCamActive,
+  &GetCurrentWeapon,
+  &ShowZombieMap,
+  &GetAttachmentName,
+  &GetAttachmentImage,
+  &GetAttachmentDesc,
+  &GetWeaponOptionImage,
+  &GetWeaponOptionName,
+  &IsPlayerJoinable,
+  &IsPlayerInvitable,
+  &ClanMemberRankIsAtleast,
+  &IsExtraCamStatic,
+  &GetNumItemAttachmentsWithAttachPoint,
+  &GetCurrentItemOption,
+  &GetWeaponOptionCost,
+  &IsItemGroupNew,
+  &Select,
+  &Choose,
+  &HasTacticalMaskOverlay,
+  &InVehicle,
+  &GetNumActiveContracts,
+  &GetCurrentContractIndex,
+  &GetContractName,
+  &GetContractDesc,
+  &GetContractProgress,
+  &GetContractRequiredCount,
+  &GetContractCost,
+  &IsContractActive,
+  &GetIndexForActiveContract,
+  &GetIndexForNthActiveContract,
+  &IsContractInProgress,
+  &IsContractExpired,
+  &IsContractComplete,
+  &GetContractCombatTimeLeft,
+  &MenuHasFocus,
+  &GetCustomClassLoadoutItem,
+  &GetCustomClassModifier,
+  &GetCustomClassName,
+  &GetCACItemIndex,
+  &GetMachineID,
+  &ApproxEquals,
+  &GetLeaderboardValue,
+  &GetStatValue,
+  &AreStatsFetched,
+  &IsSignedInToLive,
+  &GetLocalClientNum,
+  &IsPrimaryLocalClient,
+  &GetSellText,
+  &GetItemPrice,
+  &IsGroup,
+  &IsFriendFromXuid,
+  &RandomIntRange,
+  &GetSelectedEmblemLayer,
+  &IsGroup,
+  &IsGroup,
+  &GetWeaponOptionGroupIndex,
+  &GetDownloadProgress,
+  &GetUploadProgress,
+  &GetUploadTimeRemaining,
+  &IsCurrentSortedItemEquipped,
+  &IsCurrentItemEquippedInAnyCustomClass,
+  &IsItemEquipped,
+  &GetFeederCount,
+  &IsCurrentItemClassified,
+  &GetCurrentItemClassifiedHintText,
+  &AreContractsFetched,
+  &IsTimeSynced,
+  &IsContractLocked,
+  &GetTimesContractPurchased,
+  &GetTimesContractPurchasable,
+  &GetContractCooldownTime,
+  &GetRemainingContractCooldownTime,
+  &GetContractUnlockLevel,
+  &GetContractRewardText,
+  &GetContractExpirationType,
+  &GetContractExpirationData,
+  &IsTaskInProgress,
+  &GetPlaceWithTiesForScore,
+  &GetIsSuperUser,
+  &isInGuidedMissile,
+  &IsInGame,
+  &EmblemLayerState,
+  &EmblemLayerName,
+  &EmblemLayerCanOutline,
+  &EmblemLayerCanDuplicate,
+  &EmblemSelectedLayer,
+  &EmblemLayerCost,
+  &EmblemLayerUnlockLevel,
+  &EmblemIconName,
+  &EmblemIconUnlockDesc,
+  &EmblemIconName,
+  &EmblemIconCost,
+  &EmblemIconState,
+  &EmblemIsModified,
+  &EmblemPurchasedLayerCount,
+  &EmblemBackgroundCount,
+  &EmblemBackgroundIsLocked,
+  &EmblemBackgroundIsClassified,
+  &EmblemBackgroundIsPurchased,
+  &EmblemBackgroundMaterial,
+  &EmblemPlayerBackgroundMaterial,
+  &EmblemSelectedBackground,
+  &EmblemBackgroundCost,
+  &EmblemBackgroundName,
+  &EmblemBackgroundUnlockDesc,
+  &EmblemStateDisplay,
+  &EmblemCategoryDisplay,
+  &EmblemFilterCount,
+  &EmblemFilterIconID,
+  &ItemHasDualWield,
+  &ItemIsDualWield,
+  &GetDemoFileID,
+  &GetFileShareRating,
+  &GetAutoJoinLobbyStatus,
+  &GetCounterTotal,
+  &ShowBusyDotsIndicator,
+  &CanRateFilmInTheater,
+  &GetAttachmentsFormatted,
+  &IsClanTagFeatureLocked,
+  &IsClanTagFeaturePurchased,
+  &GetCurrentClanTagFeature,
+  &GetClanTagFeatureCost,
+  &GetClanTagFeatureName,
+  &IsItemOptionPurchasedByName,
+  &GetItemOptionByName,
+  &GetFaceCamoIndex,
+  &HowManyReadiesNeeded,
+  &GetLiveGroupCount,
+  &GetUserTagFromIndex,
+  &GetFileShareFilterList,
+  &CanRenderClip,
+  &CanShowContentFromUser,
+  &IsContentRatingAllowed,
+  &IsDemonwareFetchingDone,
+  &GetIndexIntoMatchScoreboard,
+  &GetWagerPlaceForMatchScoreboard,
+  &GetWagerGametypeNameFromEnum,
+  &GetClanMOTD,
+  &AnySignedIn,
+  &AnySignedInToLiveAndStatsFetched,
+  &AnySignedInToLiveAndStatsFetched,
+  &IsProItemVersionUnlocked,
+  &IsProItemVersion,
+  &GetFlagCarrierForTeam,
+  &GetFlagStatusForTeam,
+  &GetChallengeProgressString,
+  &GetChallengeName,
+  &GetName,
+  &GetProgressString,
+  &GetXpReward,
+  &GetCpReward,
+  &GetDescription,
+  &GetChallengeDescription,
+  &ToUpper,
+  &GetPlaylistName,
+  &GetTimeUntilNewContracts,
+  &NeedToPerformCommunitySearch,
+  &GetLbTypeWithButtons,
+  &GetLBFilter,
+  &GetLBTypeByDuration,
+  &GetScoreboardColumnHeader,
+  &GetProItemVersionCost,
+  &GetNumSortedItemsEquipped,
+  &GetGameInvitesCount,
+  &GetMySlotInfo,
+  &IsAttachmentAllowedOnItemIndex,
+  &IsGroup,
+  &GetFileShareTotalVotes,
+  &GridMove,
+  &GetPooledFileDetails,
+  &GetClanTagFeaturePlevel,
+  &GetWeaponOptionUnlockLvl,
+  &GetWeaponOptionUnlockPLevel,
+  &Add64,
+  &Sub64,
+  &Div64,
+  &Mul64,
+  &IsPremiumSubscriber,
+  &GetUserFileRating,
+  &HostMigrationWaitingForPlayers,
+  &IsItemUnlocked,
+  &IsWeaponItemUnlocked,
+  &IsWeaponItemPurchased,
+  &IsWeaponItemClassified,
+  &GetWeaponName,
+  &IsGroup,
+  &CanSwitchToLobby,
+  &GetMapIndexByName,
+  &GetGamemodeIndexByName,
+  &AloneInPrivatePartyIgnoreSplitscreen,
+  &AloneInLobbyIgnoreSplitscreen,
+  &ServerSort,
+  &ServerSortDirection,
+  &IsViewportLarge,
+  &IsChallengeItemPurchased,
+  &GetChallengeAttachmentName,
+  &IsItemLockedForAll,
+  &GetServerCounts,
+  &GetLowestLocalCP,
+  &IsWagerServer,
+  &GetContextHeight,
+  &GetCurrentItemMultiText,
+  &GetCopyCustomGametypeClassConfirmationText,
+  &GetCopyCustomGametypeClassDialogTitle
+};
+
+
+
+int s_functionToIndexMap[1024] =
+{
+  -1,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0
+};
+
+int currentTempOperand;
+char s_tempOperandValueAsString[32][256];
+char localVarStrings[4][32];
+
+int localVarStringIndex;
+int secondsRemaining;
+int lastPoll;
+char resultString[256];
+char resultString_0[128];
+char resultString_1[128];
+int endIndex_0;
+int startIndex_0;
+int currIndex_0;
+
 
 bool __cdecl IsVisible(char flags)
 {
@@ -638,13 +2243,13 @@ void __cdecl GetLocalVarIntValue(int localClientNum, itemDef_s *item, OperandSta
 
     GetOperand(dataStack, &source);
     var = (const UILocalVar *)GetLocalVar(localClientNum, &source);
-    if ( var )
+    if (var)
     {
         result.dataType = VAL_INT;
-        result.internals.intVal = UILocalVar_GetInt(var).integer;
-        if ( uiscript_debug )
+        result.internals.intVal = UILocalVar_GetInt(var);
+        if (uiscript_debug)
         {
-            if ( uiscript_debug->current.integer )
+            if (uiscript_debug->current.integer)
                 Expression_TraceInternal("localVarInt( %s ) = %i\n", source.internals.string, result.internals.intVal);
         }
         AddOperandToStack(dataStack, &result);
@@ -686,7 +2291,7 @@ void __cdecl GetLocalVarFloatValue(int localClientNum, itemDef_s *item, OperandS
 
 void __cdecl GetSinValue(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
-    double v3; // xmm0_8
+    float v4; // xmm0_4
     Operand source; // [esp+10h] [ebp-14h] BYREF
     Operand result; // [esp+18h] [ebp-Ch] BYREF
     float val; // [esp+20h] [ebp-4h]
@@ -694,18 +2299,17 @@ void __cdecl GetSinValue(int localClientNum, itemDef_s *item, OperandStack *data
     GetOperand(dataStack, &source);
     val = GetSourceFloat(&source);
     result.dataType = VAL_FLOAT;
-    v3 = val;
-    __libm_sse2_sin(*(long double *)&source);
-    *(float *)&v3 = v3;
-    result.internals.intVal = LODWORD(v3);
-    if ( uiscript_debug && uiscript_debug->current.integer )
+    //v4 = __libm_sse2_sin(val);
+    v4 = sin(val);
+    result.internals.floatVal = v4;
+    if (uiscript_debug && uiscript_debug->current.integer)
         Expression_TraceInternal("sin( %f ) = %f\n", val, result.internals.floatVal);
     AddOperandToStack(dataStack, &result);
 }
 
 void __cdecl GetCosValue(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
-    double v3; // xmm0_8
+    float v4; // xmm0_4
     Operand source; // [esp+10h] [ebp-14h] BYREF
     Operand result; // [esp+18h] [ebp-Ch] BYREF
     float val; // [esp+20h] [ebp-4h]
@@ -713,11 +2317,10 @@ void __cdecl GetCosValue(int localClientNum, itemDef_s *item, OperandStack *data
     GetOperand(dataStack, &source);
     val = GetSourceFloat(&source);
     result.dataType = VAL_FLOAT;
-    v3 = val;
-    __libm_sse2_cos(*(long double *)&source);
-    *(float *)&v3 = v3;
-    result.internals.intVal = LODWORD(v3);
-    if ( uiscript_debug && uiscript_debug->current.integer )
+    //v4 = __libm_sse2_cos(val);
+    v4 = cos(val);
+    result.internals.floatVal = v4;
+    if (uiscript_debug && uiscript_debug->current.integer)
         Expression_TraceInternal("cos( %f ) = %f\n", val, result.internals.floatVal);
     AddOperandToStack(dataStack, &result);
 }
@@ -1497,7 +3100,7 @@ void __cdecl GetIsSuperUser(int localClientNum, itemDef_s *item, OperandStack *d
 
     result.dataType = VAL_INT;
     ControllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-    tier = Live_GetTier(ControllerIndex);
+    tier = (EUserTier)Live_GetTier(ControllerIndex);
     result.internals.intVal = tier == USER_TIER_SUPER;
     if ( uiscript_debug && uiscript_debug->current.integer )
         Expression_TraceInternal("issuperuser() = %i\n", result.internals.intVal);
@@ -1631,7 +3234,7 @@ void __cdecl InPrivateParty(int localClientNum, itemDef_s *item, OperandStack *d
 
 void __cdecl IsVisibilityBitSet(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
-    __int64 v3; // [esp+4h] [ebp-1Ch]
+    __int64 v4; // [esp+4h] [ebp-1Ch]
     Operand source; // [esp+Ch] [ebp-14h] BYREF
     int checkBit; // [esp+14h] [ebp-Ch]
     Operand result; // [esp+18h] [ebp-8h] BYREF
@@ -1639,10 +3242,10 @@ void __cdecl IsVisibilityBitSet(int localClientNum, itemDef_s *item, OperandStac
     GetOperand(dataStack, &source);
     result.dataType = VAL_INT;
     checkBit = GetSourceInt(&source).intVal;
-    LODWORD(v3) = dword_98DADA8[2 * localClientNum] & (1LL << checkBit);
-    HIDWORD(v3) = dword_98DADAC[2 * localClientNum] & ((unsigned __int64)(1LL << checkBit) >> 32);
-    result.internals.intVal = v3 != 0;
-    if ( uiscript_debug && uiscript_debug->current.integer )
+    LODWORD(v4) = LODWORD(sharedUiInfo.visibilityBits[localClientNum]) & (1LL << checkBit);
+    HIDWORD(v4) = HIDWORD(sharedUiInfo.visibilityBits[localClientNum]) & ((1LL << checkBit) >> 32);
+    result.internals.intVal = v4 != 0;
+    if (uiscript_debug && uiscript_debug->current.integer)
         Expression_TraceInternal("IsVisiblityBitSet() = %i\n", result.internals.intVal);
     AddOperandToStack(dataStack, &result);
 }
@@ -2160,7 +3763,7 @@ void __cdecl GetWeaponOptionGroupIndex(int localClientNum, itemDef_s *item, Oper
     if ( list.operandCount == 2 )
     {
         index = GetSourceInt(list.operands).intVal;
-        weaponOptionGroup = GetSourceInt(&list.operands[1]).intVal;
+        weaponOptionGroup = (eWeaponOptionGroup)GetSourceInt(&list.operands[1]).intVal;
         result.internals.intVal = BG_GetWeaponOptionNumFromIndexAndGroup(index, weaponOptionGroup);
         if ( uiscript_debug )
         {
@@ -2213,6 +3816,7 @@ void __cdecl GetDemoFileID(int localClientNum, itemDef_s *item, OperandStack *da
 
 void __cdecl GetFileShareRating(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
+#ifdef KISAK_LIVE
     Operand result; // [esp+0h] [ebp-8h] BYREF
 
     result.dataType = VAL_INT;
@@ -2220,6 +3824,7 @@ void __cdecl GetFileShareRating(int localClientNum, itemDef_s *item, OperandStac
     if ( uiscript_debug && uiscript_debug->current.integer )
         Expression_TraceInternal("GetFileShareRating() = %d\n", result.internals.intVal);
     AddOperandToStack(dataStack, &result);
+#endif
 }
 
 void __cdecl GetFileShareTotalVotes(int localClientNum, itemDef_s *item, OperandStack *dataStack)
@@ -2504,7 +4109,7 @@ void __cdecl GetCurrentItemOption(int localClientNum, itemDef_s *item, OperandSt
     Operand result; // [esp+0h] [ebp-8h] BYREF
 
     result.dataType = VAL_INT;
-    OptionFromIndexAndGroupDvar = GetOptionFromIndexAndGroupDvar();
+    OptionFromIndexAndGroupDvar = (eWeaponOptionGroup)GetOptionFromIndexAndGroupDvar();
     result.internals.intVal = BG_GetWeaponOptionNumFromIndexAndGroup(
                                                             sharedUiInfo.sortedItemPivot,
                                                             OptionFromIndexAndGroupDvar);
@@ -4899,7 +6504,7 @@ void __cdecl IsCurrentItemOptionPurchased(int localClientNum, itemDef_s *item, O
     {
         __debugbreak();
     }
-    OptionFromIndexAndGroupDvar = GetOptionFromIndexAndGroupDvar();
+    OptionFromIndexAndGroupDvar = (eWeaponOptionGroup)GetOptionFromIndexAndGroupDvar();
     WeaponOptionNumFromIndexAndGroup = BG_GetWeaponOptionNumFromIndexAndGroup(
                                                                              sharedUiInfo.sortedItemPivot,
                                                                              OptionFromIndexAndGroupDvar);
@@ -5045,7 +6650,7 @@ void __cdecl IsCurrentItemClassified(int localClientNum, itemDef_s *item, Operan
     result.dataType = VAL_INT;
     index = sharedUiInfo.itemIndex;
     result.internals.intVal = BG_UnlockablesIsItemClassified(sharedUiInfo.itemIndex);
-    if ( Dvar_GetInt(ui_useCustomClassInfo) )
+    if ( Dvar_GetInt((dvar_s*)ui_useCustomClassInfo) )
         result.internals.intVal = 0;
     if ( uiscript_debug && uiscript_debug->current.integer )
         Expression_TraceInternal("IsCurrentItemClassified() = %i\n", result.internals.intVal);
@@ -5283,7 +6888,7 @@ void __cdecl GetItemNumAttachmentsEquipped(int localClientNum, itemDef_s *item, 
         itemIndex = GetSourceInt(&list.operands[1]).intVal;
         if ( BG_UnlockablesIsItemValidNotNull(itemIndex) )
         {
-            ItemLoadoutSlot = BG_UnlockablesGetItemLoadoutSlot(itemIndex);
+            ItemLoadoutSlot = (loadoutSlot_t)BG_UnlockablesGetItemLoadoutSlot(itemIndex);
             loadoutName = BG_UnlockablesGetLoadoutSlotName(ItemLoadoutSlot);
             controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
             if ( loadoutName )
@@ -5338,7 +6943,7 @@ void __cdecl GetItemEquippedAttachment(int localClientNum, itemDef_s *item, Oper
         if ( BG_UnlockablesIsItemValidNotNull(itemIndex) )
         {
             returnAttachmentIndex = GetSourceInt(&list.operands[2]).intVal;
-            ItemLoadoutSlot = BG_UnlockablesGetItemLoadoutSlot(itemIndex);
+            ItemLoadoutSlot = (loadoutSlot_t)BG_UnlockablesGetItemLoadoutSlot(itemIndex);
             loadoutName = BG_UnlockablesGetLoadoutSlotName(ItemLoadoutSlot);
             controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
             if ( loadoutName )
@@ -5453,7 +7058,7 @@ void __cdecl TotalPlayersInPlaylists(int localClientNum, itemDef_s *item, Operan
     Operand result; // [esp+0h] [ebp-8h] BYREF
 
     result.dataType = VAL_INT;
-    result.internals.intVal = LiveGroups_GetCount("playlist");
+    result.internals.intVal = LiveGroups_GetCount((char*)"playlist");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -5462,7 +7067,7 @@ void __cdecl GetPlayersRegisteredOnline(int localClientNum, itemDef_s *item, Ope
     Operand result; // [esp+0h] [ebp-8h] BYREF
 
     result.dataType = VAL_INT;
-    result.internals.intVal = LiveGroups_GetCount("online");
+    result.internals.intVal = LiveGroups_GetCount((char *)"online");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -5590,6 +7195,10 @@ void __cdecl GetBaseLbMenuName(int localClientNum, itemDef_s *item, OperandStack
     result.internals.intVal = (int)va("%s%s", lbMenuPrefix, v4);
     AddOperandToStack(dataStack, &result);
 }
+
+const int lbWriteMinRequirementValues[3] =
+{ 50, 5, 25 };
+
 
 void __cdecl GetLeaderboardMinReqText(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
@@ -7184,7 +8793,7 @@ void __cdecl GetToastPopupWidth(int localClientNum, itemDef_s *item, OperandStac
     uiInfo = UI_GetInfo(localClientNum);
     result.dataType = VAL_INT;
     v4 = UI_TextWidth(uiInfo->toastPopupDesc, 0, font, 0.315);
-    v5 = UI_TextWidth(uiInfo->GLOBAL_EMPTY_STRING, 0, font, 0.315);
+    v5 = UI_TextWidth(uiInfo->toastPopupTitle, 0, font, 0.315);
     if ( v5 < v4 )
         v3.intVal = v4;
     else
@@ -7208,16 +8817,16 @@ void __cdecl GetToastPopupIcon(int localClientNum, itemDef_s *item, OperandStack
     AddOperandToStack(dataStack, &result);
 }
 
-void __cdecl GetGLOBAL_EMPTY_STRING(int localClientNum, itemDef_s *item, OperandStack *dataStack)
+void __cdecl GetToastPopupTitle(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
     Operand result; // [esp+0h] [ebp-Ch] BYREF
     uiInfo_s *uiInfo; // [esp+8h] [ebp-4h]
 
     uiInfo = UI_GetInfo(localClientNum);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)uiInfo->GLOBAL_EMPTY_STRING;
-    if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetGLOBAL_EMPTY_STRING() = %s\n", result.internals.string);
+    result.internals.string = uiInfo->toastPopupTitle;
+    if (uiscript_debug && uiscript_debug->current.integer)
+        Expression_TraceInternal("GetToastPopupTitle() = %s\n", result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -7875,6 +9484,31 @@ void __cdecl GetCombatRecordHistogramHeight(int localClientNum, itemDef_s *item,
     }
 }
 
+const char *lbWagerGameModeEnum_4[5] =
+{ "oic", "hlnd", "gun", "shrp", NULL };
+
+const char *lbTypeEnum_4[17] =
+{
+  "tdm",
+  "dm",
+  "ctf",
+  "dom",
+  "sab",
+  "sd",
+  "koth",
+  "dem",
+  "hctdm",
+  "hcdm",
+  "hcctf",
+  "hcdom",
+  "hcsab",
+  "hcsd",
+  "hckoth",
+  "hcdem",
+  NULL
+};
+
+
 void __cdecl GetCombatRecordPieChartText(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
     const char *v3; // eax
@@ -8158,10 +9792,10 @@ void __cdecl GetCombatRecordLockedString(int localClientNum, itemDef_s *item, Op
 
 void __cdecl GetNumWagerMatchesPlayed(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
-    char *PlayerStatStringByKey; // eax
-    char *v4; // eax
-    char *v5; // eax
-    char *v6; // eax
+    const char *PlayerStatStringByKey; // eax
+    const char *v4; // eax
+    const char *v5; // eax
+    const char *v6; // eax
     int gameType; // [esp+0h] [ebp-20h]
     int losses; // [esp+4h] [ebp-1Ch] BYREF
     Operand result; // [esp+8h] [ebp-18h] BYREF
@@ -8205,8 +9839,8 @@ void __cdecl GetNumWagerMatchesPlayed(int localClientNum, itemDef_s *item, Opera
 
 void __cdecl GetNumWagerMatchesWon(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
-    char *PlayerStatStringByKey; // eax
-    char *v4; // eax
+    const char *PlayerStatStringByKey; // eax
+    const char *v4; // eax
     int gameType; // [esp+0h] [ebp-20h]
     Operand result; // [esp+8h] [ebp-18h] BYREF
     int controllerIndex; // [esp+10h] [ebp-10h]
@@ -8403,10 +10037,10 @@ void __cdecl GetPersonalBestPrefix(int localClientNum, itemDef_s *item, OperandS
 
 void __cdecl GetPersonalBestValue(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
-    char *v3; // eax
-    char *v4; // eax
-    char *PlayerStatStringByKey; // eax
-    char *v6; // eax
+    const char *v3; // eax
+    const char *v4; // eax
+    const char *PlayerStatStringByKey; // eax
+    const char *v6; // eax
     float v7; // [esp+8h] [ebp-34h]
     __int64 PersonalBestValue; // [esp+14h] [ebp-28h]
     float v9; // [esp+1Ch] [ebp-20h]
@@ -8500,7 +10134,7 @@ void __cdecl GetNumWeaponUnlocks(int localClientNum, itemDef_s *item, OperandSta
     for ( currItem = 0; currItem < totalItemsUnlocked; ++currItem )
     {
         itemIndex = LiveStats_GetRecentlyUnlockedItemIndex(controllerIndex, currItem);
-        currLoadoutSlot = BG_UnlockablesGetItemLoadoutSlot(itemIndex);
+        currLoadoutSlot = (loadoutSlot_t)BG_UnlockablesGetItemLoadoutSlot(itemIndex);
         if ( currLoadoutSlot == LOADOUTSLOT_FIRST
             || currLoadoutSlot == LOADOUTSLOT_SECONDARY_WEAPON
             || BG_UnlockablesGetItemGroupEnum(itemIndex) == 14 && BG_UnlockablesIsProItem(itemIndex) )
@@ -8604,7 +10238,7 @@ void __cdecl GetStatsMilestoneValue(int localClientNum, itemDef_s *item, Operand
         StringTable_GetAsset("mp/statsTable.csv", (XAssetHeader *)&statsTable);
         statsMilestoneTier = LiveStats_GetStatsMilestoneTier(controllerIndex, index);
         statsMilestoneTierString = va("%d", statsMilestoneTier - 1);
-        statsMilestoneType = LiveStats_GetStatsMilestoneType(controllerIndex, index);
+        statsMilestoneType = (statsMilestoneTypes_t)LiveStats_GetStatsMilestoneType(controllerIndex, index);
         statsMilestoneName = LiveStats_GetStatsMilestoneName(controllerIndex, index);
         statType = 0;
         switch ( statsMilestoneType )
@@ -8700,7 +10334,7 @@ void __cdecl GetStatsMilestoneName(int localClientNum, itemDef_s *item, OperandS
         }
         else
         {
-            statsMilestoneType = LiveStats_GetStatsMilestoneType(controllerIndex, index);
+            statsMilestoneType = (statsMilestoneTypes_t)LiveStats_GetStatsMilestoneType(controllerIndex, index);
             statMilestoneName = LiveStats_GetStatsMilestoneName(controllerIndex, index);
             milestoneTier = LiveStats_GetStatsMilestoneTier(controllerIndex, index) - 1;
             if ( statsMilestoneType == MILESTONE_GROUP )
@@ -8839,13 +10473,13 @@ char __cdecl GetCurrentIndexOfHighlightedFeeder(
 
     currIndex = 0.0f;
     if ( !name )
-        name = "stats_milestones_list";
+        name = (char*)"stats_milestones_list";
     contextIndex = Com_LocalClient_GetUIContextIndex(localClientNum);
     actualItem = Menu_GetMatchingItemByNumber(item->parent, 0, name);
     *milestoneType = 1;
     if ( !Window_HasFocus(contextIndex, &actualItem->window) )
     {
-        actualItem = Menu_GetMatchingItemByNumber(item->parent, 0, "stats_milestones_weapongrouplist");
+        actualItem = Menu_GetMatchingItemByNumber(item->parent, 0, (char*)"stats_milestones_weapongrouplist");
         *milestoneType = 4;
     }
     if ( actualItem && UI_FeederData(localClientNum, actualItem, "selection", (char **)&stringResult, &currIndex) )
@@ -8971,7 +10605,7 @@ void __cdecl GetCpReward(int localClientNum, itemDef_s *item, OperandStack *data
 
 void __cdecl GetCurrentChallengeProgress(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
-    char *PlayerStatStringByKey; // eax
+    const char *PlayerStatStringByKey; // eax
     const char *name; // [esp-4h] [ebp-48h]
     Operand result; // [esp+20h] [ebp-24h] BYREF
     int milestoneType; // [esp+28h] [ebp-1Ch] BYREF
@@ -9491,7 +11125,7 @@ void __cdecl GetChallengeAttachmentName(int localClientNum, itemDef_s *item, Ope
     result.internals.intVal = (int)"";
     itemName = 0;
     currIndex = 0.0f;
-    actualItem = Menu_GetMatchingItemByNumber(item->parent, 0, "stats_milestones_attachments");
+    actualItem = Menu_GetMatchingItemByNumber(item->parent, 0, (char*)"stats_milestones_attachments");
     if ( UI_FeederData(localClientNum, actualItem, "selection", (char **)&stringResult, &currIndex)
         && LiveStats_GetChallengeInfo(&challenge, (int)currIndex, 5) )
     {
@@ -9570,6 +11204,9 @@ void __cdecl GetLBFilter(int localClientNum, itemDef_s *item, OperandStack *data
     AddOperandToStack(dataStack, &result);
 }
 
+const char *lbResetPeriodStrings_4[4] =
+{ "MPUI_LB_ALL_TIME", "MPUI_LB_WEEKLY", "MPUI_LB_MONTHLY", NULL };
+
 void __cdecl GetLBTypeByDuration(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
     Operand result; // [esp+0h] [ebp-Ch] BYREF
@@ -9603,7 +11240,7 @@ void __cdecl GetUnlockedWeaponItemIndex(int localClientNum, itemDef_s *item, Ope
     for ( currItem = 0; currItem < totalItemsUnlocked; ++currItem )
     {
         itemIndex = LiveStats_GetRecentlyUnlockedItemIndex(controllerIndex, currItem);
-        currLoadoutSlot = BG_UnlockablesGetItemLoadoutSlot(itemIndex);
+        currLoadoutSlot = (loadoutSlot_t)BG_UnlockablesGetItemLoadoutSlot(itemIndex);
         if ( currLoadoutSlot == LOADOUTSLOT_FIRST
             || currLoadoutSlot == LOADOUTSLOT_SECONDARY_WEAPON
             || BG_UnlockablesGetItemGroupEnum(itemIndex) == 14 && BG_UnlockablesIsProItem(itemIndex) )
@@ -9641,7 +11278,7 @@ void __cdecl GetUnlockedFeatureItemIndex(int localClientNum, itemDef_s *item, Op
     for ( currItem = 0; currItem < totalItemsUnlocked; ++currItem )
     {
         itemIndex = LiveStats_GetRecentlyUnlockedItemIndex(controllerIndex, currItem);
-        currItemGroup = BG_UnlockablesGetItemGroupEnum(itemIndex);
+        currItemGroup = (itemGroup_t)BG_UnlockablesGetItemGroupEnum(itemIndex);
         if ( currItemGroup == ITEMGROUP_FEATURE )
         {
             if ( !itemNum )
@@ -9658,8 +11295,8 @@ void __cdecl GetUnlockedFeatureItemIndex(int localClientNum, itemDef_s *item, Op
 
 void __cdecl GetTotalMatchesPlayed(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
-    char *PlayerStatStringByKey; // eax
-    char *v4; // eax
+    const char *PlayerStatStringByKey; // eax
+    const char *v4; // eax
     int gameType; // [esp+0h] [ebp-20h]
     int losses; // [esp+4h] [ebp-1Ch] BYREF
     Operand result; // [esp+8h] [ebp-18h] BYREF
@@ -10191,7 +11828,11 @@ void __cdecl GetFeederData(int localClientNum, itemDef_s *item, OperandStack *da
             {
                 if ( list.operands[1].dataType == VAL_STRING )
                 {
-                    v5 = GetSourceString((Operand)__PAIR64__(list.operands[1].internals.intVal, 2));
+                    Operand tmp;
+                    tmp.dataType = VAL_STRING;
+                    tmp.internals.string = (char*)list.operands[1].internals.intVal;
+                    //v5 = GetSourceString((Operand)__PAIR64__(list.operands[1].internals.intVal, 2));
+                    v5 = GetSourceString(tmp);
                     actualItem = Menu_GetMatchingItemByNumber(menu, 0, v5);
                     if ( list.operands[2].dataType == VAL_STRING )
                         field = list.operands[2].internals.string;
@@ -10753,7 +12394,7 @@ void __cdecl GetMachineID(int localClientNum, itemDef_s *item, OperandStack *dat
     AddOperandToStack(dataStack, &result);
 }
 
-void __cdecl GetLocalClientNum(operandInternalDataUnion localClientNum, itemDef_s *item, OperandStack *dataStack)
+void __cdecl GetLocalClientNum(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
     Operand result; // [esp+0h] [ebp-8h] BYREF
 
@@ -10852,7 +12493,7 @@ void __cdecl GetMapIndexByName(int localClientNum, itemDef_s *item, OperandStack
     float v8; // [esp+0h] [ebp-A0h]
     itemGroup_t v9; // [esp+4h] [ebp-9Ch]
     _CustomClassDescription *v10; // [esp+14h] [ebp-8Ch]
-    const char *mapCount; // [esp+18h] [ebp-88h]
+    int mapCount; // [esp+18h] [ebp-88h]
     bool useOwnerdraw; // [esp+1Fh] [ebp-81h] BYREF
     Operand result; // [esp+20h] [ebp-80h] BYREF
     float feederID; // [esp+28h] [ebp-78h]
@@ -10883,7 +12524,7 @@ void __cdecl GetMapIndexByName(int localClientNum, itemDef_s *item, OperandStack
                 mapCount = UI_FeederCount(localClientNum, UIContextIndex, feederID, listPtr);
                 for ( mapIndex = 0; mapIndex < (int)mapCount; ++mapIndex )
                 {
-                    v9 = mapIndex;
+                    v9 = (itemGroup_t)mapIndex;
                     v8 = feederID;
                     v7 = feeder;
                     v4 = Com_LocalClient_GetUIContextIndex(localClientNum);
@@ -10961,7 +12602,7 @@ void __cdecl GetGamemodeIndexByName(int localClientNum, itemDef_s *item, Operand
                 gamemodeCount = (int)UI_FeederCount(localClientNum, UIContextIndex, feederID, listPtr);
                 for ( gamemodeIndex = 0; gamemodeIndex < gamemodeCount; ++gamemodeIndex )
                 {
-                    v8 = gamemodeIndex;
+                    v8 = (itemGroup_t)gamemodeIndex;
                     v7 = feederID;
                     v6 = feeder;
                     v4 = Com_LocalClient_GetUIContextIndex(localClientNum);
@@ -11060,7 +12701,7 @@ void __cdecl GetServerCounts(int localClientNum, itemDef_s *item, OperandStack *
     result.dataType = VAL_STRING;
     numDisplayServers = sharedUiInfo.serverStatus.numDisplayServers;
     v4 = UI_SafeTranslateString("MENU_SERVER_CAPS");
-    result.internals.intVal = va("%s %d(%d)", v4, numDisplayServers, count);
+    result.internals.intVal = (int)va("%s %d(%d)", v4, numDisplayServers, count);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -11392,12 +13033,12 @@ void __cdecl RPN_FUNC_ISCLANMEMBER(int localClientNum, itemDef_s *item, OperandS
     ClanMemberRankIsAtleast(localClientNum, item, dataStack);
 }
 
-void __cdecl RPN_OP_NOOP()
+void __cdecl RPN_OP_NOOP(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
     Expression_Error("Invalid operator NOOP made it into the stack!\n");
 }
 
-void __cdecl RPN_FUNC_INVALID()
+void __cdecl RPN_FUNC_INVALID(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
     Expression_Error("Invalid functionmade it into the stack!\n");
 }
@@ -11555,7 +13196,8 @@ void __cdecl RPN_OP_NEGATE(int localClientNum, itemDef_s *item, OperandStack *da
             Expression_Error(" trying to negate a string: %s\n", data1.internals.string);
             return;
         }
-        data1.internals.intVal ^= _mask__NegFloat_;
+        //data1.internals.intVal ^= _mask__NegFloat_;
+        data1.internals.intVal = -data1.internals.intVal;
     }
     else
     {
@@ -12372,6 +14014,7 @@ int __cdecl Expression_GetFunctionForOp(int op)
         return op;
 }
 
+char resultString_2[256];
 char *__cdecl GetExpressionResultString(int localClientNum, itemDef_s *item, ExpressionStatement *statement)
 {
     const char *v4; // eax
@@ -12411,6 +14054,7 @@ char *__cdecl GetExpressionResultString(int localClientNum, itemDef_s *item, Exp
     return resultString_2;
 }
 
+const ExpressionStatement *s_currentStatement;
 char __cdecl EvaluateExpression(
                 int localClientNum,
                 itemDef_s *item,
@@ -12530,13 +14174,15 @@ char *__cdecl GetExpressionResultStringCompile(
 {
     ExpressionStatement statement; // [esp+0h] [ebp-10h] BYREF
 
-    statement.filename = "runtime";
+    statement.filename = (char*)"runtime";
     statement.line = 0;
     if ( Expression_Parse(text, &statement, compileBuffer, compileBufferSize) )
         return GetExpressionResultString(localClientNum, item, &statement);
     else
         return (char *)"";
 }
+
+int s_indexToFunctionMap[1024];
 
 void __cdecl Expression_MapIndexToFunction(int index, const char *function)
 {
@@ -12562,9 +14208,11 @@ void __cdecl Expression_MapIndexToFunction(int index, const char *function)
     }
 }
 
+int s_countErrorOutput;
+int s_lastErrorOutputMS;
 char __cdecl Expression_Throttle()
 {
-    unsigned intms; // [esp+0h] [ebp-4h]
+    unsigned int ms; // [esp+0h] [ebp-4h]
 
     ms = Sys_Milliseconds();
     if ( s_countErrorOutput > 10 && (int)(ms - s_lastErrorOutputMS) < 5000 )

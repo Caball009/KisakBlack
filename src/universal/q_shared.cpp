@@ -5,7 +5,30 @@
 #include <ctype.h>
 #include <qcommon/common.h>
 #include <stdarg.h>
+#include <qcommon/threads.h>
+#include <qcommon/cm_trace.h>
+#include <gfx_d3d/r_model.h>
+#include <physics/physpreset_load_obj.h>
+#include <clientscript/cscr_stringlist.h>
+#include "com_math_anglevectors.h"
 
+struct TraceThreadInfo // sizeof=0x14
+{                                       // XREF: .data:TraceThreadInfo * g_traceThreadInfo/r
+    TraceCheckCount checkcount;
+    cbrush_t *box_brush;                // XREF: CM_Trace(trace_t *,float const * const,float const * const,float const * const,float const * const,uint,int,col_context_t &)+66E/r
+    // CM_Trace(trace_t *,float const * const,float const * const,float const * const,float const * const,uint,int,col_context_t &)+94C/r ...
+    cmodel_t *box_model;
+    PhysGeomList **geoms;
+};
+
+
+va_info_t va_info[15];
+TraceThreadInfo g_traceThreadInfo[15];
+int g_com_error[15][16];
+CmdArgs g_cmd_args[2];
+int valueindex;
+
+// *WARNING* One or more selections were skipped as they could not be interpreted as c data
 
 
 unsigned __int8 __cdecl ColorIndex(unsigned __int8 c)
@@ -125,7 +148,7 @@ unsigned __int64 __cdecl Long64NoSwap(unsigned __int64 ll)
 
 double __cdecl FloatReadSwap(int n)
 {
-    FloatReadSwap::__l2::<unnamed_type_dat1> dat2; // [esp+4h] [ebp-4h]
+    FloatReadSwap_union dat2; // [esp+4h] [ebp-4h]
 
     dat2.b[0] = HIBYTE(n);
     dat2.b[1] = BYTE2(n);
@@ -141,35 +164,35 @@ double __cdecl FloatReadNoSwap(int n)
 
 FloatWriteSwap_union __cdecl FloatWriteSwap(float f)
 {
-        FloatWriteSwap_union dat2; // [esp+4h] [ebp-4h]
+    FloatWriteSwap_union dat2; // [esp+4h] [ebp-4h]
 
-        dat2.b[0] = HIBYTE(f);
-        dat2.b[1] = BYTE2(f);
-        dat2.b[2] = BYTE1(f);
-        dat2.b[3] = LOBYTE(f);
-        return dat2;
+    dat2.b[0] = HIBYTE(f);
+    dat2.b[1] = BYTE2(f);
+    dat2.b[2] = BYTE1(f);
+    dat2.b[3] = LOBYTE(f);
+    return dat2;
 }
 
 void __cdecl Swap_InitLittleEndian()
 {
-    BigShort = (__int16 (__cdecl *)(__int16))ShortSwap;
-    LittleShort = ShortNoSwap;
-    BigLong = LongSwap;
-    LittleLong = (int (__cdecl *)(int))Ragdoll_HandleBody;
-    LittleLong64 = Long64NoSwap;
-    LittleFloatRead = (float (__cdecl *)(int))FloatReadNoSwap;
-    LittleFloatWrite = (int (__cdecl *)(float))Ragdoll_HandleBody;
+    //BigShort = (__int16 (__cdecl *)(__int16))ShortSwap;
+    //LittleShort = ShortNoSwap;
+    //BigLong = LongSwap;
+    //LittleLong = (int (__cdecl *)(int))Ragdoll_HandleBody;
+    //LittleLong64 = Long64NoSwap;
+    //LittleFloatRead = (float (__cdecl *)(int))FloatReadNoSwap;
+    //LittleFloatWrite = (int (__cdecl *)(float))Ragdoll_HandleBody;
 }
 
 void __cdecl Swap_InitBigEndian()
 {
-    BigShort = ShortNoSwap;
-    LittleShort = (__int16 (__cdecl *)(__int16))ShortSwap;
-    BigLong = (int (__cdecl *)(int))Ragdoll_HandleBody;
-    LittleLong = LongSwap;
-    LittleLong64 = Long64Swap;
-    LittleFloatRead = (float (__cdecl *)(int))FloatReadSwap;
-    LittleFloatWrite = (int (__cdecl *)(float))FloatWriteSwap;
+    //BigShort = ShortNoSwap;
+    //LittleShort = (__int16 (__cdecl *)(__int16))ShortSwap;
+    //BigLong = (int (__cdecl *)(int))Ragdoll_HandleBody;
+    //LittleLong = LongSwap;
+    //LittleLong64 = Long64Swap;
+    //LittleFloatRead = (float (__cdecl *)(int))FloatReadSwap;
+    //LittleFloatWrite = (int (__cdecl *)(float))FloatWriteSwap;
 }
 
 void __cdecl Swap_Init()
@@ -546,15 +569,23 @@ int Com_sprintfPos(char *dest, int destSize, int *destPos, const char *fmt, ...)
     return len;
 }
 
+struct va_info_t
+{
+    char va_string[2][1024];
+    int index;
+};
+
 bool __cdecl CanKeepStringPointer(char *string)
 {
     va_info_t *info; // [esp+0h] [ebp-8h]
-    char stack; // [esp+7h] [ebp-1h] BYREF
+    char stackArray[4]; // [esp+4h] [ebp-4h] BYREF
 
-    if ( string >= &stack && string < (char *)&STACK[0x2007] )
-        return 0;
+    // KISAKTODO: re-eval
+    //if (string >= stackArray && string < (char *)&STACK[0x2004])
+        //return 0;
+
     info = (va_info_t *)Sys_GetValue(1);
-    return string < (char *)info || string > &info->va_string[3][1023];
+    return string < (char *)info || string > &info->va_string[1][1023];
 }
 
 char *__cdecl I_itoa(int value, char *buf, int bufsize)
@@ -631,7 +662,7 @@ char *va(const char *format, ...)
     if ( len >= 0x400 )
     {
         buf[1023] = 0;
-        Com_Error(ERR_DROP, &byte_D0BE6C, buf);
+        Com_Error(ERR_DROP, "Attempted to overrun string in call to va(): '%s'", buf);
     }
     return (char *)info + 1024 * index;
 }
@@ -647,6 +678,7 @@ void __cdecl Com_InitThreadData(int threadContext)
         Sys_SetValue(4, g_cmd_args);
 }
 
+char value1[3][2][8192];
 char *__cdecl Info_ValueForKey(char *s, char *key)
 {
     char *v3; // [esp+0h] [ebp-2010h]
@@ -670,7 +702,7 @@ char *__cdecl Info_ValueForKey(char *s, char *key)
                 return (char *)"";
             *v3++ = *s++;
             if ( v3 - s1 >= 0x2000 )
-                Com_Error(ERR_DROP, &byte_D0BEA0, v3 - s1);
+                Com_Error(ERR_DROP, "Info_ValueForKey: oversize key %d", v3 - s1);
         }
         *v3 = 0;
         v7 = s + 1;
@@ -701,7 +733,7 @@ char *__cdecl Info_ValueForKey(char *s, char *key)
         {
             *v4++ = *v7++;
             if ( v4 - v5 >= 0x2000 )
-                Com_Error(ERR_DROP, &byte_D0BEA0, v4 - v5);
+                Com_Error(ERR_DROP, "Info_ValueForKey: oversize key %d", v4 - v5);
         }
         *v4 = 0;
         if ( !I_stricmp(key, s1) )
@@ -747,7 +779,7 @@ void __cdecl Info_NextPair(const char **head, char *key, char *value)
 
 void __cdecl Info_RemoveKey(char *s, char *key)
 {
-    int v2; // eax
+    char *v2; // eax
     char v3; // al
     char *v4; // [esp+8h] [ebp-83Ch]
     char *v5; // [esp+Ch] [ebp-838h]
@@ -758,8 +790,8 @@ void __cdecl Info_RemoveKey(char *s, char *key)
     char value[1024]; // [esp+43Ch] [ebp-408h] BYREF
 
     if ( strlen(s) >= 0x400 )
-        Com_Error(ERR_DROP, &byte_D0BEC4);
-    strchr((unsigned __int8 *)key, 0x5Cu);
+        Com_Error(ERR_DROP, "Info_RemoveKey: oversize infostring");
+    v2 = strchr(key, 0x5Cu);
     if ( !v2 )
     {
         while ( 1 )
@@ -798,7 +830,7 @@ void __cdecl Info_RemoveKey(char *s, char *key)
 
 void __cdecl Info_RemoveKey_Big(char *s, char *key)
 {
-    int v2; // eax
+    char *v2; // eax
     char v3; // al
     char *v4; // [esp+8h] [ebp-403Ch]
     char *v5; // [esp+Ch] [ebp-4038h]
@@ -809,8 +841,8 @@ void __cdecl Info_RemoveKey_Big(char *s, char *key)
     char v10; // [esp+203Ch] [ebp-2008h] BYREF
 
     if ( strlen(s) >= 0x4000 )
-        Com_Error(ERR_DROP, &byte_D0BEEC);
-    strchr((unsigned __int8 *)key, 0x5Cu);
+        Com_Error(ERR_DROP, "Info_RemoveKey_Big: oversize infostring");
+    v2 = strchr(key, 0x5Cu);
     if ( !v2 )
     {
         while ( 1 )
@@ -849,23 +881,23 @@ void __cdecl Info_RemoveKey_Big(char *s, char *key)
 
 bool __cdecl Info_Validate(char *s)
 {
-    int v1; // eax
-    int v3; // eax
+    char *v1; // eax
+    char *v3; // eax
 
-    strchr((unsigned __int8 *)s, 0x22u);
+    v1 = strchr(s, 0x22u);
     if ( v1 )
         return 0;
-    strchr((unsigned __int8 *)s, 0x3Bu);
+    v3 = strchr(s, 0x3Bu);
     return v3 == 0;
 }
 
 void __cdecl Info_SetValueForKey(char *s, char *key, const char *value)
 {
-    int v3; // eax
+    char *v3; // eax
     const char *v4; // eax
-    int v5; // eax
+    char *v5; // eax
     const char *v6; // eax
-    int v7; // eax
+    char *v7; // eax
     const char *v8; // eax
     const char *v9; // eax
     int j; // [esp+54h] [ebp-818h]
@@ -911,33 +943,33 @@ void __cdecl Info_SetValueForKey(char *s, char *key, const char *value)
             __debugbreak();
         }
         cleanValue[j] = 0;
-        strchr((unsigned __int8 *)key, 0x5Cu);
+        v3 = strchr(key, 0x5Cu);
         if ( v3 )
         {
             v4 = va("Can't use keys with a \\\nkey: '%s'\nvalue: '%s'", key, value);
             if ( !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\q_shared.cpp", 1535, 0, v4) )
                 __debugbreak();
-            Com_Printf(16, &byte_D0C110, key, value);
+            Com_Printf(16, "Can't use keys with a \\ key: %s, value: %s", key, value);
         }
         else
         {
-            strchr((unsigned __int8 *)key, 0x3Bu);
+            v5 = strchr(key, 0x3Bu);
             if ( v5 )
             {
                 v6 = va("Can't use keys with a semicolon\nkey: '%s'\nvalue: '%s'", key, value);
                 if ( !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\q_shared.cpp", 1542, 0, v6) )
                     __debugbreak();
-                Com_Printf(16, &byte_D0C0A0, key, value);
+                Com_Printf(16, "", key, value);
             }
             else
             {
-                strchr((unsigned __int8 *)key, 0x22u);
+                v7 = strchr(key, 0x22u);
                 if ( v7 )
                 {
                     v8 = va("Can't use keys with a \"\nkey: '%s'\nvalue: '%s'", key, value);
                     if ( !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\q_shared.cpp", 1549, 0, v8) )
                         __debugbreak();
-                    Com_Printf(16, &byte_D0C040, key, value);
+                    Com_Printf(16, "Can't use keys with a \" key: %s, value: %s", key, value);
                 }
                 else
                 {
@@ -956,7 +988,7 @@ void __cdecl Info_SetValueForKey(char *s, char *key, const char *value)
                                 v9 = va("Info string length exceeded\nkey: '%s'\nvalue: '%s'\nInfo string:\n%s\n", key, value, s);
                                 if ( !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\q_shared.cpp", 1569, 0, v9) )
                                     __debugbreak();
-                                Com_Printf(16, &byte_D0BF18, key, value, s);
+                                Com_Printf(16, "Info string length exceeded. key: %s, value :%s, Info string: %s", key, value, s);
                             }
                         }
                         else
@@ -967,7 +999,7 @@ void __cdecl Info_SetValueForKey(char *s, char *key, const char *value)
                                             0,
                                             "Info buffer length exceeded, not including key/value pair in response\n") )
                                 __debugbreak();
-                            Com_Printf(16, &byte_D0BFA8);
+                            Com_Printf(16, "Info buffer length exceeded, not including key/value pair in response\n");
                         }
                     }
                 }
@@ -982,15 +1014,15 @@ void __cdecl Info_SetValueForKey(char *s, char *key, const char *value)
                         0,
                         "Info_SetValueForKey: oversize infostring") )
             __debugbreak();
-        Com_Printf(16, &byte_D0C184);
+        Com_Printf(16, "Info_SetValueForKey: oversize infostring");
     }
 }
 
 void __cdecl Info_SetValueForKey_Big(char *s, char *key, const char *value)
 {
-    int v3; // eax
-    int v4; // eax
-    int v5; // eax
+    char *v3; // eax
+    char *v4; // eax
+    char *v5; // eax
     int v6; // [esp+54h] [ebp-8018h]
     char v7; // [esp+5Bh] [ebp-8011h]
     char v8[16388]; // [esp+5Ch] [ebp-8010h] BYREF
@@ -1035,24 +1067,24 @@ void __cdecl Info_SetValueForKey_Big(char *s, char *key, const char *value)
             __debugbreak();
         }
         v8[v6] = 0;
-        strchr((unsigned __int8 *)key, 0x5Cu);
+        v3 = strchr(key, 0x5Cu);
         if ( v3 )
         {
-            Com_Printf(16, &byte_D0C110, key, value);
+            Com_Printf(16, "Can't use keys with a \\ key: %s, value: %s", key, value);
         }
         else
         {
-            strchr((unsigned __int8 *)key, 0x3Bu);
+            v4 = strchr(key, 0x3Bu);
             if ( v4 )
             {
-                Com_Printf(16, &byte_D0C0A0, key, value);
+                Com_Printf(16, "Can't use keys with a semicolon. key: %s, value: %s", key, value);
             }
             else
             {
-                strchr((unsigned __int8 *)key, 0x22u);
+                v5 = strchr(key, 0x22u);
                 if ( v5 )
                 {
-                    Com_Printf(16, &byte_D0C040, key, value);
+                    Com_Printf(16, "Can't use keys with a \". key: %s, value: %s", key, value);
                 }
                 else
                 {
@@ -1063,13 +1095,13 @@ void __cdecl Info_SetValueForKey_Big(char *s, char *key, const char *value)
                         if ( v9 > 0 )
                         {
                             if ( strlen(s) + &v11[strlen(&dest)] - v11 <= 0x4000 )
-                                memcpy(&s[strlen(s)], &dest, &v11[strlen(&dest)] - &dest);
+                                memcpy(&s[strlen(s)], &dest, (char*)&v11[strlen(&dest)] - &dest);
                             else
-                                Com_Printf(16, &byte_D0C1E0, key, value, s);
+                                Com_Printf(16, "Big info string length exceeded. key: %s, value: %s, info string: %s", key, value, s);
                         }
                         else
                         {
-                            Com_Printf(16, &byte_D0BFA8);
+                            Com_Printf(16, "Info buffer length exceeded, not including key/value pair in response.");
                         }
                     }
                 }
@@ -1078,7 +1110,7 @@ void __cdecl Info_SetValueForKey_Big(char *s, char *key, const char *value)
     }
     else
     {
-        Com_Printf(16, &byte_D0C184);
+        Com_Printf(16, "Info_SetValueForKey: oversize infostring");
     }
 }
 
@@ -1129,7 +1161,7 @@ bool __cdecl KeyValueToField(
             v8 = va("Bad field type %i\n", pField->iFieldType);
             if ( !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\q_shared.cpp", 1785, 0, v8) )
                 __debugbreak();
-            Com_Error(ERR_DROP, &byte_D0C23C, pField->iFieldType);
+            Com_Error(ERR_DROP, "Bad field type %i", pField->iFieldType);
             return 0;
         }
         else
@@ -1186,14 +1218,14 @@ bool __cdecl KeyValueToField(
             case 0xA:
                 I_strncpyz(dest, pszKeyValue, 0x2000);
                 v12 = R_RegisterModel(dest);
-                *(unsigned int *)&pStruct[pField->iOffset] = v12;
+                *(unsigned int *)&pStruct[pField->iOffset] = (unsigned int)v12;
                 if ( v12 )
                     return 1;
                 result = 0;
                 break;
             case 0xD:
                 I_strncpyz(name, pszKeyValue, 245);
-                *(unsigned int *)&pStruct[pField->iOffset] = PhysPreset_Register(name);
+                *(unsigned int *)&pStruct[pField->iOffset] = (unsigned int)PhysPreset_Register(name);
                 return 1;
             case 0xE:
                 *(_WORD *)&pStruct[pField->iOffset] = SL_GetLowercaseString(pszKeyValue, 0, SCRIPTINSTANCE_SERVER);

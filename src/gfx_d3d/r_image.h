@@ -84,7 +84,7 @@ void __cdecl R_RebuildLostImage(XAssetHeader header);
 void __cdecl Image_Rebuild(GfxImage *image);
 void __cdecl Image_UpdatePicmip(GfxImage *image);
 void __cdecl Image_Reload(GfxImage *image);
-void __cdecl R_EnumImages(void (__cdecl *func)(GfxImage *, void *), void *data);
+void __cdecl R_EnumImages(void (__cdecl *func)(struct GfxImage *, void *), void *data);
 IDirect3DSurface9 *__cdecl Image_GetSurface(GfxImage *image);
 void __cdecl R_SetPicmip();
 void __cdecl R_InitImages();

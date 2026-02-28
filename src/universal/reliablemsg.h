@@ -1,4 +1,29 @@
 #pragma once
+#include <qcommon/net_chan_mp.h>
+
+struct reliableMsg // sizeof=0x34
+{                                       // XREF: reliableClient/r
+    bool active;
+    unsigned __int8 sequenceNum;
+    // padding byte
+    // padding byte
+    msg_t msg;
+};
+
+struct reliableClient // sizeof=0x81C
+{                                       // XREF: .data:s_reliableClientMessages/r
+    netadr_t addr;
+    int lastSendTime;
+    int firstSendTime;
+    unsigned __int8 nextSequence;
+    // padding byte
+    // padding byte
+    // padding byte
+    int bufferUsed;                     // XREF: RMsg_FindSlotForAddr+98/r
+    int bytesAckd;
+    unsigned __int8 reliableBuf[1000];
+    reliableMsg msgs[20];
+};
 
 void __cdecl RMsg_DropAllPacketsForClient(unsigned int clientSlot);
 int __cdecl RMsg_FindSlotForAddr(netadr_t *to);

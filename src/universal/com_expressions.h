@@ -45,6 +45,36 @@ union operandInternalDataUnion // sizeof=0x4
     int intVal;
     float floatVal;
     const char *string;
+
+    operandInternalDataUnion()
+    {
+        intVal = 0;
+    }
+    operandInternalDataUnion(int i)
+    {
+        intVal = i;
+    }
+    operandInternalDataUnion(float f)
+    {
+        floatVal = f;
+    }
+    operandInternalDataUnion(const char *str)
+    {
+        string = str;
+    }
+
+    operator int()
+    {
+        return intVal;
+    }
+    operator float()
+    {
+        return floatVal;
+    }
+
+    int intVal;
+    float floatVal;
+    const char *string;
 };
 
 struct Operand // sizeof=0x8
@@ -116,3 +146,6 @@ expressionEntry *__cdecl Expression_HashOperand(const char *str, ExpressionAlloc
 expressionEntry *__cdecl Expression_StringOperand(const char *str, ExpressionAllocState *alloc);
 char __cdecl Expression_Read(int handle, ExpressionStatement *statement);
 void __cdecl Expression_Init();
+
+
+extern const char *g_expFunctionNames[457];

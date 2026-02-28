@@ -3,6 +3,15 @@
 union PackedTexCoords // sizeof=0x4
 {                                                                             // XREF: Vec2PackTexCoords(float const * const)+120/w
     unsigned int packed;
+
+    PackedTexCoords()
+    {
+        packed = 0;
+    }
+    PackedTexCoords(unsigned int i)
+    {
+        packed = i;
+    }
 };
 
 union PackedUnitVec // sizeof=0x4

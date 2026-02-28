@@ -1,7 +1,25 @@
 #include "com_tasks.h"
+#include <live/live_storage.h>
+#include <qcommon/cmd.h>
+#include <qcommon/threads.h>
 
+// LWSS: this appears to be some more demonware networking crap
+
+TaskRecord s_taskRecords[256];
+TaskRecord s_taskFreeHead;
+TaskRecord s_taskActiveHead;
+
+unsigned __int64 s_taskMemoryPool[8192];
+int s_taskMemoryPoolIndex;
+unsigned int s_taskPollCount;
+volatile int g_taskHead;
+
+
+
+cmd_function_s TaskManager2_DumpTasks_VAR;
 void __cdecl TaskManager2_Init()
 {
+#ifdef KISAK_DW_TASK
     int idx; // [esp+0h] [ebp-4h]
 
     s_taskFreeHead.next = s_taskRecords;
@@ -15,10 +33,12 @@ void __cdecl TaskManager2_Init()
     s_taskPollCount = 0;
     Cmd_AddCommandInternal("dumpTasks", TaskManager2_DumpTasks, &TaskManager2_DumpTasks_VAR);
     Com_Printf(32, "Task manager initialized.\n");
+#endif
 }
 
 void __cdecl TaskManager2_DeferTaskToMainThread(bdRemoteTask *dwTask, const TaskDefinition *taskDef, void *payload)
 {
+#ifdef KISAK_DW_TASK
     TaskRecord *newTask; // [esp+10h] [ebp-4h]
 
     dwEnterDeferredCritsec();
@@ -30,10 +50,12 @@ void __cdecl TaskManager2_DeferTaskToMainThread(bdRemoteTask *dwTask, const Task
     newTask->ownerThread = 1;
     newTask->payload = payload;
     dwLeaveDeferredCritsec();
+#endif
 }
 
 void __cdecl TaskManager2_PickUpDeferredTasks()
 {
+#ifdef KISAK_DW_TASK
     int i; // [esp+8h] [ebp-4h]
 
     if ( !Sys_IsServerThread()
@@ -83,10 +105,12 @@ void __cdecl TaskManager2_PickUpDeferredTasks()
     }
     g_taskEnd = 63;
     dwLeaveDeferredCritsec();
+#endif
 }
 
 void __cdecl TaskManager2_ProcessXOverlappedTask(TaskRecord *task)
 {
+#ifdef KISAK_DW_TASK
     if ( !task && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_tasks.cpp", 500, 0, "%s", "task") )
         __debugbreak();
     if ( !task->definition
@@ -100,10 +124,12 @@ void __cdecl TaskManager2_ProcessXOverlappedTask(TaskRecord *task)
         __debugbreak();
     }
     Com_Error(ERR_FATAL, "XOverlapped task (%s) created on unsupported platform\n", task->definition->name);
+#endif
 }
 
 void __cdecl TaskManager2_CancelEndlessTasks(int localControllerIndex)
 {
+#ifdef KISAK_DW_TASK
     bool cancelTask; // [esp+17h] [ebp-9h]
     TaskRecord *next; // [esp+18h] [ebp-8h]
     TaskRecord *current; // [esp+1Ch] [ebp-4h]
@@ -181,10 +207,12 @@ void __cdecl TaskManager2_CancelEndlessTasks(int localControllerIndex)
             current = current->next;
         }
     }
+#endif
 }
 
 void __cdecl Task_Deallocate(_BYTE *ptr, int bytes)
 {
+#ifdef KISAK_DW_TASK
     int index; // [esp+Ch] [ebp-4h]
 
     index = ((ptr - (_BYTE *)s_taskMemoryPool) >> 3) - 1;
@@ -194,10 +222,12 @@ void __cdecl Task_Deallocate(_BYTE *ptr, int bytes)
         __debugbreak();
     }
     ChunkFree(index, (bytes + 7) / 8);
+#endif
 }
 
 void __cdecl ChunkFree(int index, int blocks)
 {
+#ifdef KISAK_DW_TASK
     int next; // [esp+1Ch] [ebp-4h]
 
     if ( LODWORD(s_taskMemoryPool[index]) != blocks
@@ -231,10 +261,12 @@ void __cdecl ChunkFree(int index, int blocks)
     }
     LODWORD(s_taskMemoryPool[index]) = blocks;
     HIDWORD(s_taskMemoryPool[index]) = (blocks >> 31) | 1;
+#endif
 }
 
 int __cdecl ChunkNext(int index)
 {
+#ifdef KISAK_DW_TASK
     int size; // [esp+0h] [ebp-4h]
 
     size = LODWORD(s_taskMemoryPool[index]) + 1;
@@ -252,10 +284,14 @@ int __cdecl ChunkNext(int index)
         return 0;
     else
         return size + index;
+#else
+    return 0;
+#endif
 }
 
 void __cdecl TaskManager2_ComErrorCleanup()
 {
+#ifdef KISAK_DW_TASK
     int i; // [esp+0h] [ebp-4h]
 
     if ( Sys_IsMainThread() )
@@ -271,10 +307,12 @@ void __cdecl TaskManager2_ComErrorCleanup()
     {
         Com_PrintWarning(0, "Skipped TaskManager2_ComErrorCleanup because I'm not the main thread.\n");
     }
+#endif
 }
 
 void __cdecl TaskManager2_FreeDeadTasks(int localControllerIndex)
 {
+#ifdef KISAK_DW_TASK
     int v1; // eax
     TaskRecord *next; // [esp+0h] [ebp-8h]
     TaskRecord *current; // [esp+4h] [ebp-4h]
@@ -334,10 +372,12 @@ void __cdecl TaskManager2_FreeDeadTasks(int localControllerIndex)
             current->next = next;
         }
     }
+#endif
 }
 
 void __cdecl TaskManager2_FreeAllPendingTasksForController(int localControllerIndex)
 {
+#ifdef KISAK_DW_TASK
     if ( !Sys_IsMainThread()
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_tasks.cpp",
@@ -350,10 +390,12 @@ void __cdecl TaskManager2_FreeAllPendingTasksForController(int localControllerIn
         __debugbreak();
     }
     TaskManager2_FreeAllPendingTasksInternal(localControllerIndex);
+#endif
 }
 
 void __cdecl TaskManager2_FreeAllPendingTasksInternal(int localControllerIndex)
 {
+#ifdef KISAK_DW_TASK
     TaskRecord *next; // [esp+20h] [ebp-Ch]
     bool freeTask; // [esp+27h] [ebp-5h]
     TaskRecord *current; // [esp+28h] [ebp-4h]
@@ -416,10 +458,12 @@ void __cdecl TaskManager2_FreeAllPendingTasksInternal(int localControllerIndex)
             current = current->next;
         }
     }
+#endif
 }
 
 void __cdecl TaskManager2_HandleTimedOutTask(TaskRecord *TimedOutTask)
 {
+#ifdef KISAK_DW_TASK
     unsigned intv1; // eax
     bdReference<bdRemoteTask> dwtask; // [esp+24h] [ebp-4h] BYREF
 
@@ -446,10 +490,12 @@ void __cdecl TaskManager2_HandleTimedOutTask(TaskRecord *TimedOutTask)
         bdReference<bdRemoteTask>::~bdReference<bdRemoteTask>((bdReference<bdCommonAddr> *)&dwtask);
     }
     TimedOutTask->state = TASK_STATE_FAILED;
+#endif
 }
 
 void __cdecl TaskManager2_ProcessDemonwareTask(TaskRecord *task)
 {
+#ifdef KISAK_DW_TASK
     enum bdLobbyErrorCode v1; // eax
     const char *errorStr; // [esp+84h] [ebp-10h]
     enum bdLobbyErrorCode errorCode; // [esp+88h] [ebp-Ch]
@@ -620,10 +666,12 @@ void __cdecl TaskManager2_ProcessDemonwareTask(TaskRecord *task)
     {
         __debugbreak();
     }
+#endif
 }
 
 void __cdecl TaskManager2_ProcessNestedTask(TaskRecord *task)
 {
+#ifdef KISAK_DW_TASK
     const TaskDefinition *def; // [esp+1Ch] [ebp-8h]
     int ms; // [esp+20h] [ebp-4h]
 
@@ -746,10 +794,12 @@ void __cdecl TaskManager2_ProcessNestedTask(TaskRecord *task)
     {
         __debugbreak();
     }
+#endif
 }
 
 void __cdecl TaskManager2_ProcessTasks(int localControllerIndex)
 {
+#ifdef KISAK_DW_TASK
     TaskRecord *task; // [esp+18h] [ebp-4h]
 
     if ( !Sys_IsMainThread()
@@ -805,10 +855,12 @@ void __cdecl TaskManager2_ProcessTasks(int localControllerIndex)
         }
         TaskManager2_FreeDeadTasks(localControllerIndex);
     }
+#endif
 }
 
 void TaskManager2_CreateDeferredTasks()
 {
+#ifdef KISAK_DW_TASK
     TaskRecord *newTask; // [esp+10h] [ebp-8h]
     int i; // [esp+14h] [ebp-4h]
 
@@ -839,6 +891,7 @@ void TaskManager2_CreateDeferredTasks()
         g_taskHead = 0;
         dwLeaveDeferredCritsec();
     }
+#endif
 }
 
 TaskRecord *__cdecl TaskManager2_CreateTaskFromServerThread(
@@ -847,6 +900,7 @@ TaskRecord *__cdecl TaskManager2_CreateTaskFromServerThread(
                 TaskRecord *nestTask,
                 int timeout)
 {
+#ifdef KISAK_DW_TASK
     int v5; // [esp+0h] [ebp-28h]
     TaskRecord *task; // [esp+24h] [ebp-4h]
 
@@ -937,6 +991,9 @@ TaskRecord *__cdecl TaskManager2_CreateTaskFromServerThread(
         Com_PrintWarning(32, "Not starting task %s, not connected to DW\n", definition->name);
         return 0;
     }
+#else
+    return 0;
+#endif
 }
 
 int __cdecl Task_Allocate(int bytes)
@@ -961,6 +1018,7 @@ int __cdecl Task_Allocate(int bytes)
 
 int __cdecl ChunkAllocate(int index, int blocks)
 {
+#ifdef KISAK_DW_TASK
     __int64 v2; // rax
     int remainingSize; // [esp+14h] [ebp-4h]
     int indexa; // [esp+20h] [ebp+8h]
@@ -996,10 +1054,14 @@ int __cdecl ChunkAllocate(int index, int blocks)
         HIDWORD(s_taskMemoryPool[indexa]) = HIDWORD(v2) | 1;
     }
     return indexa;
+#else
+    return 0;
+#endif
 }
 
 bool __cdecl TaskManager2_IsValidServerTask(const TaskDefinition *definition)
 {
+#ifdef KISAK_DW_TASK
     unsigned int i; // [esp+0h] [ebp-18h]
     char *validservertasks[4]; // [esp+4h] [ebp-14h]
     bool retval; // [esp+17h] [ebp-1h]
@@ -1015,6 +1077,9 @@ bool __cdecl TaskManager2_IsValidServerTask(const TaskDefinition *definition)
             return 1;
     }
     return retval;
+#else
+    return false;
+#endif
 }
 
 TaskRecord *__cdecl TaskManager2_CreateTask(
@@ -1023,6 +1088,7 @@ TaskRecord *__cdecl TaskManager2_CreateTask(
                 TaskRecord *nestTask,
                 int timeout)
 {
+#ifdef KISAK_DW_TASK
     int v5; // [esp+8h] [ebp-34h]
     int v6; // [esp+14h] [ebp-28h]
     TaskRecord *task; // [esp+38h] [ebp-4h]
@@ -1136,10 +1202,14 @@ TaskRecord *__cdecl TaskManager2_CreateTask(
         Com_PrintWarning(32, "Not starting task %s, not connected to DW\n", definition->name);
         return 0;
     }
+#else
+    return 0;
+#endif
 }
 
 void __cdecl TaskManager2_StartTask(TaskRecord *task)
 {
+#ifdef KISAK_DW_TASK
     int v1; // eax
 
     if ( !task
@@ -1198,10 +1268,12 @@ void __cdecl TaskManager2_StartTask(TaskRecord *task)
         task->definition->name,
         task->controllerIndex,
         v1);
+#endif
 }
 
 char __cdecl TaskManger2_TaskGetInProgressForControllerByName(const char *taskName, int controllerIndex)
 {
+#ifdef KISAK_DW_TASK
     TaskRecord *task; // [esp+0h] [ebp-4h]
 
     if ( !taskName
@@ -1217,10 +1289,14 @@ char __cdecl TaskManger2_TaskGetInProgressForControllerByName(const char *taskNa
             return 1;
     }
     return 0;
+#else
+    return 0;
+#endif
 }
 
 TaskRecord *__cdecl TaskManager2_TaskGetInProgressForController(const TaskDefinition *definition, int controllerIndex)
 {
+#ifdef KISAK_DW_TASK
     TaskRecord *task; // [esp+0h] [ebp-4h]
 
     if ( !definition
@@ -1239,10 +1315,14 @@ TaskRecord *__cdecl TaskManager2_TaskGetInProgressForController(const TaskDefini
             return task;
     }
     return 0;
+#else
+    return 0;
+#endif
 }
 
 TaskRecord *__cdecl TaskManager2_TaskGetInProgress(const TaskDefinition *definition)
 {
+#ifdef KISAK_DW_TASK
     TaskRecord *task; // [esp+0h] [ebp-4h]
 
     if ( !definition
@@ -1261,20 +1341,32 @@ TaskRecord *__cdecl TaskManager2_TaskGetInProgress(const TaskDefinition *definit
             return task;
     }
     return 0;
+#else
+    return 0;
+#endif
 }
 
 bool __cdecl TaskManager2_TaskIsInProgressForController(const TaskDefinition *definition, int controllerIndex)
 {
+#ifdef KISAK_DW_TASK
     return TaskManager2_TaskGetInProgressForController(definition, controllerIndex) != 0;
+#else
+    return false;
+#endif
 }
 
 bool __cdecl TaskManager2_TaskIsInProgress(const TaskDefinition *definition)
 {
+#ifdef KISAK_DW_TASK
     return TaskManager2_TaskGetInProgress(definition) != 0;
+#else
+    return false;
+#endif
 }
 
 int __cdecl TaskManager2_CountTasksInProgress(const TaskDefinition *definition)
 {
+#ifdef KISAK_DW_TASK
     TaskRecord *task; // [esp+0h] [ebp-8h]
     int count; // [esp+4h] [ebp-4h]
 
@@ -1285,10 +1377,14 @@ int __cdecl TaskManager2_CountTasksInProgress(const TaskDefinition *definition)
             ++count;
     }
     return count;
+#else
+    return 0;
+#endif
 }
 
 int __cdecl TaskManager2_CountTasksInProgressForController(int controllerindex)
 {
+#ifdef KISAK_DW_TASK
     TaskRecord *task; // [esp+0h] [ebp-8h]
     int count; // [esp+4h] [ebp-4h]
 
@@ -1299,27 +1395,39 @@ int __cdecl TaskManager2_CountTasksInProgressForController(int controllerindex)
             ++count;
     }
     return count;
+#else
+    return 0;
+#endif
 }
 
 bool __cdecl TaskManager2_TaskIsPending(const TaskRecord *task)
 {
+#ifdef KISAK_DW_TASK
     return task->state == TASK_STATE_INPROGRESS
             || task->state == TASK_STATE_CHILDCOMPLETE
             || task->state == TASK_STATE_CHILDFAILED;
+#else
+    return false;
+#endif
 }
 
 bool __cdecl TaskManager2_TaskIsTimedOut(const TaskRecord *task)
 {
+#ifdef KISAK_DW_TASK
     bool v3; // [esp+4h] [ebp-18h]
     bool v4; // [esp+8h] [ebp-14h]
 
     v4 = (task->definition->category & 8) == 0 && task->timeOut != -1;
     v3 = v4 && Sys_Milliseconds() - task->lastPollMS < 0x2710;
     return v3 && (signed int)(Sys_Milliseconds() - task->startMS) > task->timeOut;
+#else
+    return false;
+#endif
 }
 
 void __cdecl TaskManager2_DumpTasks()
 {
+#ifdef KISAK_DW_TASK
     TaskRecord *task; // [esp+0h] [ebp-4Ch]
     char taskState[68]; // [esp+4h] [ebp-48h] BYREF
 
@@ -1336,10 +1444,12 @@ void __cdecl TaskManager2_DumpTasks()
         }
         task = task->next;
     }
+#endif
 }
 
 void __cdecl TaskManager2_StateToString(TaskState state, char *string, unsigned int stringsize)
 {
+#ifdef KISAK_DW_TASK
     if ( string )
     {
         memset((unsigned __int8 *)string, 0, stringsize);
@@ -1379,5 +1489,6 @@ void __cdecl TaskManager2_StateToString(TaskState state, char *string, unsigned 
     {
         __debugbreak();
     }
+#endif
 }
 

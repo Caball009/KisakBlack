@@ -1,21 +1,24 @@
 #include "UserInfo.h"
 
-PublicProfileInfo *__thiscall PublicProfileInfo::PublicProfileInfo(PublicProfileInfo *this)
+PublicProfileInfo::PublicProfileInfo() : bdProfileInfo()
 {
-    bdProfileInfo::bdProfileInfo(this);
-    this->__vftable = (PublicProfileInfo_vtbl *)&PublicProfileInfo::`vftable';
-    return this;
+    //bdProfileInfo::bdProfileInfo(this);
+    //this->__vftable = (PublicProfileInfo_vtbl *)&PublicProfileInfo::`vftable';
+    //return this;
 }
 
-void __thiscall PublicProfileInfo::serialize(PublicProfileInfo *this, bdByteBuffer *buffer)
+void PublicProfileInfo::serialize(bdByteBuffer *buffer)
 {
+#ifdef KISAK_USERINFO
     bdHashMap<bdReference<bdCommonAddr>,bdArray<bdQoSProbe::bdQoSProbeEntryWrapper>,bdHashingClass>::releaseIterator((int)buffer);
     bdByteBuffer::writeInt32(buffer, this->m_memberVERSION);
     bdByteBuffer::writeBlob(buffer, this->m_memberddl, 0x100u);
+#endif
 }
 
-bool __thiscall PublicProfileInfo::deserialize(PublicProfileInfo *this, bdReference<bdByteBuffer> buffer)
+bool PublicProfileInfo::deserialize(bdReference<bdByteBuffer> buffer)
 {
+#ifdef KISAK_USERINFO
     bdReference<bdCommonAddr> v3; // [esp-4h] [ebp-44h] BYREF
     bool v4; // [esp+0h] [ebp-40h]
     bool v5; // [esp+4h] [ebp-3Ch]
@@ -49,29 +52,35 @@ bool __thiscall PublicProfileInfo::deserialize(PublicProfileInfo *this, bdRefere
     v13 = v4;
     bdReference<bdRemoteTask>::~bdReference<bdRemoteTask>((bdReference<bdCommonAddr> *)&buffer);
     return v13;
+#else
+    return false;
+#endif
 }
 
-unsigned int __thiscall PublicProfileInfo::sizeOf(PublicProfileInfo *this)
+unsigned int PublicProfileInfo::sizeOf()
 {
     return 280;
 }
 
-PrivateProfileInfo *__thiscall PrivateProfileInfo::PrivateProfileInfo(PrivateProfileInfo *this)
+PrivateProfileInfo::PrivateProfileInfo() : bdProfileInfo()
 {
-    bdProfileInfo::bdProfileInfo(this);
-    this->__vftable = (PrivateProfileInfo_vtbl *)&PrivateProfileInfo::`vftable';
-    return this;
+    //bdProfileInfo::bdProfileInfo(this);
+    //this->__vftable = (PrivateProfileInfo_vtbl *)&PrivateProfileInfo::`vftable';
+    //return this;
 }
 
-void __thiscall PrivateProfileInfo::serialize(PrivateProfileInfo *this, bdByteBuffer *buffer)
+void __thiscall PrivateProfileInfo::serialize(bdByteBuffer *buffer)
 {
+#ifdef KISAK_USERINFO
     bdHashMap<bdReference<bdCommonAddr>,bdArray<bdQoSProbe::bdQoSProbeEntryWrapper>,bdHashingClass>::releaseIterator((int)buffer);
     bdByteBuffer::writeBlob(buffer, this->m_memberfavsblob, 0xFCu);
     bdByteBuffer::writeBlob(buffer, this->m_memberuids, 0x150u);
+#endif
 }
 
-bool __thiscall PrivateProfileInfo::deserialize(PrivateProfileInfo *this, bdReference<bdByteBuffer> buffer)
+bool __thiscall PrivateProfileInfo::deserialize(bdReference<bdByteBuffer> buffer)
 {
+#ifdef KISAK_USERINFO
     bdReference<bdCommonAddr> v3; // [esp-4h] [ebp-48h] BYREF
     bool v4; // [esp+0h] [ebp-44h]
     bool v5; // [esp+4h] [ebp-40h]
@@ -108,9 +117,12 @@ bool __thiscall PrivateProfileInfo::deserialize(PrivateProfileInfo *this, bdRefe
     v13 = v4;
     bdReference<bdRemoteTask>::~bdReference<bdRemoteTask>((bdReference<bdCommonAddr> *)&buffer);
     return v13;
+#else
+    return false;
+#endif
 }
 
-unsigned int __thiscall PrivateProfileInfo::sizeOf(PrivateProfileInfo *this)
+unsigned int __thiscall PrivateProfileInfo::sizeOf()
 {
     return 608;
 }

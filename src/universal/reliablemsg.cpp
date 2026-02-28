@@ -1,4 +1,13 @@
 #include "reliablemsg.h"
+#include <cstring>
+#include <win32/win_shared.h>
+#include <qcommon/common.h>
+
+
+reliableClient s_reliableClientMessages[64];
+
+const dvar_t *reliableResendTime;
+const dvar_t *reliableTimeoutTime;
 
 void __cdecl RMsg_DropAllPacketsForClient(unsigned int clientSlot)
 {
@@ -59,6 +68,7 @@ void __cdecl RMsg_Init()
                                                     "Amount of time (in ms) to wait before timing out a client for not ack'ing a message");
 }
 
+unsigned __int8 s_tempBuf[1100];
 void __cdecl RMsg_SendMessages()
 {
     char *v0; // eax

@@ -264,6 +264,20 @@ typedef ull                         uint64;
 #define arr_cnt(a) (sizeof(a)/arr_esize(a))
 #define ARRAY_COUNT(a) arr_cnt(a)
 
+union FloatWriteSwap_union // sizeof=0x4
+{                                       // ...
+    float f;
+    int n;
+    unsigned __int8 b[4];
+};
+
+union FloatReadSwap_union // sizeof=0x4
+{                                       // ...
+    float f;
+    int n;
+    unsigned __int8 b[4];
+};
+
 // rotate left
 template<class T> T __ROL__(T value, int count)
 {
@@ -341,15 +355,6 @@ enum trType_t : __int32
     TR_LAST_RAGDOLL = 0xE,
     NUM_TRTYPES = 0xF,
 };
-
-
-union FloatWriteSwap_union // sizeof=0x4
-{                                                                             // ...
-        float f;
-        int n;
-        unsigned __int8 b[4];
-};
-
 
 struct cspField_t // sizeof=0xC
 {                                                                             // XREF: .data:weaponDefFields/r

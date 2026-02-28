@@ -1,6 +1,7 @@
 #include "com_math_anglevectors.h"
 
 #include <cmath>
+#include "q_shared.h"
 
 void __cdecl AngleVectors(const float *angles, float *forward, float *right, float *up)
 {
@@ -24,7 +25,8 @@ void __cdecl AngleVectors(const float *angles, float *forward, float *right, flo
     {
         *forward = cp * cy;
         forward[1] = cp * sy;
-        *((unsigned int *)forward + 2) = LODWORD(v9) ^ _mask__NegFloat_;
+        //*((unsigned int *)forward + 2) = LODWORD(v9) ^ _mask__NegFloat_;
+        forward[2] = -v9;
     }
     if ( right || up )
     {
@@ -33,16 +35,17 @@ void __cdecl AngleVectors(const float *angles, float *forward, float *right, flo
         sr = sin(angleb);
         if ( right )
         {
-            *right = (float)((float)((float)(-1.0 * sr) * v9) * cy)
-                         + (float)((float)(-1.0 * cr) * COERCE_FLOAT(LODWORD(sy) ^ _mask__NegFloat_));
+            //right[0] = (float)((float)((float)(-1.0 * sr) * v9) * cy) + (float)((float)(-1.0 * cr) * COERCE_FLOAT(LODWORD(sy) ^ _mask__NegFloat_));
+            right[0] = (float)((float)((float)(-1.0 * sr) * v9) * cy) + (float)((float)(-1.0 * cr) * -sy);
             right[1] = (float)((float)((float)(-1.0 * sr) * v9) * sy) + (float)((float)(-1.0 * cr) * cy);
             right[2] = (float)(-1.0 * sr) * cp;
         }
         if ( up )
         {
-            *up = (float)((float)(cr * v9) * cy)
-                    + (float)(COERCE_FLOAT(LODWORD(sr) ^ _mask__NegFloat_) * COERCE_FLOAT(LODWORD(sy) ^ _mask__NegFloat_));
-            up[1] = (float)((float)(cr * v9) * sy) + (float)(COERCE_FLOAT(LODWORD(sr) ^ _mask__NegFloat_) * cy);
+            //up[0] = (float)((float)(cr * v9) * cy) + (float)(COERCE_FLOAT(LODWORD(sr) ^ _mask__NegFloat_) * COERCE_FLOAT(LODWORD(sy) ^ _mask__NegFloat_));
+            up[0] = (float)((float)(cr * v9) * cy) + (float)(-sr * -sy);
+            //up[1] = (float)((float)(cr * v9) * sy) + (float)(COERCE_FLOAT(LODWORD(sr) ^ _mask__NegFloat_) * cy);
+            up[1] = (float)((float)(cr * v9) * sy) + (float)(-sr * cy);
             up[2] = cr * cp;
         }
     }
@@ -68,16 +71,19 @@ void __cdecl AnglesToAxis(const float *angles, float (*axis)[3])
     v7 = sin(anglea);
     (*axis)[0] = cp * cy;
     (*axis)[1] = cp * sy;
-    LODWORD((*axis)[2]) = LODWORD(v7) ^ _mask__NegFloat_;
+    //LODWORD((*axis)[2]) = LODWORD(v7) ^ _mask__NegFloat_;
+    LODWORD((*axis)[2]) = -v7;
     angleb = angles[2] * 0.017453292;
     cr = cos(angleb);
     sr = sin(angleb);
-    (*axis)[3] = (float)((float)(sr * v7) * cy) + (float)(COERCE_FLOAT(LODWORD(sy) ^ _mask__NegFloat_) * cr);
+    //(*axis)[3] = (float)((float)(sr * v7) * cy) + (float)(COERCE_FLOAT(LODWORD(sy) ^ _mask__NegFloat_) * cr);
+    (*axis)[3] = (float)((float)(sr * v7) * cy) + (float)(-sy * cr);
     (*axis)[4] = (float)((float)(sr * v7) * sy) + (float)(cr * cy);
     (*axis)[5] = sr * cp;
-    (*axis)[6] = (float)((float)(cr * v7) * cy)
-                         + (float)(COERCE_FLOAT(LODWORD(sr) ^ _mask__NegFloat_) * COERCE_FLOAT(LODWORD(sy) ^ _mask__NegFloat_));
-    (*axis)[7] = (float)((float)(cr * v7) * sy) + (float)(COERCE_FLOAT(LODWORD(sr) ^ _mask__NegFloat_) * cy);
+    //(*axis)[6] = (float)((float)(cr * v7) * cy) + (float)(COERCE_FLOAT(LODWORD(sr) ^ _mask__NegFloat_) * COERCE_FLOAT(LODWORD(sy) ^ _mask__NegFloat_));
+    (*axis)[6] = (float)((float)(cr * v7) * cy) + (float)(-sr * -sy);
+    //(*axis)[7] = (float)((float)(cr * v7) * sy) + (float)(COERCE_FLOAT(LODWORD(sr) ^ _mask__NegFloat_) * cy);
+    (*axis)[7] = (float)((float)(cr * v7) * sy) + (float)(-sr * cy);
     (*axis)[8] = cr * cp;
 }
 
@@ -158,12 +164,14 @@ void __cdecl AxisToSignedAngles(const float (*axis)[3], float *angles)
     right[0] = (*axis)[3];
     right[1] = (*axis)[4];
     right[2] = (*axis)[5];
-    rad = COERCE_FLOAT(*((unsigned int *)angles + 1) ^ _mask__NegFloat_) * 0.017453292;
+    //rad = COERCE_FLOAT(*((unsigned int *)angles + 1) ^ _mask__NegFloat_) * 0.017453292;
+    rad = -angles[1] * 0.017453292;
     fCos = cos(rad);
     fSin = sin(rad);
     temp = (float)(fCos * right[0]) - (float)(fSin * right[1]);
     right[1] = (float)(fSin * right[0]) + (float)(fCos * right[1]);
-    rada = COERCE_FLOAT(*(unsigned int *)angles ^ _mask__NegFloat_) * 0.017453292;
+    //rada = COERCE_FLOAT(*(unsigned int *)angles ^ _mask__NegFloat_) * 0.017453292;
+    rada = -angles[0] * 0.017453292;
     fCos = cos(rada);
     fSin = sin(rada);
     right[0] = (float)(fSin * right[2]) + (float)(fCos * temp);
@@ -171,7 +179,8 @@ void __cdecl AxisToSignedAngles(const float (*axis)[3], float *angles)
     pitch = vectosignedpitch(right);
     if ( right[1] >= 0.0 )
     {
-        *((unsigned int *)angles + 2) = LODWORD(pitch) ^ _mask__NegFloat_;
+        //*((unsigned int *)angles + 2) = LODWORD(pitch) ^ _mask__NegFloat_;
+        angles[2] = -pitch;
     }
     else
     {
@@ -185,6 +194,7 @@ void __cdecl AxisToSignedAngles(const float (*axis)[3], float *angles)
 
 void __cdecl vectosignedangles(const float *vec, float *angles)
 {
+#if 0
     double v2; // xmm0_8
     double v3; // xmm0_8
     long double v4; // [esp-10h] [ebp-2Ch]
@@ -198,7 +208,8 @@ void __cdecl vectosignedangles(const float *vec, float *angles)
     if ( vec[1] == 0.0 && *vec == 0.0 )
     {
         v10 = 0.0f;
-        if ( COERCE_FLOAT(*((unsigned int *)vec + 2) ^ _mask__NegFloat_) < 0.0 )
+        //if ( COERCE_FLOAT(*((unsigned int *)vec + 2) ^ _mask__NegFloat_) < 0.0 )
+        if ( -vec[2] < 0.0f)
             v9 = -90.0f;
         else
             v9 = 90.0f;
@@ -222,10 +233,45 @@ void __cdecl vectosignedangles(const float *vec, float *angles)
     *angles = v8;
     angles[1] = v10;
     angles[2] = 0.0f;
+#else // aislop
+    const float x = vec[0];
+    const float y = vec[1];
+    const float z = vec[2];
+
+    float pitch, yaw;
+
+    // If pointing straight up/down (no horizontal component)
+    if (x == 0.0f && y == 0.0f)
+    {
+        yaw = 0.0f;
+
+        // Note: engine uses inverted pitch convention
+        if (z > 0.0f)
+            pitch = -90.0f;
+        else
+            pitch = 90.0f;
+    }
+    else
+    {
+        // Yaw = atan2(y, x)
+        yaw = std::atan2(y, x) * (180.0f / 3.1415927f);
+
+        // Forward length (horizontal magnitude)
+        float forward = std::sqrt(x * x + y * y);
+
+        // Pitch = -atan2(z, forward)
+        pitch = -std::atan2(z, forward) * (180.0f / 3.1415927f);
+    }
+
+    angles[0] = pitch;
+    angles[1] = yaw;
+    angles[2] = 0.0f;
+#endif
 }
 
 double __cdecl vectosignedpitch(const float *vec)
 {
+#if 0
     double v1; // xmm0_8
     long double v3; // [esp-1Ch] [ebp-2Ch]
     long double v4; // [esp-14h] [ebp-24h]
@@ -245,5 +291,22 @@ double __cdecl vectosignedpitch(const float *vec)
         *(float *)&v1 = v1;
         return (float)((float)(*(float *)&v1 * -180.0) / 3.1415927);
     }
+#else // aislop
+    const float x = vec[0];
+    const float y = vec[1];
+    const float z = vec[2];
+
+    // If vector has no horizontal component
+    if (x == 0.0f && y == 0.0f)
+    {
+        return (z > 0.0f) ? -90.0 : 90.0;
+    }
+
+    // Horizontal length
+    const float forward = std::sqrt(x * x + y * y);
+
+    // Pitch = -atan2(z, forward) converted to degrees
+    return -atan2(z, forward) * (180.0 / 3.14159265358979323846);
+#endif
 }
 

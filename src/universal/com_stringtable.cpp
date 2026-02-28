@@ -6,6 +6,7 @@
 #include <database/db_registry.h>
 #include <xanim/xanim.h>
 #include <xanim/xmodel.h>
+#include <qcommon/md4.h>
 
 int __cdecl StringTable_LookupRowNumForValue(const StringTable *table, int comparisonColumn, const char *value)
 {
@@ -363,7 +364,7 @@ int __cdecl StringTable_Checksum(const StringTable *table, unsigned int initialC
 
 void __cdecl StringTable_GetAsset_FastFile(const char *filename, XAssetHeader *tablePtr)
 {
-    tablePtr->xmodelPieces = DB_FindXAssetHeader(ASSET_TYPE_STRINGTABLE, filename, 1, -1).xmodelPieces;
+    tablePtr->xmodelPieces = DB_FindXAssetHeader(ASSET_TYPE_STRINGTABLE, (char*)filename, 1, -1).xmodelPieces;
 }
 
 void __cdecl StringTable_GetAsset(const char *filename, XAssetHeader *tablePtr)

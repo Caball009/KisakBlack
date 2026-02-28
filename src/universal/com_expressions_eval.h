@@ -341,7 +341,7 @@ void __cdecl GetStatForFriendOrSelf(int localClientNum, itemDef_s *item, Operand
 void __cdecl GetSortedStatsForFriendOrSelf(int localClientNum, itemDef_s *item, OperandStack *dataStack);
 void __cdecl GetToastPopupWidth(int localClientNum, itemDef_s *item, OperandStack *dataStack);
 void __cdecl GetToastPopupIcon(int localClientNum, itemDef_s *item, OperandStack *dataStack);
-void __cdecl GetGLOBAL_EMPTY_STRING(int localClientNum, itemDef_s *item, OperandStack *dataStack);
+void __cdecl GetToastPopupTitle(int localClientNum, itemDef_s *item, OperandStack *dataStack);
 void __cdecl GetToastPopupDescription(int localClientNum, itemDef_s *item, OperandStack *dataStack);
 void __cdecl GetFloatAsFormattedString(int localClientNum, itemDef_s *item, OperandStack *dataStack);
 void __cdecl ChangeSortedStatsPivot(int localClientNum, itemDef_s *item, OperandStack *dataStack);
@@ -471,7 +471,7 @@ void __cdecl GetCustomClassModifier(int localClientNum, itemDef_s *item, Operand
 void __cdecl GetCustomClassName(int localClienTNum, itemDef_s *item, OperandStack *dataStack);
 void __cdecl GetCACItemIndex(int localClientNum, itemDef_s *item, OperandStack *dataStack);
 void __cdecl GetMachineID(int localClientNum, itemDef_s *item, OperandStack *dataStack);
-void __cdecl GetLocalClientNum(operandInternalDataUnion localClientNum, itemDef_s *item, OperandStack *dataStack);
+void __cdecl GetLocalClientNum(int localClientNum, itemDef_s *item, OperandStack *dataStack);
 void __cdecl IsPrimaryLocalClient(int localClientNum, itemDef_s *item, OperandStack *dataStack);
 void __cdecl IsFriendFromXuid(int localClientNum, itemDef_s *item, OperandStack *dataStack);
 void __cdecl CanSwitchToLobby(int locaClientNum, itemDef_s *item, OperandStack *dataStack);
@@ -494,8 +494,8 @@ void __cdecl RPN_FUNC_TOINT(int localClientNum, itemDef_s *item, OperandStack *d
 void __cdecl RPN_FUNC_TOSTRING(int localClientNum, itemDef_s *item, OperandStack *dataStack);
 void __cdecl RPN_FUNC_TOFLOAT(int localClientNum, itemDef_s *item, OperandStack *dataStack);
 void __cdecl RPN_FUNC_ISCLANMEMBER(int localClientNum, itemDef_s *item, OperandStack *dataStack);
-void __cdecl RPN_OP_NOOP();
-void __cdecl RPN_FUNC_INVALID();
+void __cdecl RPN_OP_NOOP(int localClientNum, itemDef_s *item, OperandStack *dataStack);
+void __cdecl RPN_FUNC_INVALID(int localClientNum, itemDef_s *item, OperandStack *dataStack);
 void __cdecl RPN_OP_NOT(int localClientNum, itemDef_s *item, OperandStack *dataStack);
 void __cdecl LogicalNot(int localClientNum, Operand *source, Operand *result);
 void __cdecl RPN_OP_BITWISENOT(int localClientNum, itemDef_s *item, OperandStack *dataStack);

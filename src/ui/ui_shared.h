@@ -630,7 +630,7 @@ struct uiInfo_s // sizeof=0x2764
     int previousTimes[4];
     uiMenuCommand_t currentMenuType;
     bool allowScriptMenuResponse;
-    char GLOBAL_EMPTY_STRING[256];
+    char toastPopupTitle[256];
     char toastPopupDesc[256];
     char toastPopupIconName[256];
     // padding byte
