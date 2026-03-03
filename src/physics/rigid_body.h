@@ -34,7 +34,7 @@ struct    rigid_body_constraint_point : rigid_body_constraint // sizeof=0x50
 
         void set(const phys_vec3 *b1_r_loc, const phys_vec3 *b2_r_loc);
         void epilog_vel_constaint(float __formal);
-        void setup_constaint(struct pulse_sum_constraint_solver *phys, float delta_t);
+        void setup_constraint(struct pulse_sum_constraint_solver *phys, float delta_t);
 };
 
 struct    __declspec(align(16)) rigid_body_constraint_hinge : rigid_body_constraint // sizeof=0xD0
@@ -95,48 +95,20 @@ struct __declspec(align(16)) rigid_body_constraint_distance : rigid_body_constra
 
     pulse_sum_cache m_ps_cache_list[3];
 
-    /* ============================================================
-       Basic Setup
-    ============================================================ */
-
+public:
     inline void set(
         const phys_vec3 *b1_r_loc,
         const phys_vec3 *b2_r_loc,
         float min_distance,
-        float max_distance)
-    {
-        m_b1_r_loc = *b1_r_loc;
-        m_b2_r_loc = *b2_r_loc;
-
-        m_flags = 1;
-
-        m_min_distance = min_distance;
-        m_max_distance = max_distance;
-        m_next_max_distance = max_distance;
-
-        m_max_distance_vel = 0.0f;
-        m_damp_coef = 0.0f;
-    }
+        float max_distance);
 
     /* ============================================================
        Distance Update Phases
     ============================================================ */
 
-    inline void outer_prolog_update(float delta_t)
-    {
-        m_max_distance_vel =
-            (m_next_max_distance - m_max_distance) / delta_t;
-    }
-
-    inline void inner_update(float delta_t)
-    {
-        m_max_distance += m_max_distance_vel * delta_t;
-    }
-
-    inline void outer_epilog_update(float /*delta_t*/)
-    {
-        m_max_distance = m_next_max_distance;
-    }
+    void outer_prolog_update(float delta_t);
+    void inner_update(float delta_t);
+    void outer_epilog_update(float delta_t);
 
     /* ============================================================
        Constraint Setup (cleaned, but logically identical)
@@ -156,6 +128,10 @@ struct    __declspec(align(8)) ragdoll_joint_limit_info // sizeof=0x20
         // padding byte
         // padding byte
         // padding byte
+
+        void set_b1_ud_loc(const phys_vec3 *b1_ud_loc);
+        void set(const phys_vec3 *b1_ud_loc, float theta_limit);
+        void set_theta_limit(float theta_limit);
 };
 
 struct    __declspec(align(16)) rigid_body_constraint_ragdoll : rigid_body_constraint // sizeof=0x120
@@ -343,7 +319,7 @@ struct    __declspec(align(16)) rigid_body_constraint_upright : rigid_body_const
         // padding byte
         // padding byte
 
-        const phys_vec3 *__thiscall calc_b1_lean_axis_loc(const phys_vec3 *result, float lean_angle);
+        const phys_vec3 *__thiscall calc_b1_lean_axis_loc(phys_vec3 *result, float lean_angle);
         double calc_current_lean_angle();
         void epilog_vel_constraint(float delta_t);
         void setup_constraint(pulse_sum_constraint_solver *psys, float delta_t);
@@ -579,7 +555,7 @@ struct rigid_body_constraint_contact : rigid_body_constraint // sizeof=0x2C
         environment_rigid_body *b2_);
 
     void update_smallest_lambda();
-    void setup_constaint(struct pulse_sum_constraint_solver *phys, float delta_t);
+    void setup_constraint(pulse_sum_constraint_solver *phys, float delta_t);
     void verify_constraint(environment_rigid_body *b1_, environment_rigid_body *b2_);
 };
 

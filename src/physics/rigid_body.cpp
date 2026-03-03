@@ -410,7 +410,7 @@ void rigid_body::adjust_col_moved_vec(float lambda)
         phys_exec_debug_callback(this);
 }
 
-void rigid_body_constraint_point::setup_constaint(struct pulse_sum_constraint_solver *phys, float delta_t)
+void rigid_body_constraint_point::setup_constraint(struct pulse_sum_constraint_solver *phys, float delta_t)
 {
     rigid_body *b2; // edi
     phys_vec3 b1_r; // [esp+20h] [ebp-3Ch] BYREF

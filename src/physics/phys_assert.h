@@ -25,3 +25,6 @@ void __cdecl phys_set_debug_callback(void (__cdecl *debug_callback)(void *));
 void __cdecl phys_exec_debug_callback(void *data);
 void __cdecl PHYS_WARNING(const char *file, int line, const char *expr, const char *desc);
 void __cdecl phys_assert_info_frame_advance_all();
+
+
+static const char *SOLVER_MEMORY_ALLOCATOR_ERROR_MSG = "physics constraint solver OUT OF MEMORY.";

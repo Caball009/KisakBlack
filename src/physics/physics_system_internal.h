@@ -72,6 +72,12 @@ struct rbint // sizeof=0x0
         const rigid_body *rb,
         const phys_vec3 *t,
         float delta_t);
+    static const phys_vec3 *mul_L(
+        phys_vec3 *result,
+        const rigid_body *rb,
+        const phys_vec3 *t);
+    static const phys_vec3 *__cdecl sub_pos(phys_vec3 *result, rigid_body *const b, const phys_vec3 *p);
+
     static void update_stability(rigid_body *const rb, float delta_t);
     static const phys_vec3 *__cdecl gtv(phys_vec3 *result, rigid_body *const b, const phys_vec3 *r);
     static void substep(user_rigid_body *rb, float delta_t);

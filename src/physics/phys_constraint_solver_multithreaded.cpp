@@ -12,9 +12,6 @@ jqModule phys_jq_constraint_solverModule=
   //{ { { 0, 0 } } }
 };
 
-const char *SOLVER_MEMORY_ALLOCATOR_ERROR_MSG = "physics constraint solver OUT OF MEMORY.";
-
-
 
 void __cdecl orthonormalize(phys_mat44 *mat)
 {
@@ -4669,7 +4666,7 @@ void __thiscall pulse_sum_constraint_solver::execute_constraint_solver(rigid_bod
             for (i2 = head->m_partition_node.m_rbc_point_first; i2; i2 = (rigid_body_constraint_point *)i2->m_next)
             {
                 //rigid_body_constraint_point::setup_constraint(i2, (int)&savedregs, this, this->m_si.m_delta_t);
-                i2->setup_constaint(this, this->m_si.m_delta_t);
+                i2->setup_constraint(this, this->m_si.m_delta_t);
             }
             for (i3 = head->m_partition_node.m_rbc_hinge_first; i3; i3 = (rigid_body_constraint_hinge *)i3->m_next)
             {
@@ -4721,7 +4718,7 @@ void __thiscall pulse_sum_constraint_solver::execute_constraint_solver(rigid_bod
             for (i11 = head->m_partition_node.m_rbc_contact_first; i11; i11 = (rigid_body_constraint_contact *)i11->m_next)
             {
                 //rigid_body_constraint_contact::setup_constraint(i11, this, this->m_si.m_delta_t);
-                i11->setup_constaint(this, this->m_si.m_delta_t);
+                i11->setup_constraint(this, this->m_si.m_delta_t);
             }
             pulse_sum_constraint_solver::solve_constraints(head);
 
