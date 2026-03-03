@@ -2,6 +2,7 @@
 
 #include "phys_local.h"
 #include "phys_collision.h"
+#include "phys_constraint_solver_multithreaded.h"
 
 struct rigid_body_constraint // sizeof=0xC
 {                                                                             // XREF: rigid_body_constraint_point/r
@@ -341,6 +342,12 @@ struct    __declspec(align(16)) rigid_body_constraint_upright : rigid_body_const
         // padding byte
         // padding byte
         // padding byte
+
+        const phys_vec3 *__thiscall calc_b1_lean_axis_loc(const phys_vec3 *result, float lean_angle);
+        double calc_current_lean_angle();
+        void epilog_vel_constraint(float delta_t);
+        void setup_constraint(pulse_sum_constraint_solver *psys, float delta_t);
+        void update_lean_axis(const phys_vec3 *b1_lean_center, const phys_vec3 *b1_lean_axis_loc);
 };
 
 struct    rigid_body_constraint_custom_orientation : rigid_body_constraint // sizeof=0x30
@@ -353,6 +360,8 @@ struct    rigid_body_constraint_custom_orientation : rigid_body_constraint // si
         float m_torque_resistance_pitch_roll;
         float m_torque_resistance_yaw;
         float m_upright_strength;
+
+        void setup_constraint(pulse_sum_constraint_solver *psys, float delta_t);
 };
 
 class rigid_body
@@ -488,6 +497,8 @@ struct    __declspec(align(16)) rigid_body_constraint_custom_path : rigid_body_c
         // padding byte
         // padding byte
         // padding byte
+
+        void setup_constraint(pulse_sum_constraint_solver *psys, float delta_t);
 };
 
 struct rigid_body_pair_key // sizeof=0x8

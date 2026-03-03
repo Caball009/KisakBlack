@@ -1,6 +1,7 @@
 #include "phys_collision_multithreaded.h"
 #include "physics_system.h"
 #include "physics_system_internal.h"
+#include "phys_contact_manifold.h"
 
 phys_collision_pair *g_list_pcp_iterator;
 contact_point_info *g_list_output_cpi;

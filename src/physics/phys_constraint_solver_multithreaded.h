@@ -98,8 +98,8 @@ struct pulse_sum_normal : phys_link_list_base<pulse_sum_normal> // sizeof=0xA0
         const phys_vec3 *ud,
         pulse_sum_cache *const ps_cache,
         const phys_vec3 *b1_r_displace);
-    const phys_vec3 *get_relative_velocity_change_dir(const phys_vec3 *result);
-    const phys_vec3 *get_relative_velocity(const phys_vec3 *result);
+    const phys_vec3 *get_relative_velocity_change_dir(phys_vec3 *result);
+    const phys_vec3 *get_relative_velocity(phys_vec3 *result);
     double get_unclamped_pulse_sum();
     double get_objective();
     void apply(const float *s_);
@@ -242,8 +242,8 @@ struct pulse_sum_point : phys_link_list_base<pulse_sum_point> // sizeof=0x110
     pulse_sum_cache *m_pulse_sum_cache;
 
     void set_object_vel(const phys_vec3 *object_vel);
-    const phys_vec3 *get_vel(const phys_vec3 *result);
-    const phys_vec3 *get_pos(const phys_vec3 *result);
+    const phys_vec3 *get_vel(phys_vec3 *result);
+    const phys_vec3 *get_pos(phys_vec3 *result);
 
     void set(
         rigid_body *const b1,
@@ -255,7 +255,7 @@ struct pulse_sum_point : phys_link_list_base<pulse_sum_point> // sizeof=0x110
         bool is_spring,
         float spring_k,
         float damp_k);
-    const phys_vec3 *get_objective(const phys_vec3 *result);
+    const phys_vec3 *get_objective(phys_vec3 *result);
     void apply(const phys_vec3 *s_);
     void SOLVER_solver_intermediate(float delta_t);
     void SOLVER_apply_relaxation(float *error_sq);
@@ -374,11 +374,11 @@ struct __declspec(align(16)) pulse_sum_contact_point // sizeof=0xD0
     // padding byte
     // padding byte
 
-    const phys_vec3 *get_vel(const phys_vec3 *result, pulse_sum_contact *psc);
+    const phys_vec3 *get_vel(phys_vec3 *result, pulse_sum_contact *psc);
     double get_pos(pulse_sum_contact *psc);
     double get_impact_vel(pulse_sum_contact *psc);
     void calc_abs(pulse_sum_contact *psc);
-    const phys_vec3 *get_objective(const phys_vec3 *result, pulse_sum_contact *psc);
+    const phys_vec3 *get_objective(phys_vec3 *result, pulse_sum_contact *psc);
     void apply(pulse_sum_contact *psc, const phys_vec3 *s_);
     void clamp_f(pulse_sum_contact *psc);
     void SOLVER_solver_prolog(

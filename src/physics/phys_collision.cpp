@@ -26,6 +26,32 @@ phys_assert_info pai_create_cpi = { 0, 2, true };
 phys_simple_allocator<generic_avl_map_node_t> g_generic_avl_map_node_allocator;
 standard_query g_standard_query;
 
+//rigid_body_constraint_contact *__cdecl avl_tree_find<rigid_body_pair_key, rigid_body_constraint_contact, rigid_body_constraint_contact::avl_tree_accessor>(
+rigid_body_constraint_contact *__cdecl avl_tree_find(rigid_body_constraint_contact *tree_root, const rigid_body_pair_key *key)
+{
+    rigid_body_constraint_contact *result; // eax
+    rigid_body *m_b1; // edx
+    rigid_body *v4; // ecx
+    bool v5; // cf
+
+    result = tree_root;
+    if (tree_root)
+    {
+        m_b1 = key->m_b1;
+        do
+        {
+            if (m_b1 == result->m_avl_key.m_b1 && key->m_b2 == result->m_avl_key.m_b2)
+                break;
+            v4 = result->m_avl_key.m_b1;
+            v5 = m_b1 < v4;
+            if (m_b1 == v4)
+                v5 = key->m_b2 < result->m_avl_key.m_b2;
+            result = v5 ? result->m_avl_tree_node.m_left : result->m_avl_tree_node.m_right;
+        } while (result);
+    }
+    return result;
+}
+
 void __thiscall contact_point_info::get_closest_psc(
                 const phys_vec3 *normal,
                 const phys_vec3 *b1_r_loc,
@@ -744,11 +770,12 @@ void phys_contact_manifold_process::process(
     //phys_contact_manifold::set_get_feature_params(p_cman1, &gjk_info->cg1_cinfo_loc.m_p1, p_m_n, d1, d2);
     p_cman1->set_get_feature_params(&gjk_info->cg1_cinfo_loc.m_p1, p_m_n, d1, d2);
 
-    ((void(__thiscall *)(const phys_gjk_geom *, phys_contact_manifold *, int, int))pcp->m_bpi1->m_gjk_geom->get_feature)(
-        pcp->m_bpi1->m_gjk_geom,
-        p_cman1,
-        a3,
-        v110);
+    pcp->m_bpi1->m_gjk_geom->get_feature(p_cman1);
+    //((void(__thiscall *)(const phys_gjk_geom *, phys_contact_manifold *, int, int))pcp->m_bpi1->m_gjk_geom->get_feature)(
+    //    pcp->m_bpi1->m_gjk_geom,
+    //    p_cman1,
+    //    a3,
+    //    v110);
 
     cg1_relative_translation_loc.x = -p_m_n->x;
     cg1_relative_translation_loc.y = -gjk_info->cg1_cinfo_loc.m_n.y;
@@ -762,17 +789,20 @@ void phys_contact_manifold_process::process(
     v129.z = cg1_relative_translation_loc.z * gjk_info->cg2_to_cg1_xform.z.z
         + cg1_relative_translation_loc.y * gjk_info->cg2_to_cg1_xform.z.y
         + cg1_relative_translation_loc.x * gjk_info->cg2_to_cg1_xform.z.x;
+
     *(float *)&next_mp_i = d2;
     dist = d1;
     smallest_area_mp_i = (contact_manifold_mesh_point **)&v129;
     v25 = phys_full_inv_multiply(&v120, &gjk_info->cg2_to_cg1_xform, &gjk_info->cg1_cinfo_loc.m_p2);
 
-    phys_contact_manifold::set_get_feature_params(
-        sin_feautre_angular_eps_sq,
-        v25,
-        (const phys_vec3 *)smallest_area_mp_i,
-        dist,
-        *(float *)&next_mp_i);
+    //phys_contact_manifold::set_get_feature_params(
+    //    sin_feautre_angular_eps_sq,
+    //    v25,
+    //    (const phys_vec3 *)smallest_area_mp_i,
+    //    dist,
+    //    *(float *)&next_mp_i);
+
+    sin_feautre_angular_eps_sq->set_get_feature_params(v25, &v129, dist, d2);
 
     pcp->m_bpi2->m_gjk_geom->get_feature(sin_feautre_angular_eps_sq);
     next_next_mp_i = (contact_manifold_mesh_point **)LODWORD(gjk_info->m_continuous_collision_lambda);
@@ -811,12 +841,17 @@ void phys_contact_manifold_process::process(
     v129.x = -cg1_relative_translation_loc.x;
     v129.y = -cg1_relative_translation_loc.y;
     v129.z = -cg1_relative_translation_loc.z;
-    phys_contact_manifold::xform_and_translate_mesh_points(
-        sin_feautre_angular_eps_sq,
-        (int)v148,
-        &gjk_info->cg2_to_cg1_xform,
-        &v129);
-    phys_contact_manifold::generate_convex_poly(sin_feautre_angular_eps_sq, &v6->contact_mat);
+
+    sin_feautre_angular_eps_sq->xform_and_translate_mesh_points(&gjk_info->cg2_to_cg1_xform, &v129);
+    //phys_contact_manifold::xform_and_translate_mesh_points(
+    //    sin_feautre_angular_eps_sq,
+    //    (int)v148,
+    //    &gjk_info->cg2_to_cg1_xform,
+    //    &v129);
+
+    //phys_contact_manifold::generate_convex_poly(sin_feautre_angular_eps_sq, &v6->contact_mat);
+    sin_feautre_angular_eps_sq->generate_convex_poly(&v6->contact_mat);
+
     m_list_contact_point_count = v6->cman1.m_list_contact_point_count;
     if (m_list_contact_point_count < 2)
         goto LABEL_17;
@@ -829,12 +864,14 @@ void phys_contact_manifold_process::process(
     if (!m_contact_point_count)
     {
     LABEL_17:
-        *(float *)&v36 = COERCE_FLOAT(contact_point_info::create_cpi(1, 0, v6->m_cpi_allocator));
-        next_next_mp_i = v36;
-        v6->m_cpi = (contact_point_info *)v36;
-        if (*(float *)&v36 == 0.0)
+        //*(float *)&v36 = COERCE_FLOAT(contact_point_info::create_cpi(1, 0, v6->m_cpi_allocator));
+        //next_next_mp_i = v36;
+        //v6->m_cpi = (contact_point_info *)v36;
+        v6->m_cpi = (contact_point_info *)contact_point_info::create_cpi(1, 0, v6->m_cpi_allocator);
+        //if (*(float *)&v36 == 0.0)
+        if (!v6->m_cpi)
             return;
-        v37 = phys_full_multiply((int)v148, &v120, cg1_to_rb1_xform, &ip_3d_);
+        v37 = phys_full_multiply(&v120, cg1_to_rb1_xform, &ip_3d_);
         v38 = next_next_mp_i[9];
         v38->m_p.x = v37->x;
         v39 = v37->y;
@@ -843,7 +880,7 @@ void phys_contact_manifold_process::process(
         v40 = v37->z;
         v41 = (const phys_mat44 *)LODWORD(v134);
         v38->m_p.z = v40;
-        v42 = phys_full_multiply((int)v148, &v120, v41, &sin_feautre_angular_eps_sq->m_feature_normal);
+        v42 = phys_full_multiply(&v120, v41, &sin_feautre_angular_eps_sq->m_feature_normal);
         p_x = &v6->m_cpi->m_list_b2_r_loc->x;
         *p_x = v42->x;
         p_x[1] = v42->y;
@@ -921,7 +958,7 @@ void phys_contact_manifold_process::process(
             v54 = *cur_mp_i;
             smallest_area_mp_i = *v49;
             v55 = (*next_mp_i)->m_contact_p.x;
-            LODWORD(dist) = &(*next_mp_i)->m_contact_p;
+            LODWORD(dist) = (DWORD)&(*next_mp_i)->m_contact_p;
             ip_3d_2.z = v55 - *((float *)smallest_area_mp_i + 4);
             ip_3d_2.w = *(float *)(LODWORD(dist) + 4) - *((float *)smallest_area_mp_i + 5);
             *(float *)&MAX_MP_I = v54->m_contact_p.x - *((float *)smallest_area_mp_i + 4);
@@ -1043,7 +1080,7 @@ void phys_contact_manifold_process::process(
                 p_cman1 = (phys_contact_manifold *)cg1_to_rb1_xform;
                 v79 = v78 * ip_3d_.x + ip_3d_.y * v77->m_feature_normal.y;
                 v80 = ip_3d_.z * v77->m_feature_normal.z;
-                d2 = COERCE_FLOAT(&v111);
+                //d2 = COERCE_FLOAT(&v111);
                 *(float *)&v137 = v79 + v80;
                 *(float *)&v137 = (n1 - *(float *)&v137) / d1;
                 p2_displaced.x = *(float *)&v137 * p_m_n->x;
@@ -1066,7 +1103,7 @@ void phys_contact_manifold_process::process(
                 ip_3d_2.z = ip_3d_.z + cg1_relative_translation_loc.z;
                 v84 = ip_3d_2.y * sin_feautre_angular_eps_sq->m_feature_normal.y;
                 v85 = sin_feautre_angular_eps_sq->m_feature_normal.x;
-                d1 = COERCE_FLOAT(&v120);
+                //d1 = COERCE_FLOAT(&v120);
                 *(float *)&rb1 = v134;
                 v86 = ip_3d_2.z * sin_feautre_angular_eps_sq->m_feature_normal.z;
                 cur_mp_i = (contact_manifold_mesh_point **)&v112;
@@ -1101,7 +1138,7 @@ void phys_contact_manifold_process::process(
         if (!v6->m_cpi && _tlAssert("source/phys_collision.cpp", 155, "m_cpi", ""))
             __debugbreak();
         v120.x = -p_m_n->x;
-        *(float *)&next_mp_i = COERCE_FLOAT(&v120);
+        //*(float *)&next_mp_i = COERCE_FLOAT(&v120);
         v92 = p_m_n->y;
         dist = *(float *)&rb1;
         v120.y = -v92;
@@ -1161,13 +1198,14 @@ void phys_contact_manifold_process::process(
         dist = *(float *)&m_rb;
         rb1 = m_rb;
         v101->m_pcp = pcp;
-        v102 = rigid_body_pair_key::rigid_body_pair_key(
-            (rigid_body_pair_key *)&ip_3d_.z,
-            (rigid_body *const)LODWORD(dist),
-            (rigid_body *const)next_mp_i);
-        v103 = avl_tree_find<rigid_body_pair_key, rigid_body_constraint_contact, rigid_body_constraint_contact::avl_tree_accessor>(
-            v6->m_rbc_contact_search_tree_root,
-            v102);
+
+        //v102 = rigid_body_pair_key::rigid_body_pair_key((rigid_body_pair_key *)&ip_3d_.z, (rigid_body *const)LODWORD(dist), (rigid_body *const)next_mp_i);
+        rigid_body_pair_key fk(rigid_body_pair_key((rigid_body *)LODWORD(dist), (rigid_body *)next_mp_i));
+        v102 = &fk;
+
+        //v103 = avl_tree_find<rigid_body_pair_key, rigid_body_constraint_contact, rigid_body_constraint_contact::avl_tree_accessor>(v6->m_rbc_contact_search_tree_root, v102);
+        v103 = avl_tree_find(v6->m_rbc_contact_search_tree_root, v102);
+
         v6->m_cpi->m_rbc_contact = v103;
         if (v103)
         {

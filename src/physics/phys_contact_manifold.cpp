@@ -629,7 +629,7 @@ void __thiscall phys_contact_manifold_process::intersect_poly_segment(
     *(float *)(v23 + 20) = v37;
 }
 
-bool __thiscall phys_contact_manifold_process::find_bottom(
+bool phys_contact_manifold_process::find_bottom(
                 phys_contact_manifold_process::bridge *b,
                 contact_manifold_mesh_point **left_cman,
                 phys_contact_manifold_process::isect_info *right_cman)

@@ -248,6 +248,8 @@ PhysPreset *__cdecl PhysPreset_Register_FastFile(const char *name)
     return DB_FindXAssetHeader(ASSET_TYPE_PHYSPRESET, (char*)name, 1, -1).physPreset;
 }
 
+extern void *__cdecl Hunk_AllocPhysPresetPrecache(int size);
+
 PhysPreset *__cdecl PhysPreset_Register_LoadObj(const char *name)
 {
     return PhysPresetPrecache(name, Hunk_AllocPhysPresetPrecache);

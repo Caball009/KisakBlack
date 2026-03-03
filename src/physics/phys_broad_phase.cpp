@@ -2434,7 +2434,7 @@ void    collide_bpg_environment(
     v3->get_bpg()->collision_epilog();
 }
 
-int    bp_env_jq_batch_function2()
+int    bp_env_jq_batch_function2(jqBatch *pBatch)
 {
     broad_phase_base_list::node *v1; // eax
     broad_phase_base *v2; // esi
@@ -2744,9 +2744,9 @@ void    broad_phase_group::collision_prolog()
     phys_wheel_collide_info *v34; // eax
     int m_buffer; // esi
     int v36; // eax
-    int v37; // esi
+    phys_vec3 *v37; // esi
     float v38; // edi
-    float *v39; // edi
+    float *p_x; // edi
     double v40; // st7
     double v41; // st7
     double v42; // st7
@@ -2772,40 +2772,38 @@ void    broad_phase_group::collision_prolog()
     double v62; // st4
     double v63; // st1
     double v64; // st2
-    float v65; // [esp-Ch] [ebp-BCh] BYREF
-    float v66; // [esp-8h] [ebp-B8h]
-    float v67; // [esp-4h] [ebp-B4h]
-    phys_vec3 p2; // [esp+0h] [ebp-B0h] BYREF
-    phys_vec3 half_dims; // [esp+10h] [ebp-A0h]
-    broad_phase_group *v70; // [esp+20h] [ebp-90h]
-    const phys_mat44 *rb_mat; // [esp+24h] [ebp-8Ch] BYREF
-    int wheel_count; // [esp+28h] [ebp-88h]
-    float v73; // [esp+2Ch] [ebp-84h]
-    phys_vec3 aabb2_min; // [esp+30h] [ebp-80h] BYREF
-    phys_vec3 aabb2_max; // [esp+40h] [ebp-70h] BYREF
-    phys_vec3 p1; // [esp+50h] [ebp-60h] BYREF
-    phys_vec3 aabb1_max; // [esp+60h] [ebp-50h] BYREF
-    phys_vec3 aabb1_min; // [esp+70h] [ebp-40h]
-    float v79; // [esp+90h] [ebp-20h]
-    float v80; // [esp+94h] [ebp-1Ch]
-    float v81; // [esp+98h] [ebp-18h]
-    float v82; // [esp+9Ch] [ebp-14h]
-    float v83; // [esp+A0h] [ebp-10h]
-    //int v84; // [esp+A4h] [ebp-Ch] BYREF
-    //int i; // [esp+A8h] [ebp-8h]
-    //int retaddr; // [esp+B0h] [ebp+0h]
+    phys_vec3 v65; // [esp-Ch] [ebp-BCh] BYREF
+    phys_vec3 v66; // [esp+4h] [ebp-ACh] BYREF
+    const phys_mat44 *half_dims_12; // [esp+18h] [ebp-98h]
+    const phys_mat44 *rb_mat; // [esp+1Ch] [ebp-94h]
+    int wheel_count; // [esp+20h] [ebp-90h]
+    phys_vec3 aabb2_min; // [esp+24h] [ebp-8Ch] BYREF
+    phys_vec3 aabb2_max; // [esp+34h] [ebp-7Ch] BYREF
+    phys_vec3 p1; // [esp+44h] [ebp-6Ch] BYREF
+    phys_vec3 aabb1_max; // [esp+54h] [ebp-5Ch] BYREF
+    phys_vec3 aabb1_min; // [esp+64h] [ebp-4Ch] BYREF
+    float v75; // [esp+74h] [ebp-3Ch]
+    float v76; // [esp+78h] [ebp-38h]
+    float v77; // [esp+7Ch] [ebp-34h]
+    float v78; // [esp+90h] [ebp-20h]
+    float v79; // [esp+94h] [ebp-1Ch]
+    float v80; // [esp+98h] [ebp-18h]
+    int i; // [esp+9Ch] [ebp-14h]
+    float v82; // [esp+A0h] [ebp-10h]
+    //_UNKNOWN *v83[2]; // [esp+A4h] [ebp-Ch] BYREF
+    //int vars0; // [esp+B0h] [ebp+0h]
     //
-    //v84 = a2;
-    //i = retaddr;
+    //v83[0] = a2;
+    //v83[1] = (_UNKNOWN *)vars0;
     v2 = this;
     v3 = this->m_list_bpi_head == 0;
-    v70 = this;
-    if ( v3
+    wheel_count = (int)this;
+    if (v3
         && _tlAssert(
-                 "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\collision\\phys_broad_phase_inline.h",
-                 184,
-                 "m_list_bpi_head",
-                 "") )
+            "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\collision\\phys_broad_phase_inline.h",
+            184,
+            "m_list_bpi_head",
+            ""))
     {
         __debugbreak();
     }
@@ -2814,270 +2812,258 @@ void    broad_phase_group::collision_prolog()
     m_list_bpi_head = v2->m_list_bpi_head;
     v5 = m_list_bpi_head->m_trace_translation.x + m_list_bpi_head->m_trace_aabb_min_whace.x;
     y = m_list_bpi_head->m_trace_aabb_min_whace.y;
-    aabb1_max.y = m_list_bpi_head->m_trace_aabb_min_whace.x;
+    aabb1_min.x = m_list_bpi_head->m_trace_aabb_min_whace.x;
     z = m_list_bpi_head->m_trace_aabb_min_whace.z;
-    *(float *)&rb_mat = v5;
-    aabb1_max.w = z;
+    aabb2_min.x = v5;
+    aabb1_min.z = z;
     x = m_list_bpi_head->m_trace_aabb_max_whace.x;
     v9 = m_list_bpi_head->m_trace_translation.y + m_list_bpi_head->m_trace_aabb_min_whace.y;
-    aabb1_max.z = y;
+    aabb1_min.y = y;
     w = m_list_bpi_head->m_trace_aabb_min_whace.w;
-    p1.y = x;
+    aabb1_max.x = x;
     v11 = m_list_bpi_head->m_trace_aabb_max_whace.z;
-    *(float *)&wheel_count = v9;
+    aabb2_min.y = v9;
     v12 = m_list_bpi_head->m_trace_translation.z;
-    aabb1_min.x = w;
+    aabb1_min.w = w;
     v13 = v12 + m_list_bpi_head->m_trace_aabb_min_whace.z;
     v14 = m_list_bpi_head->m_trace_aabb_max_whace.y;
-    p1.w = v11;
+    aabb1_max.z = v11;
     m_env_collision_flags = m_list_bpi_head->m_env_collision_flags;
-    v73 = v13;
-    p1.z = v14;
+    aabb2_min.z = v13;
+    aabb1_max.y = v14;
     v16 = m_list_bpi_head->m_trace_aabb_max_whace.x + m_list_bpi_head->m_trace_translation.x;
-    aabb1_max.x = m_list_bpi_head->m_trace_aabb_max_whace.w;
-    aabb2_min.y = v16;
-    aabb2_min.z = m_list_bpi_head->m_trace_aabb_max_whace.y + m_list_bpi_head->m_trace_translation.y;
+    aabb1_max.w = m_list_bpi_head->m_trace_aabb_max_whace.w;
+    aabb2_max.x = v16;
+    aabb2_max.y = m_list_bpi_head->m_trace_aabb_max_whace.y + m_list_bpi_head->m_trace_translation.y;
     v17 = m_list_bpi_head->m_trace_aabb_max_whace.z + m_list_bpi_head->m_trace_translation.z;
     v2->m_env_collision_flags = m_env_collision_flags;
     m_list_bpb_next = (broad_phase_info *)m_list_bpi_head->m_list_bpb_next;
-    for ( aabb2_min.w = v17; m_list_bpb_next; aabb2_min.w = v82 )
+    for (aabb2_max.z = v17; m_list_bpb_next; aabb2_max.z = *(float *)&i)
     {
         //broad_phase_info::collision_prolog(m_list_bpb_next);
         m_list_bpb_next->collision_prolog();
-        v19 = aabb1_max.w;
-        if ( m_list_bpb_next->m_trace_aabb_min_whace.z < (double)aabb1_max.w )
+        v19 = aabb1_min.z;
+        if (m_list_bpb_next->m_trace_aabb_min_whace.z < (double)aabb1_min.z)
             v19 = m_list_bpb_next->m_trace_aabb_min_whace.z;
-        v83 = v19;
-        v20 = aabb1_max.z;
-        if ( m_list_bpb_next->m_trace_aabb_min_whace.y < (double)aabb1_max.z )
+        v82 = v19;
+        v20 = aabb1_min.y;
+        if (m_list_bpb_next->m_trace_aabb_min_whace.y < (double)aabb1_min.y)
             v20 = m_list_bpb_next->m_trace_aabb_min_whace.y;
-        v82 = v20;
-        v21 = aabb1_max.y;
-        if ( m_list_bpb_next->m_trace_aabb_min_whace.x < (double)aabb1_max.y )
+        *(float *)&i = v20;
+        v21 = aabb1_min.x;
+        if (m_list_bpb_next->m_trace_aabb_min_whace.x < (double)aabb1_min.x)
             v21 = m_list_bpb_next->m_trace_aabb_min_whace.x;
-        v81 = v21;
-        aabb1_max.y = v81;
-        aabb1_max.z = v82;
-        aabb1_max.w = v83;
-        v22 = p1.w;
-        if ( m_list_bpb_next->m_trace_aabb_max_whace.z > (double)p1.w )
+        v80 = v21;
+        aabb1_min.x = v80;
+        aabb1_min.y = *(float *)&i;
+        aabb1_min.z = v82;
+        v22 = aabb1_max.z;
+        if (m_list_bpb_next->m_trace_aabb_max_whace.z > (double)aabb1_max.z)
             v22 = m_list_bpb_next->m_trace_aabb_max_whace.z;
-        v82 = v22;
-        v23 = p1.z;
-        if ( m_list_bpb_next->m_trace_aabb_max_whace.y > (double)p1.z )
+        *(float *)&i = v22;
+        v23 = aabb1_max.y;
+        if (m_list_bpb_next->m_trace_aabb_max_whace.y > (double)aabb1_max.y)
             v23 = m_list_bpb_next->m_trace_aabb_max_whace.y;
-        v81 = v23;
-        v24 = p1.y;
-        if ( m_list_bpb_next->m_trace_aabb_max_whace.x > (double)p1.y )
+        v80 = v23;
+        v24 = aabb1_max.x;
+        if (m_list_bpb_next->m_trace_aabb_max_whace.x > (double)aabb1_max.x)
             v24 = m_list_bpb_next->m_trace_aabb_max_whace.x;
-        v83 = v24;
-        p1.y = v83;
-        p1.z = v81;
-        p1.w = v82;
-        aabb1_min.y = m_list_bpb_next->m_trace_aabb_max_whace.x + m_list_bpb_next->m_trace_translation.x;
-        aabb1_min.z = m_list_bpb_next->m_trace_aabb_max_whace.y + m_list_bpb_next->m_trace_translation.y;
-        aabb1_min.w = m_list_bpb_next->m_trace_aabb_max_whace.z + m_list_bpb_next->m_trace_translation.z;
-        aabb2_max.y = m_list_bpb_next->m_trace_aabb_min_whace.x + m_list_bpb_next->m_trace_translation.x;
-        aabb2_max.z = m_list_bpb_next->m_trace_translation.y + m_list_bpb_next->m_trace_aabb_min_whace.y;
-        aabb2_max.w = m_list_bpb_next->m_trace_translation.z + m_list_bpb_next->m_trace_aabb_min_whace.z;
-        v25 = v73;
-        if ( aabb2_max.w < (double)v73 )
-            v25 = aabb2_max.w;
-        v82 = v25;
-        v26 = *(float *)&wheel_count;
-        if ( aabb2_max.z < (double)*(float *)&wheel_count )
-            v26 = aabb2_max.z;
-        v81 = v26;
-        v27 = *(float *)&rb_mat;
-        if ( aabb2_max.y < (double)*(float *)&rb_mat )
-            v27 = aabb2_max.y;
-        v83 = v27;
-        *(float *)&rb_mat = v83;
-        *(float *)&wheel_count = v81;
-        v73 = v82;
-        v28 = aabb2_min.w;
-        if ( aabb1_min.w > (double)aabb2_min.w )
-            v28 = aabb1_min.w;
-        v82 = v28;
-        v29 = aabb2_min.z;
-        if ( aabb1_min.z > (double)aabb2_min.z )
-            v29 = aabb1_min.z;
-        v81 = v29;
-        v30 = aabb2_min.y;
-        if ( aabb1_min.y > (double)aabb2_min.y )
-            v30 = aabb1_min.y;
+        v82 = v24;
+        aabb1_max.x = v82;
+        aabb1_max.y = v80;
+        aabb1_max.z = *(float *)&i;
+        v75 = m_list_bpb_next->m_trace_aabb_max_whace.x + m_list_bpb_next->m_trace_translation.x;
+        v76 = m_list_bpb_next->m_trace_aabb_max_whace.y + m_list_bpb_next->m_trace_translation.y;
+        v77 = m_list_bpb_next->m_trace_aabb_max_whace.z + m_list_bpb_next->m_trace_translation.z;
+        p1.x = m_list_bpb_next->m_trace_aabb_min_whace.x + m_list_bpb_next->m_trace_translation.x;
+        p1.y = m_list_bpb_next->m_trace_translation.y + m_list_bpb_next->m_trace_aabb_min_whace.y;
+        p1.z = m_list_bpb_next->m_trace_translation.z + m_list_bpb_next->m_trace_aabb_min_whace.z;
+        v25 = aabb2_min.z;
+        if (p1.z < (double)aabb2_min.z)
+            v25 = p1.z;
+        *(float *)&i = v25;
+        v26 = aabb2_min.y;
+        if (p1.y < (double)aabb2_min.y)
+            v26 = p1.y;
+        v80 = v26;
+        v27 = aabb2_min.x;
+        if (p1.x < (double)aabb2_min.x)
+            v27 = p1.x;
+        v82 = v27;
+        aabb2_min.x = v82;
+        aabb2_min.y = v80;
+        aabb2_min.z = *(float *)&i;
+        v28 = aabb2_max.z;
+        if (v77 > (double)aabb2_max.z)
+            v28 = v77;
+        *(float *)&i = v28;
+        v29 = aabb2_max.y;
+        if (v76 > (double)aabb2_max.y)
+            v29 = v76;
+        v80 = v29;
+        v30 = aabb2_max.x;
+        if (v75 > (double)aabb2_max.x)
+            v30 = v75;
         v31 = m_list_bpb_next->m_env_collision_flags;
-        v83 = v30;
-        v32 = v83;
+        v82 = v30;
+        v32 = v82;
         v2->m_env_collision_flags |= v31;
         m_list_bpb_next = (broad_phase_info *)m_list_bpb_next->m_list_bpb_next;
-        aabb2_min.y = v32;
-        aabb2_min.z = v81;
+        aabb2_max.x = v32;
+        aabb2_max.y = v80;
     }
     m_rbvm = v2->m_rbvm;
-    if ( m_rbvm )
+    if (m_rbvm)
     {
-        //LODWORD(half_dims.w) = m_rbvm->m_wheels.m_alloc_count;
-        //v34 = (phys_wheel_collide_info *)phys_transient_allocator::mt_allocate(&G_BPM->g_collision_memory_buffer, LODWORD(half_dims.w) << 6, 16, 0, "broad phase collision out of memory.");
+        //rb_mat = (const phys_mat44 *)m_rbvm->m_wheels.m_alloc_count;
+        //v34 = (phys_wheel_collide_info *)phys_transient_allocator::mt_allocate(&G_BPM->g_collision_memory_buffer, m_rbvm->m_wheels.m_alloc_count << 6, 16, 0, "broad phase collision out of memory.");
         v34 = (phys_wheel_collide_info *)G_BPM->g_collision_memory_buffer.mt_allocate(m_rbvm->m_wheels.m_alloc_count << 6, 16, 0, "broad phase collision out of memory.");
         m_buffer = (int)v2->m_rbvm->m_wheels.m_buffer;
         v2->m_list_wci = v34;
-        if ( *(int *)(m_buffer + 20) <= 0
+        if (*(int *)(m_buffer + 20) <= 0
             && _tlAssert(
-                     "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_array_base.inc",
-                     118,
-                     "i >= 0 && i < m_alloc_count",
-                     "") )
+                "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_array_base.inc",
+                118,
+                "i >= 0 && i < m_alloc_count",
+                ""))
         {
             __debugbreak();
         }
-        LODWORD(half_dims.z) = ***(unsigned int ***)(m_buffer + 16) + 48;
+        half_dims_12 = (const phys_mat44 *)(***(_DWORD ***)(m_buffer + 16) + 48);
         v36 = 0;
-        v82 = 0.0;
-        if ( SLODWORD(half_dims.w) > 0 )
+        *(float *)&i = 0.0;
+        if ((int)rb_mat > 0)
         {
-            v81 = 0.0;
-            while ( 1 )
+            v80 = 0.0;
+            while (1)
             {
-                v37 = (int)v2->m_list_wci + LODWORD(v81);
-                LODWORD(v38) = v2->m_rbvm->m_wheels.m_buffer;
-                v80 = v38;
-                if ( (v36 < 0 || v36 >= *(unsigned int *)(LODWORD(v38) + 20))
+                v37 = (phys_vec3 *)((char *)&v2->m_list_wci->m_ray_pos + LODWORD(v80));
+                LODWORD(v38) = (unsigned int)v2->m_rbvm->m_wheels.m_buffer;
+                v79 = v38;
+                if ((v36 < 0 || v36 >= *(_DWORD *)(LODWORD(v38) + 20))
                     && _tlAssert(
-                             "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_array_base.inc",
-                             118,
-                             "i >= 0 && i < m_alloc_count",
-                             "") )
+                        "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_array_base.inc",
+                        118,
+                        "i >= 0 && i < m_alloc_count",
+                        ""))
                 {
                     __debugbreak();
                 }
-                v39 = (float *)(v37 + 16);
-                rigid_body_constraint_wheel::get_wheel_collide_segment(
-                    *(rigid_body_constraint_wheel **)(*(unsigned int *)(LODWORD(v80) + 16) + 4 * LODWORD(v82)),
-                    (int)&v84,
-                    (const phys_mat44 *)LODWORD(half_dims.z),
-                    (phys_vec3 *const)v37,
-                    (phys_vec3 *const)(v37 + 16));
-                *(float *)(v37 + 16) = *(float *)(v37 + 16) - *(float *)v37;
-                *(float *)(v37 + 20) = *(float *)(v37 + 20) - *(float *)(v37 + 4);
-                *(float *)(v37 + 24) = *(float *)(v37 + 24) - *(float *)(v37 + 8);
-                *(unsigned int *)(v37 + 52) = 0;
-                *(float *)(v37 + 48) = 1.0;
-                v40 = aabb1_max.w;
-                if ( *(float *)(v37 + 8) < (double)aabb1_max.w )
-                    v40 = *(float *)(v37 + 8);
-                v80 = v40;
-                v41 = aabb1_max.z;
-                if ( *(float *)(v37 + 4) < (double)aabb1_max.z )
-                    v41 = *(float *)(v37 + 4);
-                v79 = v41;
-                v42 = aabb1_max.y;
-                if ( *(float *)v37 < (double)aabb1_max.y )
-                    v42 = *(float *)v37;
-                v83 = v42;
-                aabb1_max.y = v83;
-                aabb1_max.z = v79;
-                aabb1_max.w = v80;
-                v43 = p1.w;
-                if ( *(float *)(v37 + 8) > (double)p1.w )
-                    v43 = *(float *)(v37 + 8);
-                v83 = v43;
-                v44 = p1.z;
-                if ( *(float *)(v37 + 4) > (double)p1.z )
-                    v44 = *(float *)(v37 + 4);
-                v79 = v44;
-                v45 = p1.y;
-                if ( *(float *)v37 > (double)p1.y )
-                    v45 = *(float *)v37;
-                v80 = v45;
-                p1.y = v80;
-                p1.z = v79;
-                p1.w = v83;
-                aabb2_max.y = *(float *)v37 + *v39;
-                aabb2_max.z = *(float *)(v37 + 20) + *(float *)(v37 + 4);
-                aabb2_max.w = *(float *)(v37 + 24) + *(float *)(v37 + 8);
-                aabb1_min.y = *(float *)v37 + *v39;
-                aabb1_min.z = *(float *)(v37 + 20) + *(float *)(v37 + 4);
-                aabb1_min.w = *(float *)(v37 + 24) + *(float *)(v37 + 8);
-                v46 = v73;
-                if ( aabb1_min.w < (double)v73 )
-                    v46 = aabb1_min.w;
-                v83 = v46;
-                v47 = *(float *)&wheel_count;
-                if ( aabb1_min.z < (double)*(float *)&wheel_count )
-                    v47 = aabb1_min.z;
-                v79 = v47;
-                v48 = *(float *)&rb_mat;
-                if ( aabb1_min.y < (double)*(float *)&rb_mat )
-                    v48 = aabb1_min.y;
-                v80 = v48;
-                *(float *)&rb_mat = v80;
-                *(float *)&wheel_count = v79;
-                v73 = v83;
-                v49 = aabb2_min.w;
-                if ( aabb2_max.w > (double)aabb2_min.w )
-                    v49 = aabb2_max.w;
-                v83 = v49;
-                v50 = aabb2_min.z;
-                if ( aabb2_max.z > (double)aabb2_min.z )
-                    v50 = aabb2_max.z;
-                v79 = v50;
-                v51 = aabb2_min.y;
-                if ( aabb2_max.y > (double)aabb2_min.y )
-                    v51 = aabb2_max.y;
-                v80 = v51;
-                LODWORD(v81) += 64;
-                v2 = v70;
-                aabb2_min.y = v80;
-                v52 = LODWORD(v82) + 1 < SLODWORD(half_dims.w);
-                aabb2_min.z = v79;
-                ++LODWORD(v82);
-                aabb2_min.w = v83;
-                if ( !v52 )
+                p_x = &v37[1].x;
+                //rigid_body_constraint_wheel::get_wheel_collide_segment*(rigid_body_constraint_wheel **)(*(_DWORD *)(LODWORD(v79) + 16) + 4 * i), (int)v83, half_dims_12, v37, v37 + 1);
+                (*(rigid_body_constraint_wheel **)(*(_DWORD *)(LODWORD(v79) + 16) + 4 * i))->get_wheel_collide_segment(half_dims_12, v37, v37 + 1);
+                v37[1].x = v37[1].x - v37->x;
+                v37[1].y = v37[1].y - v37->y;
+                v37[1].z = v37[1].z - v37->z;
+                v37[3].y = 0.0;
+                v37[3].x = 1.0;
+                v40 = aabb1_min.z;
+                if (v37->z < (double)aabb1_min.z)
+                    v40 = v37->z;
+                v79 = v40;
+                v41 = aabb1_min.y;
+                if (v37->y < (double)aabb1_min.y)
+                    v41 = v37->y;
+                v78 = v41;
+                v42 = aabb1_min.x;
+                if (v37->x < (double)aabb1_min.x)
+                    v42 = v37->x;
+                v82 = v42;
+                aabb1_min.x = v82;
+                aabb1_min.y = v78;
+                aabb1_min.z = v79;
+                v43 = aabb1_max.z;
+                if (v37->z > (double)aabb1_max.z)
+                    v43 = v37->z;
+                v82 = v43;
+                v44 = aabb1_max.y;
+                if (v37->y > (double)aabb1_max.y)
+                    v44 = v37->y;
+                v78 = v44;
+                v45 = aabb1_max.x;
+                if (v37->x > (double)aabb1_max.x)
+                    v45 = v37->x;
+                v79 = v45;
+                aabb1_max.x = v79;
+                aabb1_max.y = v78;
+                aabb1_max.z = v82;
+                p1.x = v37->x + *p_x;
+                p1.y = v37[1].y + v37->y;
+                p1.z = v37[1].z + v37->z;
+                v75 = v37->x + *p_x;
+                v76 = v37[1].y + v37->y;
+                v77 = v37[1].z + v37->z;
+                v46 = aabb2_min.z;
+                if (v77 < (double)aabb2_min.z)
+                    v46 = v77;
+                v82 = v46;
+                v47 = aabb2_min.y;
+                if (v76 < (double)aabb2_min.y)
+                    v47 = v76;
+                v78 = v47;
+                v48 = aabb2_min.x;
+                if (v75 < (double)aabb2_min.x)
+                    v48 = v75;
+                v79 = v48;
+                aabb2_min.x = v79;
+                aabb2_min.y = v78;
+                aabb2_min.z = v82;
+                v49 = aabb2_max.z;
+                if (p1.z > (double)aabb2_max.z)
+                    v49 = p1.z;
+                v82 = v49;
+                v50 = aabb2_max.y;
+                if (p1.y > (double)aabb2_max.y)
+                    v50 = p1.y;
+                v78 = v50;
+                v51 = aabb2_max.x;
+                if (p1.x > (double)aabb2_max.x)
+                    v51 = p1.x;
+                v79 = v51;
+                LODWORD(v80) += 64;
+                v2 = (broad_phase_group *)wheel_count;
+                aabb2_max.x = v79;
+                v52 = i + 1 < (int)rb_mat;
+                aabb2_max.y = v78;
+                ++i;
+                aabb2_max.z = v82;
+                if (!v52)
                     break;
-                v36 = LODWORD(v82);
+                v36 = i;
             }
         }
     }
-    comp_trace_volume(
-        (int)&v84,
-        (phys_vec3 *)&aabb1_max.y,
-        (phys_vec3 *)&p1.y,
-        (const phys_vec3 *)&rb_mat,
-        (phys_vec3 *)&aabb2_min.y,
-        (phys_vec3 *)&aabb2_max.y,
-        (phys_vec3 *)&v65,
-        (phys_vec3 *)&p2.y);
-    v53 = aabb2_max.y;
-    v54 = p2.y;
-    aabb1_min.y = aabb2_max.y - p2.y;
-    v55 = aabb2_max.z;
-    v56 = p2.z;
-    aabb1_min.z = aabb2_max.z - p2.z;
-    v57 = aabb2_max.w;
-    v58 = p2.w;
-    aabb1_min.w = aabb2_max.w - p2.w;
-    v2->m_trace_aabb_min_whace.x = aabb1_min.y;
-    v2->m_trace_aabb_min_whace.y = aabb1_min.z;
-    v2->m_trace_aabb_min_whace.z = aabb1_min.w;
-    v59 = v54 + v65;
-    v60 = v65;
-    aabb1_min.y = v59;
-    v61 = v56 + v66;
-    v62 = v66;
-    aabb1_min.z = v61;
-    v63 = v58 + v67;
-    v64 = v67;
-    aabb1_min.w = v63;
-    v2->m_trace_aabb_max_whace.x = aabb1_min.y;
-    v2->m_trace_aabb_max_whace.y = aabb1_min.z;
-    v2->m_trace_aabb_max_whace.z = aabb1_min.w;
-    aabb1_min.y = v60 - v53;
-    aabb1_min.z = v62 - v55;
-    aabb1_min.w = v64 - v57;
-    v2->m_trace_translation.x = aabb1_min.y;
-    v2->m_trace_translation.y = aabb1_min.z;
-    v2->m_trace_translation.z = aabb1_min.w;
+    comp_trace_volume(&aabb1_min, &aabb1_max, &aabb2_min, &aabb2_max, &p1, &v65, &v66);
+    v53 = p1.x;
+    v54 = v66.x;
+    v75 = p1.x - v66.x;
+    v55 = p1.y;
+    v56 = v66.y;
+    v76 = p1.y - v66.y;
+    v57 = p1.z;
+    v58 = v66.z;
+    v77 = p1.z - v66.z;
+    v2->m_trace_aabb_min_whace.x = v75;
+    v2->m_trace_aabb_min_whace.y = v76;
+    v2->m_trace_aabb_min_whace.z = v77;
+    v59 = v54 + v65.x;
+    v60 = v65.x;
+    v75 = v59;
+    v61 = v56 + v65.y;
+    v62 = v65.y;
+    v76 = v61;
+    v63 = v58 + v65.z;
+    v64 = v65.z;
+    v77 = v63;
+    v2->m_trace_aabb_max_whace.x = v75;
+    v2->m_trace_aabb_max_whace.y = v76;
+    v2->m_trace_aabb_max_whace.z = v77;
+    v75 = v60 - v53;
+    v76 = v62 - v55;
+    v77 = v64 - v57;
+    v2->m_trace_translation.x = v75;
+    v2->m_trace_translation.y = v76;
+    v2->m_trace_translation.z = v77;
 }
 
 void __thiscall broad_phase_group::collision_epilog()
@@ -4102,61 +4088,61 @@ void    axis_aligned_sweep_and_prune::process_active_pair_list()
     broad_phase_info *j; // esi
     broad_phase_info *k; // edi
     char *v31; // esi
-    phys_vec3 v32; // [esp+18h] [ebp-4Ch] BYREF
-    phys_vec3 v33; // [esp+28h] [ebp-3Ch] BYREF
+    phys_vec3 v32; // [esp+Ch] [ebp-58h] BYREF
+    float v33; // [esp+1Ch] [ebp-48h]
+    float v34; // [esp+20h] [ebp-44h]
+    phys_vec3 v35; // [esp+28h] [ebp-3Ch] BYREF
     phys_heap_gjk_cache_system_avl_tree *p_g_phys_gjk_cache_system; // [esp+44h] [ebp-20h]
-    broad_phase_info *v35; // [esp+48h] [ebp-1Ch]
-    axis_aligned_sweep_and_prune::active_pair **p_m_next; // [esp+4Ch] [ebp-18h]
-    axis_aligned_sweep_and_prune *v37; // [esp+50h] [ebp-14h]
-    float v38; // [esp+54h] [ebp-10h] BYREF
-    axis_aligned_sweep_and_prune::active_pair **ap_i; // [esp+58h] [ebp-Ch]
-    void *v40; // [esp+5Ch] [ebp-8h]
-    void *retaddr; // [esp+64h] [ebp+0h]
-
-    ap_i = a2;
-    v40 = retaddr;
+    broad_phase_info *v37; // [esp+48h] [ebp-1Ch]
+    axis_aligned_sweep_and_prune::active_pair **ap_i; // [esp+4Ch] [ebp-18h]
+    float hit_time; // [esp+54h] [ebp-10h] BYREF
+    //_UNKNOWN *v41; // [esp+58h] [ebp-Ch]
+    //int v42; // [esp+5Ch] [ebp-8h]
+    //int vars0; // [esp+64h] [ebp+0h]
+    //
+    //v41 = a2;
+    //v42 = vars0;
     p_m_list_bpi_bpi = &this->m_list_bpi_bpi;
     m_list_bpi_bpi = this->m_list_bpi_bpi;
-    v37 = this;
-    p_m_next = &this->m_list_bpi_bpi;
-    if ( m_list_bpi_bpi )
+    ap_i = &this->m_list_bpi_bpi;
+    if (m_list_bpi_bpi)
     {
-        while ( 1 )
+        while (1)
         {
             m_p1 = m_list_bpi_bpi->m_p1;
             m_p2 = m_list_bpi_bpi->m_p2;
-            if ( m_list_bpi_bpi->m_p1->m_ae1[0][0].m_ae_list_index >= m_p2->m_ae1[0][1].m_ae_list_index
+            if (m_list_bpi_bpi->m_p1->m_ae1[0][0].m_ae_list_index >= m_p2->m_ae1[0][1].m_ae_list_index
                 || m_p2->m_ae1[0][0].m_ae_list_index >= m_p1->m_ae1[0][1].m_ae_list_index
                 || m_p1->m_ae1[1][0].m_ae_list_index >= m_p2->m_ae1[1][1].m_ae_list_index
                 || m_p2->m_ae1[1][0].m_ae_list_index >= m_p1->m_ae1[1][1].m_ae_list_index
                 || m_p1->m_ae1[2][0].m_ae_list_index >= m_p2->m_ae1[2][1].m_ae_list_index
-                || m_p2->m_ae1[2][0].m_ae_list_index >= m_p1->m_ae1[2][1].m_ae_list_index )
+                || m_p2->m_ae1[2][0].m_ae_list_index >= m_p1->m_ae1[2][1].m_ae_list_index)
             {
                 *p_m_list_bpi_bpi = m_list_bpi_bpi->m_next;
                 m_gjk_ci = (char *)m_list_bpi_bpi->m_gjk_ci;
                 p_g_phys_gjk_cache_system = &G_BPM->g_phys_gjk_cache_system;
-                if ( m_gjk_ci )
+                if (m_gjk_ci)
                 {
                     PMM_VALIDATE(m_gjk_ci, 0x90u, 0x10u);
                     --p_g_phys_gjk_cache_system->m_list_phys_gjk_cache_info_internal.m_count;
                     PMM_FREE((unsigned __int8 *)m_gjk_ci, 0x90u, 0x10u);
                 }
                 PMM_VALIDATE((char *)m_list_bpi_bpi, 0x10u, 4u);
-                --v37->m_active_pair_allocator.m_count;
+                --this->m_active_pair_allocator.m_count;
                 PMM_FREE((unsigned __int8 *)m_list_bpi_bpi, 0x10u, 4u);
             }
             else
             {
                 m_bpb = m_p1->m_bpb;
                 v7 = (m_bpb->m_flags & 1) == 0;
-                p_m_next = &m_list_bpi_bpi->m_next;
-                v35 = (broad_phase_info *)m_bpb;
-                if ( v7
+                ap_i = &m_list_bpi_bpi->m_next;
+                v37 = (broad_phase_info *)m_bpb;
+                if (v7
                     && _tlAssert(
-                             "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\collision\\phys_broad_phase_base.h",
-                             99,
-                             "is_bpi()",
-                             "") )
+                        "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\collision\\phys_broad_phase_base.h",
+                        99,
+                        "is_bpi()",
+                        ""))
                 {
                     __debugbreak();
                 }
@@ -4164,36 +4150,36 @@ void    axis_aligned_sweep_and_prune::process_active_pair_list()
                 v9 = *v8;
                 v7 = ((*v8)->m_flags & 1) == 0;
                 p_g_phys_gjk_cache_system = (phys_heap_gjk_cache_system_avl_tree *)*v8;
-                if ( v7
+                if (v7
                     && _tlAssert(
-                             "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\collision\\phys_broad_phase_base.h",
-                             99,
-                             "is_bpi()",
-                             "") )
+                        "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\collision\\phys_broad_phase_base.h",
+                        99,
+                        "is_bpi()",
+                        ""))
                 {
                     __debugbreak();
                 }
-                v33.x = v35->m_trace_translation.x - v9->m_trace_translation.x;
-                v33.y = v35->m_trace_translation.y - v9->m_trace_translation.y;
-                v33.z = v35->m_trace_translation.z - v9->m_trace_translation.z;
-                if ( phys_are_potentially_colliding(
-                             &v35->m_trace_aabb_min_whace,
-                             &v35->m_trace_aabb_max_whace,
-                             &v33,
-                             &v9->m_trace_aabb_min_whace,
-                             &v9->m_trace_aabb_max_whace,
-                             &v38) )
+                v35.x = v37->m_trace_translation.x - v9->m_trace_translation.x;
+                v35.y = v37->m_trace_translation.y - v9->m_trace_translation.y;
+                v35.z = v37->m_trace_translation.z - v9->m_trace_translation.z;
+                if (phys_are_potentially_colliding(
+                    &v37->m_trace_aabb_min_whace,
+                    &v37->m_trace_aabb_max_whace,
+                    &v35,
+                    &v9->m_trace_aabb_min_whace,
+                    &v9->m_trace_aabb_max_whace,
+                    &hit_time))
                 {
-                    if ( !m_list_bpi_bpi->m_gjk_ci )
+                    if (!m_list_bpi_bpi->m_gjk_ci)
                     {
                         v10 = &G_BPM->g_phys_gjk_cache_system;
                         v11 = PMM_ALLOC(0x90u, 0x10u);
-                        if ( v11 )
+                        if (v11)
                         {
                             ++v10->m_list_phys_gjk_cache_info_internal.m_count;
-                            *((unsigned int *)v11 + 29) = 1;
-                            *((unsigned int *)v11 + 30) = 2;
-                            *((unsigned int *)v11 + 31) = 0;
+                            *((_DWORD *)v11 + 29) = 1;
+                            *((_DWORD *)v11 + 30) = 2;
+                            *((_DWORD *)v11 + 31) = 0;
                         }
                         else
                         {
@@ -4202,203 +4188,201 @@ void    axis_aligned_sweep_and_prune::process_active_pair_list()
                         v9 = (broad_phase_info *)p_g_phys_gjk_cache_system;
                         m_list_bpi_bpi->m_gjk_ci = (phys_gjk_cache_info *)v11;
                     }
-                    add_collision_pair(v35, v9, v38, m_list_bpi_bpi->m_gjk_ci);
+                    add_collision_pair(v37, v9, hit_time, m_list_bpi_bpi->m_gjk_ci);
                 }
             }
-            m_list_bpi_bpi = *p_m_next;
-            if ( !*p_m_next )
+            m_list_bpi_bpi = *ap_i;
+            if (!*ap_i)
                 break;
-            p_m_list_bpi_bpi = p_m_next;
+            p_m_list_bpi_bpi = ap_i;
         }
-        this = v37;
     }
     m_list_bpi_bpg = this->m_list_bpi_bpg;
     p_m_list_bpi_bpg = &this->m_list_bpi_bpg;
-    p_m_next = &this->m_list_bpi_bpg;
-    if ( m_list_bpi_bpg )
+    ap_i = &this->m_list_bpi_bpg;
+    if (m_list_bpi_bpg)
     {
-        while ( 1 )
+        while (1)
         {
             v15 = m_list_bpi_bpg->m_p1;
             v16 = m_list_bpi_bpg->m_p2;
-            if ( m_list_bpi_bpg->m_p1->m_ae1[0][0].m_ae_list_index >= v16->m_ae1[0][1].m_ae_list_index
+            if (m_list_bpi_bpg->m_p1->m_ae1[0][0].m_ae_list_index >= v16->m_ae1[0][1].m_ae_list_index
                 || v16->m_ae1[0][0].m_ae_list_index >= v15->m_ae1[0][1].m_ae_list_index
                 || v15->m_ae1[1][0].m_ae_list_index >= v16->m_ae1[1][1].m_ae_list_index
                 || v16->m_ae1[1][0].m_ae_list_index >= v15->m_ae1[1][1].m_ae_list_index
                 || v15->m_ae1[2][0].m_ae_list_index >= v16->m_ae1[2][1].m_ae_list_index
-                || v16->m_ae1[2][0].m_ae_list_index >= v15->m_ae1[2][1].m_ae_list_index )
+                || v16->m_ae1[2][0].m_ae_list_index >= v15->m_ae1[2][1].m_ae_list_index)
             {
                 *p_m_list_bpi_bpg = m_list_bpi_bpg->m_next;
                 v21 = (char *)m_list_bpi_bpg->m_gjk_ci;
                 p_g_phys_gjk_cache_system = &G_BPM->g_phys_gjk_cache_system;
-                if ( v21 )
+                if (v21)
                 {
                     PMM_VALIDATE(v21, 0x90u, 0x10u);
                     --p_g_phys_gjk_cache_system->m_list_phys_gjk_cache_info_internal.m_count;
                     PMM_FREE((unsigned __int8 *)v21, 0x90u, 0x10u);
                 }
                 PMM_VALIDATE((char *)m_list_bpi_bpg, 0x10u, 4u);
-                --v37->m_active_pair_allocator.m_count;
+                --this->m_active_pair_allocator.m_count;
                 PMM_FREE((unsigned __int8 *)m_list_bpi_bpg, 0x10u, 4u);
             }
             else
             {
                 v17 = (broad_phase_info *)v15->m_bpb;
                 v7 = (v15->m_bpb->m_flags & 1) == 0;
-                p_m_next = &m_list_bpi_bpg->m_next;
-                if ( v7
+                ap_i = &m_list_bpi_bpg->m_next;
+                if (v7
                     && _tlAssert(
-                             "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\collision\\phys_broad_phase_base.h",
-                             99,
-                             "is_bpi()",
-                             "") )
+                        "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\collision\\phys_broad_phase_base.h",
+                        99,
+                        "is_bpi()",
+                        ""))
                 {
                     __debugbreak();
                 }
                 v18 = m_list_bpi_bpg->m_p2;
                 v19 = v18->m_bpb;
-                if ( (v18->m_bpb->m_flags & 2) == 0
+                if ((v18->m_bpb->m_flags & 2) == 0
                     && _tlAssert(
-                             "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\collision\\phys_broad_phase_base.h",
-                             100,
-                             "is_bpg()",
-                             "") )
+                        "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\collision\\phys_broad_phase_base.h",
+                        100,
+                        "is_bpg()",
+                        ""))
                 {
                     __debugbreak();
                 }
-                v33.x = v17->m_trace_translation.x - v19->m_trace_translation.x;
-                v33.y = v17->m_trace_translation.y - v19->m_trace_translation.y;
-                v33.z = v17->m_trace_translation.z - v19->m_trace_translation.z;
-                if ( phys_are_potentially_colliding(
-                             &v17->m_trace_aabb_min_whace,
-                             &v17->m_trace_aabb_max_whace,
-                             &v33,
-                             &v19->m_trace_aabb_min_whace,
-                             &v19->m_trace_aabb_max_whace,
-                             &v38) )
+                v35.x = v17->m_trace_translation.x - v19->m_trace_translation.x;
+                v35.y = v17->m_trace_translation.y - v19->m_trace_translation.y;
+                v35.z = v17->m_trace_translation.z - v19->m_trace_translation.z;
+                if (phys_are_potentially_colliding(
+                    &v17->m_trace_aabb_min_whace,
+                    &v17->m_trace_aabb_max_whace,
+                    &v35,
+                    &v19->m_trace_aabb_min_whace,
+                    &v19->m_trace_aabb_max_whace,
+                    &hit_time))
                 {
-                    for ( i = (broad_phase_info *)LODWORD(v19[1].m_trace_aabb_min_whace.x);
-                                i;
-                                i = (broad_phase_info *)i->m_list_bpb_next )
+                    for (i = (broad_phase_info *)LODWORD(v19[1].m_trace_aabb_min_whace.x);
+                        i;
+                        i = (broad_phase_info *)i->m_list_bpb_next)
                     {
-                        v32.x = v17->m_trace_translation.x - i->m_trace_translation.x;
-                        v32.y = v17->m_trace_translation.y - i->m_trace_translation.y;
-                        v32.z = v17->m_trace_translation.z - i->m_trace_translation.z;
-                        if ( phys_are_potentially_colliding(
-                                     &v17->m_trace_aabb_min_whace,
-                                     &v17->m_trace_aabb_max_whace,
-                                     &v32,
-                                     &i->m_trace_aabb_min_whace,
-                                     &i->m_trace_aabb_max_whace,
-                                     &v38) )
+                        v32.w = v17->m_trace_translation.x - i->m_trace_translation.x;
+                        v33 = v17->m_trace_translation.y - i->m_trace_translation.y;
+                        v34 = v17->m_trace_translation.z - i->m_trace_translation.z;
+                        if (phys_are_potentially_colliding(
+                            &v17->m_trace_aabb_min_whace,
+                            &v17->m_trace_aabb_max_whace,
+                            (phys_vec3 *)&v32.w,
+                            &i->m_trace_aabb_min_whace,
+                            &i->m_trace_aabb_max_whace,
+                            &hit_time))
                         {
-                            add_collision_pair(v17, i, v38, 0);
+                            add_collision_pair(v17, i, hit_time, 0);
                         }
                     }
                 }
             }
-            m_list_bpi_bpg = *p_m_next;
-            if ( !*p_m_next )
+            m_list_bpi_bpg = *ap_i;
+            if (!*ap_i)
                 break;
-            p_m_list_bpi_bpg = p_m_next;
+            p_m_list_bpi_bpg = ap_i;
         }
-        this = v37;
     }
     m_list_bpg_bpg = this->m_list_bpg_bpg;
     p_m_list_bpg_bpg = &this->m_list_bpg_bpg;
-    p_m_next = &this->m_list_bpg_bpg;
-    if ( m_list_bpg_bpg )
+    ap_i = &this->m_list_bpg_bpg;
+    if (m_list_bpg_bpg)
     {
-        while ( 1 )
+        while (1)
         {
             v24 = m_list_bpg_bpg->m_p1;
             v25 = m_list_bpg_bpg->m_p2;
-            if ( m_list_bpg_bpg->m_p1->m_ae1[0][0].m_ae_list_index >= v25->m_ae1[0][1].m_ae_list_index
+            if (m_list_bpg_bpg->m_p1->m_ae1[0][0].m_ae_list_index >= v25->m_ae1[0][1].m_ae_list_index
                 || v25->m_ae1[0][0].m_ae_list_index >= v24->m_ae1[0][1].m_ae_list_index
                 || v24->m_ae1[1][0].m_ae_list_index >= v25->m_ae1[1][1].m_ae_list_index
                 || v25->m_ae1[1][0].m_ae_list_index >= v24->m_ae1[1][1].m_ae_list_index
                 || v24->m_ae1[2][0].m_ae_list_index >= v25->m_ae1[2][1].m_ae_list_index
-                || v25->m_ae1[2][0].m_ae_list_index >= v24->m_ae1[2][1].m_ae_list_index )
+                || v25->m_ae1[2][0].m_ae_list_index >= v24->m_ae1[2][1].m_ae_list_index)
             {
                 *p_m_list_bpg_bpg = m_list_bpg_bpg->m_next;
                 v31 = (char *)m_list_bpg_bpg->m_gjk_ci;
                 p_g_phys_gjk_cache_system = &G_BPM->g_phys_gjk_cache_system;
-                if ( v31 )
+                if (v31)
                 {
                     PMM_VALIDATE(v31, 0x90u, 0x10u);
                     --p_g_phys_gjk_cache_system->m_list_phys_gjk_cache_info_internal.m_count;
                     PMM_FREE((unsigned __int8 *)v31, 0x90u, 0x10u);
                 }
                 PMM_VALIDATE((char *)m_list_bpg_bpg, 0x10u, 4u);
-                --v37->m_active_pair_allocator.m_count;
+                --this->m_active_pair_allocator.m_count;
                 PMM_FREE((unsigned __int8 *)m_list_bpg_bpg, 0x10u, 4u);
             }
             else
             {
                 v26 = v24->m_bpb;
                 v7 = (v24->m_bpb->m_flags & 2) == 0;
-                p_m_next = &m_list_bpg_bpg->m_next;
-                if ( v7
+                ap_i = &m_list_bpg_bpg->m_next;
+                if (v7
                     && _tlAssert(
-                             "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\collision\\phys_broad_phase_base.h",
-                             100,
-                             "is_bpg()",
-                             "") )
+                        "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\collision\\phys_broad_phase_base.h",
+                        100,
+                        "is_bpg()",
+                        ""))
                 {
                     __debugbreak();
                 }
                 v27 = (broad_phase_info **)m_list_bpg_bpg->m_p2;
                 v28 = *v27;
                 v7 = ((*v27)->m_flags & 2) == 0;
-                v35 = *v27;
-                if ( v7
+                v37 = *v27;
+                if (v7
                     && _tlAssert(
-                             "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\collision\\phys_broad_phase_base.h",
-                             100,
-                             "is_bpg()",
-                             "") )
+                        "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\collision\\phys_broad_phase_base.h",
+                        100,
+                        "is_bpg()",
+                        ""))
                 {
                     __debugbreak();
                 }
-                for ( j = (broad_phase_info *)LODWORD(v26[1].m_trace_aabb_min_whace.x);
-                            j;
-                            j = (broad_phase_info *)j->m_list_bpb_next )
+                for (j = (broad_phase_info *)LODWORD(v26[1].m_trace_aabb_min_whace.x);
+                    j;
+                    j = (broad_phase_info *)j->m_list_bpb_next)
                 {
-                    v32.x = j->m_trace_translation.x - v28->m_trace_translation.x;
-                    v32.y = j->m_trace_translation.y - v28->m_trace_translation.y;
-                    v32.z = j->m_trace_translation.z - v28->m_trace_translation.z;
-                    if ( phys_are_potentially_colliding(
-                                 &j->m_trace_aabb_min_whace,
-                                 &j->m_trace_aabb_max_whace,
-                                 &v32,
-                                 &v28->m_trace_aabb_min_whace,
-                                 &v28->m_trace_aabb_max_whace,
-                                 &v38) )
+                    v32.w = j->m_trace_translation.x - v28->m_trace_translation.x;
+                    v33 = j->m_trace_translation.y - v28->m_trace_translation.y;
+                    v34 = j->m_trace_translation.z - v28->m_trace_translation.z;
+                    if (phys_are_potentially_colliding(
+                        &j->m_trace_aabb_min_whace,
+                        &j->m_trace_aabb_max_whace,
+                        (phys_vec3 *)&v32.w,
+                        &v28->m_trace_aabb_min_whace,
+                        &v28->m_trace_aabb_max_whace,
+                        &hit_time))
                     {
-                        for ( k = (broad_phase_info *)v28->m_rb; k; k = (broad_phase_info *)k->m_list_bpb_next )
+                        for (k = (broad_phase_info *)v28->m_rb; k; k = (broad_phase_info *)k->m_list_bpb_next)
                         {
-                            v33.x = j->m_trace_translation.x - k->m_trace_translation.x;
-                            v33.y = j->m_trace_translation.y - k->m_trace_translation.y;
-                            v33.z = j->m_trace_translation.z - k->m_trace_translation.z;
-                            if ( phys_are_potentially_colliding(
-                                         &j->m_trace_aabb_min_whace,
-                                         &j->m_trace_aabb_max_whace,
-                                         &v33,
-                                         &k->m_trace_aabb_min_whace,
-                                         &k->m_trace_aabb_max_whace,
-                                         &v38) )
+                            v35.x = j->m_trace_translation.x - k->m_trace_translation.x;
+                            v35.y = j->m_trace_translation.y - k->m_trace_translation.y;
+                            v35.z = j->m_trace_translation.z - k->m_trace_translation.z;
+                            if (phys_are_potentially_colliding(
+                                &j->m_trace_aabb_min_whace,
+                                &j->m_trace_aabb_max_whace,
+                                &v35,
+                                &k->m_trace_aabb_min_whace,
+                                &k->m_trace_aabb_max_whace,
+                                &hit_time))
                             {
-                                add_collision_pair(j, k, v38, 0);
+                                add_collision_pair(j, k, hit_time, 0);
                             }
                         }
-                        v28 = v35;
+                        v28 = v37;
                     }
                 }
             }
-            m_list_bpg_bpg = *p_m_next;
-            if ( !*p_m_next )
+            m_list_bpg_bpg = *ap_i;
+            if (!*ap_i)
                 break;
-            p_m_list_bpg_bpg = p_m_next;
+            p_m_list_bpg_bpg = ap_i;
         }
     }
 }

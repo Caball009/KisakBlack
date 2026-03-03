@@ -364,7 +364,7 @@ void collide_bpi_environment(broad_phase_group *bpi, broad_phase_environement_qu
 void    collide_bpg_environment(
     broad_phase_group *bpg,
                 const broad_phase_environement_query_results *bpeqr);
-int    bp_env_jq_batch_function2();
+int    bp_env_jq_batch_function2(jqBatch *pBatch);
 void    broad_phase_process();
 void broad_phase_system_init(
                 const broad_phase_memory_info *bpmi,
