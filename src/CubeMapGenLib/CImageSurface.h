@@ -18,7 +18,7 @@
 #include "VectorMacros.h"
 
 //has routines for saving .rgbe files
-#define CG_HDR_FILE_SUPPORT
+//#define CG_HDR_FILE_SUPPORT // LWSS: remove
 
 
 #ifdef CG_HDR_FILE_SUPPORT

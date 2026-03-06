@@ -73,7 +73,7 @@ void OutputMessage(WCHAR *a_Message, ... )
     numCharOutput = _vsnwprintf_s( msgBuffer, EM_MAX_MESSAGE_LENGTH, EM_MAX_MESSAGE_LENGTH, a_Message, args);
 
     //va_end(args, a_Message);
-    OutputMessageString(L"Message:", msgBuffer);
+    OutputMessageString((wchar_t *)L"Message:", msgBuffer);
 }
 
 //--------------------------------------------------------------------------------------
@@ -93,7 +93,7 @@ bool OutputQuestion( WCHAR *a_Message, ... )
          return MessageBox( NULL, msgBuffer, L"Question:", MB_YESNO ) == IDYES;
       break;
       case EM_MESSAGE_MEDIUM_CALLBACK_FUNCTION:
-         sg_MessageOutputCallback( L"Question:", msgBuffer );
+         sg_MessageOutputCallback( (wchar_t*)L"Question:", msgBuffer );
       break;
       default:
       break;
@@ -119,7 +119,7 @@ HRESULT OutputMessageOnFail(HRESULT a_hr, WCHAR *a_Message, ... )
 
         //va_end(args, a_Message);
 
-        OutputMessageString(L"Error!", msgBuffer);
+        OutputMessageString((wchar_t *)L"Error!", msgBuffer);
     }
 
     return a_hr;
@@ -144,7 +144,7 @@ HRESULT OutputFatalMessageOnFail(HRESULT a_hr, WCHAR *a_Message, ... )
 
         //va_end(args, a_Message);
 
-        OutputMessageString(L"Fatal Error!", msgBuffer);
+        OutputMessageString((wchar_t *)L"Fatal Error!", msgBuffer);
         exit(EM_FATAL_ERROR);
     }
 

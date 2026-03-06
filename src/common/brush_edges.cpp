@@ -548,6 +548,7 @@ bool __cdecl CycleLess(
 
 int __cdecl ReduceToACycle(int basePlane, SimplePlaneIntersection **pts, int ptsCount)
 {
+#if 0
     int v4; // eax
     int v5; // eax
     int partition[1024]; // [esp+10h] [ebp-5040h] BYREF
@@ -729,6 +730,175 @@ int __cdecl ReduceToACycle(int basePlane, SimplePlaneIntersection **pts, int pts
         }
     }
     return ptsCounta;
+#else
+int partition[1024];
+    int planeList[1024];
+    int planeCount = 0;
+
+    SimplePlaneIntersection *edges[1024];
+    SimplePlaneIntersection *cycleA[1024];
+    SimplePlaneIntersection *cycleB[1024];
+
+    int resultCycleCount;
+    unsigned int ptCount;
+
+    ptsCount = RemovePtsWithPlanesThatOccurLessThanTwice(
+        (const SimplePlaneIntersection **)pts, ptsCount);
+
+    if (ptsCount < 3)
+        return ptsCount;
+
+    //
+    // Build list of planes connected to basePlane
+    //
+    for (int i = 0; i < ptsCount; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+            int plane = pts[i]->planeIndex[j];
+
+            if (plane == basePlane)
+                continue;
+
+            if (!IntAlreadyInList(planeList, planeCount, plane))
+            {
+                iassert(planeCount < 1024);
+                planeList[planeCount++] = plane;
+            }
+        }
+    }
+
+    iassert(planeCount > 2);
+
+    //
+    // Process each connecting plane
+    //
+    for (int j = 0; j < planeCount; j++)
+    {
+        while (1)
+        {
+            int edgeCount = GetPtsFormedByPlane(
+                planeList[j],
+                (const SimplePlaneIntersection **)pts,
+                ptsCount,
+                (const SimplePlaneIntersection **)edges,
+                1024);
+
+            if (edgeCount <= 2)
+                break;
+
+            int partitionCount = PartitionEdges(
+                basePlane,
+                planeList[j],
+                (SimplePlaneIntersection **)pts,
+                ptsCount,
+                (const SimplePlaneIntersection **)edges,
+                edgeCount,
+                partition);
+
+            int offset = 0;
+
+            for (int k = 0; k < partitionCount && k < 2; k++)
+            {
+                int partSize = partition[k] - offset;
+
+                iassert(partSize > 0);
+
+                if (partSize == 1)
+                {
+                    ptsCount = Remove(
+                        (const SimplePlaneIntersection **)pts,
+                        ptsCount,
+                        edges[offset]);
+                    break;
+                }
+
+                if (partSize > 2)
+                {
+                    int removeIndex = ChooseEdgeToRemove(
+                        basePlane,
+                        planeList[j],
+                        (SimplePlaneIntersection **)pts,
+                        ptsCount,
+                        (const SimplePlaneIntersection **)&edges[offset]);
+
+                    ptsCount = Remove(
+                        (const SimplePlaneIntersection **)pts,
+                        ptsCount,
+                        edges[offset + removeIndex]);
+
+                    break;
+                }
+
+                offset = partition[k];
+            }
+
+            //
+            // Special case: two partitions of size 2
+            //
+            if (partitionCount == 2)
+            {
+                iassert(partition[0] == 2);
+                iassert(partition[1] == 4);
+
+                bool cycle1 = FindCycleBFS(
+                    basePlane,
+                    pts,
+                    ptsCount,
+                    edges[0],
+                    edges[1],
+                    planeList[j],
+                    (const SimplePlaneIntersection **)cycleA,
+                    &resultCycleCount);
+
+                bool cycle2 = FindCycleBFS(
+                    basePlane,
+                    pts,
+                    ptsCount,
+                    edges[2],
+                    edges[3],
+                    planeList[j],
+                    (const SimplePlaneIntersection **)cycleB,
+                    (int *)&ptCount);
+
+                iassert(cycle1 && cycle2);
+
+                float perim1 = CyclePerimiter(
+                    (const SimplePlaneIntersection **)cycleA,
+                    resultCycleCount);
+
+                float perim2 = CyclePerimiter(
+                    (const SimplePlaneIntersection **)cycleB,
+                    ptCount);
+
+                bool convex1 = TestConvexWithoutNearPoints(
+                    (const SimplePlaneIntersection **)cycleA,
+                    resultCycleCount);
+
+                bool convex2 = TestConvexWithoutNearPoints(
+                    (const SimplePlaneIntersection **)cycleB,
+                    ptCount);
+
+                if (CycleLess(convex1, convex2, perim1, perim2, resultCycleCount, ptCount))
+                {
+                    ptsCount = Remove((const SimplePlaneIntersection **)pts, ptsCount, edges[0]);
+                    ptsCount = Remove((const SimplePlaneIntersection **)pts, ptsCount, edges[1]);
+                }
+                else
+                {
+                    ptsCount = Remove((const SimplePlaneIntersection **)pts, ptsCount, edges[2]);
+                    ptsCount = Remove((const SimplePlaneIntersection **)pts, ptsCount, edges[3]);
+                }
+            }
+
+            if (ptsCount < 3)
+                return ptsCount;
+        }
+    }
+
+    return ptsCount;
+
+#endif
 }
 
 char __cdecl IntAlreadyInList(const int *list, int listCount, int value)

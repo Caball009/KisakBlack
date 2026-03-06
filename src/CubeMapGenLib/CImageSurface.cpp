@@ -228,7 +228,7 @@ void CImageSurface::FatalError(WCHAR *a_Msg)
 {
    //MessageBoxW(NULL, a_Msg, L"Error: Application Terminating", MB_OK);
 
-   OutputMessageString(L"CImageSurface Error: Application Terminating", a_Msg);
+   OutputMessageString((wchar_t *)L"CImageSurface Error: Application Terminating", a_Msg);
    exit(EM_FATAL_ERROR);
 
 }
@@ -276,7 +276,7 @@ void CImageSurface::Init(int32 a_Width, int32 a_Height, int32 a_NumChannels )
    }
    catch ( ... )
    {
-      FatalError(L"Unable to allocate data for image in CImageSurface::Init.");
+      FatalError((wchar_t*)L"Unable to allocate data for image in CImageSurface::Init.");
       m_ImgData = NULL;
    }
 }
@@ -687,13 +687,13 @@ void CImageSurface::WriteHDRFile(WCHAR *a_FileName )
 
    if(m_NumChannels != 3)
    {    
-      FatalError(L"CImageSurface::WriteHDRFile: only works for 3 channel CImageSurfaces.");
+      FatalError((wchar_t*)L"CImageSurface::WriteHDRFile: only works for 3 channel CImageSurfaces.");
       return;
    }
 
    if(sizeof(CP_ITYPE) != 4)
    {    
-      FatalError(L"CImageSurface::WriteHDRFile: requires internal data format CP_ITYPE to be float32");
+      FatalError((wchar_t *)L"CImageSurface::WriteHDRFile: requires internal data format CP_ITYPE to be float32");
       return;
    }
 

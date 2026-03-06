@@ -3084,43 +3084,13 @@
     <ClCompile Include="src\CubeMapGenLib\CBBoxInt32.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\CubeMapGenLib\CCubeGenApp.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\CubeMapGenLib\CCubeMapProcessor.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\CubeMapGenLib\CEffectList.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\CubeMapGenLib\CFrustum.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\CubeMapGenLib\CGeom.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\CubeMapGenLib\CImageSurface.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\CubeMapGenLib\CTexture.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\CubeMapGenLib\ErrorMsg.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\CubeMapGenLib\HDRWrite.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\CubeMapGenLib\ObjReader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\CubeMapGenLib\rgbe.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\CubeMapGenLib\UIElements.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\CubeMapGenLib\UIRegionManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\qcommon\md4.cpp">
@@ -5780,46 +5750,19 @@
     <ClInclude Include="src\CubeMapGenLib\CBBoxInt32.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\CubeMapGenLib\CCubeGenApp.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\CubeMapGenLib\CCubeMapProcessor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\CubeMapGenLib\CEffectList.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\CubeMapGenLib\CFrustum.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\CubeMapGenLib\CGeom.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\CubeMapGenLib\CImageSurface.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\CubeMapGenLib\CTexture.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\CubeMapGenLib\ErrorMsg.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\CubeMapGenLib\HDRWrite.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\CubeMapGenLib\ObjReader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\CubeMapGenLib\resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\CubeMapGenLib\rgbe.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\CubeMapGenLib\Types.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\CubeMapGenLib\UIRegionManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\CubeMapGenLib\VectorMacros.h">
