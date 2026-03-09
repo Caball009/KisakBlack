@@ -15,6 +15,7 @@
 #include <game_mp/g_cmds_mp.h>
 #include <client/cl_console.h>
 #include <live/live_storage_win.h>
+#include <client_mp/cl_main_mp.h>
 
 int s_region = 1;
 int s_licensetype = -1;
@@ -232,6 +233,7 @@ unsigned int __cdecl SV_GetClientCount()
 
 bool __cdecl SV_HasInfoChanged()
 {
+#ifdef KISAK_LIVE
     int LicenseType; // eax
     int v1; // eax
     bool retval; // [esp+7h] [ebp-1h]
@@ -317,6 +319,9 @@ bool __cdecl SV_HasInfoChanged()
             break;
     }
     return retval;
+#else
+    return false;
+#endif
 }
 
 bool __cdecl SV_IsServerRanked(int licensetype)

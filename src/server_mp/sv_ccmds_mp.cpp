@@ -20,6 +20,7 @@
 #include <ui/ui_playlists.h>
 #include <live/live_storage_pub.h>
 #include <universal/q_parse.h>
+#include <game_mp/g_main_mp.h>
 
 int sv_migrate;
 
@@ -113,7 +114,8 @@ void __cdecl SV_MapRestart(int fast_restart)
     {
         Com_Printf(0, "Server is not running.\n");
         //if ( GetCurrentThreadId() == g_DXDeviceThread )
-LABEL_3:
+    LABEL_3:
+        ;
             //D3DPERF_EndEvent();
     }
 }

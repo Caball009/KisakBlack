@@ -499,7 +499,7 @@ void __cdecl SVC_StatusScoreBoard(netadr_t from, bdSecurityID *secID)
             else
             {
                 v3 = G_GetClientRank(v14 - svs.clients);
-                Com_sprintf(&dest, 0x400u, "%i %i %i %i %i %i %i %s\n", 3, v3, 0, 0, 0, ping, string, v10);
+                Com_sprintf(&dest, 0x400u, "%i %i %i %i %i %i %i %s\n", 3, v3, 0, 0, 0, ping, string, "kisak swag"); // KISAKTODO: last string sprintf, wrong
             }
             v16 = &v22[strlen(&dest)] - v22;
             if ( (int)(v16 + count) >= 0x10000 )

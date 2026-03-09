@@ -36,9 +36,9 @@ void __cdecl SV_UnlinkEntity(gentity_s *gEnt)
 void    SV_LinkEntity(gentity_s *gEnt)
 {
     int v2; // eax
-    float v3; // [esp-Ch] [ebp-2E8h] BYREF
-    float v4; // [esp-8h] [ebp-2E4h]
-    float v5; // [esp-4h] [ebp-2E0h]
+    float v3[3]; // [esp-Ch] [ebp-2E8h] BYREF
+    //float v4; // [esp-8h] [ebp-2E4h]
+    //float v5; // [esp-4h] [ebp-2E0h]
     float absmax[3]; // [esp+0h] [ebp-2DCh] BYREF
     const DObj *absmin; // [esp+Ch] [ebp-2D0h]
     unsigned int clipHandle; // [esp+10h] [ebp-2CCh]
@@ -273,21 +273,21 @@ void    SV_LinkEntity(gentity_s *gEnt)
             absmax[0] = *currentOrigin + actorLocationalMins[0];
             absmax[1] = currentOrigin[1] + actorLocationalMins[1];
             absmax[2] = currentOrigin[2] + actorLocationalMins[2];
-            v3 = *currentOrigin + actorLocationalMaxs[0];
-            v4 = currentOrigin[1] + actorLocationalMaxs[1];
-            v5 = currentOrigin[2] + actorLocationalMaxs[2];
+            v3[0] = *currentOrigin + actorLocationalMaxs[0];
+            v3[1] = currentOrigin[1] + actorLocationalMaxs[1];
+            v3[2] = currentOrigin[2] + actorLocationalMaxs[2];
         }
         else
         {
-            DObjGetBounds(absmin, absmax, &v3);
+            DObjGetBounds(absmin, absmax, v3);
             absmax[0] = *currentOrigin + absmax[0];
             absmax[1] = currentOrigin[1] + absmax[1];
             absmax[2] = currentOrigin[2] + absmax[2];
-            v3 = *currentOrigin + v3;
-            v4 = currentOrigin[1] + v4;
-            v5 = currentOrigin[2] + v5;
+            v3[0] += currentOrigin[0];
+            v3[1] += currentOrigin[1];
+            v3[2] += currentOrigin[2];
         }
-        CM_LinkEntity(ent, absmax, &v3, clipHandle);
+        CM_LinkEntity(ent, absmax, v3, clipHandle);
     }
     else
     {
@@ -1143,6 +1143,7 @@ void __cdecl SV_TracePoint(trace_t *results, const float *start, const float *en
     GlassSv_PointTrace(&clip, results);
     //if ( g_DXDeviceThread == GetCurrentThreadId() )
 LABEL_43:
+    ;
         //D3DPERF_EndEvent();
 }
 

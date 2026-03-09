@@ -21,6 +21,9 @@
 
 #include <algorithm>
 
+void __cdecl Ragdoll_UpdateDObjWait(RagdollBody *body, int __formal);
+bool __cdecl Ragdoll_EnterDobjWait(RagdollBody *body, RagdollBodyState s1, RagdollBodyState s2);
+
 StateEnt stateEntries[6] =
 {
   { Ragdoll_EnterDead, Ragdoll_ExitDead, NULL },
@@ -230,6 +233,11 @@ bool __cdecl Ragdoll_ValidatePrecalcBoneDef(RagdollDef *def, BoneDef *bone)
     return fabs(bone->mass) >= 0.000001;
 }
 
+bool CompareRagdollForExplosion(const RagdollSortStruct &a, const RagdollSortStruct &b)
+{
+    return b.distSq > a.distSq;
+}
+
 void __cdecl Ragdoll_ExplosionEvent(
                 int localClientNum,
                 bool isCylinder,
@@ -324,7 +332,7 @@ void __cdecl Ragdoll_ExplosionEvent(
             hitEntsSorter[hitCount].distSq = Vec3DistanceSq(origin, ragdollOrigin);
             hitEntsSorter[hitCount++].body = body;
         }
-        std::sort(&hitEntsSorter[0], &hitEntsSorter[hitCount], DynEntCl_CompareDynEntsForExplosion);
+        std::sort(&hitEntsSorter[0], &hitEntsSorter[hitCount], CompareRagdollForExplosion);
         //std::_Sort<RagdollSortStruct *,int,bool (__cdecl *)(RagdollSortStruct const &,RagdollSortStruct const &)>(
         //    (MaterialMemory *)hitEntsSorter,
         //    (MaterialMemory *)&hitEntsSorter[hitCount],

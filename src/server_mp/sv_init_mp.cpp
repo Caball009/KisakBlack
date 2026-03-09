@@ -30,6 +30,7 @@
 #include "sv_bot_mp.h"
 #include <qcommon/com_gamemodes.h>
 #include <qcommon/threads.h>
+#include <stringed/stringed_hooks.h>
 
 const dvar_t *sv_gametype;
 const dvar_t *sv_privateClients;

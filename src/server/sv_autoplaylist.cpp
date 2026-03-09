@@ -5,6 +5,7 @@
 #include <qcommon/cmd.h>
 #include <live/live_storage_win.h>
 #include <live/live_storage_pub.h>
+#include <client_mp/cl_main_mp.h>
 
 sv_apstate_t s_apstate = AP_SLEEPING;
 

@@ -18,6 +18,7 @@
 #include <client_mp/sv_client_mp.h>
 #include <client_mp/g_client_mp.h>
 #include <game/g_debug.h>
+#include <game/g_bsp.h>
 
 const char *botNames[47] =
 {
@@ -521,6 +522,7 @@ void __cdecl Bot_UpdateSight(bot_info_t *botInfo, const client_t *bot)
     botInfo->sightHitNum = -1;
     //if ( GetCurrentThreadId() == g_DXDeviceThread )
 LABEL_41:
+    ;
         //D3DPERF_EndEvent();
 }
 
@@ -649,6 +651,7 @@ void __cdecl Bot_UpdateThreat(bot_info_t *botInfo, const client_t *bot)
     Bot_UpdateBestThreat(botInfo, threats, 32);
     //if ( GetCurrentThreadId() == g_DXDeviceThread )
 LABEL_82:
+    ;
         //D3DPERF_EndEvent();
 }
 
@@ -966,6 +969,7 @@ void __cdecl Bot_UpdateWeapon(const bot_info_t *botInfo, const client_t *bot, us
     }
     //if ( g_DXDeviceThread == GetCurrentThreadId() )
 LABEL_59:
+    ;
         //D3DPERF_EndEvent();
 }
 
@@ -1033,6 +1037,7 @@ void __cdecl Bot_UpdateMovement(bot_info_t *botInfo, const client_t *bot, usercm
     }
     //if ( g_DXDeviceThread == GetCurrentThreadId() )
 LABEL_31:
+    ;
         //D3DPERF_EndEvent();
 }
 
@@ -1115,6 +1120,7 @@ void __cdecl Bot_GetStrafeInput(const client_t *bot, bot_info_t *botInfo, usercm
     }
     //if ( GetCurrentThreadId() == g_DXDeviceThread )
 LABEL_21:
+    ;
         //D3DPERF_EndEvent();
 }
 
@@ -1220,6 +1226,7 @@ void __cdecl Bot_UpdatePath(bot_info_t *botInfo, const client_t *bot)
     }
     //if ( g_DXDeviceThread == GetCurrentThreadId() )
 LABEL_46:
+    ;
         //D3DPERF_EndEvent();
 }
 
@@ -1680,7 +1687,8 @@ void __cdecl Bot_UpdateDirection(bot_info_t *botInfo, const client_t *bot, userc
         cmd->angles[1] = bot->lastUsercmd.angles[1];
         cmd->angles[2] = 0;
         //if ( GetCurrentThreadId() == g_DXDeviceThread )
-LABEL_4:
+    LABEL_4:
+        ;
             //D3DPERF_EndEvent();
     }
     else
@@ -2192,6 +2200,7 @@ void __cdecl Bot_UpdateSprint(bot_info_t *botInfo, const client_t *bot, usercmd_
     }
     //if ( GetCurrentThreadId() == g_DXDeviceThread )
 LABEL_12:
+    ;
         //D3DPERF_EndEvent();
 }
 
@@ -3599,21 +3608,21 @@ void    Bot_DrawThreat(const client_t *bot)
                 angles[1] = (float)(sv_botFov->current.value * 0.5) + angles[1];
                 break;
             case 1:
-                angles[1] = (float)(-(sv_botFov->current.integer) * 0.5) + angles[1];
+                angles[1] = (float)((-sv_botFov->current.integer) * 0.5) + angles[1];
                 break;
             case 2:
                 angles[0] = (float)(sv_botFov->current.value * 0.5) + angles[0];
                 break;
             case 3:
-                angles[0] = (float)(-(sv_botFov->current.integer) * 0.5) + angles[0];
+                angles[0] = (float)((-sv_botFov->current.integer) * 0.5) + angles[0];
                 break;
             default:
                 break;
             }
             ends[3][2] = (float)(sv_botFov->current.value * 0.5) * 0.017453292;
             //v2 = __libm_sse2_cos(ends[3][2]);
-            //ends[3][1] = v2;
-            ends[3][1] = cosf(ends[3][2]);
+            v2 = cos(ends[3][2]);
+            ends[3][1] = v2;
             ends[3][0] = (float)(1.0 / v2) * weapDef->fMinDamageRange;
             AngleVectors(angles, vForward, 0, 0);
             vEnd[0] = (float)(ends[3][0] * vForward[0]) + vStart[0];
