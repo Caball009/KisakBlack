@@ -1,5 +1,6 @@
 #pragma once
 #include "dobj.h"
+#include <universal/com_math.h>
 
 struct __declspec(align(8)) XAnimCalcAnimInfo // sizeof=0x7830
 {
@@ -20,6 +21,7 @@ struct __declspec(align(8)) XAnimCalcAnimInfo // sizeof=0x7830
 
 struct XAnimInfo;
 struct XAnimParts;
+struct XAnimDeltaPart;
 
 void    DObjCalcAnim(DObj *obj, int *partBits);
 void __cdecl XAnimCalc(

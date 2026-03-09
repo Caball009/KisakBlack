@@ -10,6 +10,7 @@
 #include <qcommon/threads.h>
 #include <cgame_mp/cg_local_mp.h>
 #include <clientscript/cscr_vm.h>
+#include <database/db_registry.h>
 
 XAnimInfo g_xAnimInfo[4096];
 unsigned int g_endNotetrackName;

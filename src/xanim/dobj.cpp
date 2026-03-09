@@ -3,6 +3,7 @@
 #include <qcommon/common.h>
 #include "xmodel_utils.h"
 #include "xmodel.h"
+#include "xanim.h"
 
 #include <bgame/bg_local.h>
 #include <cstring>
@@ -1605,6 +1606,7 @@ LABEL_29:
     }
     //if ( g_DXDeviceThread == GetCurrentThreadId() )
 LABEL_151:
+    ;
         //D3DPERF_EndEvent();
 }
 

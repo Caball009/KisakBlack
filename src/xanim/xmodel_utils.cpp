@@ -1,5 +1,6 @@
 #include "xmodel_utils.h"
 #include "xmodel.h"
+#include "xanim.h"
 
 #include <bgame/bg_local.h>
 
