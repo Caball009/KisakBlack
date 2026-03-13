@@ -470,7 +470,7 @@ void    NitrousVehicle::unpause_physics()
             thisa->m_xmodel,
             &collision_visitor,
             -1,
-            (unsigned int)&cls.recentServers[7546].city[57],
+            0x280EC93u,
             1,
             0,
             0);

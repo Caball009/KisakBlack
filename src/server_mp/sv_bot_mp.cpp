@@ -478,7 +478,7 @@ void __cdecl Bot_UpdateSight(bot_info_t *botInfo, const client_t *bot)
         }
         context.passEntityNum0 = bot->gentity->s.number;
         context.passEntityNum1 = botInfo->threat.enemy->s.number;
-        context.mask = (int)&cls.recentServers[7647].hostName[4];
+        context.mask = 0x2818001;
         v6 = botInfo->threat.enemy;
         if ( v6 && v6->scr_vehicle )
             context.mask &= ~0x10000u;
@@ -855,7 +855,7 @@ bool __cdecl Bot_ThreatSightCheck(const client_t *bot, const gentity_s *enemy, f
         }
         context.passEntityNum0 = bot->gentity->s.number;
         context.passEntityNum1 = enemy->s.number;
-        context.mask = (int)&cls.recentServers[7647].hostName[20];
+        context.mask = 0x2818011;
         SV_SightTracePoint(&hitNum, botOrigin, enemyOrigin, &context);
         v6 = hitNum == 0;
         //if ( g_DXDeviceThread == GetCurrentThreadId() )
@@ -1089,7 +1089,7 @@ void __cdecl Bot_GetStrafeInput(const client_t *bot, bot_info_t *botInfo, usercm
             bot->gentity->r.maxs,
             vEnd,
             bot->gentity->s.number,
-            (int)&cls.recentServers[7734].game[12],
+            0x2820011,
             &context);
         if ( trace.startsolid || trace.allsolid || trace.fraction != 1.0 )
             Bot_RandomStrafe(ps, cmd);

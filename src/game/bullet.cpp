@@ -65,7 +65,7 @@ char __cdecl BulletTrace(
         bp->start,
         bp->end,
         bp->ignoreEntIndex,
-        (int)&cls.recentServers[7543].countrycode[1],
+        0x280E833,
         attacker->nextState.eType == 1,
         0);
     if ( br->trace.hitType )
@@ -98,7 +98,7 @@ char __cdecl BulletTrace(
             }
             br->ignoreHitEnt = ShouldIgnoreHitEntity(attacker->nextState.number, hitEntId);
         }
-        br->depthSurfaceType = (unsigned __int8)((int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20]
+        br->depthSurfaceType = (unsigned __int8)((int)(0x3F00000
                                                                                                  & br->trace.sflags) >> 20);
         if ( (br->trace.sflags & 0x100) != 0 )
         {
@@ -526,7 +526,7 @@ char __cdecl Bullet_Trace(
         }
         br->ignoreHitEnt = Bullet_IgnoreHitEntity(bp, br, attacker);
     }
-    br->depthSurfaceType = (unsigned __int8)((int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20]
+    br->depthSurfaceType = (unsigned __int8)((int)(0x3F00000
                                                                                              & br->trace.sflags) >> 20);
     if ( (br->trace.sflags & 0x100) != 0 )
     {
@@ -938,7 +938,7 @@ void __cdecl Bullet_ImpactEffect(
                 tempEnt->s.eventParm = DirToByte(normal);
                 //tempEnt->s.un1 = impactEffectFlags;
                 tempEnt->s.un1.scale = impactEffectFlags;
-                tempEnt->s.surfType = (int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & br->trace.sflags) >> 20;
+                tempEnt->s.surfType = (int)(0x3F00000 & br->trace.sflags) >> 20;
                 tempEnt->s.index.brushmodel = LOBYTE(br->trace.boneIndex);
                 tempEnt->s.lerp.u.turret.gunAngles[0] = bp->start[0];
                 tempEnt->s.lerp.u.turret.gunAngles[1] = bp->start[1];

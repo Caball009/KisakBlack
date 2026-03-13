@@ -3101,14 +3101,14 @@ void __cdecl DB_LoadXAssets(XZoneInfo *zoneInfo, unsigned int zoneCount, int syn
         {
             if ( allocFlags > 0x400000 )
             {
-                if ( (char *)allocFlags == &cls.rankedServers[711].game[35] )
+                if (allocFlags == 0x1000000)
                 {
                     locZoneInfo[count].allocFlags = 0x800000;
                     goto LABEL_85;
                 }
                 if ( allocFlags == 0x4000000 )
                 {
-                    locZoneInfo[count].allocFlags = (int)&cls.wagerServers[5331].basictraining;
+                    locZoneInfo[count].allocFlags = 0x2000000;
                     goto LABEL_85;
                 }
             }
@@ -3637,7 +3637,7 @@ int __cdecl DB_TryLoadXFileInternal(const char *zoneName, int zoneFlags)
         __debugbreak();
     }
     zoneFile = (void *)-1;
-    if ( ((unsigned int)&cls.recentServers[14822].game[37] & zoneFlags) != 0
+    if ((zoneFlags & 0x2AAAAAA) != 0
         || (DB_BuildOSPath_Unlocalized(zoneName, ".ff", 0x100u, filename), GetFileAttributesA(filename) == -1) )
     {
         DB_BuildOSPath(zoneName, ".ff", 0x100u, filename);

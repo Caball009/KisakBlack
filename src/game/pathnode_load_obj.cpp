@@ -1056,7 +1056,7 @@ void __cdecl Path_BuildNodeVis(unsigned __int8 *visbuf, unsigned int iVisCacheSi
         for ( j = i + 1; j < gameWorldCurrent->path.nodeCount; ++j )
         {
             GetNodeAttackPoint(&gameWorldCurrent->path.nodes[j], end);
-            if ( !CM_BoxSightTrace(0, start, end, vec3_origin, vec3_origin, 0, (int)&cls.recentServers[7489].hostName[22]) )
+            if ( !CM_BoxSightTrace(0, start, end, vec3_origin, vec3_origin, 0, 0x2809803) )
             {
                 v2 = NodeVisCacheEntry_0(i, j);
                 visbuf[v2 >> 3] |= 1 << (v2 & 7);
@@ -1421,7 +1421,7 @@ bool __cdecl Path_CanLinkNodes(pathnode_t *pNodeFrom, pathnode_t *pNodeTo, float
                 phys.vMins[1] = -15.0 - 0.5;
                 phys.vMaxs[0] = 15.0 + 0.5;
                 phys.vMaxs[1] = 15.0 + 0.5;
-                phys.iTraceMask = (int)&cls.recentServers[7734].game[12];
+                phys.iTraceMask = 0x2820011;
                 fLastGroundPlaneAltitude = -FLT_MAX;
                 for ( i = 0; ; ++i )
                 {

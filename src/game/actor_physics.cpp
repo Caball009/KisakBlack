@@ -241,7 +241,7 @@ bool __cdecl Actor_Physics_1(actor_physics_t *pPhys)
         {
             pPhys->bHasGroundPlane = 1;
             pPhys->groundplaneSlope = g_apl.groundTrace.normal.vec.v[2];
-            pPhys->iSurfaceType = (unsigned __int8)((int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20]
+            pPhys->iSurfaceType = (unsigned __int8)((int)(0x3F00000
                                                                                                     & g_apl.groundTrace.sflags) >> 20);
         }
         else

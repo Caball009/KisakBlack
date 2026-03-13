@@ -629,7 +629,7 @@ void __cdecl FX_ImpactMark_Generate_AddEntityBrush(
         markMaxs[1] = origin[1] + radius;
         markMaxs[2] = origin[2] + radius;
         ent = CG_GetEntity(localClientNum, entityIndex);
-        if ( ((*((unsigned int *)ent + 201) >> 1) & 1) != 0 && (char *)ent->nextState.solid == &cls.rankedServers[711].game[34] )
+        if (((*((_DWORD *)ent + 201) >> 1) & 1) != 0 && ent->nextState.solid == 0xFFFFFF)
         {
             brushModel = R_GetBrushModel(ent->nextState.index.brushmodel);
             AnglesToAxis(ent->pose.angles, entAxis);

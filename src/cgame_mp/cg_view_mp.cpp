@@ -2405,7 +2405,7 @@ void    CG_OffsetChaseCamView(int localClientNum, CameraMode camMode)
             LocalClientGlobals,
             LocalClientGlobals->refdef.vieworg,
             &focusDist,
-            (int)&cls.recentServers[7647].hostName[20],
+            0x2818011,
             LocalClientGlobals->refdef.vieworg,
             1,
             1);

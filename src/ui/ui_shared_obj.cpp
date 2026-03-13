@@ -1790,7 +1790,7 @@ int __cdecl MenuParse_allowSignIn(menuDef_t *menu, int handle)
 {
     __debugbreak();
 #if 0 // KISAKTODO:
-    return SetItemStaticFlag(menu, handle, (int)&g_hunk_track[370327].name[64]);
+    return SetItemStaticFlag(menu, handle, 0x8000000);
 #else
     return 0;
 #endif

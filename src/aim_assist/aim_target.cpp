@@ -466,7 +466,7 @@ void __cdecl AimTarget_GetTargetBounds(const centity_s *targetEnt, float *mins, 
         maxs[1] = aim_target_sentient_radius->current.value;
         maxs[2] = highBonePos[2] - targetEnt->pose.origin[2];
     }
-    else if ( (char *)targetEnt->nextState.solid == &cls.rankedServers[711].game[34] )
+    else if (targetEnt->nextState.solid == 0xFFFFFF)
     {
         CM_ModelBounds(targetEnt->nextState.index.brushmodel, mins, maxs);
     }
@@ -571,7 +571,7 @@ bool __cdecl AimTarget_IsTargetVisible(int localClientNum, const centity_s *targ
         &context);
     if ( trace.fraction != 1.0 && Trace_GetEntityHitId(&trace) != targetEnt->nextState.number )
     {
-        if ( (char *)targetEnt->nextState.solid != &cls.rankedServers[711].game[34] )
+        if (targetEnt->nextState.solid != 0xFFFFFF)
             return 0;
         Vec3Lerp(playerEyePos, targetEyePos, trace.fraction, endPos);
         if ( !CM_TransformedPointContents(

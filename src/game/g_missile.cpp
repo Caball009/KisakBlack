@@ -635,7 +635,7 @@ void    G_ExplodeMissile(gentity_s *ent)
                         normal = up;
                     else
                         normal = (const float *)&trace;
-                    eventEnt->s.surfType = (int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & trace.sflags) >> 20;
+                    eventEnt->s.surfType = (int)(0x3F00000 & trace.sflags) >> 20;
                 }
                 if (weapDef->projExplosion && weapDef->projExplosion != WEAPPROJEXP_HEAVY)
                 {
@@ -2255,7 +2255,7 @@ bool    BounceMissile(gentity_s *ent, trace_t *trace)
     if (!weapDef && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\game\\g_missile.cpp", 531, 0, "%s", "weapDef"))
         __debugbreak();
     contents = SV_PointContents(ent->r.currentOrigin, -1, 32);
-    surfType = (unsigned __int8)((int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & trace->sflags) >> 20);
+    surfType = (unsigned __int8)((int)(0x3F00000 & trace->sflags) >> 20);
     hitTime = level.previousTime + (int)(float)((float)(level.time - level.previousTime) * trace->fraction);
     BG_EvaluateTrajectoryDelta(&ent->s.lerp.pos, hitTime, velocity);
     dot = (float)((float)(velocity[0] * trace->normal.vec.v[0]) + (float)(velocity[1] * trace->normal.vec.v[1]))
@@ -3596,7 +3596,7 @@ void __cdecl RunMissile_CreateWaterSplash(const gentity_s *missile, const float 
     tent = G_TempEntity(hitPos, 56);
     tent->s.eventParm = DirToByte(trace->normal.vec.v);
     tent->s.un1.scale = 0;
-    tent->s.surfType = (int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & trace->sflags) >> 20;
+    tent->s.surfType = (int)(0x3F00000 & trace->sflags) >> 20;
     AssignToSmallerType<short>(&tent->s.otherEntityNum, missile->s.number);
     tent->s.weapon = missile->s.weapon;
 }
@@ -5019,7 +5019,7 @@ void __cdecl PredictBounceMissile(
     weapDef = BG_GetWeaponDef(ent->s.weapon);
     if ( !weapDef && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\game\\g_missile.cpp", 3907, 0, "%s", "weapDef") )
         __debugbreak();
-    surfType = (unsigned __int8)((int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & trace->sflags) >> 20);
+    surfType = (unsigned __int8)((int)(0x3F00000 & trace->sflags) >> 20);
     hitTime = velocityTime;
     BG_EvaluateTrajectoryDelta(pos, velocityTime, velocity);
     dot = (float)((float)(velocity[0] * trace->normal.vec.v[0]) + (float)(velocity[1] * trace->normal.vec.v[1]))

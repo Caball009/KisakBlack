@@ -1819,7 +1819,7 @@ void __cdecl FireBulletPenetrate(
         boneIndex = br->trace.boneIndex;
         hitContents = br->trace.cflags;
         damage = weapDef->damage;
-        surfType = (unsigned __int8)((int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & br->trace.sflags) >> 20);
+        surfType = (unsigned __int8)((int)(0x3F00000 & br->trace.sflags) >> 20);
         entityNum = traceHitEntityId;
         sourceEntityNum = attacker->nextState.number;
         if ( !sv_clientSideBullets->current.enabled || !IsEntityNotDoingClientSideBullets(localClientNum, traceHitEntityId) )
@@ -1850,7 +1850,7 @@ void __cdecl FireBulletPenetrate(
                 br->trace.modelIndex,
                 br->trace.partName,
                 1);
-        if ( (unsigned __int8)((int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & br->trace.sflags) >> 20) == 20 )
+        if ( (unsigned __int8)((int)(0x3F00000 & br->trace.sflags) >> 20) == 20 )
             effectFlags |= 8u;
     }
     if ( weapDef->penetrateType == PENETRATE_TYPE_NONE || br->trace.startsolid )
@@ -1951,7 +1951,7 @@ void __cdecl FireBulletPenetrate(
                         v25 = revBr.trace.boneIndex;
                         cflags = revBr.trace.cflags;
                         v27 = weapDef->damage;
-                        v28 = (unsigned __int8)((int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & revBr.trace.sflags) >> 20);
+                        v28 = (unsigned __int8)((int)(0x3F00000 & revBr.trace.sflags) >> 20);
                         targetEntityNum = traceHitEntityId;
                         number = attacker->nextState.number;
                         if ( !sv_clientSideBullets->current.enabled
@@ -1982,7 +1982,7 @@ void __cdecl FireBulletPenetrate(
                             v19 = br->trace.boneIndex;
                             v20 = br->trace.cflags;
                             v21 = weapDef->damage;
-                            v22 = (unsigned __int8)((int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & br->trace.sflags) >> 20);
+                            v22 = (unsigned __int8)((int)(0x3F00000 & br->trace.sflags) >> 20);
                             v23 = traceHitEntityId;
                             v24 = attacker->nextState.number;
                             if ( !sv_clientSideBullets->current.enabled
@@ -2032,7 +2032,7 @@ void __cdecl FireBulletPenetrate(
                             v12 = br->trace.boneIndex;
                             v13 = br->trace.cflags;
                             v14 = weapDef->damage;
-                            v15 = (unsigned __int8)((int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & br->trace.sflags) >> 20);
+                            v15 = (unsigned __int8)((int)(0x3F00000 & br->trace.sflags) >> 20);
                             v16 = traceHitEntityId;
                             v17 = attacker->nextState.number;
                             if ( !sv_clientSideBullets->current.enabled

@@ -766,13 +766,16 @@ char *__cdecl SV_AllocateClientMemory_SizeRequired(int maxLocalClients, int maxC
         v3 = maxClients;
     else
         v3 = 2;
-    return &cls.rankedServers[786].city[1150208 * maxClients
-                                                                        + 6
-                                                                        + 20480 * maxClients
-                                                                        + 10112 * v3 * v4
-                                                                        + 6656 * maxClients * maxClients
-                                                                        + 128 * maxClients
-                                                                        + 32 * ikStateSize];
+
+    return (char *)(0x118D00 * maxClients
+        + 0x1A00 * maxClients * maxClients
+        + 0x4880
+        + (maxClients << 7)
+        + 0x5000 * maxClients
+        + 0x80
+        + 0x2780 * v3 * v4
+        + 0x1002580
+        + 0x20 * ikStateSize);
 }
 
 void __cdecl SV_AllocateClientMemory(HunkUser *hunk, int maxLocalClients, int maxClients)

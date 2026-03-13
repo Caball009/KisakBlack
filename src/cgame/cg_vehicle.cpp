@@ -889,7 +889,7 @@ void    CG_Vehicle_PreControllers(
                         if ((bitmask & vehicle_cache->wheel_mask) != 0)
                         {
                             cent->pose.vehicle.wheelHeight[i] = vehicle_cache->hit_fractions[i];
-                            cent->vehicle->wheelSurfType[i] = (unsigned __int8)((int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20]
+                            cent->vehicle->wheelSurfType[i] = (unsigned __int8)((int)(0x3F00000
                                 & vehicle_cache->hit_sflags[i]) >> 20);
                         }
                         ++i;
@@ -983,7 +983,7 @@ void    CG_Vehicle_PreControllers(
                                 vehicle_cache->wheel_mask = presence_mask;
                             }
                             cent->pose.vehicle.wheelHeight[i] = trace.fraction;
-                            cent->vehicle->wheelSurfType[i] = (unsigned __int8)((int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20]
+                            cent->vehicle->wheelSurfType[i] = (unsigned __int8)((int)(0x3F00000
                                 & trace.sflags) >> 20);
                         }
                         ++i;

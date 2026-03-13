@@ -47,7 +47,7 @@ void __cdecl auto_rigid_body::add(const centity_s *cent, gjk_physics_collision_v
         && !CG_IsRagdollTrajectory(&cent->currentState.pos)
         && !CG_IsRagdollTrajectory(&cent->nextState.lerp.pos) )
     {
-        if ( (char *)cent->nextState.solid == &cls.rankedServers[711].game[34]
+        if (cent->nextState.solid == 0xFFFFFF
             && cent->nextState.eType != 14
             && cent->nextState.eType != 16
             || (obj = Com_GetClientDObj(cent->nextState.number, cent->pose.localClientNum)) != 0

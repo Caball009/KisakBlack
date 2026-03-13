@@ -2409,14 +2409,7 @@ void __cdecl CG_Calc3rdPersonVehicleViewValues(int localClientNum)
         vieworg[1] = desiredCamPos[1];
         vieworg[2] = desiredCamPos[2];
         if ( ps->vehicleType != 6 )
-            ThirdPersonViewTrace(
-                cgameGlob,
-                lookAtPos,
-                cgameGlob->refdef.vieworg,
-                (int)&cls.recentServers[7545].hostName[6],
-                cgameGlob->refdef.vieworg,
-                0,
-                0);
+            ThirdPersonViewTrace(cgameGlob, lookAtPos, cgameGlob->refdef.vieworg, 0x280EA33, cgameGlob->refdef.vieworg, 0, 0);
         v1 = Vec3Distance(cgameGlob->refdef.vieworg, lookAtPos);
         v7 = v1 / info->thirdPersonCameraRange;
         if ( (float)(v7 - 1.0) < 0.0 )

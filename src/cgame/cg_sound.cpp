@@ -140,7 +140,7 @@ void __cdecl CG_PlaySound(
     {
         cent = CG_GetEntity(localClientNum, entitynum);
         origin = tmpOrigin;
-        if ( (char *)cent->nextState.solid == &cls.rankedServers[711].game[34] )
+        if (cent->nextState.solid == 0xFFFFFF)
         {
             bmodel = (float *)R_GetBrushModel(cent->nextState.index.brushmodel);
             midpoint_4 = (float)(bmodel[8] + bmodel[11]) * 0.5;
@@ -206,7 +206,7 @@ int __cdecl CG_PlaySoundWithHandle(
     {
         cent = CG_GetEntity(localClientNum, entitynum);
         origin = tmpOrigin;
-        if ( (char *)cent->nextState.solid == &cls.rankedServers[711].game[34] )
+        if (cent->nextState.solid == 0xFFFFFF)
         {
             bmodel = (float *)R_GetBrushModel(cent->nextState.index.brushmodel);
             midpoint_4 = (float)(bmodel[8] + bmodel[11]) * 0.5;

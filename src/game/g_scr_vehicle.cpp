@@ -4614,7 +4614,7 @@ void __cdecl VEH_GroundPlant(gentity_s *ent, vehicle_physic_t *phys, int gravity
         else
         {
             Vec3Lerp(&trace_points[6 * i], &trace_points[6 * i + 3], trace.fraction, hitPos);
-            phys->wheelSurfType[i] = (unsigned __int8)((int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20]
+            phys->wheelSurfType[i] = (unsigned __int8)((int)(0x3F00000
                                                                                                          & trace.sflags) >> 20);
         }
         if ( gravity )
@@ -4761,7 +4761,7 @@ void __cdecl VEH_DebugBox(float *pos, float width, float r, float g, float b)
 static float predictTime = 0.15f;
 void __cdecl VEH_TouchEntities(gentity_s *ent)
 {
-    char *contentmask; // [esp+30h] [ebp-1088h]
+    int contentmask; // [esp+30h] [ebp-1088h]
     int var1084; // [esp+34h] [ebp-1084h]
     float v4; // [esp+40h] [ebp-1078h] BYREF
     float v5; // [esp+44h] [ebp-1074h]
@@ -4825,10 +4825,10 @@ void __cdecl VEH_TouchEntities(gentity_s *ent)
     maxs = maxs + v25;
     v17 = v17 + v26;
     v18 = v18 + v27;
-    contentmask = (char *)&cls.recentServers[7538].playlist + 1;
+    contentmask = 0x280E091;
     if (vehicle_riding->current.enabled)
-        contentmask = (char *)(((unsigned int)&cls.recentServers[7538].playlist + 1) & 0xFDFFFFFF);
-    var1084 = CM_AreaEntities(&mins, &maxs, entityList, 1024, (int)contentmask);
+        contentmask = 0x80E091;
+    var1084 = CM_AreaEntities(&mins, &maxs, entityList, 1024, contentmask);
     for (i = 0; i < var1084; ++i)
     {
         enta = &g_entities[entityList[i]];
@@ -6327,7 +6327,7 @@ void __cdecl VEH_UpdateDriverWeapons(gentity_s *ent)
             targetOrigin[2] = end[2];
             //v1 = EntHandle::entnum(&ent->r.ownerNum);
             v1 = ent->r.ownerNum.entnum();
-            G_LocationalTrace(&trace, start, end, v1, (int)&cls.recentServers[7544].adr.port + 3, 0, 0);
+            G_LocationalTrace(&trace, start, end, v1, 0x280E893, 0, 0);
             if ( trace.fraction < 1.0 )
                 Vec3Lerp(start, end, trace.fraction, veh->targetOrigin);
             if ( info->driverControlledGunPos >= 0 )

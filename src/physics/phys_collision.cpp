@@ -2330,7 +2330,7 @@ void standard_query::query(
                     bpei_mt->m_mutex.Lock();
                     if (!bpei_mt->m_data)
                     {
-                        v65 = (unsigned __int8)((int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20]
+                        v65 = (unsigned __int8)((int)(0x3F00000
                             & v74->axial_sflags[0][0]) >> 20);
                         v64 = gjk_brush_t::create(v74, v65, &v83);
                         //gjk_base_t::set_geom_id_new(v64, bpei_mt->m_gjk_geom_id);

@@ -3887,8 +3887,8 @@ void    Phys_FindAndRenderEntityBrushes(const float *pos, int contentmask)
             render_brushmodel_chull(v40->s.index.brushmodel, (unsigned int)v40, &v38, v35);
         }
     }
-    v34 = (char *)Phys_GetMaskFromDVar() == &cls.recentServers[7734].game[12]
-         && (g_bDebugRenderPatches->current.enabled || g_bDebugRenderBrushes->current.enabled);
+    v34 = Phys_GetMaskFromDVar() == 0x2820011
+        && (g_bDebugRenderPatches->current.enabled || g_bDebugRenderBrushes->current.enabled);
     v33 = v34;
     if ( !v34 )
     {
@@ -3913,7 +3913,7 @@ void    Phys_FindAndRenderEntityBrushes(const float *pos, int contentmask)
                     v5 = DObjGetXModel(ClientDObj, 0);
                     render_xmodel_chull(v5, v7, &v28, v26);
                 }
-                else if ( (char *)Entity->nextState.solid == &cls.rankedServers[711].game[34] )
+                else if (Entity->nextState.solid == 0xFFFFFF)
                 {
                     if ( ((*((unsigned int *)Entity + 201) >> 15) & 1) != 0 )
                         v25 = (const float *)v44;
@@ -4026,7 +4026,7 @@ int __cdecl Phys_GetMaskFromDVar()
             result = -1;
             break;
         case 1u:
-            result = (int)&cls.recentServers[7647].hostName[20];
+            result = 0x2818011;
             break;
         case 2u:
             result = 0x10000;
@@ -4035,19 +4035,19 @@ int __cdecl Phys_GetMaskFromDVar()
             result = 529;
             break;
         case 4u:
-            result = (int)&cls.recentServers[7734].game[12];
+            result = 0x2820011;
             break;
         case 5u:
-            result = (int)&cls.recentServers[7489].hostName[22];
+            result = 0x2809803;
             break;
         case 6u:
-            result = (int)&cls.recentServers[7543].countrycode[1];
+            result = 0x280E833;
             break;
         case 7u:
             result = (int)&cls.rankedServers[711].game[35];
             break;
         case 8u:
-            result = (int)&cls.recentServers[7546].city[57];
+            result = 0x280EC93;
             break;
         default:
             result = -1;
@@ -4250,7 +4250,7 @@ void __cdecl debug_loop()
             {
                 case 1:
                     hitNum = 0;
-                    CG_SightTracePoint(&hitNum, start, end, (int)&cls.recentServers[7543].countrycode[1], &results);
+                    CG_SightTracePoint(&hitNum, start, end, 0x280E833, &results);
                     render_hitpoint = 1;
                     break;
                 case 2:
@@ -4259,14 +4259,14 @@ void __cdecl debug_loop()
                         start,
                         end,
                         passEntityNum,
-                        (int)&cls.recentServers[7543].countrycode[1],
+                        0x280E833,
                         bulletPriorityMap,
                         0);
                     render_hitpoint = 1;
                     g_debug_partition = results.hitPartition;
                     break;
                 case 3:
-                    CG_LocationalTrace(&results, start, end, passEntityNum, (int)&cls.recentServers[7543].countrycode[1], 0, 0);
+                    CG_LocationalTrace(&results, start, end, passEntityNum, 0x280E833, 0, 0);
                     render_hitpoint = 1;
                     g_debug_partition = results.hitPartition;
                     break;

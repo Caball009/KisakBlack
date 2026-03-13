@@ -35,13 +35,13 @@ int __cdecl CG_GetEntityBModelContents(const centity_s *cent)
     {
         __debugbreak();
     }
-    if ( (char *)cent->nextState.solid == &cls.rankedServers[711].game[34] )
+    if (cent->nextState.solid == 0xFFFFFF)
         return CM_ContentsOfModel(cent->nextState.index.brushmodel);
     eType = cent->nextState.eType;
     switch ( eType )
     {
         case 1:
-            return (int)&cls.wagerServers[5331].basictraining;
+            return 0x2000000;
         case 17:
             return 0x8000;
         case 19:
@@ -442,7 +442,7 @@ LABEL_97:
             {
                 __debugbreak();
             }
-            if ( (char *)p_nextState->solid == &cls.rankedServers[711].game[34] && (p_nextState->lerp.eFlags & 1) != 0 )
+            if (p_nextState->solid == 0xFFFFFF && (p_nextState->lerp.eFlags & 1) != 0)
             {
                 //if ( GetCurrentThreadId() == g_DXDeviceThread )
                     //D3DPERF_EndEvent();
@@ -467,7 +467,7 @@ LABEL_97:
                     goto LABEL_97;
                 return;
             }
-            if ( (char *)p_nextState->solid == &cls.rankedServers[711].game[34] )
+            if (p_nextState->solid == 0xFFFFFF)
             {
                 cmodel = p_nextState->index.brushmodel;
                 angles[0] = cent->pose.angles[0];
@@ -1378,8 +1378,7 @@ void __cdecl CG_ClipMoveToEntity(const moveclip_t *clip, int entIndex, trace_t *
                     }
                 }
             }
-            else if ( p_nextState->solid
-                         && ((char *)p_nextState->solid != &cls.rankedServers[711].game[34] || (p_nextState->lerp.eFlags & 1) == 0) )
+            else if (p_nextState->solid && (p_nextState->solid != 0xFFFFFF || (p_nextState->lerp.eFlags & 1) == 0))
             {
                 contents = CG_GetEntityBModelContents(cent);
                 if ( (clip->contentmask & contents) != 0 )
@@ -1398,7 +1397,7 @@ void __cdecl CG_ClipMoveToEntity(const moveclip_t *clip, int entIndex, trace_t *
                     absMaxs[2] = absMaxs[2] + clip->maxs[2];
                     if ( intersect_extents_aabb(&clip->extents, absMins, absMaxs, results->fraction) )
                     {
-                        if ( (char *)p_nextState->solid == &cls.rankedServers[711].game[34] )
+                        if (p_nextState->solid == 0xFFFFFF)
                         {
                             cmodel = p_nextState->index.brushmodel;
                             angles[0] = cent->pose.angles[0];
@@ -1737,7 +1736,7 @@ char __cdecl CG_EntityInArea(unsigned int entIndex, const float *mins, const flo
             return 1;
         }
     }
-    else if ( (char *)cent->nextState.solid == &cls.rankedServers[711].game[34]
+    else if (cent->nextState.solid == 0xFFFFFF
                  && cent->nextState.eType != 14
                  && cent->nextState.eType != 16
                  && cent->pose.absmax[0] >= *mins

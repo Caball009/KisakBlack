@@ -3278,7 +3278,7 @@ bool __cdecl FX_SpawnModelPhysics(
         visuals.model,
         &collision_visitor,
         -1,
-        (unsigned int)&cls.recentServers[7546].city[57],
+        0x280EC93,
         1,
         0,
         0);

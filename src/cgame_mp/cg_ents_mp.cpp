@@ -1379,7 +1379,7 @@ void __cdecl CG_AddPacketEntity(int localClientNum, unsigned int entnum)
     angles[1] = cent->pose.angles[1];
     angles[2] = cent->pose.angles[2];
     entMoved = 0;
-    if ( (eType == 6 || eType == 13) && (char *)cent->nextState.solid == &cls.rankedServers[711].game[34] )
+    if ((eType == 6 || eType == 13) && cent->nextState.solid == 0xFFFFFF)
     {
         CG_CalcEntityLerpPositions(localClientNum, cent);
         if ( CG_EntityLinked(localClientNum, cent) )
@@ -1805,7 +1805,7 @@ $LN21_3:
                     *v6 = cent->pose.origin[0];
                     v6[1] = v7[1];
                     v6[2] = v7[2];
-                    if ( (char *)cent->nextState.solid == &cls.rankedServers[711].game[34] )
+                    if (cent->nextState.solid == 0xFFFFFF)
                     {
                         CG_UpdateBModelWorldBounds(localClientNum, cent, 0);
                     }
@@ -1968,13 +1968,12 @@ void __cdecl CG_ScriptMover(int localClientNum, centity_s *cent)
     s1 = &cent->nextState;
     if ( (cent->nextState.lerp.eFlags & 0x20) != 0 )
     {
-        if ( (char *)cent->nextState.solid != &cls.rankedServers[711].game[34]
-            && (cent->nextState.clientLinkInfo.flags & 1) != 0 )
+        if (cent->nextState.solid != 0xFFFFFF && (cent->nextState.clientLinkInfo.flags & 1) != 0)
         {
             CG_ScriptMover_GetDObj(localClientNum, cent);
         }
     }
-    else if ( (char *)cent->nextState.solid == &cls.rankedServers[711].game[34] )
+    else if (cent->nextState.solid == 0xFFFFFF)
     {
         lightingOriginToleranceSq = s1->number;
         BrushModel = R_GetBrushModel(cent->nextState.index.brushmodel);

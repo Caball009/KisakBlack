@@ -2442,7 +2442,7 @@ unsigned int __cdecl R_HW_SetSamplerState(
                 v7);
         }
     }
-    if ( ((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & diffSamplerState) != 0 )
+    if ( (0x3F00000 & diffSamplerState) != 0 )
     {
         if ( (diffSamplerState & 0x300000) != 0 )
         {

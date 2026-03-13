@@ -179,7 +179,7 @@ int __cdecl Actor_droptofloor(gentity_s *ent)
         dropMaxs,
         vEnd,
         1023,
-        (int)&cls.recentServers[7734].game[12],
+        0x2820011,
         &context);
     if ( trace.startsolid )
         return 1;
@@ -232,7 +232,7 @@ LABEL_2:
         ent->r.maxs[0] = actorMaxs[0];
         ent->r.maxs[1] = 15.0;
         ent->r.maxs[2] = 48.0;
-        ent->clipmask = (int)&cls.recentServers[7734].game[12];
+        ent->clipmask = 0x2820011;
         ent->r.contents = 0x8000;
         ent->s.eType = 17;
         AssignToSmallerType<int>(&ent->s.lerp.useCount, ent->useCount + 1);
@@ -2824,7 +2824,7 @@ void __fastcall Actor_InitMove(actor_s *self)
     {
         __debugbreak();
     }
-    self->Physics.iTraceMask = (int)&cls.recentServers[7734].game[12];
+    self->Physics.iTraceMask = 0x2820011;
     self->Physics.iHitEntnum = 1023;
     self->Physics.groundEntNum = 1022;
     mins = self->ent->r.mins;

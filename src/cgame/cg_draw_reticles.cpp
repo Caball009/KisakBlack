@@ -293,14 +293,7 @@ void __cdecl CG_DrawCrosshair(int localClientNum)
                                             end[0] = (float)(15000.0 * cgameGlob->refdef.viewaxis[0][0]) + start[0];
                                             end[1] = (float)(15000.0 * cgameGlob->refdef.viewaxis[0][1]) + start[1];
                                             end[2] = (float)(15000.0 * cgameGlob->refdef.viewaxis[0][2]) + start[2];
-                                            CG_LocationalTrace(
-                                                &trace,
-                                                start,
-                                                end,
-                                                cgameGlob->nextSnap->ps.clientNum,
-                                                (int)&cls.recentServers[7505].bdUserID + 1,
-                                                0,
-                                                0);
+                                            CG_LocationalTrace(&trace, start, end, cgameGlob->nextSnap->ps.clientNum, 0x280B001, 0, 0);
                                             Vec3Lerp(start, end, trace.fraction, contact);
                                             centerW = Vec3Distance(start, contact);
                                             if ( centerW >= 10000.0 )
@@ -496,14 +489,7 @@ void __cdecl CG_DrawAdsOverlay(int localClientNum, int weaponIndex, const float 
                 end[0] = (float)(15000.0 * cgameGlob->refdef.viewaxis[0][0]) + start[0];
                 end[1] = (float)(15000.0 * cgameGlob->refdef.viewaxis[0][1]) + start[1];
                 end[2] = (float)(15000.0 * cgameGlob->refdef.viewaxis[0][2]) + start[2];
-                CG_LocationalTrace(
-                    &trace,
-                    start,
-                    end,
-                    cgameGlob->nextSnap->ps.clientNum,
-                    (int)&cls.recentServers[7505].bdUserID + 1,
-                    0,
-                    0);
+                CG_LocationalTrace(&trace, start, end, cgameGlob->nextSnap->ps.clientNum, 0x280B001, 0, 0);
                 Vec3Lerp(start, end, trace.fraction, contact);
                 centerW = Vec3Distance(start, contact);
                 if ( centerW >= 10000.0 )
@@ -964,7 +950,7 @@ void __cdecl CG_DrawVehicleCrossHair(int localClientNum)
                     start,
                     end,
                     cgameGlob->nextSnap->ps.clientNum,
-                    (int)&cls.recentServers[7505].bdUserID + 1,
+                    0x280B001,
                     0,
                     0);
                 Vec3Lerp(start, end, trace.fraction, contact);

@@ -79,15 +79,7 @@ void __cdecl CG_Laser_Add_Core(
     col_context_t context; // [esp+3Ch] [ebp-138h] BYREF
 
     ////col_context_t::col_context_t(&context);
-    CG_TraceCapsule(
-        &traceResults,
-        laserBegin,
-        mins,
-        maxs,
-        laserEnd,
-        cent->nextState.number,
-        (int)&cls.recentServers[7543].countrycode[1],
-        &context);
+    CG_TraceCapsule(&traceResults, laserBegin, mins, maxs, laserEnd, cent->nextState.number, 0x280E833, &context);
     laserLength = traceResults.fraction * laserRange;
     v7 = (float)(traceResults.fraction * laserRange) - cg_laserEndOffset->current.value;
     laserEnd[0] = (float)(v7 * orient->axis[0][0]) + orient->origin[0];

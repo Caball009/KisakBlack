@@ -5636,8 +5636,8 @@ void __cdecl Scr_BoundsWouldTelefrag(float *mins, float *maxs)
     int v5; // [esp+1014h] [ebp-8h]
     int i; // [esp+1018h] [ebp-4h]
 
-    entityList[1024] = (int)&cls.recentServers[7385].city[30];
-    v5 = CM_AreaEntities(mins, maxs, entityList, 1024, (int)&cls.recentServers[7385].city[30]);
+    entityList[1024] = 0x2800000;
+    v5 = CM_AreaEntities(mins, maxs, entityList, 1024, 0x2800000);
     for ( i = 0; i < v5; ++i )
     {
         v4 = &g_entities[entityList[i]];
@@ -6324,7 +6324,7 @@ void Scr_BulletTrace()
     //PIXBeginNamedEvent(-1, "Scr_BulletTrace");
     pIgnoreEnt = 0;
     iIgnoreEntNum = 1023;
-    iClipMask = (int)&cls.recentServers[7538].game[14];
+    iClipMask = 0x280E033;
     memset(&trace, 0, 16);
     Scr_GetVector(0, vStart, SCRIPTINSTANCE_SERVER);
     Scr_GetVector(1u, vEnd, SCRIPTINSTANCE_SERVER);
@@ -6373,7 +6373,7 @@ void Scr_BulletTrace()
     {
         Scr_AddVector(trace.normal.vec.v, SCRIPTINSTANCE_SERVER);
         Scr_AddArrayStringIndexed(scr_const.normal, SCRIPTINSTANCE_SERVER);
-        iSurfaceTypeIndex = (unsigned __int8)((int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & trace.sflags) >> 20);
+        iSurfaceTypeIndex = (unsigned __int8)((int)(0x3F00000 & trace.sflags) >> 20);
         value = (char *)Com_SurfaceTypeToName(iSurfaceTypeIndex);
         Scr_AddString(value, SCRIPTINSTANCE_SERVER);
         Scr_AddArrayStringIndexed(scr_const.surfacetype, SCRIPTINSTANCE_SERVER);
@@ -6401,7 +6401,7 @@ void Scr_BulletTracePassed()
 
     pIgnoreEnt = 0;
     iIgnoreEntNum = 1023;
-    iClipMask = (int)&cls.recentServers[7538].game[14];
+    iClipMask = 0x280E033;
     Scr_GetVector(0, vStart, SCRIPTINSTANCE_SERVER);
     Scr_GetVector(1u, vEnd, SCRIPTINSTANCE_SERVER);
     if ( !Scr_GetInt(2u, SCRIPTINSTANCE_SERVER).intValue )
@@ -6431,7 +6431,7 @@ void __cdecl Scr_SightTracePassed()
 
     pIgnoreEnt = 0;
     iIgnoreEntNum = 1023;
-    iClipMask = (int)&cls.recentServers[7489].hostName[22];
+    iClipMask = 0x2809803;
     Scr_GetVector(0, vStart, SCRIPTINSTANCE_SERVER);
     Scr_GetVector(1u, vEnd, SCRIPTINSTANCE_SERVER);
     if ( !Scr_GetInt(2u, SCRIPTINSTANCE_SERVER).intValue )
@@ -6541,7 +6541,7 @@ $LN11_33:
     {
         Scr_AddVector(trace.normal.vec.v, SCRIPTINSTANCE_SERVER);
         Scr_AddArrayStringIndexed(scr_const.normal, SCRIPTINSTANCE_SERVER);
-        iSurfaceTypeIndex = (unsigned __int8)((int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & trace.sflags) >> 20);
+        iSurfaceTypeIndex = (unsigned __int8)((int)(0x3F00000 & trace.sflags) >> 20);
         v0 = (char *)Com_SurfaceTypeToName(iSurfaceTypeIndex);
         Scr_AddString(v0, SCRIPTINSTANCE_SERVER);
         Scr_AddArrayStringIndexed(scr_const.surfacetype, SCRIPTINSTANCE_SERVER);
@@ -10261,7 +10261,7 @@ void __cdecl GScr_PlaceSpawnPoint(scr_entref_t entref)
         playerMaxs,
         vEnd,
         pEnt->s.number,
-        (int)&cls.recentServers[7647].hostName[20],
+        0x2818011,
         &context);
     Vec3Lerp(vStart, vEnd, trace.fraction, vStart);
     vEnd[0] = vStart[0];
@@ -10274,7 +10274,7 @@ void __cdecl GScr_PlaceSpawnPoint(scr_entref_t entref)
         playerMaxs,
         vEnd,
         pEnt->s.number,
-        (int)&cls.recentServers[7647].hostName[20],
+        0x2818011,
         &context);
     EntityHitId = Trace_GetEntityHitId(&trace);
     pEnt->s.groundEntityNum = EntityHitId;
@@ -10287,7 +10287,7 @@ void __cdecl GScr_PlaceSpawnPoint(scr_entref_t entref)
         playerMaxs,
         vStart,
         pEnt->s.number,
-        (int)&cls.recentServers[7647].hostName[20],
+        0x2818011,
         &context);
     if ( trace.allsolid )
         Com_PrintWarning(

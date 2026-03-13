@@ -2823,7 +2823,7 @@ void __cdecl create_xmodel_gjk_geom(
         surfFlags = model->collSurfs->surfFlags;
     else
         surfFlags = (int)"t";
-    stype = (unsigned __int8)((int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & surfFlags) >> 20);
+    stype = (unsigned __int8)((int)(0x3F00000 & surfFlags) >> 20);
     geomList = xmodel_get_geomlist(model, bone_index);
     b_geom_eligible = 0;
     if ( geomList )

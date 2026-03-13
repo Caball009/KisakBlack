@@ -1074,7 +1074,7 @@ void CG_ResetEntity(int localClientNum, centity_s *cent, int newEntity)
     case 6:
     case 0xD:
         cent->previousEventSequence = cent->nextState.eventSequence;
-        if ((char *)cent->nextState.solid != &cls.rankedServers[711].game[34])
+        if (cent->nextState.solid != 0xFFFFFF)
             goto LABEL_74;
         CG_UpdateBModelWorldBounds(localClientNum, cent, 1);
         break;

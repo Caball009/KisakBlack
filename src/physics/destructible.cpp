@@ -1894,7 +1894,7 @@ unsigned __int16 __cdecl CG_DestructibleSpawnDynEnt(
                 vec3_origin,
                 end,
                 cent->nextState.number,
-                (int)&cls.recentServers[7546].city[57],
+                0x280EC93,
                 &context);
             if ( result.startsolid || result.fraction < 1.0 )
                 return -1;

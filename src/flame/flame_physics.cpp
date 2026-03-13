@@ -300,7 +300,7 @@ void __cdecl Flame_Server_Trace(
     {
         Vec3Min(startPos, endPos, bounds[0]);
         Vec3Max(startPos, endPos, bounds[1]);
-        clip.contentmask = (int)&cls.recentServers[18701].score + 3;
+        clip.contentmask = 0x2C0EC33;
         *(_QWORD *)clip.extents.start.vec.v = *(_QWORD *)startPos;
         clip.extents.start.vec.v[2] = startPos[2];
         *(_QWORD *)clip.extents.end.vec.v = *(_QWORD *)endPos;
@@ -475,7 +475,7 @@ void __cdecl Flame_Client_Trace(
     {
         Vec3Min(startPos, endPos, bounds[0]);
         Vec3Max(startPos, endPos, bounds[1]);
-        clip.contentmask = (int)&cls.recentServers[18701].score + 3;
+        clip.contentmask = 0x2C0EC33;
         *(_QWORD *)clip.extents.start.vec.v = *(_QWORD *)startPos;
         clip.extents.start.vec.v[2] = startPos[2];
         *(_QWORD *)clip.extents.end.vec.v = *(_QWORD *)endPos;
@@ -1026,7 +1026,7 @@ void __cdecl Flame_Phys_Update_Items_PerStream(bool is_server, int nitems, flame
         expand_vec[0] = 1.0f;
         expand_vec[1] = 1.0f;
         expand_vec[2] = 1.0f;
-        proximity_cache->update(mn, mx, (int)&cls.recentServers[18701].score + 3, expand_vec);
+        proximity_cache->update(mn, mx, 0x2C0EC33, expand_vec);
         ////col_context_t::col_context_t(&context);
         context.prims = proximity_cache->prims;
         context.nprims = proximity_cache->nprims;
@@ -1039,9 +1039,9 @@ void __cdecl Flame_Phys_Update_Items_PerStream(bool is_server, int nitems, flame
             dynEntsCount[drawType] = num;
         }
         if ( is_server )
-            entsCount = CM_AreaEntities(mn, mx, ents, 128, (int)&cls.recentServers[18701].score + 3);
+            entsCount = CM_AreaEntities(mn, mx, ents, 128, 0x2C0EC33);
         else
-            entsCount = CG_AreaEntities(mn, mx, ents, 128, (int)&cls.recentServers[18701].score + 3);
+            entsCount = CG_AreaEntities(mn, mx, ents, 128, 0x2C0EC33);
         close_characters_count = 0;
         close_triggers_count = 0;
         max_models = 256;

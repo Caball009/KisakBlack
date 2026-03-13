@@ -111,7 +111,7 @@ void __cdecl CG_PrintEntities(unsigned int localClientNum)
                 {
                     Com_Printf(14, "\tNo Draw, i.e. ScriptOrigin\n");
                 }
-                else if ( (char *)cent->cent.nextState.solid == &cls.rankedServers[711].game[34] )
+                else if (cent->cent.nextState.solid == 0xFFFFFF)
                 {
                     Com_Printf(14, "\tSolid BModel");
                 }

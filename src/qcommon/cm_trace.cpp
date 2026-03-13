@@ -3860,7 +3860,7 @@ double __cdecl CM_GetWaterHeight(const float *pos, float z_up, float z_down)
                 waterHeight = p[2];
         }
     }
-    if ( CM_TracePointDown(start, end, 32, (int)&bg_vehicleInfos[11].rotorTailStartFx[20], hitPos, 0, 0) )
+    if (CM_TracePointDown(start, end, 32, 0x3F00000, hitPos, 0, 0))
     {
         if ( (float)(hitPos[2] - waterHeight) < 0.0 )
             return waterHeight;

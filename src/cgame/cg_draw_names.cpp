@@ -443,7 +443,7 @@ char __cdecl CG_CanSeeFriendlyHead(int localClientNum, const centity_s *cent)
         clientNum = -1;
     else
         clientNum = ps->clientNum;
-    CG_LocationalTrace(&trace, start, end, clientNum, (int)&cls.recentServers[7505].bdUserID + 1, 0, 0);
+    CG_LocationalTrace(&trace, start, end, clientNum, 0x280B001, 0, 0);
     nextSnap = cgameGlob->nextSnap;
     if ( (nextSnap->ps.otherFlags & 6) != 0 && cent->nextState.number == nextSnap->ps.clientNum )
     {
@@ -544,14 +544,7 @@ void __cdecl CG_ScanForCrosshairEntityInternal(int localClientNum)
         }
         ////col_context_t::col_context_t(&context);
         context.ignoreEntParams = &ignoreEntParams;
-        CG_LocationalTrace(
-            &trace,
-            start,
-            end,
-            cgameGlob->nextSnap->ps.clientNum,
-            (int)&cls.recentServers[7505].bdUserID + 1,
-            0,
-            &context);
+        CG_LocationalTrace(&trace, start, end, cgameGlob->nextSnap->ps.clientNum, 0x280B001, 0, &context);
         if ( trace.fraction >= 1.0 )
         {
             hitEntId = 1023;

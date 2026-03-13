@@ -1627,16 +1627,16 @@ char __cdecl Ragdoll_BoneTrace(trace_t *trace, trace_t *revTrace, const float *s
     col_context_t context; // [esp+0h] [ebp-28h] BYREF
 
     ////col_context_t::col_context_t(&context);
-    CM_BoxTrace(trace, start, end, vec3_origin, vec3_origin, (int)&cls.recentServers[7546].city[57], &context);
+    CM_BoxTrace(trace, start, end, vec3_origin, vec3_origin, 0x280EC93, &context);
     if ( trace->startsolid )
     {
-        CM_BoxTrace(revTrace, end, start, vec3_origin, vec3_origin, (int)&cls.recentServers[7546].city[57], &context);
+        CM_BoxTrace(revTrace, end, start, vec3_origin, vec3_origin, 0x280EC93, &context);
         if ( revTrace->startsolid )
             return 0;
     }
     else if ( trace->fraction != 1.0 )
     {
-        CM_BoxTrace(revTrace, end, start, vec3_origin, vec3_origin, (int)&cls.recentServers[7546].city[57], &context);
+        CM_BoxTrace(revTrace, end, start, vec3_origin, vec3_origin, 0x280EC93, &context);
         if ( revTrace->fraction != 1.0 )
             return 0;
     }

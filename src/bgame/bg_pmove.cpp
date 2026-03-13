@@ -532,7 +532,7 @@ unsigned int __cdecl PM_GroundSurfaceType(playerState_s *ps, pml_t *pml)
         __debugbreak();
     if ( (pml->groundTrace.sflags & 0x2000) != 0 )
         return 0;
-    iSurfType = (unsigned __int8)((int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & pml->groundTrace.sflags) >> 20);
+    iSurfType = (unsigned __int8)((int)(0x3F00000 & pml->groundTrace.sflags) >> 20);
     if ( iSurfType >= 0x1F
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_pmove.cpp",
@@ -684,7 +684,7 @@ void __cdecl PM_FootstepEvent(pmove_t *pm, pml_t *pml, int iOldBobCycle, int iNe
                     PM_trace(pm, &trace, ps->origin, mins, maxs, vEnd, ps->clientNum, iClipMask);
                 else
                     PM_playerTrace(pm, &trace, ps->origin, mins, maxs, vEnd, ps->clientNum, iClipMask);
-                iSurfaceType = (unsigned __int8)((int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & trace.sflags) >> 20);
+                iSurfaceType = (unsigned __int8)((int)(0x3F00000 & trace.sflags) >> 20);
                 if ( trace.fraction == 1.0 || !iSurfaceType )
                     iSurfaceType = 21;
                 BG_AddPredictableEventToPlayerstate(0x68u, iSurfaceType, ps);
@@ -3288,7 +3288,7 @@ void __cdecl PM_GroundTrace(pmove_t *pm, pml_t *pml)
     else
         PM_playerTrace(pm, &trace, start, pm->mins, pm->maxs, point, ps->clientNum, pm->tracemask);
     memcpy(&pml->groundTrace, &trace, sizeof(pml->groundTrace));
-    ps->groundType = (unsigned __int8)((int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & trace.sflags) >> 20);
+    ps->groundType = (unsigned __int8)((int)(0x3F00000 & trace.sflags) >> 20);
     if ( (pml->groundTrace.sflags & 2) != 0 )
     {
         ps->pm_flags |= 0x800000;

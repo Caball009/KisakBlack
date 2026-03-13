@@ -297,7 +297,7 @@ void __cdecl Vec3ScaleAdd(const float *base, const float *dir, float scale, floa
 //                                                                                                     * (float)(1.0 - result.normal.vec.v[1])))
 //                                                                     * *(float *)&result.staticModel)
 //                                                     + MAX_DISTANCE_SCALE;
-//                *(float *)&c = SND_SurfaceTypeToReflectance((unsigned __int8)((int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20]
+//                *(float *)&c = SND_SurfaceTypeToReflectance((unsigned __int8)((int)(0x3F00000
 //                                                                                                                                                    & result.normal.vec.u[2]) >> 20))
 //                                         + *(float *)&c;
 //            }

@@ -566,7 +566,7 @@ void __cdecl ClientSpawn(gentity_s *ent, const float *spawn_origin, const float 
     AssignToSmallerType<int>(&ent->s.lerp.useCount, ent->useCount + 1);
     ent->s.groundEntityNum = 1023;
     Scr_SetString(&ent->classname, scr_const.player, SCRIPTINSTANCE_SERVER);
-    ent->clipmask = (int)&cls.recentServers[7647].hostName[20];
+    ent->clipmask = 0x2818011;
     ent->r.svFlags |= 1u;
     ent->takedamage = 0;
     G_SetClientContents(ent);

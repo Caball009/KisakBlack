@@ -1889,15 +1889,7 @@ void __cdecl CScr_PlayDogstepSound(int localClientNum, centity_s *cent, eFoot fo
         start[2] = footMatrix[3][2] + footprintGroundTraceUp;
         *(_QWORD *)end = *(_QWORD *)&footMatrix[3][0];
         end[2] = footMatrix[3][2] - footprintGroundTraceDown;
-        surfType = (unsigned __int8)((int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20]
-                                                                         & CM_TracePointDown(
-                                                                                 start,
-                                                                                 end,
-                                                                                 2065,
-                                                                                 (int)&bg_vehicleInfos[11].rotorTailStartFx[20],
-                                                                                 footMatrix[3],
-                                                                                 0,
-                                                                                 0)) >> 20);
+        surfType = (CM_TracePointDown(start, end, 2065, 0x3F00000, footMatrix[3], 0, 0) & 0x3F00000) >> 20;
         if ( (cent->currentState.eFlags2 & 0x200000) != 0 || ((*((unsigned int *)cent + 201) >> 5) & 1) != 0 )
             Scr_AddInt(1, SCRIPTINSTANCE_CLIENT);
         else

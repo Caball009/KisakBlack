@@ -529,7 +529,7 @@ bool __cdecl Melee_Trace(
             start,
             end,
             ent->s.number,
-            (int)&cls.recentServers[7544].adr.port + 3,
+            0x280E893,
             bulletPriorityMap);
         Vec3Lerp(start, end, traceTest.fraction, endPos);
         if ( !traceIndex )
@@ -1368,7 +1368,7 @@ void __cdecl DeployWeapon(gentity_s *ent)
                 traceStart,
                 traceEnd,
                 ent->s.number,
-                (int)&cls.recentServers[7543].countrycode[1],
+                0x280E833,
                 0);
             if ( trace.fraction <= 0.0 || trace.fraction >= 1.0 )
             {
@@ -1432,7 +1432,7 @@ void __cdecl DeployWeapon(gentity_s *ent)
                         traceEnd,
                         traceStart,
                         ent->s.number,
-                        (int)&cls.recentServers[7543].countrycode[1],
+                        0x280E833,
                         0);
                     if ( trace.fraction <= 0.0 || trace.fraction >= 1.0 )
                     {
@@ -1445,7 +1445,7 @@ void __cdecl DeployWeapon(gentity_s *ent)
                             traceEnd,
                             traceStart,
                             ent->s.number,
-                            (int)&cls.recentServers[7543].countrycode[1],
+                            0x280E833,
                             0);
                     }
                 }
@@ -1543,7 +1543,7 @@ void __cdecl DeployWeapon(gentity_s *ent)
                     traceStart,
                     traceEnd,
                     ent->s.number,
-                    (int)&cls.recentServers[7543].countrycode[1],
+                    0x280E833,
                     0);
                 if ( trace.fraction <= 0.0 || trace.fraction >= 1.0 )
                 {

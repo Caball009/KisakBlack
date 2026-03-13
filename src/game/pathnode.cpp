@@ -3243,7 +3243,7 @@ void __cdecl Path_DisconnectPathsForEntity(gentity_s *ent)
     clip.maxs[0] = disconnectMaxs[0];
     clip.maxs[1] = disconnectMaxs[1];
     clip.maxs[2] = disconnectMaxs[2];
-    clip.contentmask = (int)&cls.recentServers[7734].game[12];
+    clip.contentmask = 0x2820011;
     clip.passEntityNum[1] = 1023;
     clip.passEntityNum[0] = 1023;
     for ( i = 0; i < g_path.actualNodeCount; ++i )

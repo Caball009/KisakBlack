@@ -1078,7 +1078,7 @@ int __cdecl turret_SightTrace(const float *start, const float *end, int passEnt1
     {
         if ( (turret->pTurretInfo->flags & 0x20000) != 0 )
         {
-            //col_context_t::col_context_t(&v8, (int)&cls.recentServers[7544].adr.port + 3);
+            //col_context_t::col_context_t(&v8, 0x280E893);
             memcpy(&context, &v8, sizeof(context));
         }
         else

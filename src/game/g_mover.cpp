@@ -581,7 +581,7 @@ void __cdecl G_CreatePhysicsObject(gentity_s *ent)
         dims[1] = maxs[1] - mins[1];
         dims[2] = maxs[2] - mins[2];
         surfaceFlags = CM_ModelSurfaceFlags(brushModel);
-        surfaceType = (unsigned __int8)((int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & surfaceFlags) >> 20);
+        surfaceType = (unsigned __int8)((int)(0x3F00000 & surfaceFlags) >> 20);
         Phys_CalcPreset(&defaultPreset, dims, surfaceType);
     }
     else
@@ -621,7 +621,7 @@ void __cdecl G_CreatePhysicsObject(gentity_s *ent)
                 Phys_CalcPreset(
                     &defaultPreset,
                     v7,
-                    (unsigned __int8)((int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & surfFlags) >> 20));
+                    (unsigned __int8)((int)(0x3F00000 & surfFlags) >> 20));
                 physPreset = &defaultPreset;
             }
         }
@@ -633,7 +633,7 @@ void __cdecl G_CreatePhysicsObject(gentity_s *ent)
         gjk_geom_list.m_geom_count = 0;
         //collision_visitor.__vftable = (create_gjk_geom_collision_visitor_vtbl *)&create_gjk_geom_collision_visitor::`vftable';
         collision_visitor.gjk_geom_list = &gjk_geom_list;
-        create_gjk_geom(ent, &collision_visitor, 0, (unsigned int)&cls.recentServers[7546].city[57], 1);
+        create_gjk_geom(ent, &collision_visitor, 0, 0x280EC93, 1);
         physObjId = (int)Phys_ObjCreate(0, position, quat, velocity, physPreset, &gjk_geom_list, 1, ent->s.number);
         ent->physObjId = physObjId;
         if ( physObjId )

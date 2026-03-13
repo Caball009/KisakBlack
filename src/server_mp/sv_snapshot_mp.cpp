@@ -1227,7 +1227,7 @@ cachedSnapshot_t *__cdecl SV_GetCachedSnapshotInternal(int archivedFrame, int de
                     archivedFrame,
                     framea->start,
                     svs.nextArchivedSnapshotBuffer,
-                    &cls.rankedServers[711].game[35]);
+                    0x1000000);
             return 0;
         }
         oldCachedFrame = SV_GetCachedSnapshotInternal(oldArchivedFrame, depth + 1, expectedToSucceed);

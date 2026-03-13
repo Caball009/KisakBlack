@@ -768,7 +768,7 @@ void __cdecl CScr_GetModel(centity_s *cent, const cent_field_s *pField)
     switch ( cent->nextState.eType )
     {
         case 6:
-            if ( (char *)cent->nextState.solid == &cls.rankedServers[711].game[34] )
+            if (cent->nextState.solid == 0xFFFFFF)
                 goto LABEL_20;
             model = cent->destructible ? Destructible_GetDDef(cent)->model : cgs->gameModels[cent->nextState.index.brushmodel];
             if ( !model || !model->name )
@@ -5599,7 +5599,7 @@ void CScr_BulletTrace()
 
     pIgnoreEnt = 0;
     iIgnoreEntNum = 1023;
-    iClipMask = (int)&cls.recentServers[7543].countrycode[1];
+    iClipMask = 0x280E833;
     memset(&trace, 0, 16);
     //PIXBeginNamedEvent(-1, "CScr_BulletTrace");
     Scr_GetVector(0, vStart, SCRIPTINSTANCE_CLIENT);
@@ -5652,7 +5652,7 @@ void CScr_BulletTrace()
     {
         Scr_AddVector(trace.normal.vec.v, SCRIPTINSTANCE_CLIENT);
         Scr_AddArrayStringIndexed(cscr_const.normal, SCRIPTINSTANCE_CLIENT);
-        iSurfaceTypeIndex = (unsigned __int8)((int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & trace.sflags) >> 20);
+        iSurfaceTypeIndex = (unsigned __int8)((int)(0x3F00000 & trace.sflags) >> 20);
         value = (char *)Com_SurfaceTypeToName(iSurfaceTypeIndex);
         Scr_AddString(value, SCRIPTINSTANCE_CLIENT);
     }
@@ -5665,7 +5665,6 @@ void CScr_BulletTrace()
 
 void CScr_TracePoint()
 {
-    unsigned intresult; // eax
     char *value; // [esp+30h] [ebp-54h]
     float hitp[3]; // [esp+48h] [ebp-3Ch] BYREF
     float normal[3]; // [esp+54h] [ebp-30h] BYREF
@@ -5678,15 +5677,8 @@ void CScr_TracePoint()
     //PIXBeginNamedEvent(-1, "CScr_TracePoint");
     Scr_GetVector(0, p0, SCRIPTINSTANCE_CLIENT);
     Scr_GetVector(1u, p1, SCRIPTINSTANCE_CLIENT);
-    mask = (int)&cls.recentServers[7543].countrycode[1];
-    stype = CM_TracePointDown(
-                        p0,
-                        p1,
-                        (int)&cls.recentServers[7543].countrycode[1],
-                        (int)&bg_vehicleInfos[11].rotorTailStartFx[20],
-                        hitp,
-                        &fraction,
-                        normal);
+    mask = 0x280E833;
+    stype = CM_TracePointDown(p0, p1, 0x280E833, 0x3F00000, hitp, &fraction, normal);
     Scr_MakeArray(SCRIPTINSTANCE_CLIENT);
     Scr_AddFloat(fraction, SCRIPTINSTANCE_CLIENT);
     Scr_AddArrayStringIndexed(cscr_const.fraction, SCRIPTINSTANCE_CLIENT);
@@ -5708,8 +5700,7 @@ void CScr_TracePoint()
         Scr_AddArrayStringIndexed(cscr_const.position, SCRIPTINSTANCE_CLIENT);
         Scr_AddVector(normal, SCRIPTINSTANCE_CLIENT);
         Scr_AddArrayStringIndexed(cscr_const.normal, SCRIPTINSTANCE_CLIENT);
-        value = (char *)Com_SurfaceTypeToName((unsigned __int8)((int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20]
-                                                                                                                                & stype) >> 20));
+        value = (char *)Com_SurfaceTypeToName((stype & 0x3F00000) >> 20);
         Scr_AddString(value, SCRIPTINSTANCE_CLIENT);
     }
     Scr_AddArrayStringIndexed(cscr_const.surfacetype, SCRIPTINSTANCE_CLIENT);
@@ -9347,7 +9338,7 @@ void __cdecl CScrCmd_IsTouching(scr_entref_t entref)
     int savedregs; // [esp+F4h] [ebp+0h] BYREF
 
     ent = CG_GetEntity(entref.client, entref.entnum);
-    if ( (char *)ent->nextState.solid == &cls.rankedServers[711].game[34]
+    if (ent->nextState.solid == 0xFFFFFF
         || ((*((unsigned int *)ent + 201) >> 15) & 1) != 0 && (*((unsigned int *)ent + 201) & 0x10000) != 0 )
     {
         pTemp = ent;
@@ -9358,7 +9349,7 @@ void __cdecl CScrCmd_IsTouching(scr_entref_t entref)
         v11 = v7;
         otherEntref = v7;
         ent = CG_GetEntity(v7.client, v7.entnum);
-        if ( (char *)ent->nextState.solid == &cls.rankedServers[711].game[34]
+        if (ent->nextState.solid == 0xFFFFFF
             || ((*((unsigned int *)ent + 201) >> 15) & 1) != 0 && (*((unsigned int *)ent + 201) & 0x10000) != 0 )
         {
             Scr_Error(SCRIPTINSTANCE_CLIENT, "istouching cannot be called on 2 brush/cylinder entities", 0);
@@ -10442,7 +10433,7 @@ bool __cdecl CG_EntityContact(const float *mins, const float *maxs, const centit
             return 0;
         }
     }
-    else if ( (char *)cent->nextState.solid == &cls.rankedServers[711].game[34] )
+    else if (cent->nextState.solid == 0xFFFFFF)
     {
         CM_TransformedBoxTraceExternal(
             &trace,

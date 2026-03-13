@@ -7030,7 +7030,7 @@ Material *__cdecl Material_LoadRaw(const MaterialRaw *mtlRaw, unsigned int mater
         __debugbreak();
     }
     material->info.gameFlags = mtlRaw->info.gameFlags;
-    v4 = (int)((unsigned int)&bg_vehicleInfos[11].rotorTailStartFx[20] & mtlRaw->info.surfaceFlags) >> 20;
+    v4 = (int)(0x3F00000 & mtlRaw->info.surfaceFlags) >> 20;
     if ( (_BYTE)v4 )
     {
         material->info.surfaceTypeBits = 1 << (v4 - 1);

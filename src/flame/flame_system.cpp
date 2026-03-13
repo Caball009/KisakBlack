@@ -2019,7 +2019,7 @@ LABEL_25:
                                             start,
                                             flameWeaponConfig.origin,
                                             source->entityNum,
-                                            (int)&cls.recentServers[7543].countrycode[1],
+                                            0x280E833,
                                             0,
                                             0);
                                         if ( trace.fraction < 1.0 )
