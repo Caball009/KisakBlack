@@ -59,22 +59,21 @@ void __cdecl IW_task_manager_flush()
 
 void __cdecl R_InitWorkerCmds()
 {
-    jqQueue *WorkerQueue; // eax
-    jqQueue *v1; // eax
-    jqBatch batch; // [esp+0h] [ebp-80h] BYREF
-
     jqInit();
-    jqEnableWorkers(0xCu);
+    jqEnableWorkers(12);
     jqSetBatchDataHeapSize(0x4000u, 0x10u);
     jqStart();
+
     //jqBatch::jqBatch(&batch);
+    jqBatch batch; // [esp+0h] [ebp-80h] BYREF
     batch.Module = &setup_worker_threadsModule;// `anonymous namespace'::setup_worker_threadsModule;
+
     batch.ParamData[0] = 0;
-    WorkerQueue = jqGetWorkerQueue(4);
-    jqAddBatch(&batch, WorkerQueue);
+    jqAddBatch(&batch, jqGetWorkerQueue(4));
+
     batch.ParamData[0] = 1;
-    v1 = jqGetWorkerQueue(8);
-    jqAddBatch(&batch, v1);
+    jqAddBatch(&batch, jqGetWorkerQueue(8));
+
     jqFlush(0, 0);
     Sys_InitWorkerThreadContext();
     Sys_WorkerCmdInit();

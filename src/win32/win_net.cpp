@@ -788,7 +788,7 @@ int NET_InitDebugStreams()
         g_debugPacketPos[ia] = 0;
         result = ia + 1;
     }
-    *(unsigned int *)g_debugReadBytes = 0;
+    g_debugReadBytes = 0;
     g_debugReadBytesSent = 0;
     g_debugWriteBytes = 0;
     g_debugReadBytesRemote = 0;

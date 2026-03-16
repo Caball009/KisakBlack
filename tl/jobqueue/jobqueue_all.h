@@ -1,6 +1,8 @@
 #pragma once
 #include <tl/tl_system.h>
 
+#define JQ_MAX_QUEUES 8
+
 enum jqProcessor : __int32
 {                                       // XREF: ?jqFindWorkerForProcessor@@YAPAUjqWorker@@W4jqProcessor@@@Z/r
     JQ_CORE_0   = 0x1,
@@ -466,7 +468,7 @@ void __cdecl jqAddBatch(
         unsigned __int8 *ParamData,
         unsigned int ParamSize);
 void __cdecl jqSkipBatch();
-char __cdecl jqPopNextBatchFromQueue(jqQueue *Worker, jqBatchGroup *Queue, jqBatch *GroupID);
+char __cdecl jqPopNextBatchFromQueue(jqQueue *Queue, jqBatchGroup *Worker, jqBatch *PoppedBatch);
 char  jqPopNextBatch(
         jqWorker *Worker,
         bool *doHighPriority,
