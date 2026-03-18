@@ -242,7 +242,7 @@ void __cdecl RB_DrawDebugSpheres(trDebugSphere_t *spheres, int sphereCount)
         {
             if ( !usedList[i] )
             {
-                dist = Vec3Distance(&gfxCmdBufSourceState.viewParms.axis[2][2], spheres[i].center);
+                dist = Vec3Distance(gfxCmdBufSourceState.viewParms.origin, spheres[i].center);
                 if ( dist > furthest )
                 {
                     furthest = dist;
@@ -325,7 +325,7 @@ void __cdecl RB_DrawDebugSphere(trDebugSphere_t *sphere)
     v52 = 0.57700002f;
     v53 = 0.57700002f;
     v42 = 0.0f;
-    v25 = Vec3DistanceSq(&gfxCmdBufSourceState.viewParms.axis[2][2], sphere->center);
+    v25 = Vec3DistanceSq(gfxCmdBufSourceState.viewParms.origin, sphere->center);
     v30 = (float)(sphere->radius * sphere->radius) > v25;
     v57 = sphere->center[0];
     v58 = sphere->center[1];
@@ -599,37 +599,34 @@ void __cdecl RB_DrawDebugStrings(trDebugString_t *strings, int stringCount)
 
 void __cdecl RB_AddPlumeStrings(const GfxViewParms *viewParms)
 {
-    double v1; // xmm0_8
-    char *v2; // eax
-    long double v3; // [esp+8h] [ebp-20h]
+    float v2; // xmm0_4
+    char *v3; // eax
+    GfxDebugPlume *v4; // [esp+Ch] [ebp-1Ch]
     int dt; // [esp+10h] [ebp-18h]
     float org[3]; // [esp+14h] [ebp-14h] BYREF
     int plumeIndex; // [esp+20h] [ebp-8h]
     float wiggle; // [esp+24h] [ebp-4h]
 
-    for ( plumeIndex = 0; plumeIndex < backEndData->debugGlobals.plumeCount; ++plumeIndex )
+    for (plumeIndex = 0; plumeIndex < backEndData->debugGlobals.plumeCount; ++plumeIndex)
     {
-        dt = gfxCmdBufSourceState.scissorViewport.height - backEndData->debugGlobals.plumes[plumeIndex].startTime;
-        if ( dt >= 0 && dt <= backEndData->debugGlobals.plumes[plumeIndex].duration )
+        dt = gfxCmdBufSourceState.sceneDef.time - backEndData->debugGlobals.plumes[plumeIndex].startTime;
+        if (dt >= 0 && dt <= backEndData->debugGlobals.plumes[plumeIndex].duration)
         {
             backEndData->debugGlobals.plumes[plumeIndex].color[3] = 1.0f;
-            if ( 2 * dt > backEndData->debugGlobals.plumes[plumeIndex].duration )
+            if (2 * dt > backEndData->debugGlobals.plumes[plumeIndex].duration)
                 backEndData->debugGlobals.plumes[plumeIndex].color[3] = 2.0
-                                                                                                                            - (float)((float)((float)dt * 2.0)
-                                                                                                                                            / (float)backEndData->debugGlobals.plumes[plumeIndex].duration);
-            v1 = (float)((float)((float)dt * 0.012566371) + (float)plumeIndex);
-            //__libm_sse2_sin(v3);
-            //*(float *)&v1 = v1;
-            //wiggle = *(float *)&v1 * 4.0;
-            wiggle = sin(v1) * 4.0;
-            //LODWORD(v3) = viewParms->axis[1];
-            //HIDWORD(v3) = &backEndData->debugGlobals.plumes[plumeIndex];
-            org[0] = (float)((float)(viewParms->axis[1][0] * 4.0) * viewParms->axis[1][0]) + backEndData->debugGlobals.plumes[plumeIndex].origin[0];
-            org[1] = (float)((float)(viewParms->axis[1][0] * 4.0) * viewParms->axis[1][1]) + backEndData->debugGlobals.plumes[plumeIndex].origin[1];
-            org[2] = (float)((float)(viewParms->axis[1][0] * 4.0) * viewParms->axis[1][2]) + backEndData->debugGlobals.plumes[plumeIndex].origin[2];
-            org[2] = (float)((float)dt * 0.064f) + org[2];
-            v2 = va("%i", backEndData->debugGlobals.plumes[plumeIndex].score);
-            R_AddDebugString(&backEndData->debugGlobals, org, backEndData->debugGlobals.plumes[plumeIndex].color, 0.5, v2);
+                - (float)((float)((float)dt * 2.0)
+                    / (float)backEndData->debugGlobals.plumes[plumeIndex].duration);
+            //v2 = __libm_sse2_sin((float)((float)((float)dt * 0.012566371) + (float)plumeIndex));
+            v2 = sin((float)((float)((float)dt * 0.012566371) + (float)plumeIndex));
+            wiggle = v2 * 4.0;
+            v4 = &backEndData->debugGlobals.plumes[plumeIndex];
+            org[0] = (float)((float)(v2 * 4.0) * viewParms->axis[1][0]) + v4->origin[0];
+            org[1] = (float)((float)(v2 * 4.0) * viewParms->axis[1][1]) + v4->origin[1];
+            org[2] = (float)((float)(v2 * 4.0) * viewParms->axis[1][2]) + v4->origin[2];
+            org[2] = (float)((float)dt * 0.064000003) + org[2];
+            v3 = va("%i", backEndData->debugGlobals.plumes[plumeIndex].score);
+            R_AddDebugString(&backEndData->debugGlobals, org, backEndData->debugGlobals.plumes[plumeIndex].color, 0.5, v3);
         }
     }
 }

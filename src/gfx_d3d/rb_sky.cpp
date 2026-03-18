@@ -350,31 +350,31 @@ GfxVertex *__cdecl RB_SetTessQuad_0(GfxColor color)
 
 void __cdecl RB_TessSunBillboard(float widthInClipSpace, float heightInClipSpace, GfxColor color)
 {
-    const float *transform; // [esp+18h] [ebp-28h]
+    const GfxMatrix *transform; // [esp+18h] [ebp-28h]
     float sunTransformedPosition; // [esp+2Ch] [ebp-14h]
     float sunTransformedPosition_4; // [esp+30h] [ebp-10h]
     float sunTransformedPosition_8; // [esp+34h] [ebp-Ch]
     float sunTransformedPosition_12; // [esp+38h] [ebp-8h]
     GfxVertex *vert; // [esp+3Ch] [ebp-4h]
 
-    transform = (const float *)(gfxCmdBufSourceState.sceneDef.time + 128);
-    if ( !rgp.world
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp", 201, 0, "%s", "rgp.world") )
+    transform = &gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix;
+    if (!rgp.world
+        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp", 201, 0, "%s", "rgp.world"))
     {
         __debugbreak();
     }
-    sunTransformedPosition = (float)((float)(rgp.world->sun.sunFxPosition[0] * *transform)
-                                                                 + (float)(rgp.world->sun.sunFxPosition[1] * transform[4]))
-                                                 + (float)(rgp.world->sun.sunFxPosition[2] * transform[8]);
-    sunTransformedPosition_4 = (float)((float)(rgp.world->sun.sunFxPosition[0] * transform[1])
-                                                                     + (float)(rgp.world->sun.sunFxPosition[1] * transform[5]))
-                                                     + (float)(rgp.world->sun.sunFxPosition[2] * transform[9]);
-    sunTransformedPosition_8 = (float)((float)(rgp.world->sun.sunFxPosition[0] * transform[2])
-                                                                     + (float)(rgp.world->sun.sunFxPosition[1] * transform[6]))
-                                                     + (float)(rgp.world->sun.sunFxPosition[2] * transform[10]);
-    sunTransformedPosition_12 = (float)((float)(rgp.world->sun.sunFxPosition[0] * transform[3])
-                                                                        + (float)(rgp.world->sun.sunFxPosition[1] * transform[7]))
-                                                        + (float)(rgp.world->sun.sunFxPosition[2] * transform[11]);
+    sunTransformedPosition = (float)((float)(rgp.world->sun.sunFxPosition[0] * transform->m[0][0])
+        + (float)(rgp.world->sun.sunFxPosition[1] * transform->m[1][0]))
+        + (float)(rgp.world->sun.sunFxPosition[2] * transform->m[2][0]);
+    sunTransformedPosition_4 = (float)((float)(rgp.world->sun.sunFxPosition[0] * transform->m[0][1])
+        + (float)(rgp.world->sun.sunFxPosition[1] * transform->m[1][1]))
+        + (float)(rgp.world->sun.sunFxPosition[2] * transform->m[2][1]);
+    sunTransformedPosition_8 = (float)((float)(rgp.world->sun.sunFxPosition[0] * transform->m[0][2])
+        + (float)(rgp.world->sun.sunFxPosition[1] * transform->m[1][2]))
+        + (float)(rgp.world->sun.sunFxPosition[2] * transform->m[2][2]);
+    sunTransformedPosition_12 = (float)((float)(rgp.world->sun.sunFxPosition[0] * transform->m[0][3])
+        + (float)(rgp.world->sun.sunFxPosition[1] * transform->m[1][3]))
+        + (float)(rgp.world->sun.sunFxPosition[2] * transform->m[2][3]);
     vert = RB_SetTessQuad_0(color);
     vert->xyzw[0] = sunTransformedPosition;
     vert->xyzw[1] = sunTransformedPosition_4;
@@ -410,86 +410,85 @@ void __cdecl RB_UpdateSunVisibilityWithoutQuery(SunFlareDynamic *sunFlare)
 {
     float sunTraceEnd[3]; // [esp+8h] [ebp-Ch] BYREF
 
-    if ( !sunFlare
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp", 297, 0, "%s", "sunFlare") )
+    if (!sunFlare
+        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp", 297, 0, "%s", "sunFlare"))
     {
         __debugbreak();
     }
     sunFlare->lastVisibility = RB_GetSunSampleRectRelativeArea(16, 16);
-    if ( sunFlare->lastVisibility != 0.0 )
+    if (sunFlare->lastVisibility != 0.0)
     {
-        sunTraceEnd[0] = (float)(262144.0 * rgp.world->sun.sunFxPosition[0])
-                                     + *(float *)(gfxCmdBufSourceState.sceneDef.time + 256);
-        sunTraceEnd[1] = (float)(262144.0 * rgp.world->sun.sunFxPosition[1])
-                                     + *(float *)(gfxCmdBufSourceState.sceneDef.time + 260);
-        sunTraceEnd[2] = (float)(262144.0 * rgp.world->sun.sunFxPosition[2])
-                                     + *(float *)(gfxCmdBufSourceState.sceneDef.time + 264);
+        sunTraceEnd[0] = (float)(262144.0 * rgp.world->sun.sunFxPosition[0]) + gfxCmdBufSourceState.viewParms3D->origin[0];
+        sunTraceEnd[1] = (float)(262144.0 * rgp.world->sun.sunFxPosition[1]) + gfxCmdBufSourceState.viewParms3D->origin[1];
+        sunTraceEnd[2] = (float)(262144.0 * rgp.world->sun.sunFxPosition[2]) + gfxCmdBufSourceState.viewParms3D->origin[2];
         sunFlare->hitNum = CM_BoxSightTrace(
-                                                 sunFlare->hitNum,
-                                                 (const float *)(gfxCmdBufSourceState.sceneDef.time + 256),
-                                                 sunTraceEnd,
-                                                 vec3_origin,
-                                                 vec3_origin,
-                                                 0,
-                                                 8195);
-        if ( sunFlare->hitNum )
+            sunFlare->hitNum,
+            gfxCmdBufSourceState.viewParms3D->origin,
+            sunTraceEnd,
+            vec3_origin,
+            vec3_origin,
+            0,
+            8195);
+        if (sunFlare->hitNum)
             sunFlare->lastVisibility = 0.0f;
     }
 }
 
 double __cdecl RB_GetSunSampleRectRelativeArea(int widthInPixels, int heightInPixels)
 {
-    const float *transform; // [esp+28h] [ebp-30h]
+    const GfxMatrix *transform; // [esp+28h] [ebp-30h]
     int top; // [esp+2Ch] [ebp-2Ch]
     signed int right; // [esp+30h] [ebp-28h]
     int left; // [esp+38h] [ebp-20h]
     float sunTransformedPosition_12; // [esp+4Ch] [ebp-Ch]
     signed int bottom; // [esp+50h] [ebp-8h]
 
-    transform = (const float *)(gfxCmdBufSourceState.sceneDef.time + 128);
-    if ( !rgp.world
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp", 258, 0, "%s", "rgp.world") )
+    transform = &gfxCmdBufSourceState.viewParms3D->viewProjectionMatrix;
+    if (!rgp.world
+        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp", 258, 0, "%s", "rgp.world"))
     {
         __debugbreak();
     }
-    sunTransformedPosition_12 = (float)((float)(rgp.world->sun.sunFxPosition[0] * transform[3])
-                                                                        + (float)(rgp.world->sun.sunFxPosition[1] * transform[7]))
-                                                        + (float)(rgp.world->sun.sunFxPosition[2] * transform[11]);
-    if ( sunTransformedPosition_12 <= 0.0 )
+    sunTransformedPosition_12 = (float)((float)(rgp.world->sun.sunFxPosition[0] * transform->m[0][3])
+        + (float)(rgp.world->sun.sunFxPosition[1] * transform->m[1][3]))
+        + (float)(rgp.world->sun.sunFxPosition[2] * transform->m[2][3]);
+    if (sunTransformedPosition_12 <= 0.0)
         return 0.0;
     left = (int)((float)((float)((float)((float)((float)((float)((float)((float)(rgp.world->sun.sunFxPosition[0]
-                                                                                                                                                         * *transform)
-                                                                                                                                         + (float)(rgp.world->sun.sunFxPosition[1]
-                                                                                                                                                         * transform[4]))
-                                                                                                                         + (float)(rgp.world->sun.sunFxPosition[2] * transform[8]))
-                                                                                                         / sunTransformedPosition_12)
-                                                                                         + 1.0)
-                                                                         * (float)(int)vidConfig.displayWidth)
-                                                         - (float)widthInPixels)
-                                         * 0.5)
-                         + 9.313225746154785e-10);
+        * transform->m[0][0])
+        + (float)(rgp.world->sun.sunFxPosition[1]
+            * transform->m[1][0]))
+        + (float)(rgp.world->sun.sunFxPosition[2]
+            * transform->m[2][0]))
+        / sunTransformedPosition_12)
+        + 1.0)
+        * (float)(int)vidConfig.displayWidth)
+        - (float)widthInPixels)
+        * 0.5)
+        + 9.313225746154785e-10);
     top = (int)((float)((float)((float)((float)((float)((float)((float)((float)(rgp.world->sun.sunFxPosition[0]
-                                                                                                                                                        * transform[1])
-                                                                                                                                        + (float)(rgp.world->sun.sunFxPosition[1]
-                                                                                                                                                        * transform[5]))
-                                                                                                                        + (float)(rgp.world->sun.sunFxPosition[2] * transform[9]))
-                                                                                                        / sunTransformedPosition_12)
-                                                                                        + 1.0)
-                                                                        * (float)(int)vidConfig.displayHeight)
-                                                        - (float)heightInPixels)
-                                        * 0.5)
-                        + 9.313225746154785e-10);
+        * transform->m[0][1])
+        + (float)(rgp.world->sun.sunFxPosition[1]
+            * transform->m[1][1]))
+        + (float)(rgp.world->sun.sunFxPosition[2]
+            * transform->m[2][1]))
+        / sunTransformedPosition_12)
+        + 1.0)
+        * (float)(int)vidConfig.displayHeight)
+        - (float)heightInPixels)
+        * 0.5)
+        + 9.313225746154785e-10);
     right = widthInPixels + left;
     bottom = heightInPixels + top;
-    if ( left < 0 )
+    if (left < 0)
         left = 0;
-    if ( right > (int)vidConfig.displayWidth )
+    if (right > (int)vidConfig.displayWidth)
         right = vidConfig.displayWidth;
-    if ( top < 0 )
+    if (top < 0)
         top = 0;
-    if ( bottom > (int)vidConfig.displayHeight )
+    if (bottom > (int)vidConfig.displayHeight)
         bottom = vidConfig.displayHeight;
-    if ( right > left && bottom > top )
+    if (right > left && bottom > top)
         return (double)((bottom - top) * (right - left)) / (double)(heightInPixels * widthInPixels);
     else
         return 0.0;
@@ -497,23 +496,21 @@ double __cdecl RB_GetSunSampleRectRelativeArea(int widthInPixels, int heightInPi
 
 void __cdecl RB_AddSunEffects(SunFlareDynamic *sunFlare)
 {
-    if ( !rgp.world
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp", 574, 0, "%s", "rgp.world") )
+    if (!rgp.world
+        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp", 574, 0, "%s", "rgp.world"))
     {
         __debugbreak();
     }
-    if ( !sunFlare
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp", 575, 0, "%s", "sunFlare") )
+    if (!sunFlare
+        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp", 575, 0, "%s", "sunFlare"))
     {
         __debugbreak();
     }
-    sunFlare->lastDot = (float)((float)(rgp.world->sun.sunFxPosition[0]
-                                                                        * *(float *)(gfxCmdBufSourceState.sceneDef.time + 272))
-                                                        + (float)(rgp.world->sun.sunFxPosition[1]
-                                                                        * *(float *)(gfxCmdBufSourceState.sceneDef.time + 276)))
-                                        + (float)(rgp.world->sun.sunFxPosition[2] * *(float *)(gfxCmdBufSourceState.sceneDef.time + 280));
-    //if ( sunFlare->lastDot > 0.0 )
-        //BLOPS_NULLSUB();
+    sunFlare->lastDot = (float)((float)(rgp.world->sun.sunFxPosition[0] * gfxCmdBufSourceState.viewParms3D->axis[0][0])
+        + (float)(rgp.world->sun.sunFxPosition[1] * gfxCmdBufSourceState.viewParms3D->axis[0][1]))
+        + (float)(rgp.world->sun.sunFxPosition[2] * gfxCmdBufSourceState.viewParms3D->axis[0][2]);
+    //if (sunFlare->lastDot > 0.0)
+    //    BG_EvalVehicleName();
 }
 
 void __cdecl RB_DrawSunPostEffects(unsigned int localClientNum, float sunVisibilityAdjust)
@@ -522,48 +519,48 @@ void __cdecl RB_DrawSunPostEffects(unsigned int localClientNum, float sunVisibil
     SunFlareDynamic *sunFlare; // [esp+1Ch] [ebp-8h]
 
     //PIXBeginNamedEvent(-1, "RB_DrawSunPostEffects");
-    if ( localClientNum >= 4
+    if (localClientNum >= 4
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
-                    650,
-                    0,
-                    "localClientNum doesn't index ARRAY_COUNT( sunFlareArray )\n\t%i not in [0, %i)",
-                    localClientNum,
-                    4) )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
+            650,
+            0,
+            "localClientNum doesn't index ARRAY_COUNT( sunFlareArray )\n\t%i not in [0, %i)",
+            localClientNum,
+            4))
     {
         __debugbreak();
     }
     sunFlare = &sunFlareArray[localClientNum];
     sunFlare->sunVisibilityAdjust = sunVisibilityAdjust;
-    if ( sunFlare->lastTime && sunFlare->lastTime <= gfxCmdBufSourceState.scissorViewport.height )
-        frameTime = gfxCmdBufSourceState.scissorViewport.height - sunFlare->lastTime;
+    if (sunFlare->lastTime && sunFlare->lastTime <= gfxCmdBufSourceState.sceneDef.time)
+        frameTime = gfxCmdBufSourceState.sceneDef.time - sunFlare->lastTime;
     else
         frameTime = 10;
-    sunFlare->lastTime = gfxCmdBufSourceState.scissorViewport.height;
-    if ( r_drawSun->current.enabled )
+    sunFlare->lastTime = gfxCmdBufSourceState.sceneDef.time;
+    if (r_drawSun->current.enabled)
     {
-        if ( !rgp.world
-            && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp", 667, 0, "%s", "rgp.world") )
+        if (!rgp.world
+            && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp", 667, 0, "%s", "rgp.world"))
         {
             __debugbreak();
         }
-        if ( rgp.world->sun.hasValidData )
+        if (rgp.world->sun.hasValidData)
         {
             RB_DrawSunFlare(sunFlare, frameTime);
             RB_DrawBlindAndGlare(sunFlare, frameTime);
-            //if ( GetCurrentThreadId() != g_DXDeviceThread )
+            //if (GetCurrentThreadId() != g_DXDeviceThread)
             //    return;
         }
-        //else if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //else if (g_DXDeviceThread != GetCurrentThreadId())
         //{
         //    return;
         //}
         goto LABEL_18;
     }
-    //if ( GetCurrentThreadId() == g_DXDeviceThread )
+    //if (GetCurrentThreadId() == g_DXDeviceThread)
 LABEL_18:
     ;
-        //D3DPERF_EndEvent();
+    //D3DPERF_EndEvent();
 }
 
 double __cdecl R_UpdateOverTime_0(float fCurrent, float fGoal, int iFadeInTime, int iFadeOutTime, int frametime)
@@ -807,26 +804,26 @@ void __cdecl RB_CalcSunBlind(SunFlareDynamic *sunFlare, int frameTime, float *bl
     float glareLerp; // [esp+20h] [ebp-8h]
     float sunDot; // [esp+24h] [ebp-4h]
 
-    if ( !sunFlare
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp", 526, 0, "%s", "sunFlare") )
+    if (!sunFlare
+        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp", 526, 0, "%s", "sunFlare"))
     {
         __debugbreak();
     }
-    if ( !rgp.world
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp", 527, 0, "%s", "rgp.world") )
+    if (!rgp.world
+        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp", 527, 0, "%s", "rgp.world"))
     {
         __debugbreak();
     }
-    sunDot = (float)((float)(rgp.world->sun.sunFxPosition[0] * *(float *)(gfxCmdBufSourceState.sceneDef.time + 272))
-                                 + (float)(rgp.world->sun.sunFxPosition[1] * *(float *)(gfxCmdBufSourceState.sceneDef.time + 276)))
-                 + (float)(rgp.world->sun.sunFxPosition[2] * *(float *)(gfxCmdBufSourceState.sceneDef.time + 280));
-    if ( rgp.world->sun.blindMaxDarken > 0.0 )
+    sunDot = (float)((float)(rgp.world->sun.sunFxPosition[0] * gfxCmdBufSourceState.viewParms3D->axis[0][0])
+        + (float)(rgp.world->sun.sunFxPosition[1] * gfxCmdBufSourceState.viewParms3D->axis[0][1]))
+        + (float)(rgp.world->sun.sunFxPosition[2] * gfxCmdBufSourceState.viewParms3D->axis[0][2]);
+    if (rgp.world->sun.blindMaxDarken > 0.0)
     {
-        if ( rgp.world->sun.blindMinDot < sunDot )
+        if (rgp.world->sun.blindMinDot < sunDot)
         {
-            if ( sunDot < rgp.world->sun.blindMaxDot )
+            if (sunDot < rgp.world->sun.blindMaxDot)
                 blindLerp = (float)(sunDot - rgp.world->sun.blindMinDot)
-                                    / (float)(rgp.world->sun.blindMaxDot - rgp.world->sun.blindMinDot);
+                / (float)(rgp.world->sun.blindMaxDot - rgp.world->sun.blindMinDot);
             else
                 blindLerp = 1.0f;
         }
@@ -834,76 +831,76 @@ void __cdecl RB_CalcSunBlind(SunFlareDynamic *sunFlare, int frameTime, float *bl
         {
             blindLerp = 0.0f;
         }
-        if ( blindLerp < 0.0
+        if (blindLerp < 0.0
             && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
-                        543,
-                        0,
-                        "%s\n\t(blindLerp) = %g",
-                        "(blindLerp >= 0)",
-                        blindLerp) )
+                "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
+                543,
+                0,
+                "%s\n\t(blindLerp) = %g",
+                "(blindLerp >= 0)",
+                blindLerp))
         {
             __debugbreak();
         }
-        if ( blindLerp > 1.0
+        if (blindLerp > 1.0
             && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
-                        544,
-                        0,
-                        "%s\n\t(blindLerp) = %g",
-                        "(blindLerp <= 1)",
-                        blindLerp) )
+                "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
+                544,
+                0,
+                "%s\n\t(blindLerp) = %g",
+                "(blindLerp <= 1)",
+                blindLerp))
         {
             __debugbreak();
         }
         blindLerpa = (float)(sunFlare->lastVisibility * sunFlare->sunVisibilityAdjust) * blindLerp;
-        if ( blindLerpa < 0.0
+        if (blindLerpa < 0.0
             && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
-                        546,
-                        0,
-                        "%s\n\t(blindLerp) = %g",
-                        "(blindLerp >= 0)",
-                        blindLerpa) )
+                "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
+                546,
+                0,
+                "%s\n\t(blindLerp) = %g",
+                "(blindLerp >= 0)",
+                blindLerpa))
         {
             __debugbreak();
         }
-        if ( blindLerpa > 1.0
+        if (blindLerpa > 1.0
             && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
-                        547,
-                        0,
-                        "%s\n\t(blindLerp) = %g",
-                        "(blindLerp <= 1)",
-                        blindLerpa) )
+                "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
+                547,
+                0,
+                "%s\n\t(blindLerp) = %g",
+                "(blindLerp <= 1)",
+                blindLerpa))
         {
             __debugbreak();
         }
         sunFlare->currentBlind = R_UpdateOverTime_0(
-                                                             sunFlare->currentBlind,
-                                                             blindLerpa,
-                                                             rgp.world->sun.blindFadeInTime,
-                                                             rgp.world->sun.blindFadeOutTime,
-                                                             frameTime);
-        if ( sunFlare->currentBlind < 0.0
+            sunFlare->currentBlind,
+            blindLerpa,
+            rgp.world->sun.blindFadeInTime,
+            rgp.world->sun.blindFadeOutTime,
+            frameTime);
+        if (sunFlare->currentBlind < 0.0
             && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
-                        549,
-                        0,
-                        "%s\n\t(sunFlare->currentBlind) = %g",
-                        "(sunFlare->currentBlind >= 0)",
-                        sunFlare->currentBlind) )
+                "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
+                549,
+                0,
+                "%s\n\t(sunFlare->currentBlind) = %g",
+                "(sunFlare->currentBlind >= 0)",
+                sunFlare->currentBlind))
         {
             __debugbreak();
         }
-        if ( sunFlare->currentBlind > 1.0
+        if (sunFlare->currentBlind > 1.0
             && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
-                        550,
-                        0,
-                        "%s\n\t(sunFlare->currentBlind) = %g",
-                        "(sunFlare->currentBlind <= 1)",
-                        sunFlare->currentBlind) )
+                "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_sky.cpp",
+                550,
+                0,
+                "%s\n\t(sunFlare->currentBlind) = %g",
+                "(sunFlare->currentBlind <= 1)",
+                sunFlare->currentBlind))
         {
             __debugbreak();
         }
@@ -913,13 +910,13 @@ void __cdecl RB_CalcSunBlind(SunFlareDynamic *sunFlare, int frameTime, float *bl
     {
         *blind = 0.0f;
     }
-    if ( rgp.world->sun.glareMaxLighten > 0.0 )
+    if (rgp.world->sun.glareMaxLighten > 0.0)
     {
-        if ( rgp.world->sun.glareMinDot < sunDot )
+        if (rgp.world->sun.glareMinDot < sunDot)
         {
-            if ( sunDot < rgp.world->sun.glareMaxDot )
+            if (sunDot < rgp.world->sun.glareMaxDot)
                 glareLerp = (float)(sunDot - rgp.world->sun.glareMinDot)
-                                    / (float)(rgp.world->sun.glareMaxDot - rgp.world->sun.glareMinDot);
+                / (float)(rgp.world->sun.glareMaxDot - rgp.world->sun.glareMinDot);
             else
                 glareLerp = 1.0f;
         }
@@ -928,11 +925,11 @@ void __cdecl RB_CalcSunBlind(SunFlareDynamic *sunFlare, int frameTime, float *bl
             glareLerp = 0.0f;
         }
         sunFlare->currentGlare = R_UpdateOverTime_0(
-                                                             sunFlare->currentGlare,
-                                                             (float)(sunFlare->lastVisibility * sunFlare->sunVisibilityAdjust) * glareLerp,
-                                                             rgp.world->sun.glareFadeInTime,
-                                                             rgp.world->sun.glareFadeOutTime,
-                                                             frameTime);
+            sunFlare->currentGlare,
+            (float)(sunFlare->lastVisibility * sunFlare->sunVisibilityAdjust) * glareLerp,
+            rgp.world->sun.glareFadeInTime,
+            rgp.world->sun.glareFadeOutTime,
+            frameTime);
         *glare = sunFlare->currentGlare * rgp.world->sun.glareMaxLighten;
     }
     else

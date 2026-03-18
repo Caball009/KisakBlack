@@ -1086,9 +1086,9 @@ void __cdecl DB_PrintAssetName(XAssetHeader header, int *data)
     Com_Printf(0, "%s\n", XAssetHeaderName);
 }
 
-void __cdecl DB_FreeXAssetHeader(XAssetType type)
+void __cdecl DB_FreeXAssetHeader(XAssetType type, XAssetHeader header)
 {
-    ((void (__cdecl *)())DB_FreeXAssetHeaderHandler[type])();
+    DB_FreeXAssetHeaderHandler[type](DB_XAssetPool[type], header);
 }
 
 unsigned int __cdecl DB_HashForName(const char *name, XAssetType type)
@@ -2596,14 +2596,13 @@ LABEL_106:
 
 void __cdecl DB_FreeXAssetEntry(XAssetEntryPoolEntry *assetEntry)
 {
-    XAssetEntryPoolEntry *oldFreeHead; // [esp+4h] [ebp-4h]
+    DB_FreeXAssetHeader(assetEntry->entry.asset.type, assetEntry->entry.asset.header);
 
-    DB_FreeXAssetHeader(assetEntry->entry.asset.type);
     --XAssetEntryHighCount;
-    oldFreeHead = g_freeAssetEntryHead;
+
+    XAssetEntryPoolEntry *oldFreeHead = g_freeAssetEntryHead;
     g_freeAssetEntryHead = assetEntry;
-    //assetEntry->entry.asset.type = (XAssetType)oldFreeHead;
-    assetEntry->entry.asset = oldFreeHead->entry.asset;
+    assetEntry->next = oldFreeHead;
 }
 
 void __cdecl DB_CloneXAssetEntry(const XAssetEntry *from, XAssetEntry *to, DBCloneMethod cloneMethod)

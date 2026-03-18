@@ -250,7 +250,7 @@ void __cdecl DB_PrintXAssetsForType(
 GfxImage *__cdecl DB_AllocTempImage();
 XAssetHeader __cdecl DB_AllocXAssetHeader(XAssetType type);
 void __cdecl DB_PrintAssetName(XAssetHeader header, int *data);
-void __cdecl DB_FreeXAssetHeader(XAssetType type);
+void __cdecl DB_FreeXAssetHeader(XAssetType type, XAssetHeader header);
 unsigned int __cdecl DB_HashForName(const char *name, XAssetType type);
 void __cdecl DB_LogMissingAsset(XAssetType type, const char *name);
 void __cdecl DB_EnumXAssets_FastFile(

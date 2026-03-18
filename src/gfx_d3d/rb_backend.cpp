@@ -370,16 +370,9 @@ void __cdecl RB_DrawFullSceneQuad(
 
     w = (float)gfxRenderTargets[renderTargetId].width;
     h = (float)gfxRenderTargets[renderTargetId].height;
-    if (gfxCmdBufSourceState.viewMode != VIEW_MODE_2D
-        && !Assert_MyHandler(
-            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
-            546,
-            0,
-            "%s",
-            "gfxCmdBufSourceState.viewMode == VIEW_MODE_2D"))
-    {
-        __debugbreak();
-    }
+
+    iassert(gfxCmdBufSourceState.viewMode == VIEW_MODE_2D);
+
     RB_SetTessTechnique(material, 4u);
     R_TrackPrims(&gfxCmdBufState.prim, statsTarget);
     RB_CheckTessOverflow(4, 6);
@@ -479,16 +472,8 @@ void __cdecl RB_DrawStretchPicW(
 {
     unsigned __int16 vertCount; // [esp+1Ch] [ebp-4h]
 
-    if ( gfxCmdBufSourceState.scissorViewport.width != 2
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
-                    633,
-                    0,
-                    "%s",
-                    "gfxCmdBufSourceState.viewMode == VIEW_MODE_2D") )
-    {
-        __debugbreak();
-    }
+    iassert(gfxCmdBufSourceState.viewMode == VIEW_MODE_2D);
+
     RB_SetTessTechnique(material, 4u);
     R_TrackPrims(&gfxCmdBufState.prim, statsTarget);
     RB_CheckTessOverflow(4, 6);
@@ -536,16 +521,8 @@ void __cdecl RB_DrawStretchPicZ(
     unsigned __int16 vertCount; // [esp+18h] [ebp-8h]
     GfxColor unpackedColor; // [esp+1Ch] [ebp-4h] BYREF
 
-    if ( gfxCmdBufSourceState.scissorViewport.width != 2
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
-                    662,
-                    0,
-                    "%s",
-                    "gfxCmdBufSourceState.viewMode == VIEW_MODE_2D") )
-    {
-        __debugbreak();
-    }
+    iassert(gfxCmdBufSourceState.viewMode == VIEW_MODE_2D);
+    
     RB_SetTessTechnique(material, 4u);
     R_TrackPrims(&gfxCmdBufState.prim, statsTarget);
     RB_CheckTessOverflow(4, 6);
@@ -1055,16 +1032,8 @@ void __cdecl RB_DrawStretchPicFlipST(
 {
     unsigned __int16 vertCount; // [esp+14h] [ebp-4h]
 
-    if ( gfxCmdBufSourceState.scissorViewport.width != 2
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
-                    691,
-                    0,
-                    "%s",
-                    "gfxCmdBufSourceState.viewMode == VIEW_MODE_2D") )
-    {
-        __debugbreak();
-    }
+    iassert(gfxCmdBufSourceState.viewMode == VIEW_MODE_2D);
+
     RB_SetTessTechnique(material, 4u);
     R_TrackPrims(&gfxCmdBufState.prim, statsTarget);
     RB_CheckTessOverflow(4, 6);
@@ -1099,16 +1068,9 @@ void __cdecl RB_StretchPicRotateXYCmd(GfxRenderCommandExecState *execState)
     unsigned int col; // [esp+68h] [ebp-4h]
 
     cmd = (const GfxCmdStretchPicRotateXY *)execState->cmd;
-    if ( gfxCmdBufSourceState.scissorViewport.width != 2
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
-                    1515,
-                    0,
-                    "%s",
-                    "gfxCmdBufSourceState.viewMode == VIEW_MODE_2D") )
-    {
-        __debugbreak();
-    }
+    
+    iassert(gfxCmdBufSourceState.viewMode == VIEW_MODE_2D);
+
     RB_SetTessTechnique(cmd->material, 4u);
     R_TrackPrims(&gfxCmdBufState.prim, GFX_PRIM_STATS_HUD);
     RB_CheckTessOverflow(4, 6);
@@ -1191,16 +1153,9 @@ void __cdecl RB_StretchPicRotateSTCmd(GfxRenderCommandExecState *execState)
     float texT_12; // [esp+64h] [ebp-4h]
 
     cmd = (const GfxCmdStretchPicRotateST *)execState->cmd;
-    if ( gfxCmdBufSourceState.scissorViewport.width != 2
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
-                    1581,
-                    0,
-                    "%s",
-                    "gfxCmdBufSourceState.viewMode == VIEW_MODE_2D") )
-    {
-        __debugbreak();
-    }
+
+    iassert(gfxCmdBufSourceState.viewMode == VIEW_MODE_2D);
+
     RB_SetTessTechnique(cmd->material, 4u);
     R_TrackPrims(&gfxCmdBufState.prim, GFX_PRIM_STATS_HUD);
     vertCount = tess.vertexCount;
@@ -1249,16 +1204,9 @@ void __cdecl RB_DrawQuadPicCmd(GfxRenderCommandExecState *execState)
     float w; // [esp+2Ch] [ebp-4h]
 
     cmd = (const GfxCmdDrawQuadPic *)execState->cmd;
-    if ( gfxCmdBufSourceState.scissorViewport.width != 2
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
-                    1636,
-                    0,
-                    "%s",
-                    "gfxCmdBufSourceState.viewMode == VIEW_MODE_2D") )
-    {
-        __debugbreak();
-    }
+
+    iassert(gfxCmdBufSourceState.viewMode == VIEW_MODE_2D);
+
     RB_SetTessTechnique(cmd->material, 4u);
     R_TrackPrims(&gfxCmdBufState.prim, GFX_PRIM_STATS_HUD);
     RB_CheckTessOverflow(4, 6);
@@ -1290,16 +1238,9 @@ void __cdecl RB_DrawQuadList2DCmd(GfxRenderCommandExecState *execState)
     int quadCount; // [esp+2Ch] [ebp-4h]
 
     cmd = (const GfxCmdDrawQuadList2D *)execState->cmd;
-    if ( gfxCmdBufSourceState.scissorViewport.width != 2
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
-                    1672,
-                    0,
-                    "%s",
-                    "gfxCmdBufSourceState.viewMode == VIEW_MODE_2D") )
-    {
-        __debugbreak();
-    }
+
+    iassert(gfxCmdBufSourceState.viewMode == VIEW_MODE_2D);
+
     RB_SetTessTechnique(cmd->material, 4u);
     R_TrackPrims(&gfxCmdBufState.prim, GFX_PRIM_STATS_HUD);
     quadCount = cmd->quadCount;
@@ -1353,16 +1294,9 @@ void __cdecl RB_DrawEmblemLayer(GfxRenderCommandExecState *execState)
   const GfxCmdDrawEmblemLayer *cmd; // [esp+28h] [ebp-4h]
 
   cmd = (const GfxCmdDrawEmblemLayer *)execState->cmd;
-  if ( gfxCmdBufSourceState.viewMode != VIEW_MODE_2D
-    && !Assert_MyHandler(
-          "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
-          1718,
-          0,
-          "%s",
-          "gfxCmdBufSourceState.viewMode == VIEW_MODE_2D") )
-  {
-    __debugbreak();
-  }
+
+  iassert(gfxCmdBufSourceState.viewMode == VIEW_MODE_2D);
+
   RB_SetTessTechnique(cmd->material, 4u);
   R_SetCodeImageTexture(&gfxCmdBufSourceState, 0x22u, cmd->image);
   R_SetCodeImageSamplerState(&gfxCmdBufSourceState, 0x22u, 0x62u);
@@ -1559,16 +1493,9 @@ void __cdecl RB_DrawFramedCmd(GfxRenderCommandExecState *execState)
     int col; // [esp+64h] [ebp-4h]
 
     cmd = (const GfxCmdDrawFramed2D *)execState->cmd;
-    if ( gfxCmdBufSourceState.scissorViewport.width != 2
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
-                    1848,
-                    0,
-                    "%s",
-                    "gfxCmdBufSourceState.viewMode == VIEW_MODE_2D") )
-    {
-        __debugbreak();
-    }
+
+    iassert(gfxCmdBufSourceState.viewMode == VIEW_MODE_2D);
+
     RB_SetTessTechnique(cmd->material, 4u);
     R_TrackPrims(&gfxCmdBufState.prim, GFX_PRIM_STATS_HUD);
     RB_CheckTessOverflow(16, 48);
@@ -2025,16 +1952,8 @@ void __cdecl RB_DrawPoints2D(const GfxCmdDrawPoints *cmd)
     int pointIndex; // [esp+20h] [ebp-8h]
     GfxPointVertex *v; // [esp+24h] [ebp-4h]
 
-    if ( gfxCmdBufSourceState.scissorViewport.width != 2
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
-                    2592,
-                    0,
-                    "%s",
-                    "gfxCmdBufSourceState.viewMode == VIEW_MODE_2D") )
-    {
-        __debugbreak();
-    }
+    iassert(gfxCmdBufSourceState.viewMode == VIEW_MODE_2D);
+
     RB_SetTessTechnique(rgp.whiteMaterial, 4u);
     R_TrackPrims(&gfxCmdBufState.prim, GFX_PRIM_STATS_DEBUG);
     size = (float)cmd->size * 0.5;
@@ -2195,16 +2114,9 @@ void __cdecl RB_DrawLines2D(int count, int width, const GfxPointVertex *verts)
     {
         __debugbreak();
     }
-    if ( gfxCmdBufSourceState.scissorViewport.width != 2
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
-                    2712,
-                    0,
-                    "%s",
-                    "gfxCmdBufSourceState.viewMode == VIEW_MODE_2D") )
-    {
-        __debugbreak();
-    }
+
+    iassert(gfxCmdBufSourceState.viewMode == VIEW_MODE_2D);
+
     RB_SetTessTechnique(rgp.whiteMaterial, 4u);
     R_TrackPrims(&gfxCmdBufState.prim, GFX_PRIM_STATS_DEBUG);
     for ( lineIndex = 0; lineIndex < count; ++lineIndex )
@@ -2853,17 +2765,10 @@ void __cdecl GetShiftColor(
     float frac; // [esp+0h] [ebp-Ch]
     int timeElapsed; // [esp+4h] [ebp-8h]
 
-    timeElapsed = gfxCmdBufSourceState.scissorViewport.height - fxBirthTime;
-    if ( gfxCmdBufSourceState.scissorViewport.height - fxBirthTime < 0
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
-                    3701,
-                    0,
-                    "%s",
-                    "timeElapsed >= 0") )
-    {
-        __debugbreak();
-    }
+    timeElapsed = gfxCmdBufSourceState.sceneDef.time - fxBirthTime;
+
+    iassert(timeElapsed >= 0);
+    
     if ( timeElapsed <= fxDecayDuration + fxDecayStart )
     {
         if ( timeElapsed <= fxDecayStart )
@@ -3222,19 +3127,19 @@ void __cdecl DrawText2D(
                 __debugbreak();
             }
         }
-        if ( (renderFlags & 0x8000) != 0 && gJitterData[(gfxCmdBufSourceState.scissorViewport.height >> 5) % 0xB0u] )
+        if ((renderFlags & 0x8000) != 0 && gJitterData[(gfxCmdBufSourceState.sceneDef.time >> 5) % 0xB0u])
         {
-            jitterSeed = gfxCmdBufSourceState.scissorViewport.height >> 5;
-            if ( gJitterData[(gfxCmdBufSourceState.scissorViewport.height >> 5) % 0xB0u] == 1 )
+            jitterSeed = gfxCmdBufSourceState.sceneDef.time >> 5;
+            if (gJitterData[(gfxCmdBufSourceState.sceneDef.time >> 5) % 0xB0u] == 1)
             {
                 x = (float)((int)RandWithSeed(&jitterSeed) % 7 - 3) + x;
                 y = (float)((int)RandWithSeed(&jitterSeed) % 11 - 5) + y;
             }
-            if ( gJitterData[(gfxCmdBufSourceState.scissorViewport.height >> 5) % 0xB0u] == 2 )
+            if (gJitterData[(gfxCmdBufSourceState.sceneDef.time >> 5) % 0xB0u] == 2)
             {
                 xdelta = (int)RandWithSeed(&jitterSeed) % 10 + 45;
                 ydelta = (int)RandWithSeed(&jitterSeed) % 10 + 45;
-                if ( (int)RandWithSeed(&jitterSeed) % 2 )
+                if ((int)RandWithSeed(&jitterSeed) % 2)
                     ydelta = -ydelta;
                 x = (float)xdelta + x;
                 y = (float)ydelta + y;
@@ -3775,13 +3680,13 @@ void __cdecl RB_DrawStretchPicRotate(
     int indexCount; // [esp+2Ch] [ebp-8h]
     unsigned __int16 vertCount; // [esp+30h] [ebp-4h]
 
-    if ( gfxCmdBufSourceState.scissorViewport.width != 2
+    if (gfxCmdBufSourceState.viewMode != VIEW_MODE_2D
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
-                    722,
-                    0,
-                    "%s",
-                    "gfxCmdBufSourceState.viewMode == VIEW_MODE_2D") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
+            722,
+            0,
+            "%s",
+            "gfxCmdBufSourceState.viewMode == VIEW_MODE_2D"))
     {
         __debugbreak();
     }
@@ -3798,8 +3703,7 @@ void __cdecl RB_DrawStretchPicRotate(
     tess.indices[indexCount + 3] = vertCount + 2;
     tess.indices[indexCount + 4] = vertCount;
     tess.indices[indexCount + 5] = vertCount + 1;
-    //stepY = COERCE_FLOAT(LODWORD(height) ^ _mask__NegFloat_) * sinAngle;
-    stepY = -(height) * sinAngle;
+    stepY = (-(height)) * sinAngle;
     R_SetVertex4d(&tess.verts[vertCount], x, y, 0.0, w, s0, t0, color);
     R_SetVertex4d(
         &tess.verts[vertCount + 1],
@@ -4015,14 +3919,14 @@ char __cdecl SetupFadeinFXVars(
     bool decaying; // [esp+Fh] [ebp-1h]
 
     decaying = 0;
-    timeElapsed = gfxCmdBufSourceState.scissorViewport.height - fxBirthTime;
-    if ( gfxCmdBufSourceState.scissorViewport.height - fxBirthTime < 0
+    timeElapsed = gfxCmdBufSourceState.sceneDef.time - fxBirthTime;
+    if (gfxCmdBufSourceState.sceneDef.time - fxBirthTime < 0
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
-                    3404,
-                    0,
-                    "%s",
-                    "timeElapsed >= 0") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
+            3404,
+            0,
+            "%s",
+            "timeElapsed >= 0"))
     {
         __debugbreak();
     }
@@ -4074,8 +3978,8 @@ char __cdecl SetupCOD7DecodeFXVars(
     strLength = SEH_PrintStrlen(text);
     if ( strLength > maxLength )
         strLength = maxLength;
-    timeElapsed = gfxCmdBufSourceState.scissorViewport.height - fxBirthTime;
-    if ( gfxCmdBufSourceState.scissorViewport.height - fxBirthTime <= fxDecayDuration + fxDecayStartTime )
+    timeElapsed = gfxCmdBufSourceState.sceneDef.time - fxBirthTime;
+    if (gfxCmdBufSourceState.sceneDef.time - fxBirthTime <= fxDecayDuration + fxDecayStartTime)
     {
         if ( timeElapsed <= fxLetterTime * strLength || timeElapsed <= fxDecayStartTime )
         {
@@ -4083,7 +3987,7 @@ char __cdecl SetupCOD7DecodeFXVars(
             *resultDecayTimeElapsed = 0;
             *resultMaxLength = strLength;
             *resultRandomCharsLength = strLength - timeElapsed / fxLetterTime;
-            *randSeed = gfxCmdBufSourceState.scissorViewport.height / 50;
+            *randSeed = gfxCmdBufSourceState.sceneDef.time / 50;
             RandWithSeed(randSeed);
             RandWithSeed(randSeed);
             return 1;
@@ -4127,38 +4031,38 @@ char __cdecl SetupTypewriterFXVars(
     bool decaying; // [esp+1Bh] [ebp-1h]
 
     decaying = 0;
-    timeElapsed = gfxCmdBufSourceState.scissorViewport.height - fxBirthTime;
-    if ( gfxCmdBufSourceState.scissorViewport.height - fxBirthTime < 0
+    timeElapsed = gfxCmdBufSourceState.sceneDef.time - fxBirthTime;
+    if (gfxCmdBufSourceState.sceneDef.time - fxBirthTime < 0
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
-                    3497,
-                    0,
-                    "%s",
-                    "timeElapsed >= 0") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
+            3497,
+            0,
+            "%s",
+            "timeElapsed >= 0"))
     {
         __debugbreak();
     }
     strLength = SEH_PrintStrlen(text);
-    if ( strLength > maxLength )
+    if (strLength > maxLength)
         strLength = maxLength;
-    if ( timeElapsed <= fxDecayDuration + fxDecayStartTime )
+    if (timeElapsed <= fxDecayDuration + fxDecayStartTime)
     {
         decayTimeElapsed = 0;
-        if ( timeElapsed <= fxLetterTime * strLength )
+        if (timeElapsed <= fxLetterTime * strLength)
         {
-            if ( !fxLetterTime
+            if (!fxLetterTime
                 && !Assert_MyHandler(
-                            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
-                            3531,
-                            0,
-                            "%s",
-                            "fxLetterTime") )
+                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
+                    3531,
+                    0,
+                    "%s",
+                    "fxLetterTime"))
             {
                 __debugbreak();
             }
             maxLength = timeElapsed / fxLetterTime;
         }
-        else if ( timeElapsed > fxDecayStartTime )
+        else if (timeElapsed > fxDecayStartTime)
         {
             decaying = 1;
             decayTimeElapsed = timeElapsed - fxDecayStartTime;
@@ -4201,38 +4105,38 @@ char __cdecl SetupPopInFXVars(
     bool decaying; // [esp+1Bh] [ebp-1h]
 
     decaying = 0;
-    timeElapsed = gfxCmdBufSourceState.scissorViewport.height - fxBirthTime;
-    if ( gfxCmdBufSourceState.scissorViewport.height - fxBirthTime < 0
+    timeElapsed = gfxCmdBufSourceState.sceneDef.time - fxBirthTime;
+    if (gfxCmdBufSourceState.sceneDef.time - fxBirthTime < 0
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
-                    3559,
-                    0,
-                    "%s",
-                    "timeElapsed >= 0") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
+            3559,
+            0,
+            "%s",
+            "timeElapsed >= 0"))
     {
         __debugbreak();
     }
     strLength = SEH_PrintStrlen(text);
-    if ( strLength > maxLength )
+    if (strLength > maxLength)
         strLength = maxLength;
-    if ( timeElapsed <= fxDecayDuration + fxDecayStartTime )
+    if (timeElapsed <= fxDecayDuration + fxDecayStartTime)
     {
         decayTimeElapsed = 0;
-        if ( timeElapsed <= fxLetterTime * strLength )
+        if (timeElapsed <= fxLetterTime * strLength)
         {
-            if ( !fxLetterTime
+            if (!fxLetterTime
                 && !Assert_MyHandler(
-                            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
-                            3591,
-                            0,
-                            "%s",
-                            "fxLetterTime") )
+                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
+                    3591,
+                    0,
+                    "%s",
+                    "fxLetterTime"))
             {
                 __debugbreak();
             }
             maxLength = timeElapsed / fxLetterTime;
         }
-        else if ( timeElapsed > fxDecayStartTime )
+        else if (timeElapsed > fxDecayStartTime)
         {
             decaying = 1;
             decayTimeElapsed = timeElapsed - fxDecayStartTime;
@@ -4277,51 +4181,51 @@ char __cdecl SetupPulseFXVars(
     bool decaying; // [esp+23h] [ebp-1h]
     int maxLengtha; // [esp+30h] [ebp+Ch]
 
-    if ( (renderFlags & 0x40) != 0 )
+    if ((renderFlags & 0x40) != 0)
     {
         drawRandCharAtEnd = 0;
         randSeed = 1;
         decaying = 0;
         decayTimeElapsed = 0;
-        timeElapsed = gfxCmdBufSourceState.scissorViewport.height - fxBirthTime;
-        if ( gfxCmdBufSourceState.scissorViewport.height - fxBirthTime < 0
+        timeElapsed = gfxCmdBufSourceState.sceneDef.time - fxBirthTime;
+        if (gfxCmdBufSourceState.sceneDef.time - fxBirthTime < 0
             && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
-                        3636,
-                        0,
-                        "%s",
-                        "timeElapsed >= 0") )
+                "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
+                3636,
+                0,
+                "%s",
+                "timeElapsed >= 0"))
         {
             __debugbreak();
         }
         strLength = SEH_PrintStrlen(text);
-        if ( strLength > maxLength )
+        if (strLength > maxLength)
             strLength = maxLength;
-        if ( timeElapsed <= fxDecayDuration + fxDecayStartTime )
+        if (timeElapsed <= fxDecayDuration + fxDecayStartTime)
         {
-            if ( timeElapsed < fxLetterTime * strLength )
+            if (timeElapsed < fxLetterTime * strLength)
             {
-                if ( !fxLetterTime
+                if (!fxLetterTime
                     && !Assert_MyHandler(
-                                "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
-                                3671,
-                                0,
-                                "%s",
-                                "fxLetterTime") )
+                        "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
+                        3671,
+                        0,
+                        "%s",
+                        "fxLetterTime"))
                 {
                     __debugbreak();
                 }
                 maxLengtha = timeElapsed / fxLetterTime;
                 drawRandCharAtEnd = 1;
                 timeRemainder = timeElapsed % fxLetterTime;
-                if ( fxLetterTime / 4 )
+                if (fxLetterTime / 4)
                     timeRemainder /= fxLetterTime / 4;
                 randSeed = maxLengtha + timeRemainder + strLength + fxBirthTime;
                 RandWithSeed(&randSeed);
                 RandWithSeed(&randSeed);
                 maxLength = maxLengtha + 1;
             }
-            else if ( timeElapsed > fxDecayStartTime )
+            else if (timeElapsed > fxDecayStartTime)
             {
                 decaying = 1;
                 randSeed = strLength + fxBirthTime;
@@ -4380,20 +4284,20 @@ char __cdecl SetupRedactTextFXVars(
     *resultMaxLength = maxLength;
     *resultDecaying = 0;
     *resultdecayTimeElapsed = 0;
-    timeElapsed = gfxCmdBufSourceState.scissorViewport.height - fxBirthTime;
-    if ( gfxCmdBufSourceState.scissorViewport.height - fxBirthTime < 0
+    timeElapsed = gfxCmdBufSourceState.sceneDef.time - fxBirthTime;
+    if (gfxCmdBufSourceState.sceneDef.time - fxBirthTime < 0
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
-                    3735,
-                    0,
-                    "%s",
-                    "timeElapsed >= 0") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
+            3735,
+            0,
+            "%s",
+            "timeElapsed >= 0"))
     {
         __debugbreak();
     }
-    if ( timeElapsed > fxDecayDuration + fxDecayStartTime )
+    if (timeElapsed > fxDecayDuration + fxDecayStartTime)
         return 0;
-    if ( timeElapsed > fxDecayStartTime )
+    if (timeElapsed > fxDecayStartTime)
     {
         decayTimeElapsed = timeElapsed - fxDecayStartTime;
         *resultDecaying = 1;
@@ -4427,27 +4331,27 @@ void __cdecl SetupRedactFXVars(
     float desired_rect_8; // [esp+4Ch] [ebp-8h]
     float desired_rect_12; // [esp+50h] [ebp-4h]
 
-    timeElapsed = gfxCmdBufSourceState.scissorViewport.height - fxBirthTime;
-    if ( gfxCmdBufSourceState.scissorViewport.height - fxBirthTime < 0
+    timeElapsed = gfxCmdBufSourceState.sceneDef.time - fxBirthTime;
+    if (gfxCmdBufSourceState.sceneDef.time - fxBirthTime < 0
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
-                    3761,
-                    0,
-                    "%s",
-                    "timeElapsed >= 0") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
+            3761,
+            0,
+            "%s",
+            "timeElapsed >= 0"))
     {
         __debugbreak();
     }
-    if ( timeElapsed > fxRedactDecayDuration + fxRedactDecayStartTime )
+    if (timeElapsed > fxRedactDecayDuration + fxRedactDecayStartTime)
         timeElapsed = fxRedactDecayDuration + fxRedactDecayStartTime;
     v15 = (int)RandWithSeed(randSeed) % 3;
-    if ( v15 )
+    if (v15)
     {
-        if ( v15 == 1 )
+        if (v15 == 1)
         {
             *mat = rgp.redactMaterial2;
         }
-        else if ( v15 == 2 )
+        else if (v15 == 2)
         {
             *mat = rgp.redactMaterial3;
         }
@@ -4457,31 +4361,31 @@ void __cdecl SetupRedactFXVars(
         *mat = rgp.redactMaterial1;
     }
     *u = 0.0f;
-    if ( timeElapsed >= fxRedactDecayStartTime )
+    if (timeElapsed >= fxRedactDecayStartTime)
     {
-        if ( mode == 1 )
+        if (mode == 1)
         {
             desired_rect = *src_rect;
             desired_rect_4 = src_rect[1];
             desired_rect_8 = (float)(src_rect[2] - *src_rect) + *src_rect;
             desired_rect_12 = src_rect[3];
-            if ( (float)(*max_rect - *src_rect) < 0.0 )
-                v14 = *(unsigned int *)src_rect;
+            if ((float)(*max_rect - *src_rect) < 0.0)
+                v14 = *(_DWORD *)src_rect;
             else
-                v14 = *(unsigned int *)max_rect;
-            *(unsigned int *)out_rect = v14;
-            if ( (float)(max_rect[1] - desired_rect_4) < 0.0 )
+                v14 = *(_DWORD *)max_rect;
+            *(_DWORD *)out_rect = v14;
+            if ((float)(max_rect[1] - desired_rect_4) < 0.0)
                 v13 = desired_rect_4;
             else
                 v13 = max_rect[1];
             out_rect[1] = v13;
             frac = (float)(timeElapsed - fxRedactDecayStartTime) / (float)fxRedactDecayDuration;
-            if ( (float)(desired_rect_8 - (float)((float)((float)(max_rect[2] - *max_rect) * frac) + *max_rect)) < 0.0 )
+            if ((float)(desired_rect_8 - (float)((float)((float)(max_rect[2] - *max_rect) * frac) + *max_rect)) < 0.0)
                 v12 = desired_rect_8;
             else
                 v12 = (float)((float)(max_rect[2] - *max_rect) * frac) + *max_rect;
             out_rect[2] = v12;
-            if ( (float)(desired_rect_12 - max_rect[3]) < 0.0 )
+            if ((float)(desired_rect_12 - max_rect[3]) < 0.0)
                 v11 = desired_rect_12;
             else
                 v11 = max_rect[3];

@@ -23,39 +23,39 @@ void __cdecl RB_DrawCoronas(unsigned int localClientNum)
     int frameTime; // [esp+4Ch] [ebp-8h]
 
     //PIXBeginNamedEvent(-1, "RB_DrawCoronas");
-    if ( localClientNum >= gfxCfg.maxClientViews
+    if (localClientNum >= gfxCfg.maxClientViews
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_corona.cpp",
-                    439,
-                    0,
-                    "localClientNum doesn't index gfxCfg.maxClientViews\n\t%i not in [0, %i)",
-                    localClientNum,
-                    gfxCfg.maxClientViews) )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_corona.cpp",
+            439,
+            0,
+            "localClientNum doesn't index gfxCfg.maxClientViews\n\t%i not in [0, %i)",
+            localClientNum,
+            gfxCfg.maxClientViews))
     {
         __debugbreak();
     }
     state = &coronaState[localClientNum];
-    if ( pixelCostMode == GFX_PIXEL_COST_MODE_MEASURE_COST || pixelCostMode == GFX_PIXEL_COST_MODE_MEASURE_MSEC )
+    if (pixelCostMode == GFX_PIXEL_COST_MODE_MEASURE_COST || pixelCostMode == GFX_PIXEL_COST_MODE_MEASURE_MSEC)
     {
-        //if ( g_DXDeviceThread != GetCurrentThreadId() )
+        //if (g_DXDeviceThread != GetCurrentThreadId())
         //    return;
         goto LABEL_52;
     }
-    if ( coronaTimeLastUpdated && coronaTimeLastUpdated <= gfxCmdBufSourceState.scissorViewport.height )
-        frameTime = gfxCmdBufSourceState.scissorViewport.height - coronaTimeLastUpdated;
+    if (coronaTimeLastUpdated && coronaTimeLastUpdated <= gfxCmdBufSourceState.sceneDef.time)
+        frameTime = gfxCmdBufSourceState.sceneDef.time - coronaTimeLastUpdated;
     else
         frameTime = 10;
-    coronaTimeLastUpdated = gfxCmdBufSourceState.scissorViewport.height;
-    if ( tess.indexCount )
+    coronaTimeLastUpdated = gfxCmdBufSourceState.sceneDef.time;
+    if (tess.indexCount)
         RB_EndTessSurface();
-    if ( state->numPending < 0x10 )
+    if (state->numPending < 0x10)
     {
-        for ( n = 0; n < 16; ++n )
+        for (n = 0; n < 16; ++n)
         {
-            if ( !state->pending[n].inUse )
+            if (!state->pending[n].inUse)
             {
                 info = RB_FindBestCoronaToSpawn(state);
-                if ( info )
+                if (info)
                 {
                     ++state->numPending;
                     RB_SpawnCorona(&state->pending[n], info);
@@ -63,19 +63,19 @@ void __cdecl RB_DrawCoronas(unsigned int localClientNum)
             }
         }
     }
-    if ( rgp.world->coronaMaterial )
+    if (rgp.world->coronaMaterial)
         coronaMaterial = rgp.world->coronaMaterial;
     else
         coronaMaterial = rgp.lightCoronaMaterial;
-    for ( i = 0; i < 16; ++i )
+    for (i = 0; i < 16; ++i)
         RB_DrawCorona(&state->active[i], frameTime, coronaMaterial);
-    for ( j = 0; j < 16; ++j )
+    for (j = 0; j < 16; ++j)
         RB_DrawCorona(&state->pending[j], frameTime, coronaMaterial);
-    if ( state->numActive == 16 )
+    if (state->numActive == 16)
     {
-        for ( k = 0; k < 16; ++k )
+        for (k = 0; k < 16; ++k)
         {
-            if ( state->active[k].inUse && state->active[k].targetVisibility <= 0.0 )
+            if (state->active[k].inUse && state->active[k].targetVisibility <= 0.0)
             {
                 RB_UnspawnCorona(&state->active[k]);
                 --state->numActive;
@@ -83,12 +83,12 @@ void __cdecl RB_DrawCoronas(unsigned int localClientNum)
             }
         }
     }
-    for ( m = 0; m < 16; ++m )
+    for (m = 0; m < 16; ++m)
     {
         v3 = &state->pending[m];
-        if ( v3->inUse && state->pending[m].timeSinceSpawned > 200 && state->numActive < 0x10 )
+        if (v3->inUse && state->pending[m].timeSinceSpawned > 200 && state->numActive < 0x10)
         {
-            if ( state->pending[m].wasEverVisible )
+            if (state->pending[m].wasEverVisible)
             {
                 RB_PromoteCorona(state, v3);
                 --state->numPending;
@@ -101,10 +101,10 @@ void __cdecl RB_DrawCoronas(unsigned int localClientNum)
             }
         }
     }
-    //if ( g_DXDeviceThread == GetCurrentThreadId() )
+    //if (g_DXDeviceThread == GetCurrentThreadId())
 LABEL_52:
     ;
-        //D3DPERF_EndEvent();
+    //D3DPERF_EndEvent();
 }
 
 unsigned int id;
@@ -364,7 +364,6 @@ void __cdecl RB_TessCoronaBillboard(Corona *corona, GfxColor color, float radius
     if (!query)
     {
         v4 = Vec3DistanceSq(gfxCmdBufSourceState.viewParms3D->origin, position);
-        //distance = fsqrt(v4);
         distance = sqrtf(v4);
         vert->xyzw[3] = distance;
         vert[1].xyzw[3] = distance;
