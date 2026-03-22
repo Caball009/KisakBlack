@@ -94,7 +94,7 @@ void assertmsgCmd();
 void print();
 void println();
 void GScr_IsCollectors();
-void __cdecl    GScr_AllocString(char *s);
+unsigned int __cdecl    GScr_AllocString(const char *s);
 void __cdecl Scr_LoadLevel();
 void __cdecl Scr_LoadPreGame();
 void __cdecl GScr_LoadGameTypeScript();

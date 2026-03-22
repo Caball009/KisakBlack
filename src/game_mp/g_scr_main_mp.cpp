@@ -136,9 +136,9 @@ void GScr_IsCollectors()
     Scr_AddBool(0, SCRIPTINSTANCE_SERVER);
 }
 
-void __cdecl    GScr_AllocString(char *s)
+unsigned int __cdecl    GScr_AllocString(const char *s)
 {
-    Scr_AllocString(s, 1, SCRIPTINSTANCE_SERVER);
+    return Scr_AllocString(s, 1, SCRIPTINSTANCE_SERVER);
 }
 
 void __cdecl Scr_LoadLevel()
