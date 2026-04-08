@@ -9,8 +9,21 @@
 
 physics_system *g_physics_system;
 
+phys_transient_allocator::phys_transient_allocator()
+{
+    m_first_block = NULL;
+    m_cur = NULL;
+    m_end = NULL;
+    m_total_memory_allocated = 0; // 16
+
+    m_mutex.m_count = 1;
+    m_slot_pool = NULL;
+}
+
 phys_transient_allocator::~phys_transient_allocator()
 {
+    // LWSS: if this goes off, it usually means that the allocator is declared in the wrong scope.
+    // Should be declared by "        memset(&transient_buffer, 0, 16);"
     if ( this->m_first_block )
     {
         if ( _tlAssert(

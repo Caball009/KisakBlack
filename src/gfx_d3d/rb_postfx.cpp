@@ -1138,281 +1138,175 @@ void __cdecl RB_SetFilmCurveConstants(const GfxViewInfo *viewInfo)
   R_DirtyCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL2);
 }
 
-// local variable allocation has failed, the output may be wrong!
 void    RB_SetVisionSetColorCorrection(const GfxViewInfo *viewInfo)
 {
-  float filmMidEnd; // xmm0_4
-  float v3; // xmm0_4
-  float v4; // xmm0_4
-  float v5; // [esp+18h] [ebp-274h]
-  float z; // [esp+1Ch] [ebp-270h]
-  float y; // [esp+20h] [ebp-26Ch]
-  float midEAdd; // [esp+24h] [ebp-268h]
-  float midSMul; // [esp+30h] [ebp-25Ch]
-  float v10; // [esp+34h] [ebp-258h]
-  float lE; // [esp+3Ch] [ebp-250h]
-  float lEa; // [esp+3Ch] [ebp-250h]
-  float filmMidStart; // [esp+48h] [ebp-244h]
-  float midE; // [esp+50h] [ebp-23Ch]
-  float midS; // [esp+54h] [ebp-238h]
-  float x; // [esp+58h] [ebp-234h]
-  float v17; // [esp+60h] [ebp-22Ch]
-  float v18; // [esp+64h] [ebp-228h]
-  float v19; // [esp+68h] [ebp-224h]
-  float v20; // [esp+74h] [ebp-218h]
-  float v21; // [esp+78h] [ebp-214h]
-  float v22; // [esp+7Ch] [ebp-210h]
-  float v23; // [esp+88h] [ebp-204h]
-  float v24; // [esp+8Ch] [ebp-200h]
-  float v25; // [esp+90h] [ebp-1FCh]
-  float v26; // [esp+9Ch] [ebp-1F0h]
-  float v27; // [esp+A0h] [ebp-1ECh]
-  float v28; // [esp+A4h] [ebp-1E8h]
-  float v29; // [esp+B0h] [ebp-1DCh]
-  float v30; // [esp+B4h] [ebp-1D8h]
-  float v31; // [esp+B8h] [ebp-1D4h]
-  float v32; // [esp+C4h] [ebp-1C8h]
-  float v33; // [esp+C8h] [ebp-1C4h]
-  float v34; // [esp+CCh] [ebp-1C0h]
-  float v35; // [esp+D8h] [ebp-1B4h]
-  float v36; // [esp+DCh] [ebp-1B0h]
-  float v37; // [esp+E0h] [ebp-1ACh]
-  float v38; // [esp+ECh] [ebp-1A0h]
-  float v39; // [esp+F0h] [ebp-19Ch]
-  float v40; // [esp+F4h] [ebp-198h]
-  float v41; // [esp+100h] [ebp-18Ch]
-  float v42; // [esp+104h] [ebp-188h]
-  float v43; // [esp+108h] [ebp-184h]
-  _BYTE v44[272]; // [esp+110h] [ebp-17Ch] OVERLAPPED BYREF
-  float *v45; // [esp+25Ch] [ebp-30h]
-  float *v46; // [esp+260h] [ebp-2Ch]
-  float *v47; // [esp+264h] [ebp-28h]
-  float *v48; // [esp+268h] [ebp-24h]
-  float *v49; // [esp+26Ch] [ebp-20h]
-  float *v50; // [esp+270h] [ebp-1Ch]
-  float *v51; // [esp+274h] [ebp-18h]
-  float *v52; // [esp+278h] [ebp-14h]
-  float *v53; // [esp+27Ch] [ebp-10h]
-  //int v54; // [esp+280h] [ebp-Ch]
-  //void *v55; // [esp+284h] [ebp-8h]
-  //void *retaddr; // [esp+28Ch] [ebp+0h]
+    float filmMidEnd; // xmm0_4
+    float v3; // xmm0_4
+    float v4; // xmm0_4
+    float midEAdd; // [esp+18h] [ebp-274h]
+    float midEMul; // [esp+1Ch] [ebp-270h]
+    float midSAdd; // [esp+20h] [ebp-26Ch]
+    float midSMul; // [esp+24h] [ebp-268h]
+    float lE; // [esp+30h] [ebp-25Ch]
+    float lS; // [esp+34h] [ebp-258h]
+    float v11; // [esp+3Ch] [ebp-250h]
+    float v12; // [esp+3Ch] [ebp-250h]
+    float midS; // [esp+48h] [ebp-244h]
+    GfxMatrix finalMatrix; // [esp+110h] [ebp-17Ch] BYREF
+    GfxMatrix tempMatrix; // [esp+150h] [ebp-13Ch] BYREF
+    GfxMatrix saturationMatrix; // [esp+190h] [ebp-FCh] BYREF
+    GfxMatrix hueMatrix; // [esp+1D0h] [ebp-BCh] BYREF
+    GfxMatrix whiteTempMatrix; // [esp+210h] [ebp-7Ch] BYREF
 
-  //v54 = a1;
-  //v55 = retaddr;
-  if ( r_filmTweakRangeDebug->current.enabled )
-  {
-    v53 = gfxCmdBufSourceState.input.consts[121];
-    gfxCmdBufSourceState.input.consts[121][0] = 0.25f;
-    v53[1] = 0.5f;
-    v53[2] = 0.25f;
-    v53[3] = 0.0f;
-    R_DirtyCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL0);
-    v52 = gfxCmdBufSourceState.input.consts[122];
-    gfxCmdBufSourceState.input.consts[122][0] = 0.0f;
-    v52[1] = 0.0f;
-    v52[2] = 0.0f;
-    v52[3] = 0.0f;
-    R_DirtyCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL1);
-    v51 = gfxCmdBufSourceState.input.consts[123];
-    gfxCmdBufSourceState.input.consts[123][0] = 0.25f;
-    v51[1] = 0.5f;
-    v51[2] = 0.25f;
-    v51[3] = 0.0f;
-    R_DirtyCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL2);
-    v50 = gfxCmdBufSourceState.input.consts[124];
-    gfxCmdBufSourceState.input.consts[124][0] = 0.0f;
-    v50[1] = 0.0f;
-    v50[2] = 0.0f;
-    v50[3] = 0.0f;
-    R_DirtyCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL3);
-    v49 = gfxCmdBufSourceState.input.consts[125];
-    gfxCmdBufSourceState.input.consts[125][0] = 0.25f;
-    v49[1] = 0.5f;
-    v49[2] = 0.25f;
-    v49[3] = 0.0f;
-    R_DirtyCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL4);
-    v48 = gfxCmdBufSourceState.input.consts[126];
-    gfxCmdBufSourceState.input.consts[126][0] = 0.25f;
-    v48[1] = 0.5f;
-    v48[2] = 0.25f;
-    v48[3] = 0.0f;
-    R_DirtyCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL5);
-    v47 = gfxCmdBufSourceState.input.consts[127];
-    gfxCmdBufSourceState.input.consts[127][0] = 0.25f;
-    v47[1] = 0.5f;
-    v47[2] = 0.25f;
-    v47[3] = 0.0f;
-    R_DirtyCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL6);
-    v46 = gfxCmdBufSourceState.input.consts[128];
-    gfxCmdBufSourceState.input.consts[128][0] = 0.25f;
-    v46[1] = 0.5f;
-    v46[2] = 0.25f;
-    v46[3] = 0.0f;
-    R_DirtyCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL7);
-    v45 = gfxCmdBufSourceState.input.consts[129];
-    gfxCmdBufSourceState.input.consts[129][0] = 0.0f;
-    v45[1] = 0.0f;
-    v45[2] = 0.0f;
-    v45[3] = 0.0f;
-    R_DirtyCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL8);
-  }
-  else
-  {
-    colorTempMatrix((float (*)[4])&v44[256], viewInfo->film.filmColorTemp[0]);
-    colorHueMatrix((float (*)[4])&v44[192], viewInfo->film.filmHue[0]);
-    colorSaturationMatrix((float (*)[4])&v44[128], viewInfo->film.filmSaturation[0]);
-    MatrixMultiply44((const float (*)[4])&v44[256], (const float (*)[4])&v44[192], (float (*)[4])&v44[64]);
-    MatrixMultiply44((const float (*)[4])&v44[64], (const float (*)[4])&v44[128], (float (*)[4])v44);
-    *(float *)v44 = (float)(viewInfo->film.filmDarkTint[0] * viewInfo->film.filmContrast[0]) * *(float *)v44;
-    *(float *)&v44[16] = (float)(viewInfo->film.filmDarkTint[0] * viewInfo->film.filmContrast[0]) * *(float *)&v44[16];
-    *(float *)&v44[32] = (float)(viewInfo->film.filmDarkTint[0] * viewInfo->film.filmContrast[0]) * *(float *)&v44[32];
-    *(float *)&v44[4] = (float)(viewInfo->film.filmDarkTint[1] * viewInfo->film.filmContrast[0]) * *(float *)&v44[4];
-    *(float *)&v44[20] = (float)(viewInfo->film.filmDarkTint[1] * viewInfo->film.filmContrast[0]) * *(float *)&v44[20];
-    *(float *)&v44[36] = (float)(viewInfo->film.filmDarkTint[1] * viewInfo->film.filmContrast[0]) * *(float *)&v44[36];
-    *(float *)&v44[8] = (float)(viewInfo->film.filmDarkTint[2] * viewInfo->film.filmContrast[0]) * *(float *)&v44[8];
-    *(float *)&v44[24] = (float)(viewInfo->film.filmDarkTint[2] * viewInfo->film.filmContrast[0]) * *(float *)&v44[24];
-    *(float *)&v44[40] = (float)(viewInfo->film.filmDarkTint[2] * viewInfo->film.filmContrast[0]) * *(float *)&v44[40];
-    v43 = *(float *)&v44[16];
-    v42 = *(float *)&v44[32];
-    v41 = (float)(1.0 - viewInfo->film.filmContrast[0]) * 0.5;
-    gfxCmdBufSourceState.input.consts[121][0] = *(float *)v44;
-    gfxCmdBufSourceState.input.consts[121][1] = v43;
-    gfxCmdBufSourceState.input.consts[121][2] = v42;
-    gfxCmdBufSourceState.input.consts[121][3] = v41;
-    R_DirtyCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL0);
-    v40 = *(float *)&v44[20];
-    v39 = *(float *)&v44[36];
-    v38 = (float)(1.0 - viewInfo->film.filmContrast[0]) * 0.5;
-    gfxCmdBufSourceState.input.consts[122][0] = *(float *)&v44[4];
-    gfxCmdBufSourceState.input.consts[122][1] = v40;
-    gfxCmdBufSourceState.input.consts[122][2] = v39;
-    gfxCmdBufSourceState.input.consts[122][3] = v38;
-    R_DirtyCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL1);
-    v37 = *(float *)&v44[24];
-    v36 = *(float *)&v44[40];
-    v35 = (float)(1.0 - viewInfo->film.filmContrast[0]) * 0.5;
-    gfxCmdBufSourceState.input.consts[123][0] = *(float *)&v44[8];
-    gfxCmdBufSourceState.input.consts[123][1] = v37;
-    gfxCmdBufSourceState.input.consts[123][2] = v36;
-    gfxCmdBufSourceState.input.consts[123][3] = v35;
-    R_DirtyCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL2);
-    colorTempMatrix((float (*)[4])&v44[256], viewInfo->film.filmColorTemp[1]);
-    colorHueMatrix((float (*)[4])&v44[192], viewInfo->film.filmHue[1]);
-    colorSaturationMatrix((float (*)[4])&v44[128], viewInfo->film.filmSaturation[1]);
-    MatrixMultiply44((const float (*)[4])&v44[256], (const float (*)[4])&v44[192], (float (*)[4])&v44[64]);
-    MatrixMultiply44((const float (*)[4])&v44[64], (const float (*)[4])&v44[128], (float (*)[4])v44);
-    *(float *)v44 = (float)(viewInfo->film.filmMidTint[0] * viewInfo->film.filmContrast[1]) * *(float *)v44;
-    *(float *)&v44[16] = (float)(viewInfo->film.filmMidTint[0] * viewInfo->film.filmContrast[1]) * *(float *)&v44[16];
-    *(float *)&v44[32] = (float)(viewInfo->film.filmMidTint[0] * viewInfo->film.filmContrast[1]) * *(float *)&v44[32];
-    *(float *)&v44[4] = (float)(viewInfo->film.filmMidTint[1] * viewInfo->film.filmContrast[1]) * *(float *)&v44[4];
-    *(float *)&v44[20] = (float)(viewInfo->film.filmMidTint[1] * viewInfo->film.filmContrast[1]) * *(float *)&v44[20];
-    *(float *)&v44[36] = (float)(viewInfo->film.filmMidTint[1] * viewInfo->film.filmContrast[1]) * *(float *)&v44[36];
-    *(float *)&v44[8] = (float)(viewInfo->film.filmMidTint[2] * viewInfo->film.filmContrast[1]) * *(float *)&v44[8];
-    *(float *)&v44[24] = (float)(viewInfo->film.filmMidTint[2] * viewInfo->film.filmContrast[1]) * *(float *)&v44[24];
-    *(float *)&v44[40] = (float)(viewInfo->film.filmMidTint[2] * viewInfo->film.filmContrast[1]) * *(float *)&v44[40];
-    v34 = *(float *)&v44[16];
-    v33 = *(float *)&v44[32];
-    v32 = (float)(1.0 - viewInfo->film.filmContrast[1]) * 0.5;
-    gfxCmdBufSourceState.input.consts[124][0] = *(float *)v44;
-    gfxCmdBufSourceState.input.consts[124][1] = v34;
-    gfxCmdBufSourceState.input.consts[124][2] = v33;
-    gfxCmdBufSourceState.input.consts[124][3] = v32;
-    R_DirtyCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL3);
-    v31 = *(float *)&v44[20];
-    v30 = *(float *)&v44[36];
-    v29 = (float)(1.0 - viewInfo->film.filmContrast[1]) * 0.5;
-    gfxCmdBufSourceState.input.consts[125][0] = *(float *)&v44[4];
-    gfxCmdBufSourceState.input.consts[125][1] = v31;
-    gfxCmdBufSourceState.input.consts[125][2] = v30;
-    gfxCmdBufSourceState.input.consts[125][3] = v29;
-    R_DirtyCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL4);
-    v28 = *(float *)&v44[24];
-    v27 = *(float *)&v44[40];
-    v26 = (float)(1.0 - viewInfo->film.filmContrast[1]) * 0.5;
-    gfxCmdBufSourceState.input.consts[126][0] = *(float *)&v44[8];
-    gfxCmdBufSourceState.input.consts[126][1] = v28;
-    gfxCmdBufSourceState.input.consts[126][2] = v27;
-    gfxCmdBufSourceState.input.consts[126][3] = v26;
-    R_DirtyCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL5);
-    colorTempMatrix((float (*)[4])&v44[256], viewInfo->film.filmColorTemp[2]);
-    colorHueMatrix((float (*)[4])&v44[192], viewInfo->film.filmHue[2]);
-    colorSaturationMatrix((float (*)[4])&v44[128], viewInfo->film.filmSaturation[2]);
-    MatrixMultiply44((const float (*)[4])&v44[256], (const float (*)[4])&v44[192], (float (*)[4])&v44[64]);
-    MatrixMultiply44((const float (*)[4])&v44[64], (const float (*)[4])&v44[128], (float (*)[4])v44);
-    *(float *)v44 = (float)(viewInfo->film.filmLightTint[0] * viewInfo->film.filmContrast[2]) * *(float *)v44;
-    *(float *)&v44[16] = (float)(viewInfo->film.filmLightTint[0] * viewInfo->film.filmContrast[2]) * *(float *)&v44[16];
-    *(float *)&v44[32] = (float)(viewInfo->film.filmLightTint[0] * viewInfo->film.filmContrast[2]) * *(float *)&v44[32];
-    *(float *)&v44[4] = (float)(viewInfo->film.filmLightTint[1] * viewInfo->film.filmContrast[2]) * *(float *)&v44[4];
-    *(float *)&v44[20] = (float)(viewInfo->film.filmLightTint[1] * viewInfo->film.filmContrast[2]) * *(float *)&v44[20];
-    *(float *)&v44[36] = (float)(viewInfo->film.filmLightTint[1] * viewInfo->film.filmContrast[2]) * *(float *)&v44[36];
-    *(float *)&v44[8] = (float)(viewInfo->film.filmLightTint[2] * viewInfo->film.filmContrast[2]) * *(float *)&v44[8];
-    *(float *)&v44[24] = (float)(viewInfo->film.filmLightTint[2] * viewInfo->film.filmContrast[2]) * *(float *)&v44[24];
-    *(float *)&v44[40] = (float)(viewInfo->film.filmLightTint[2] * viewInfo->film.filmContrast[2]) * *(float *)&v44[40];
-    v25 = *(float *)&v44[16];
-    v24 = *(float *)&v44[32];
-    v23 = (float)(1.0 - viewInfo->film.filmContrast[2]) * 0.5;
-    gfxCmdBufSourceState.input.consts[127][0] = *(float *)v44;
-    gfxCmdBufSourceState.input.consts[127][1] = v25;
-    gfxCmdBufSourceState.input.consts[127][2] = v24;
-    gfxCmdBufSourceState.input.consts[127][3] = v23;
-    R_DirtyCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL6);
-    v22 = *(float *)&v44[20];
-    v21 = *(float *)&v44[36];
-    v20 = (float)(1.0 - viewInfo->film.filmContrast[2]) * 0.5;
-    gfxCmdBufSourceState.input.consts[128][0] = *(float *)&v44[4];
-    gfxCmdBufSourceState.input.consts[128][1] = v22;
-    gfxCmdBufSourceState.input.consts[128][2] = v21;
-    gfxCmdBufSourceState.input.consts[128][3] = v20;
-    R_DirtyCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL7);
-    v19 = *(float *)&v44[24];
-    v18 = *(float *)&v44[40];
-    v17 = (float)(1.0 - viewInfo->film.filmContrast[2]) * 0.5;
-    gfxCmdBufSourceState.input.consts[129][0] = *(float *)&v44[8];
-    gfxCmdBufSourceState.input.consts[129][1] = v19;
-    gfxCmdBufSourceState.input.consts[129][2] = v18;
-    gfxCmdBufSourceState.input.consts[129][3] = v17;
-    R_DirtyCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL8);
-  }
-  x = viewInfo->film.filmBleach[0];
-  midS = viewInfo->film.filmBleach[1];
-  midE = viewInfo->film.filmBleach[2];
-  if ( gfxCmdBufSourceState.input.consts[130][0] != x
-    || gfxCmdBufSourceState.input.consts[130][1] != midS
-    || gfxCmdBufSourceState.input.consts[130][2] != midE
-    || gfxCmdBufSourceState.input.consts[130][3] != 1.0 )
-  {
-    R_SetCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL9, x, midS, midE, 1.0);
-  }
-  filmMidStart = viewInfo->film.filmMidStart;
-  if ( filmMidStart <= viewInfo->film.filmMidEnd )
-    filmMidEnd = viewInfo->film.filmMidEnd;
-  else
-    filmMidEnd = viewInfo->film.filmMidStart;
-  lE = filmMidStart - (float)(filmMidStart * viewInfo->film.filmDarkFeather);
-  v10 = filmMidEnd;
-  midSMul = (float)((float)(1.0 - filmMidEnd) * viewInfo->film.filmLightFeather) + filmMidEnd;
-  if ( lE == filmMidStart )
-    v3 = lE - 0.000061035156;
-  else
-    v3 = filmMidStart - (float)(filmMidStart * viewInfo->film.filmDarkFeather);
-  lEa = v3;
-  if ( v10 == midSMul )
-    v4 = midSMul + 0.000061035156;
-  else
-    v4 = midSMul;
-  midEAdd = 1.0 / (float)(filmMidStart - lEa);
-  //y = COERCE_FLOAT(LODWORD(lEa) ^ _mask__NegFloat_) * midEAdd;
-  y = (-(lEa)) * midEAdd;
-  z = 1.0 / (float)(v4 - v10);
-  //v5 = COERCE_FLOAT(LODWORD(v10) ^ _mask__NegFloat_) * z;
-  v5 = (-(v10)) * z;
-  if ( gfxCmdBufSourceState.input.consts[131][0] != midEAdd
-    || gfxCmdBufSourceState.input.consts[131][1] != y
-    || gfxCmdBufSourceState.input.consts[131][2] != z
-    || gfxCmdBufSourceState.input.consts[131][3] != v5 )
-  {
-    R_SetCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROLA, midEAdd, y, z, v5);
-  }
+    if (r_filmTweakRangeDebug->current.enabled)
+    {
+        R_SetCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL0, 0.25f, 0.5f, 0.25f, 0.0f);
+        R_SetCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL1, 0.0f, 0.0f, 0.0f, 0.0f);
+        R_SetCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL2, 0.25f, 0.5f, 0.25f, 0.0f);
+        R_SetCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL3, 0.0f, 0.0f, 0.0f, 0.0f);
+        R_SetCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL4, 0.25f, 0.5f, 0.25f, 0.0f);
+        R_SetCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL5, 0.25f, 0.5f, 0.25f, 0.0f);
+        R_SetCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL6, 0.25f, 0.5f, 0.25f, 0.0f);
+        R_SetCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL7, 0.25f, 0.5f, 0.25f, 0.0f);
+        R_SetCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL8, 0.0f, 0.0f, 0.0f, 0.0f);
+    }
+    else
+    {
+        colorTempMatrix(whiteTempMatrix.m, viewInfo->film.filmColorTemp[0]);
+        colorHueMatrix(hueMatrix.m, viewInfo->film.filmHue[0]);
+        colorSaturationMatrix(saturationMatrix.m, viewInfo->film.filmSaturation[0]);
+        MatrixMultiply44(whiteTempMatrix.m, hueMatrix.m, tempMatrix.m);
+        MatrixMultiply44(tempMatrix.m, saturationMatrix.m, finalMatrix.m);
+        finalMatrix.m[0][0] = (float)(viewInfo->film.filmDarkTint[0] * viewInfo->film.filmContrast[0]) * finalMatrix.m[0][0];
+        finalMatrix.m[1][0] = (float)(viewInfo->film.filmDarkTint[0] * viewInfo->film.filmContrast[0]) * finalMatrix.m[1][0];
+        finalMatrix.m[2][0] = (float)(viewInfo->film.filmDarkTint[0] * viewInfo->film.filmContrast[0]) * finalMatrix.m[2][0];
+        finalMatrix.m[0][1] = (float)(viewInfo->film.filmDarkTint[1] * viewInfo->film.filmContrast[0]) * finalMatrix.m[0][1];
+        finalMatrix.m[1][1] = (float)(viewInfo->film.filmDarkTint[1] * viewInfo->film.filmContrast[0]) * finalMatrix.m[1][1];
+        finalMatrix.m[2][1] = (float)(viewInfo->film.filmDarkTint[1] * viewInfo->film.filmContrast[0]) * finalMatrix.m[2][1];
+        finalMatrix.m[0][2] = (float)(viewInfo->film.filmDarkTint[2] * viewInfo->film.filmContrast[0]) * finalMatrix.m[0][2];
+        finalMatrix.m[1][2] = (float)(viewInfo->film.filmDarkTint[2] * viewInfo->film.filmContrast[0]) * finalMatrix.m[1][2];
+        finalMatrix.m[2][2] = (float)(viewInfo->film.filmDarkTint[2] * viewInfo->film.filmContrast[0]) * finalMatrix.m[2][2];
+
+        R_SetCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL0, 
+            finalMatrix.m[0][0], 
+            finalMatrix.m[1][0], 
+            finalMatrix.m[2][0], 
+            (float)(1.0 - viewInfo->film.filmContrast[0]) * 0.5
+        );
+
+        R_SetCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL1,
+            finalMatrix.m[0][1],
+            finalMatrix.m[1][1],
+            finalMatrix.m[2][1],
+            (float)(1.0 - viewInfo->film.filmContrast[0]) * 0.5
+        );
+
+        R_SetCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL2,
+            finalMatrix.m[0][2],
+            finalMatrix.m[1][2],
+            finalMatrix.m[2][2],
+            (float)(1.0 - viewInfo->film.filmContrast[0]) * 0.5
+        );
+
+        colorTempMatrix(whiteTempMatrix.m, viewInfo->film.filmColorTemp[1]);
+        colorHueMatrix(hueMatrix.m, viewInfo->film.filmHue[1]);
+        colorSaturationMatrix(saturationMatrix.m, viewInfo->film.filmSaturation[1]);
+        MatrixMultiply44(whiteTempMatrix.m, hueMatrix.m, tempMatrix.m);
+        MatrixMultiply44(tempMatrix.m, saturationMatrix.m, finalMatrix.m);
+        finalMatrix.m[0][0] = (float)(viewInfo->film.filmMidTint[0] * viewInfo->film.filmContrast[1]) * finalMatrix.m[0][0];
+        finalMatrix.m[1][0] = (float)(viewInfo->film.filmMidTint[0] * viewInfo->film.filmContrast[1]) * finalMatrix.m[1][0];
+        finalMatrix.m[2][0] = (float)(viewInfo->film.filmMidTint[0] * viewInfo->film.filmContrast[1]) * finalMatrix.m[2][0];
+        finalMatrix.m[0][1] = (float)(viewInfo->film.filmMidTint[1] * viewInfo->film.filmContrast[1]) * finalMatrix.m[0][1];
+        finalMatrix.m[1][1] = (float)(viewInfo->film.filmMidTint[1] * viewInfo->film.filmContrast[1]) * finalMatrix.m[1][1];
+        finalMatrix.m[2][1] = (float)(viewInfo->film.filmMidTint[1] * viewInfo->film.filmContrast[1]) * finalMatrix.m[2][1];
+        finalMatrix.m[0][2] = (float)(viewInfo->film.filmMidTint[2] * viewInfo->film.filmContrast[1]) * finalMatrix.m[0][2];
+        finalMatrix.m[1][2] = (float)(viewInfo->film.filmMidTint[2] * viewInfo->film.filmContrast[1]) * finalMatrix.m[1][2];
+        finalMatrix.m[2][2] = (float)(viewInfo->film.filmMidTint[2] * viewInfo->film.filmContrast[1]) * finalMatrix.m[2][2];
+
+        R_SetCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL3,
+            finalMatrix.m[0][0],
+            finalMatrix.m[1][0],
+            finalMatrix.m[2][0],
+            (float)(1.0 - viewInfo->film.filmContrast[1]) * 0.5
+        );
+
+
+        R_SetCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL4,
+            finalMatrix.m[0][1],
+            finalMatrix.m[1][1],
+            finalMatrix.m[2][1],
+            (float)(1.0 - viewInfo->film.filmContrast[1]) * 0.5
+        );
+
+        R_SetCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL5,
+            finalMatrix.m[0][2],
+            finalMatrix.m[1][2],
+            finalMatrix.m[2][2],
+            (float)(1.0 - viewInfo->film.filmContrast[1]) * 0.5
+        );
+
+        colorTempMatrix(whiteTempMatrix.m, viewInfo->film.filmColorTemp[2]);
+        colorHueMatrix(hueMatrix.m, viewInfo->film.filmHue[2]);
+        colorSaturationMatrix(saturationMatrix.m, viewInfo->film.filmSaturation[2]);
+        MatrixMultiply44(whiteTempMatrix.m, hueMatrix.m, tempMatrix.m);
+        MatrixMultiply44(tempMatrix.m, saturationMatrix.m, finalMatrix.m);
+        finalMatrix.m[0][0] = (float)(viewInfo->film.filmLightTint[0] * viewInfo->film.filmContrast[2]) * finalMatrix.m[0][0];
+        finalMatrix.m[1][0] = (float)(viewInfo->film.filmLightTint[0] * viewInfo->film.filmContrast[2]) * finalMatrix.m[1][0];
+        finalMatrix.m[2][0] = (float)(viewInfo->film.filmLightTint[0] * viewInfo->film.filmContrast[2]) * finalMatrix.m[2][0];
+        finalMatrix.m[0][1] = (float)(viewInfo->film.filmLightTint[1] * viewInfo->film.filmContrast[2]) * finalMatrix.m[0][1];
+        finalMatrix.m[1][1] = (float)(viewInfo->film.filmLightTint[1] * viewInfo->film.filmContrast[2]) * finalMatrix.m[1][1];
+        finalMatrix.m[2][1] = (float)(viewInfo->film.filmLightTint[1] * viewInfo->film.filmContrast[2]) * finalMatrix.m[2][1];
+        finalMatrix.m[0][2] = (float)(viewInfo->film.filmLightTint[2] * viewInfo->film.filmContrast[2]) * finalMatrix.m[0][2];
+        finalMatrix.m[1][2] = (float)(viewInfo->film.filmLightTint[2] * viewInfo->film.filmContrast[2]) * finalMatrix.m[1][2];
+        finalMatrix.m[2][2] = (float)(viewInfo->film.filmLightTint[2] * viewInfo->film.filmContrast[2]) * finalMatrix.m[2][2];
+
+        R_SetCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL6,
+            finalMatrix.m[0][0],
+            finalMatrix.m[1][0],
+            finalMatrix.m[2][0],
+            (float)(1.0 - viewInfo->film.filmContrast[2]) * 0.5
+        );
+
+        R_SetCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL7,
+            finalMatrix.m[0][1],
+            finalMatrix.m[1][1],
+            finalMatrix.m[2][1],
+            (float)(1.0 - viewInfo->film.filmContrast[2]) * 0.5
+        );
+
+        R_SetCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL8,
+            finalMatrix.m[0][2],
+            finalMatrix.m[1][2],
+            finalMatrix.m[2][2],
+            (float)(1.0 - viewInfo->film.filmContrast[2]) * 0.5
+        );
+    }
+
+    R_UpdateCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROL9, viewInfo->film.filmBleach[0], viewInfo->film.filmBleach[1], viewInfo->film.filmBleach[2], 1.0);
+
+    midS = viewInfo->film.filmMidStart;
+    if (midS <= viewInfo->film.filmMidEnd)
+        filmMidEnd = viewInfo->film.filmMidEnd;
+    else
+        filmMidEnd = viewInfo->film.filmMidStart;
+    v11 = midS - (float)(midS * viewInfo->film.filmDarkFeather);
+    lS = filmMidEnd;
+    lE = (float)((float)(1.0 - filmMidEnd) * viewInfo->film.filmLightFeather) + filmMidEnd;
+    if (v11 == midS)
+        v3 = v11 - 0.000061035156;
+    else
+        v3 = midS - (float)(midS * viewInfo->film.filmDarkFeather);
+    v12 = v3;
+    if (lS == lE)
+        v4 = lE + 0.000061035156;
+    else
+        v4 = lE;
+    midSMul = 1.0 / (float)(midS - v12);
+    midSAdd = (-(v12)) * midSMul;
+    midEMul = 1.0 / (float)(v4 - lS);
+    midEAdd = (-(lS)) * midEMul;
+
+    R_UpdateCodeConstant(&gfxCmdBufSourceState, CONST_SRC_CODE_POSTFX_CONTROLA, midSMul, midSAdd, midEMul, midEAdd);
 }
 
 void __cdecl RB_BloomLDR(const GfxViewInfo *viewInfo)

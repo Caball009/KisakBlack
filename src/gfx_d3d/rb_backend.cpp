@@ -1596,21 +1596,22 @@ void __cdecl R_DrawSurfs(GfxCmdBufContext context, GfxCmdBufState *prepassState,
     float v4; // [esp+14h] [ebp-54h]
     float v5; // [esp+18h] [ebp-50h]
     GfxViewport viewport; // [esp+30h] [ebp-38h] BYREF
-    GfxCmdBufContext prepassContext{ 0 }; // [esp+40h] [ebp-28h]
+    GfxCmdBufContext prepassContext; // [esp+40h] [ebp-28h]
     GfxDrawSurfListArgs listArgs; // [esp+48h] [ebp-20h] BYREF
     unsigned int drawMatCount; // [esp+58h] [ebp-10h]
     unsigned int processedDrawSurfCount; // [esp+5Ch] [ebp-Ch]
     unsigned int drawSurfCount; // [esp+60h] [ebp-8h]
-    GfxUI3DBackend *localUI3DBackend; // [esp+64h] [ebp-4h]
+    const GfxUI3DBackend *localUI3DBackend; // [esp+64h] [ebp-4h]
 
-    //prepassContext = 0;
-    if ( context.source->scissorViewport.y != info->cameraView
+    prepassContext.source = 0;
+    prepassContext.state = 0;
+    if (context.source->cameraView != info->cameraView
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
-                    2231,
-                    0,
-                    "%s",
-                    "context.local.source->cameraView == info->cameraView") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
+            2231,
+            0,
+            "%s",
+            "context.local.source->cameraView == info->cameraView"))
     {
         __debugbreak();
     }
@@ -1619,30 +1620,30 @@ void __cdecl R_DrawSurfs(GfxCmdBufContext context, GfxCmdBufState *prepassState,
     R_Set3D(context.source);
     prepassContext.source = prepassState != 0 ? context.source : 0;
     prepassContext.state = prepassState;
-    if ( LOBYTE(context.source[1].matrices.matrix[0].m[2][2]) )
+    if (context.source->viewportIsDirty)
     {
         R_GetViewport(context.source, &viewport);
         R_SetViewport(context.state, &viewport);
-        if ( prepassState )
+        if (prepassState)
             R_SetViewport(prepassContext.state, &viewport);
         R_UpdateViewport(context.source, &viewport);
     }
-    if ( (!dx.d3d9 || !dx.device)
+    if ((!dx.d3d9 || !dx.device)
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
-                    2260,
-                    0,
-                    "%s",
-                    "dx.d3d9 && dx.device") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
+            2260,
+            0,
+            "%s",
+            "dx.d3d9 && dx.device"))
     {
         __debugbreak();
     }
-    if (context.state->prim.device != dx.device)
-    {
-        //PIXBeginNamedEvent(-1, "draw surf");
-    }
+
+    //if (context.state->prim.device != dx.device)
+    //    PIXBeginNamedEvent(-1, "draw surf");
+
     R_BeginPixMaterials(context.state);
-    if ( prepassContext.state )
+    if (prepassContext.state)
         R_BeginPixMaterials(prepassContext.state);
     drawSurfCount = info->drawSurfCount;
     R_SetWaterSimulationConstants(context.source, 0.0);
@@ -1676,8 +1677,8 @@ void __cdecl R_DrawSurfs(GfxCmdBufContext context, GfxCmdBufState *prepassState,
     context.source->input.consts[179][3] = v5;
     R_DirtyCodeConstant(context.source, CONST_SRC_CODE_CHARACTER_DISSOLVE_COLOR);
     localUI3DBackend = 0;
-    if ( info->viewInfo )
-        localUI3DBackend = (GfxUI3DBackend*)&info->viewInfo->rbUI3D;
+    if (info->viewInfo)
+        localUI3DBackend = &info->viewInfo->rbUI3D;
     RB_UI3D_SetShaderConstants(context.source, localUI3DBackend);
     RB_SetCustomWindConstants(context.source, (float*)info->viewOrigin);
     RB_SetEyeOffsetConstant(context.source, info->viewOrigin);
@@ -1685,7 +1686,7 @@ void __cdecl R_DrawSurfs(GfxCmdBufContext context, GfxCmdBufState *prepassState,
     listArgs.firstDrawSurfIndex = 0;
     listArgs.info = info;
     drawMatCount = 0;
-    while ( listArgs.firstDrawSurfIndex != drawSurfCount )
+    while (listArgs.firstDrawSurfIndex != drawSurfCount)
     {
         processedDrawSurfCount = R_RenderDrawSurfListMaterial(&listArgs, prepassContext);
         listArgs.firstDrawSurfIndex += processedDrawSurfCount;
@@ -1694,10 +1695,10 @@ void __cdecl R_DrawSurfs(GfxCmdBufContext context, GfxCmdBufState *prepassState,
     context.state->prim.viewStats->drawSurfCount += drawSurfCount;
     context.state->prim.viewStats->drawMatCount += drawMatCount;
     R_EndPixMaterials(context.state);
-    if ( prepassContext.state )
+    if (prepassContext.state)
         R_EndPixMaterials(prepassContext.state);
-    //if ( context.state->prim.device != dx.device && GetCurrentThreadId() == g_DXDeviceThread )
-        //D3DPERF_EndEvent();
+    //if (context.state->prim.device != dx.device && GetCurrentThreadId() == g_DXDeviceThread)
+    //    D3DPERF_EndEvent();
     R_TessEnd(context, prepassContext);
     context.state->origMaterial = 0;
 }
@@ -1814,26 +1815,27 @@ void __cdecl R_TessEnd(GfxCmdBufContext context, GfxCmdBufContext prepassContext
     GfxDepthRangeType v2; // [esp+0h] [ebp-Ch]
     GfxDepthRangeType depthRangeType; // [esp+4h] [ebp-8h]
 
-    if ( prepassContext.state
+    if (prepassContext.state
         && context.source != prepassContext.source
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
-                    2197,
-                    0,
-                    "%s",
-                    "prepassContext.local.state == NULL || commonSource == prepassContext.local.source") )
+            "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
+            2197,
+            0,
+            "%s",
+            "prepassContext.local.state == NULL || commonSource == prepassContext.local.source"))
     {
         __debugbreak();
     }
-    context.source->viewMode = VIEW_MODE_NONE;
-    R_ChangeDepthHackNearClip(context.source, 0.0);
-    depthRangeType = (GfxDepthRangeType)((context.source->scissorViewport.y != 0) - 1);
-    if ( depthRangeType != context.state->depthRangeType )
+
+    context.source->objectPlacement = 0;
+    R_ChangeDepthHackNearClip(context.source, 0);
+    depthRangeType = (GfxDepthRangeType)((context.source->cameraView != 0) - 1);
+    if (depthRangeType != context.state->depthRangeType)
         R_ChangeDepthRange(context.state, depthRangeType);
-    if ( prepassContext.state )
+    if (prepassContext.state)
     {
-        v2 = (GfxDepthRangeType)((prepassContext.source->scissorViewport.y != 0) - 1);
-        if ( v2 != prepassContext.state->depthRangeType )
+        v2 = (GfxDepthRangeType)((prepassContext.source->cameraView != 0) - 1);
+        if (v2 != prepassContext.state->depthRangeType)
             R_ChangeDepthRange(prepassContext.state, v2);
     }
 }

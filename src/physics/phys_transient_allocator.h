@@ -24,6 +24,7 @@ struct phys_transient_allocator // sizeof=0x18
     minspec_read_write_mutex m_mutex;   // XREF: physics_system::time_step(float,bool)+158/w
     void *m_slot_pool;                  // XREF: physics_system::time_step(float,bool)+15F/w
 
+    phys_transient_allocator(); // INLINED IN BINARY
     ~phys_transient_allocator();
 
     void *allocate(

@@ -884,92 +884,91 @@ int    bp_env_jq_batch_function1(jqBatch *pBatch)
     signed __int32 i; // eax
     float **Input; // esi
     float *v4; // ecx
-    double v5; // st7
-    double v6; // st7
-    double v7; // st7
+    double z; // st7
+    double y; // st7
+    double x; // st7
     float *v8; // ecx
     double v9; // st7
     bool v10; // c0
     bool v11; // c3
-    double w; // st7
+    double v12; // st7
     double v13; // st7
     bool v14; // c0
     bool v15; // c3
-    double z; // st7
+    double v16; // st7
     double v17; // st7
     bool v18; // c0
     bool v19; // c3
-    double y; // st7
-    float v22; // [esp-Ch] [ebp-6Ch] BYREF
-    float v23; // [esp-8h] [ebp-68h]
-    float v24; // [esp-4h] [ebp-64h]
-    broad_phase_base bpb; // [esp+0h] [ebp-60h] BYREF
-    float v26; // [esp+50h] [ebp-10h]
-    //unsigned int v27[3]; // [esp+54h] [ebp-Ch] BYREF
+    double v20; // st7
+    broad_phase_base v22; // [esp-Ch] [ebp-6Ch] BYREF
+    float bpb_72; // [esp+48h] [ebp-18h] BYREF
+    float bpb_76; // [esp+4Ch] [ebp-14h]
+    float v25; // [esp+50h] [ebp-10h]
+    //_DWORD v26[3]; // [esp+54h] [ebp-Ch] BYREF
     //_UNKNOWN *retaddr; // [esp+60h] [ebp+0h]
     //
-    //v27[0] = a1;
-    //v27[1] = retaddr;
-    v22 = 1.0e30;
-    v23 = 1.0e30;
-    v24 = 1.0e30;
-    bpb.m_trace_aabb_min_whace.y = -1.0e30;
-    bpb.m_trace_aabb_min_whace.z = -1.0e30;
-    bpb.m_trace_aabb_min_whace.w = -1.0e30;
-    for ( i = _InterlockedExchangeAdd(&g_bpb_list_index, 1u);
-                i < g_bpb_list_max_index;
-                i = _InterlockedExchangeAdd(&g_bpb_list_index, 1u) )
+    //v26[0] = a1;
+    //v26[1] = retaddr;
+    v22.m_trace_aabb_min_whace.x = 1.0e30;
+    v22.m_trace_aabb_min_whace.y = 1.0e30;
+    v22.m_trace_aabb_min_whace.z = 1.0e30;
+    v22.m_trace_aabb_max_whace.x = -1.0e30;
+    v22.m_trace_aabb_max_whace.y = -1.0e30;
+    v22.m_trace_aabb_max_whace.z = -1.0e30;
+    for (i = _InterlockedExchangeAdd(&g_bpb_list_index, 1u);
+        i < g_bpb_list_max_index;
+        i = _InterlockedExchangeAdd(&g_bpb_list_index, 1u))
     {
-        process_cluster_environment_collision_prolog((broad_phase_info *)g_bpb_ptr_list[i], (broad_phase_base *)&v22);
+        process_cluster_environment_collision_prolog((broad_phase_info *)g_bpb_ptr_list[i], &v22);
     }
     Input = (float **)pBatch->Input;
     //tlAtomicMutex::Lock(&g_prolog_task_mutex);
     g_prolog_task_mutex.Lock();
     v4 = *Input;
-    v5 = v24;
-    if ( v24 >= (double)(*Input)[2] )
-        v5 = v4[2];
-    *(float *)&bpb.m_my_collision_type_flags = v5;
-    v6 = v23;
-    if ( v23 >= (double)v4[1] )
-        v6 = v4[1];
-    *((float *)&bpb.m_my_collision_type_flags + 1) = v6;
-    v7 = v22;
-    if ( v22 >= (double)*v4 )
-        v7 = *v4;
-    v26 = v7;
-    *v4 = v26;
-    v4[1] = *((float *)&bpb.m_my_collision_type_flags + 1);
-    v4[2] = *(float *)&bpb.m_my_collision_type_flags;
+    z = v22.m_trace_aabb_min_whace.z;
+    if (v22.m_trace_aabb_min_whace.z >= (double)(*Input)[2])
+        z = v4[2];
+    bpb_72 = z;
+    y = v22.m_trace_aabb_min_whace.y;
+    if (v22.m_trace_aabb_min_whace.y >= (double)v4[1])
+        y = v4[1];
+    bpb_76 = y;
+    x = v22.m_trace_aabb_min_whace.x;
+    if (v22.m_trace_aabb_min_whace.x >= (double)*v4)
+        x = *v4;
+    v25 = x;
+    *v4 = v25;
+    v4[1] = bpb_76;
+    v4[2] = bpb_72;
     v8 = Input[1];
     v9 = v8[2];
-    v10 = bpb.m_trace_aabb_min_whace.w < v9;
-    v11 = bpb.m_trace_aabb_min_whace.w == v9;
-    w = bpb.m_trace_aabb_min_whace.w;
-    if ( v10 || v11 )
-        w = v8[2];
-    v26 = w;
+    v10 = v22.m_trace_aabb_max_whace.z < v9;
+    v11 = v22.m_trace_aabb_max_whace.z == v9;
+    v12 = v22.m_trace_aabb_max_whace.z;
+    if (v10 || v11)
+        v12 = v8[2];
+    v25 = v12;
     v13 = v8[1];
-    v14 = bpb.m_trace_aabb_min_whace.z < v13;
-    v15 = bpb.m_trace_aabb_min_whace.z == v13;
-    z = bpb.m_trace_aabb_min_whace.z;
-    if ( v14 || v15 )
-        z = v8[1];
-    *((float *)&bpb.m_my_collision_type_flags + 1) = z;
+    v14 = v22.m_trace_aabb_max_whace.y < v13;
+    v15 = v22.m_trace_aabb_max_whace.y == v13;
+    v16 = v22.m_trace_aabb_max_whace.y;
+    if (v14 || v15)
+        v16 = v8[1];
+    bpb_76 = v16;
     v17 = *v8;
-    v18 = bpb.m_trace_aabb_min_whace.y < v17;
-    v19 = bpb.m_trace_aabb_min_whace.y == v17;
-    y = bpb.m_trace_aabb_min_whace.y;
-    if ( v18 || v19 )
-        y = *v8;
-    *(float *)&bpb.m_my_collision_type_flags = y;
-    *v8 = *(float *)&bpb.m_my_collision_type_flags;
-    v8[1] = *((float *)&bpb.m_my_collision_type_flags + 1);
-    v8[2] = v26;
-    if ( !--g_prolog_task_mutex.LockCount )
+    v18 = v22.m_trace_aabb_max_whace.x < v17;
+    v19 = v22.m_trace_aabb_max_whace.x == v17;
+    v20 = v22.m_trace_aabb_max_whace.x;
+    if (v18 || v19)
+        v20 = *v8;
+    bpb_72 = v20;
+    *v8 = bpb_72;
+    v8[1] = bpb_76;
+    v8[2] = v25;
+    if (!--g_prolog_task_mutex.LockCount)
     {
-        bpb.m_my_collision_type_flags = 0;
-        InterlockedExchange((volatile unsigned int *)&bpb.m_my_collision_type_flags, 0);
+        bpb_72 = 0.0;
+        InterlockedExchange((volatile LONG *)&bpb_72, 0);
         g_prolog_task_mutex.ThreadId = 0;
     }
     return 0;
@@ -1095,7 +1094,7 @@ void broad_phase_process_object_environment_collision(bpi_environment_collision_
     phys_vec3 aabb2_max; // [esp+84h] [ebp-BCh] BYREF
     phys_vec3 aabb2_min; // [esp+94h] [ebp-ACh] BYREF
     float bpb_i_aabb_min; // [esp+A8h] [ebp-98h]
-    phys_transient_allocator transient_buffer; // [esp+ACh] [ebp-94h] BYREF
+    //phys_transient_allocator transient_buffer; // [esp+ACh] [ebp-94h] BYREF
     phys_vec3 aabb1_max; // [esp+C4h] [ebp-7Ch] BYREF
     phys_vec3 aabb1_min; // [esp+D4h] [ebp-6Ch] BYREF
     int bpb_cluster_list_count; // [esp+F0h] [ebp-50h]
@@ -1128,9 +1127,7 @@ void broad_phase_process_object_environment_collision(bpi_environment_collision_
     v2 = eci;
     if (eci->m_bpb_count <= 0 && _tlAssert("source/phys_broad_phase.cpp", 1005, "eci.m_bpb_count > 0", ""))
         __debugbreak();
-    memset(&transient_buffer, 0, 16);
-    transient_buffer.m_mutex.m_count = 1;
-    transient_buffer.m_slot_pool = 0;
+    phys_transient_allocator transient_buffer;
     v59 = 4 * eci->m_bpb_count;
     int v92 = 0;
     v3 = //phys_transient_allocator::allocate(
@@ -1504,8 +1501,7 @@ void broad_phase_process_object_environment_collision(bpi_environment_collision_
     iassert(eci->m_bpb_count > 0);
 
     // Initialize transient allocator
-    phys_transient_allocator transient_buffer{};
-    transient_buffer.m_mutex.m_count = 1;
+    phys_transient_allocator transient_buffer;
 
     const int ptr_count = 4 * eci->m_bpb_count;
     //broad_phase_base **bpb_ptr_list = (broad_phase_base **)phys_transient_allocator::allocate(&transient_buffer, ptr_count, 4, 0, "phys_transient_allocator out of memory.");
@@ -2489,22 +2485,21 @@ void    collide_bpg_environment(
 
 int    bp_env_jq_batch_function2(jqBatch *pBatch)
 {
-    broad_phase_base_list::node *v1; // eax
+    int v1; // eax
     broad_phase_base *v2; // esi
-    _BYTE v4[12]; // [esp-Ch] [ebp-6Ch] BYREF
-    int v5; // [esp+40h] [ebp-20h] BYREF
-    int *v6; // [esp+44h] [ebp-1Ch]
-    int v7; // [esp+48h] [ebp-18h]
-    broad_phase_environement_query_results bpeqr; // [esp+4Ch] [ebp-14h]
-    //int retaddr; // [esp+60h] [ebp+0h]
+    broad_phase_environment_query_input v4; // [esp-Ch] [ebp-6Ch] BYREF
+    broad_phase_environement_query_results v5; // [esp+40h] [ebp-20h] BYREF
+    //int v6; // [esp+54h] [ebp-Ch]
+    //void *v7; // [esp+58h] [ebp-8h]
+    //void *retaddr; // [esp+60h] [ebp+0h]
     //
-    //bpeqr.m_list_bpi_env_count = a1;
-    //bpeqr.m_thread_id = retaddr;
-    v1 = (broad_phase_base_list::node *)_InterlockedExchangeAdd(&g_thread_id, 1u);
+    //v6 = a1;
+    //v7 = retaddr;
+    v1 = _InterlockedExchangeAdd(&g_thread_id, 1u);
     v2 = g_bpb_list_cur;
-    v5 = 0;
-    v6 = &v5;
-    for (bpeqr.m_list_bpi_env.m_list = v1; g_bpb_list_cur; v2 = g_bpb_list_cur)
+    v5.m_list_bpi_env.m_list = 0;
+    v5.m_list_bpi_env.m_list_cur = (broad_phase_base_list::node **)&v5;
+    for (v5.m_thread_id = v1; g_bpb_list_cur; v2 = g_bpb_list_cur)
     {
         if ((broad_phase_base *)_InterlockedCompareExchange(
             (volatile unsigned __int32 *)&g_bpb_list_cur,
@@ -2512,14 +2507,12 @@ int    bp_env_jq_batch_function2(jqBatch *pBatch)
             (signed __int32)v2) == v2)
         {
             check_terrain_query_params(v2);
-            v6 = &v5;
-            v7 = 0;
-            bpeqr.m_list_bpi_env.m_list_cur = 0;
-            init_bpeqi((broad_phase_environment_query_input *)v4, v2);
-            G_BPM->g_broad_phase_terrain_query_callback->query(
-                (const broad_phase_environment_query_input *)v4,
-                (broad_phase_environement_query_results *)&v5);
-            process_cluster_environment_collision(v2, (broad_phase_environement_query_results *)&v5);
+            v5.m_list_bpi_env.m_list_cur = (broad_phase_base_list::node **)&v5;
+            v5.m_list_bpi_env_count = 0;
+            v5.m_env_collision_flags = 0;
+            init_bpeqi(&v4, v2);
+            G_BPM->g_broad_phase_terrain_query_callback->query(&v4, &v5);
+            process_cluster_environment_collision(v2, &v5);
         }
     }
     return 0;
@@ -3221,7 +3214,7 @@ void    process_cluster_environment_collision_prolog(broad_phase_info *bpb, broa
     //v7[0] = a1;
     //v7[1] = retaddr;
     m_flags = bpb->m_flags;
-    if ( (m_flags & 1) != 0 )
+    if ( (m_flags & 1) != 0 ) // guessing this is "info" flag that marks it as `broad_phase_info`
     {
         //broad_phase_info::collision_prolog(bpb);
         bpb->collision_prolog();
@@ -4480,7 +4473,7 @@ void __thiscall axis_aligned_sweep_and_prune::process()
     axis_aligned_sweep_and_prune::axis_element *v23; // edi
     axis_aligned_sweep_and_prune::axis_element *v24; // ebx
     int v25; // [esp-4h] [ebp-60h]
-    phys_transient_allocator transient_buffer; // [esp+10h] [ebp-4Ch] BYREF
+//    phys_transient_allocator transient_buffer; // [esp+10h] [ebp-4Ch] BYREF
     axis_aligned_sweep_and_prune::axis_element **zlist; // [esp+28h] [ebp-34h]
     int axis_element_count; // [esp+2Ch] [ebp-30h]
     axis_aligned_sweep_and_prune::axis_element **ylist; // [esp+30h] [ebp-2Ch]
@@ -4499,9 +4492,8 @@ void __thiscall axis_aligned_sweep_and_prune::process()
     axis_element_count = 2 * this->m_sap_node_allocator.m_count;
     if ( !v1 && axis_element_count != 0 )
     {
-        memset(&transient_buffer, 0, 16);
-        transient_buffer.m_mutex.m_count = 1;
-        transient_buffer.m_slot_pool = 0;
+        phys_transient_allocator transient_buffer;
+
         v2 = 4 * axis_element_count;
         v37 = 0;
         v3 = (axis_aligned_sweep_and_prune::axis_element **)   transient_buffer.allocate(4 * axis_element_count, 4, 0, "phys_transient_allocator out of memory.");
