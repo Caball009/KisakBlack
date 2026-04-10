@@ -265,8 +265,8 @@ const dvar_s *__cdecl _Dvar_RegisterFloat(
                 const char *description);
 const dvar_s *__cdecl _Dvar_RegisterVec2(
                 const char *dvarName,
-                unsigned int x,
-                unsigned int y,
+                float x,
+                float y,
                 float min,
                 float max,
                 unsigned __int16 flags,

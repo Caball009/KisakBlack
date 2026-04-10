@@ -1979,7 +1979,7 @@ char __thiscall GlassShard::Create(const Glass *glass)
     if ( !this->AllocateMemory(newOutline.numVerts, &triangles) )
         return 0;
     //GlassShard::Outline::operator=(&this->outline, &newOutline);
-    this->outline.operator=(newOutline);
+    this->outline = newOutline;
     this->thickness = glass->thickness;
     this->uvScale = glass->uvScale;
     this->glassIndex = glass->index;
