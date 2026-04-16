@@ -2,6 +2,7 @@
 
 #include <Windows.h> // interlockedexchange
 #include <new>
+#include <universal/q_shared.h>
 
 void *g_phys_memory_buffer;
 int g_phys_memory_buffer_size;
@@ -315,6 +316,7 @@ void phys_slot_pool::extra_info_init(char *slot)
 
 void __thiscall phys_slot_pool::extra_info_allocate(char *slot)
 {
+#if 0
     char *v3; // ebx
     unsigned int m_map_key; // edi
     bool v5; // zf
@@ -354,10 +356,43 @@ void __thiscall phys_slot_pool::extra_info_allocate(char *slot)
     }
     slot = 0;
     InterlockedExchange((volatile unsigned int *)&slot, 0);
+#else // aislop 
+    if (!slot && _tlAssert("source/phys_mem_new.cpp", 306, "slot", ""))
+        __debugbreak();
+
+    phys_slot_pool::extra_info *ei = (phys_slot_pool::extra_info *)&slot[(unsigned __int16)this->m_map_key - 8];
+
+    if (ei->m_slot_pool_owner != this
+        && _tlAssert("source/phys_mem_new.cpp", 309, "GetStuff32(&ei->m_slot_pool_owner) == this_", "internal error."))
+    {
+        __debugbreak();
+    }
+
+    if ((phys_slot_pool *)_InterlockedCompareExchange(
+        (volatile unsigned __int32 *)&ei->m_allocation_owner,
+        0xFEDCBA98,
+        (signed __int32)this) != this
+        && _tlAssert("source/phys_mem_new.cpp", 312, "retv", "internal error."))
+    {
+        __debugbreak();
+    }
+
+    _InterlockedExchangeAdd((volatile long *)&this->m_allocated_slot_count, 1u);
+    if (this->m_allocated_slot_count > this->m_total_slot_count
+        && _tlAssert(
+            "source/phys_mem_new.cpp",
+            314,
+            "GetStuff32(&m_allocated_slot_count) <= GetStuff32(&m_total_slot_count)",
+            "internal error."))
+    {
+        __debugbreak();
+    }
+#endif
 }
 
 void __thiscall phys_slot_pool::extra_info_free(unsigned __int8 *slot)
 {
+#if 0
     unsigned __int8 *v3; // ebx
     unsigned int m_map_key; // edi
     volatile unsigned int Target; // [esp+Ch] [ebp-4h] BYREF
@@ -407,10 +442,59 @@ void __thiscall phys_slot_pool::extra_info_free(unsigned __int8 *slot)
     }
     slot = 0;
     InterlockedExchange((volatile unsigned int *)&slot, 0);
+#else
+    if (!slot && _tlAssert("source/phys_mem_new.cpp", 323, "slot", ""))
+        __debugbreak();
+
+    phys_slot_pool::extra_info *ei = (phys_slot_pool::extra_info *)&slot[(unsigned __int16)this->m_map_key - 8];
+
+    memset(slot, 0xFFu, (unsigned __int16)this->m_map_key - 8);
+
+    if (ei->m_slot_pool_owner != this
+        && _tlAssert(
+            "source/phys_mem_new.cpp",
+            329,
+            "GetStuff32(&ei->m_slot_pool_owner) == this_",
+            "attempting to free a slot that was not allocated from this pool."))
+    {
+        __debugbreak();
+    }
+
+    if ((phys_slot_pool *)_InterlockedCompareExchange(
+        (volatile unsigned __int32 *)&ei->m_allocation_owner,
+        (signed __int32)this,
+        0xFEDCBA98) != (phys_slot_pool *)0xFEDCBA98
+        && _tlAssert(
+            "source/phys_mem_new.cpp",
+            332,
+            "retv",
+            "incorrect owner attempting to free a slot, possibly trying to free a slot more than once."))
+    {
+        __debugbreak();
+    }
+
+    _InterlockedExchangeAdd((volatile long *)&this->m_allocated_slot_count, (unsigned long)-1);
+
+    if (this->m_allocated_slot_count > this->m_total_slot_count
+        && _tlAssert(
+            "source/phys_mem_new.cpp",
+            334,
+            "GetStuff32(&m_allocated_slot_count) <= GetStuff32(&m_total_slot_count)",
+            "internal error."))
+    {
+        __debugbreak();
+    }
+    if ((int)this->m_allocated_slot_count < 0
+        && _tlAssert("source/phys_mem_new.cpp", 335, "GetStuff32(&m_allocated_slot_count) >= 0", "internal error."))
+    {
+        __debugbreak();
+    }
+#endif
 }
 
 void __thiscall phys_slot_pool::validate_slot(char *slot)
 {
+#if 0
     char *v3; // edi
     volatile unsigned int Target; // [esp+8h] [ebp-4h] BYREF
 
@@ -437,6 +521,28 @@ void __thiscall phys_slot_pool::validate_slot(char *slot)
             __debugbreak();
         }
     }
+#else // aislop
+    phys_slot_pool::extra_info *ei = (phys_slot_pool::extra_info *)&slot[(unsigned __int16)this->m_map_key - 8];
+
+    if (ei->m_slot_pool_owner != this
+        && _tlAssert(
+            "source/phys_mem_new.cpp",
+            346,
+            "GetStuff32(&ei->m_slot_pool_owner) == this_",
+            "slot does not belong to this slot_pool."))
+    {
+        __debugbreak();
+    }
+    if ((unsigned int)ei->m_allocation_owner != 0xFEDCBA98
+        && _tlAssert(
+            "source/phys_mem_new.cpp",
+            347,
+            "GetStuff32(&ei->m_allocation_owner) == allocation_owner",
+            "slot does not belong to this allocation_owner."))
+    {
+        __debugbreak();
+    }
+#endif
 }
 
 void phys_slot_pool::free_slot(unsigned __int8 *slot)
@@ -478,34 +584,28 @@ void phys_slot_pool::free_slot(unsigned __int8 *slot)
             __debugbreak();
         }
     }
-#endif
-    // AISLOP
+#else
+    unsigned __int8 *v3; // edi
+    signed __int64 cur; // current snapshot of m_first_free_slot
 
-    phys_slot_pool::extra_info_free(slot);
+    if (!slot && _tlAssert("source/phys_mem_new.cpp", 445, "slot", "no support support for freeing NULL slots."))
+        __debugbreak();
 
-    while (true)
+    this->extra_info_free(slot);
+
+    v3 = slot;
+    while (1)
     {
-        // Read current head (ptr + tag)
-        tagged_void_pointer_t oldHead = this->m_first_free_slot;
-
-        // Link slot to current head
-        *(uint32_t *)slot = (uint32_t)oldHead.m_ptr;
-
-        // Prepare new head
-        tagged_void_pointer_t newHead;
-        newHead.m_ptr = (void*)slot;
-        newHead.m_tag = oldHead.m_tag + 1;
-
-        // Attempt atomic swap
+        cur = _InterlockedCompareExchange64((volatile signed __int64 *)&this->m_first_free_slot, 0, 0);
+        *(unsigned int *)v3 = LODWORD(cur);
         if (_InterlockedCompareExchange64(
-            (volatile long long *)&this->m_first_free_slot,
-            *(long long *)&newHead,
-            *(long long *)&oldHead)
-            == *(long long *)&oldHead)
-        {
-            break; // success
-        }
+            (volatile signed __int64 *)&this->m_first_free_slot,
+            __SPAIR64__(HIDWORD(cur) + 1, (unsigned int)v3),
+            cur) == cur)
+            break;
+        v3 = slot;
     }
+#endif
 }
 
 char * phys_slot_pool::allocate_slot()
@@ -546,55 +646,32 @@ char * phys_slot_pool::allocate_slot()
                                  (unsigned int)m_ptr[2] >> 16);
     phys_slot_pool::extra_info_init((phys_slot_pool *)m_ptr, v5);
     return v5;
-#endif
-    // AISLOP
-    tagged_void_pointer_t oldHead;
-    tagged_void_pointer_t newHead;
+#else // aislop
+    char *v3; // esi
+    char *v5; // esi
+    signed __int64 cur;
 
-    while (true)
+    while (1)
     {
-        // Snapshot current head
-        oldHead = m_first_free_slot;
-
-        char *slot = static_cast<char *>(oldHead.m_ptr);
-
-        // If no free slots, allocate new memory
-        if (!slot)
-        {
-            const unsigned int sizeAlign = m_map_key;
-
-            const unsigned int size = sizeAlign & 0xFFFF;
-            const unsigned int alignment = sizeAlign >> 16;
-
-            char *newSlot = (char *)(
-                    g_phys_memory_manager->allocate(
-                    size,
-                    alignment
-                )
-                );
-
-            extra_info_init(newSlot);
-            return newSlot;
-        }
-
-        // The next pointer is stored at the start of the slot
-        char *next = *reinterpret_cast<char **>(slot);
-
-        newHead.m_ptr = next;
-        newHead.m_tag = oldHead.m_tag + 1;
-
-        // Attempt atomic pop
+        cur = _InterlockedCompareExchange64((volatile signed __int64 *)&this->m_first_free_slot, 0, 0);
+        v3 = (char *)LODWORD(cur);
+        if (!v3)
+            break;
         if (_InterlockedCompareExchange64(
-            reinterpret_cast<volatile long long *>(&m_first_free_slot),
-            *reinterpret_cast<long long *>(&newHead),
-            *reinterpret_cast<long long *>(&oldHead)
-        ) == *reinterpret_cast<long long *>(&oldHead))
+            (volatile signed __int64 *)&this->m_first_free_slot,
+            __SPAIR64__(HIDWORD(cur) + 1, *(unsigned int *)v3),
+            cur) == cur)
         {
-            extra_info_allocate(slot);
-            return slot;
+            this->extra_info_allocate(v3);
+            return v3;
         }
-
     }
 
+    v5 = (char *)g_phys_memory_manager->allocate(
+        (unsigned __int16)this->m_map_key,
+        (unsigned int)this->m_map_key >> 16);
+    this->extra_info_init(v5);
+    return v5;
+#endif
 }
 

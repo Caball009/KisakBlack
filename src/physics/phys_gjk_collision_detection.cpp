@@ -627,8 +627,8 @@ void __thiscall gjk_query_output::query_create_epilog(gjk_base_t *gjk_geom)
 }
 
 bool gjk_query_output::query_create_prolog_1(
-                float *local_aabb_min,
-                float *local_aabb_max,
+                const float *local_aabb_min,
+                const float *local_aabb_max,
                 const void *geom)
 {
     phys_vec3 v6; // [esp-Ch] [ebp-3Ch] BYREF
@@ -3754,7 +3754,7 @@ void *gjk_physics_collision_visitor::allocate(
     const bool no_error)
 {
     //return phys_transient_allocator::mt_allocate(
-    return G_BPM->g_collision_memory_buffer.allocate(
+    return G_BPM->g_collision_memory_buffer.mt_allocate(
         size,
         alignment,
         no_error,

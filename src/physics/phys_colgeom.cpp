@@ -2533,8 +2533,6 @@ gjk_obb_t * create_obb_gjk_geom(
 
 gjk_brush_t *__cdecl create_brush_gjk_geom(const cbrush_t *brush, int stype, gjk_collision_visitor *allocator)
 {
-    int savedregs; // [esp+4h] [ebp+0h] BYREF
-
     return gjk_brush_t::create(brush, stype, allocator);
 }
 
@@ -2625,15 +2623,13 @@ void __cdecl create_brush_model_gjk_geom_r(
             {
                 brush = &cm.brushes[node->data.leaf.brushes[i]];
                 if ( (contents_mask & brush->contents) != 0
-                    //&& allocator->query_create_prolog_1(allocator, (const float *)brush, brush->maxs, brush) )
-                    && allocator->query_create_prolog((void*)brush) ) // NOTE: Changed from _1 version
+                    && allocator->query_create_prolog_1(brush->mins, brush->maxs, brush) )
                 {
                     gjk_geom = gjk_brush_t::create(
                         brush,
                         (brush->axial_sflags[0][0] & 0x3F00000) >> 20,
                         allocator);
-                    //allocator->query_create_epilog_1(allocator, gjk_geom);
-                    allocator->query_create_epilog(gjk_geom); // NOTE: Changed from _1 version
+                    allocator->query_create_epilog_1(gjk_geom);
                 }
             }
             *index_base += node->leafBrushCount;
@@ -2696,12 +2692,10 @@ void query_brush_model_gjk_geom_visitor::visit(const cbrush_t *brush)
     {
         __debugbreak();
     }
-    //if ( this->m_allocator->query_create_prolog_1(this->m_allocator, (const float *)brush, brush->maxs, brush) )
-    if ( this->m_allocator->query_create_prolog((void *)brush) )
+    if ( this->m_allocator->query_create_prolog_1(brush->mins, brush->maxs, brush) )
     {
         gjk_geom = gjk_brush_t::create(brush, (brush->axial_sflags[0][0] & 0x3F00000) >> 20, this->m_allocator);
-        //this->m_allocator->query_create_epilog_1(this->m_allocator, gjk_geom);
-        this->m_allocator->query_create_epilog(gjk_geom);
+        this->m_allocator->query_create_epilog_1(gjk_geom);
     }
 }
 
@@ -2819,8 +2813,7 @@ void __cdecl create_xmodel_gjk_geom(
                 {
                     b_geom_eligible = 1;
                     brush = (const cbrush_t *)geom->brush;
-                    //if ( allocator->query_create_prolog_1(allocator, (const float *)brush, brush->maxs, geom) )
-                    if ( allocator->query_create_prolog((void*)brush) )
+                    if ( allocator->query_create_prolog_1(brush->mins, brush->maxs, geom) )
                     {
                         gjk_geom = create_brush_gjk_geom(brush, stype, allocator);
                         if (worldMat)
@@ -2828,8 +2821,7 @@ void __cdecl create_xmodel_gjk_geom(
                             //gjk_base_t::set_xform(gjk_geom, worldMat);
                             gjk_geom->set_xform(worldMat);
                         }
-                        //allocator->query_create_epilog_1(allocator, gjk_geom);
-                        allocator->query_create_epilog(gjk_geom);
+                        allocator->query_create_epilog_1(gjk_geom);
                     }
                 }
             }
@@ -2854,8 +2846,7 @@ void __cdecl create_xmodel_gjk_geom(
                         maxs[0] = geom->offset[0] + geom->halfLengths[0];
                         maxs[1] = geom->offset[1] + geom->halfLengths[1];
                         maxs[2] = geom->offset[2] + geom->halfLengths[2];
-                        //if ( allocator->query_create_prolog_1(allocator, mins, maxs, geom) )
-                        if ( allocator->query_create_prolog(mins) )
+                        if ( allocator->query_create_prolog_1(mins, maxs, geom) )
                         {
                             //aabb_gjk_geom = create_aabb_gjk_geom(COERCE_FLOAT(&savedregs), mins, maxs, stype, allocator);
                             aabb_gjk_geom = create_aabb_gjk_geom(mins, maxs, stype, allocator);
@@ -2866,8 +2857,8 @@ void __cdecl create_xmodel_gjk_geom(
                             }
                             //gjk_base_t::set_contents(aabb_gjk_geom, contents_for_proxy_collision);
                             aabb_gjk_geom->set_contents(contents_for_proxy_collision);
-                            //allocator->query_create_epilog_1(allocator, aabb_gjk_geom);
-                            allocator->query_create_epilog(aabb_gjk_geom);
+
+                            allocator->query_create_epilog_1(aabb_gjk_geom);
                         }
                     }
                     else
@@ -2893,7 +2884,7 @@ void __cdecl create_xmodel_gjk_geom(
                         maxs[1] = maxs[1] + geom->offset[1];
                         maxs[2] = maxs[2] + geom->offset[2];
                         //if ( allocator->query_create_prolog_1(allocator, mins, maxs, geom) )
-                        if ( allocator->query_create_prolog(mins) )
+                        if ( allocator->query_create_prolog_1(mins, maxs, geom) )
                         {
                             obb_gjk_geom = create_obb_gjk_geom(
                                                              geom->orientation,
@@ -2908,8 +2899,7 @@ void __cdecl create_xmodel_gjk_geom(
                             }
                             //gjk_base_t::set_contents(obb_gjk_geom, contents_for_proxy_collision);
                             obb_gjk_geom->set_contents(contents_for_proxy_collision);
-                            //allocator->query_create_epilog_1(allocator, obb_gjk_geom);
-                            allocator->query_create_epilog(obb_gjk_geom);
+                            allocator->query_create_epilog_1(obb_gjk_geom);
                         }
                     }
                 }
@@ -2938,8 +2928,7 @@ void __cdecl create_xmodel_gjk_geom(
                     v15[0] = geom->offset[0] + bs_radius;
                     v15[1] = geom->offset[1] + bs_radius;
                     v15[2] = geom->offset[2] + bs_radius;
-                    //if ( allocator->query_create_prolog_1(allocator, v12, v15, geom) )
-                    if ( allocator->query_create_prolog(v12) )
+                    if ( allocator->query_create_prolog_1(v12, v15, geom) )
                     {
                         cylinder_gjk_geom = create_cylinder_gjk_geom(
                                                                     geom->orientation,
@@ -2955,8 +2944,8 @@ void __cdecl create_xmodel_gjk_geom(
                         }
                         //gjk_base_t::set_contents(cylinder_gjk_geom, contents_for_proxy_collision);
                         cylinder_gjk_geom->set_contents(contents_for_proxy_collision);
-                        //allocator->query_create_epilog_1(allocator, cylinder_gjk_geom);
-                        allocator->query_create_epilog(cylinder_gjk_geom);
+
+                        allocator->query_create_epilog_1(cylinder_gjk_geom);
                     }
                 }
             }
@@ -2976,8 +2965,7 @@ void __cdecl create_xmodel_gjk_geom(
             maxs[1] = r_0;
             maxs[2] = r_0;
         }
-        //if ( allocator->query_create_prolog_1(allocator, mins, maxs, model) )
-        if ( allocator->query_create_prolog(mins) )
+        if ( allocator->query_create_prolog_1(mins, maxs, model) )
         {
             v9 = create_aabb_gjk_geom(mins, maxs, stype, allocator);
             if (worldMat)
@@ -2987,8 +2975,7 @@ void __cdecl create_xmodel_gjk_geom(
             }
             //gjk_base_t::set_contents(v9, contents_for_proxy_collision);
             v9->set_contents(contents_for_proxy_collision);
-            //allocator->query_create_epilog_1(allocator, v9);
-            allocator->query_create_epilog(v9);
+            allocator->query_create_epilog_1(v9);
         }
     }
 }
@@ -3080,14 +3067,12 @@ void __cdecl create_gjk_geom(
         query_maxs[1] = maxs[1];
         query_maxs[2] = maxs[2];
         adjust_gjk_polygon_cylinder_query_aabb(query_mins, query_maxs);
-        //if ( allocator->query_create_prolog_1(allocator, query_mins, query_maxs, cent) )
-        if ( allocator->query_create_prolog(query_mins) )
+        if ( allocator->query_create_prolog_1(query_mins, query_maxs, cent) )
         {
             gjk_geom = create_gjkcc_gjk_geom((float (*)[3])mins, (float (*)[3])maxs, stype, allocator);
             //gjk_base_t::set_contents(gjk_geom, contents_for_proxy_collision);
             gjk_geom->set_contents(contents_for_proxy_collision);
-            //allocator->query_create_epilog_1(allocator, gjk_geom);
-            allocator->query_create_epilog(gjk_geom);
+            allocator->query_create_epilog_1(gjk_geom);
         }
     }
     else if (cent->nextState.solid != 0xFFFFFF || cent->nextState.eType == 14 || cent->nextState.eType == 16)
@@ -3183,14 +3168,12 @@ void __cdecl create_gjk_geom(
         query_maxs[1] = gent->r.maxs[1];
         query_maxs[2] = gent->r.maxs[2];
         adjust_gjk_polygon_cylinder_query_aabb(query_mins, query_maxs);
-        //if ( allocator->query_create_prolog_1(allocator, query_mins, query_maxs, gent) )
-        if ( allocator->query_create_prolog(query_mins) )
+        if ( allocator->query_create_prolog_1(query_mins, query_maxs, gent) )
         {
             gjk_geom = create_gjkcc_gjk_geom((float (*)[3])gent->r.mins, (float (*)[3])gent->r.maxs, 29, allocator);
             //gjk_base_t::set_contents(gjk_geom, contents_for_proxy_collision);
             gjk_geom->set_contents(contents_for_proxy_collision);
-            //allocator->query_create_epilog_1(allocator, gjk_geom);
-            allocator->query_create_epilog(gjk_geom);
+            allocator->query_create_epilog_1(gjk_geom);
         }
     }
     else if ( gent->classname == scr_const.script_brushmodel || gent->classname == scr_const.glass )
@@ -3251,15 +3234,13 @@ void __cdecl create_gjk_geom(const DynEntityDef *dynEntDef, gjk_collision_visito
     else
     {
         DynEnt_GetLocalBounds(dynEntDef, mins, maxs);
-        //if ( allocator->query_create_prolog_1(allocator, mins, maxs, dynEntDef) )
-        if ( allocator->query_create_prolog(mins) )
+        if ( allocator->query_create_prolog_1(mins, maxs, dynEntDef) )
         {
             stype = DynEnt_GetSurfaceType(dynEntDef);
             gjk_geom = create_aabb_gjk_geom(mins, maxs, stype, allocator);
             //gjk_base_t::set_contents(gjk_geom, contents_for_proxy_collision);
             gjk_geom->set_contents(contents_for_proxy_collision);
-            //allocator->query_create_epilog_1(allocator, gjk_geom);
-            allocator->query_create_epilog(gjk_geom);
+            allocator->query_create_epilog_1(gjk_geom);
         }
     }
 }

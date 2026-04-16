@@ -333,15 +333,14 @@ struct gjk_physics_collision_visitor : gjk_collision_visitor // sizeof=0x80
     // padding byte
 
     //bool is_query();
+
     void get_local_query_aabb(float *, float *);
     void set_local_query_info(const void *entity);
-    bool query_create_prolog(const void *);
-    bool query_create_prolog_1(
-        float *local_aabb_min,
-        float *local_aabb_max,
-        const void *geom);
-    void query_create_epilog(gjk_base_t *gjk_geom);
-    void query_create_epilog_1(gjk_base_t *gjk_geom);
+
+    virtual bool query_create_prolog(const void *) override;
+    virtual bool query_create_prolog_1(const float *local_aabb_min, const float *local_aabb_max, const void *geom) override;
+    virtual void query_create_epilog(gjk_base_t *gjk_geom) override;
+    virtual void query_create_epilog_1(gjk_base_t *gjk_geom) override;
 
     //void *allocate(int size, int alignment, bool no_error);
     void *allocate(const int, const int, const bool);
@@ -554,12 +553,11 @@ struct gjk_query_output : gjk_collision_visitor // sizeof=0x150
     void __thiscall get_local_query_aabb(
         float *local_query_aabb_min,
         float *local_query_aabb_max);
-    bool __thiscall query_create_prolog(const void *geom);
-    void __thiscall query_create_epilog(gjk_base_t *gjk_geom);
-    bool query_create_prolog_1(
-        float *local_aabb_min,
-        float *local_aabb_max,
-        const void *geom);
+
+    virtual bool query_create_prolog(const void *geom) override;
+    virtual bool query_create_prolog_1(const float *local_aabb_min, const float *local_aabb_max, const void *geom) override;
+    virtual void query_create_epilog(gjk_base_t *gjk_geom) override;
+
     broad_phase_environment_info *__thiscall get_ent_info(unsigned int ent_id);
     void __thiscall set_local_query_info(
         const gjk_query_input *input,

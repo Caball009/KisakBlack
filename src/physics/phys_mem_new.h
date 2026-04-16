@@ -18,6 +18,11 @@ volatile struct tagged_void_pointer_t // sizeof=0x8
 
 struct phys_slot_pool // sizeof=0x18
 {                                       // XREF: phys_memory_manager/r
+    struct extra_info // sizeof=0x8
+    {
+        phys_slot_pool *m_slot_pool_owner;
+        void *m_allocation_owner;
+    };
     //volatile tagged_void_pointer_t m_first_free_slot;
     tagged_void_pointer_t m_first_free_slot;
     unsigned int m_map_key;

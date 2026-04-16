@@ -1755,11 +1755,10 @@ phys_auto_activate_callback *__cdecl create_ent_aac(gjk_physics_collision_visito
 void create_entity_bpi(gjk_physics_collision_visitor *collision_visitor, int mask)
 {
     const centity_s *entity; // eax
-    phys_mat44 **v4; // [esp+30h] [ebp-14h]
     bpei_database_id database_id; // [esp+34h] [ebp-10h] BYREF
     broad_phase_environment_info *bpei; // [esp+3Ch] [ebp-8h]
-    entity_bpi_header *ebpih; // [esp+40h] [ebp-4h]
-    int savedregs; // [esp+44h] [ebp+0h] BYREF
+    entity_bpi_header *ebpih = NULL; // [esp+40h] [ebp-4h]
+    //int savedregs; // [esp+44h] [ebp+0h] BYREF
 
     get_database_id(&database_id, collision_visitor);
     //bpei = bpei_database_t::get_bpei_mt(&G_BPM->g_bpei_database, database_id);
@@ -1770,29 +1769,25 @@ void create_entity_bpi(gjk_physics_collision_visitor *collision_visitor, int mas
         bpei->m_mutex.Lock();
         if (!bpei->m_data)
         {
-            v4 = (phys_mat44 **)collision_visitor->allocate(8, 4, 0);
+            ebpih = (entity_bpi_header *)collision_visitor->allocate(sizeof(entity_bpi_header), 4, 0);
             //if (rigid_body::is_environment_rigid_body(collision_visitor->rb))
             if (collision_visitor->rb->is_environment_rigid_body())
-                *v4 = create_ent_mat(collision_visitor);
+                ebpih->m_mat = create_ent_mat(collision_visitor);
             else
-                *v4 = 0;
-            v4[1] = (phys_mat44 *)create_ent_aac(collision_visitor);
-            if (!v4
-                && _tlAssert("C:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_collision.cpp", 456, "ebpih", ""))
-            {
-                __debugbreak();
-            }
-            bpei->m_data = v4;
+                ebpih->m_mat = 0;
+            ebpih->m_aac = create_ent_aac(collision_visitor);
+
+            iassert(ebpih);
+            bpei->m_data = ebpih;
         }
         //minspec_mutex::Unlock(&bpei->m_mutex);
         bpei->m_mutex.Unlock();
     }
-    if (!bpei->m_data
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_collision.cpp", 458, 0, "%s", "bpei->m_data"))
+    else // lwss: slight logic change here
     {
-        __debugbreak();
+        //iassert(bpei->m_data);
+        ebpih = (entity_bpi_header *)bpei->m_data;
     }
-    ebpih = (entity_bpi_header *)bpei->m_data;
     //if (rigid_body::is_environment_rigid_body(collision_visitor->rb))
     if (collision_visitor->rb->is_environment_rigid_body())
     {
@@ -2775,8 +2770,8 @@ bool gjk_physics_collision_visitor::query_create_prolog(const void *geom)
 }
 
 bool gjk_physics_collision_visitor::query_create_prolog_1(
-    float *local_aabb_min,
-    float *local_aabb_max,
+    const float *local_aabb_min,
+    const float *local_aabb_max,
     const void *geom)
 {
     float v6; // [esp-Ch] [ebp-40h] BYREF

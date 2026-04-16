@@ -2491,15 +2491,15 @@ void __cdecl phys_sys::destroy(rigid_body *const rb)
 
 void __cdecl phys_sys::destroy(user_rigid_body *const rb)
 {
-    phys_free_list<user_rigid_body> *p_m_list_user_rigid_body; // edi
+    phys_free_list<rigid_body> *p_m_list_rigid_body; // edi
 
     phys_sys::destroy_all_constraint(rb);
-    p_m_list_user_rigid_body = &g_physics_system->m_list_user_rigid_body;
-    if ( rb )
+    p_m_list_rigid_body = &g_physics_system->m_list_rigid_body;
+    if (rb)
     {
-        PMM_VALIDATE((char *)&rb[-1].m_dictator_mat.w, 0x1D0u, 0x10u);
-        //phys_free_list<user_rigid_body>::remove(p_m_list_user_rigid_body, (phys_free_list<user_rigid_body>::T_internal *)&rb[-1].m_dictator_mat.w);
-        p_m_list_user_rigid_body->remove((phys_free_list<user_rigid_body>::T_internal *) &rb[-1].m_dictator_mat.w);
+        PMM_VALIDATE((char *)&rb[-1].m_partition_node.m_partition_head, 0x180u, 0x10u);
+        //phys_free_list<rigid_body>::remove(p_m_list_rigid_body, (phys_free_list<rigid_body>::T_internal *) & rb[-1].m_partition_node.m_partition_head);
+        p_m_list_rigid_body->remove((phys_free_list<rigid_body>::T_internal *) &rb[-1].m_partition_node.m_partition_head);
     }
 }
 
