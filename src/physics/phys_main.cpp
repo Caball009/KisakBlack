@@ -1147,7 +1147,6 @@ PhysObjUserData * Phys_CreateBodyFromState(
                 gjk_geom_list_t *gjk_geom_list,
                 bool do_collision_test)
 {
-    int m_geom_count; // ecx
     //phys_vec3 v8; // [esp+28h] [ebp-36Ch] BYREF // inertia
     //float v9; // [esp+44h] [ebp-350h] BYREF // volume
     //phys_vec3 v10; // [esp+48h] [ebp-34Ch] BYREF // dim
@@ -1276,9 +1275,9 @@ PhysObjUserData * Phys_CreateBodyFromState(
     m2w.w.z = state->position[2];
 
     bodyId = (int)userData;
-    m_geom_count = gjk_geom_list->m_geom_count;
+
     userData->m_gjk_geom_list.m_first_geom = gjk_geom_list->m_first_geom;
-    userData->m_gjk_geom_list.m_geom_count = m_geom_count;
+    userData->m_gjk_geom_list.m_geom_count = gjk_geom_list->m_geom_count;
 
     //gjk_geom_list_t::comp_aabb_loc(
     userData->m_gjk_geom_list.comp_aabb_loc(&gjk_geom_list_aabb_mn_loc, &gjk_geom_list_aabb_mx_loc);

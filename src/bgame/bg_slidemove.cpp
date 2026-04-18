@@ -3670,27 +3670,6 @@ gjk_query_output::gjk_query_output()
     //return this;
 }
 
-//void __thiscall gjk_collision_visitor::get_local_query_aabb(
-//                float *local_query_aabb_min,
-//                float *local_query_aabb_max)
-//{
-//    if ( !Assert_MyHandler("c:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_colgeom.h", 35, 0, "%s", "0") )
-//        __debugbreak();
-//}
-//
-//char __thiscall gjk_collision_visitor::query_create_prolog_1(
-//                const float *local_aabb_min,
-//                const float *local_aabb_max,
-//                const void *geom)
-//{
-//    return 1;
-//}
-//
-//void __thiscall gjk_collision_visitor::query_create_epilog_1(gjk_base_t *gjk_geom)
-//{
-//    ;
-//}
-
 gjk_query_output::~gjk_query_output()
 {
     if ( this->m_allocator.m_first_block

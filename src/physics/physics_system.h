@@ -47,6 +47,9 @@ struct phys_sys // sizeof=0x0
         environment_rigid_body *b2,
         int no_error);
 
+    static void __cdecl destroy(rigid_body *const rb);
+    static void __cdecl destroy(user_rigid_body *const rb);
+    static void __cdecl destroy(rigid_body_constraint_contact *const rbc);
     static void __cdecl destroy(rigid_body_constraint_point *const rbc);
     static void __cdecl destroy(rigid_body_constraint_hinge *const rbc);
     static void __cdecl destroy(rigid_body_constraint_distance *const rbc);
@@ -56,10 +59,6 @@ struct phys_sys // sizeof=0x0
     static void __cdecl destroy(rigid_body_constraint_upright *const rbc);
     static void __cdecl destroy(rigid_body_constraint_custom_orientation *const rbc);
     static void __cdecl destroy(rigid_body_constraint_custom_path *const rbc);
-
-    static void __cdecl destroy(rigid_body *const rb);
-    static void __cdecl destroy(user_rigid_body *const rb);
-    static void __cdecl destroy(rigid_body_constraint_contact *const rbc);
 
     static void __cdecl destroy_all_rbc_point();
     static void __cdecl destroy_all_rbc_hinge();

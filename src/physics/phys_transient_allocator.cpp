@@ -91,9 +91,6 @@ void *__thiscall phys_transient_allocator::allocate(
     int no_error,
     const char *error_msg)
 {
-    // LWSS HACK, these dont play well together atm (KISAKTODO)
-    return mt_allocate(size, alignment, no_error, error_msg); 
-#if 0
     int v7; // [esp+4h] [ebp-14h]
     int v8; // [esp+Ch] [ebp-Ch]
     void *ptr; // [esp+14h] [ebp-4h]
@@ -144,7 +141,6 @@ void *__thiscall phys_transient_allocator::allocate(
         __debugbreak();
     }
     return ptr;
-#endif
 }
 
 void *__thiscall phys_transient_allocator::mt_allocate(

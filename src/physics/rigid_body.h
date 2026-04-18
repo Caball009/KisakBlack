@@ -623,6 +623,7 @@ struct avl_tree_accessor
     void setup_constraint(struct pulse_sum_constraint_solver *phys, float delta_t);
     void verify_constraint(environment_rigid_body *b1_, environment_rigid_body *b2_);
 };
+static_assert(sizeof(rigid_body_constraint_contact) == 0x2C);
 
 struct environment_rigid_body : rigid_body // sizeof=0x160
 {                                       // XREF: physics_system/r

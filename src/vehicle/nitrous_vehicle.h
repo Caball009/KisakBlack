@@ -290,7 +290,7 @@ struct XModel;
 struct rigid_body_constraint_custom_orientation;
 struct rigid_body_constraint_custom_path;
 
-struct NitrousVehicle // sizeof=0x440
+struct alignas(16) NitrousVehicle // sizeof=0x440
 {                                       // XREF: phys_free_list<NitrousVehicle>::T_internal/r
     NitrousVehicle();
 
@@ -482,6 +482,7 @@ struct NitrousVehicle // sizeof=0x440
     // padding byte
     // padding byte
 };
+static_assert(sizeof(NitrousVehicle) == 0x440);
 
 struct PhysObjUserData *__cdecl Phys_ObjCreateNitrousVehicle(
                 const float *position,

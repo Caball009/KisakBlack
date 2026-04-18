@@ -188,7 +188,6 @@ void *__cdecl PMM_PERM_ALLOCATE(unsigned int size, unsigned int alignment)
     return result;
 }
 
-// bad sp value at call has been detected, the output may be wrong!
 char *__cdecl PMM_ALLOC(unsigned int size, unsigned int alignment)
 {
     phys_slot_pool *slot_pool; // eax
@@ -289,15 +288,17 @@ void __cdecl phys_memory_manager_init(void *const memory_buffer, int memory_buff
 
 void phys_slot_pool::extra_info_init(char *slot)
 {
-    phys_slot_pool **v2; // eax
+    phys_slot_pool::extra_info *ei; // eax
 
     if ( slot )
     {
-        v2 = (phys_slot_pool **)&slot[(unsigned __int16)this->m_map_key - 8];
-        *v2 = this;
-        v2[1] = (phys_slot_pool *)-19088744;
+        ei = (phys_slot_pool::extra_info *)&slot[(unsigned __int16)this->m_map_key - sizeof(phys_slot_pool::extra_info)];
+        ei->m_slot_pool_owner = this;
+        ei->m_allocation_owner = (void *)0xFEDCBA98;
+
         _InterlockedExchangeAdd(&this->m_total_slot_count, 1u);
         _InterlockedExchangeAdd(&this->m_allocated_slot_count, 1u);
+
         if ( this->m_allocated_slot_count > this->m_total_slot_count )
         {
             if ( _tlAssert(
@@ -309,6 +310,7 @@ void phys_slot_pool::extra_info_init(char *slot)
                 __debugbreak();
             }
         }
+
         slot = 0;
         InterlockedExchange((volatile unsigned int *)&slot, 0);
     }
@@ -360,7 +362,7 @@ void __thiscall phys_slot_pool::extra_info_allocate(char *slot)
     if (!slot && _tlAssert("source/phys_mem_new.cpp", 306, "slot", ""))
         __debugbreak();
 
-    phys_slot_pool::extra_info *ei = (phys_slot_pool::extra_info *)&slot[(unsigned __int16)this->m_map_key - 8];
+    phys_slot_pool::extra_info *ei = (phys_slot_pool::extra_info *)&slot[(unsigned __int16)this->m_map_key - sizeof(phys_slot_pool::extra_info)];
 
     if (ei->m_slot_pool_owner != this
         && _tlAssert("source/phys_mem_new.cpp", 309, "GetStuff32(&ei->m_slot_pool_owner) == this_", "internal error."))
@@ -446,9 +448,9 @@ void __thiscall phys_slot_pool::extra_info_free(unsigned __int8 *slot)
     if (!slot && _tlAssert("source/phys_mem_new.cpp", 323, "slot", ""))
         __debugbreak();
 
-    phys_slot_pool::extra_info *ei = (phys_slot_pool::extra_info *)&slot[(unsigned __int16)this->m_map_key - 8];
+    phys_slot_pool::extra_info *ei = (phys_slot_pool::extra_info *)&slot[(unsigned __int16)this->m_map_key - sizeof(phys_slot_pool::extra_info)];
 
-    memset(slot, 0xFFu, (unsigned __int16)this->m_map_key - 8);
+    memset(slot, 0xFFu, (unsigned __int16)this->m_map_key - sizeof(phys_slot_pool::extra_info));
 
     if (ei->m_slot_pool_owner != this
         && _tlAssert(
@@ -522,7 +524,7 @@ void __thiscall phys_slot_pool::validate_slot(char *slot)
         }
     }
 #else // aislop
-    phys_slot_pool::extra_info *ei = (phys_slot_pool::extra_info *)&slot[(unsigned __int16)this->m_map_key - 8];
+    phys_slot_pool::extra_info *ei = (phys_slot_pool::extra_info *)&slot[(unsigned __int16)this->m_map_key - sizeof(phys_slot_pool::extra_info)];
 
     if (ei->m_slot_pool_owner != this
         && _tlAssert(
@@ -585,25 +587,24 @@ void phys_slot_pool::free_slot(unsigned __int8 *slot)
         }
     }
 #else
-    unsigned __int8 *v3; // edi
-    signed __int64 cur; // current snapshot of m_first_free_slot
+    signed __int64 cur, next;
 
-    if (!slot && _tlAssert("source/phys_mem_new.cpp", 445, "slot", "no support support for freeing NULL slots."))
+    if (!slot && _tlAssert("source/phys_mem_new.cpp", 445, "slot", "no support for freeing NULL slots."))
         __debugbreak();
 
     this->extra_info_free(slot);
 
-    v3 = slot;
     while (1)
     {
-        cur = _InterlockedCompareExchange64((volatile signed __int64 *)&this->m_first_free_slot, 0, 0);
-        *(unsigned int *)v3 = LODWORD(cur);
+        cur = *(volatile signed __int64 *)&this->m_first_free_slot;
+        *(unsigned int *)slot = LODWORD(cur); // link slot->next = current head
+        next = __SPAIR64__(HIDWORD(cur) + 1, (unsigned int)slot);
         if (_InterlockedCompareExchange64(
             (volatile signed __int64 *)&this->m_first_free_slot,
-            __SPAIR64__(HIDWORD(cur) + 1, (unsigned int)v3),
+            next,
             cur) == cur)
             break;
-        v3 = slot;
+        // CAS failed, retry
     }
 #endif
 }
@@ -647,27 +648,30 @@ char * phys_slot_pool::allocate_slot()
     phys_slot_pool::extra_info_init((phys_slot_pool *)m_ptr, v5);
     return v5;
 #else // aislop
-    char *v3; // esi
-    char *v5; // esi
-    signed __int64 cur;
+    signed __int64 cur, next;
+    char *v3;
 
     while (1)
     {
-        cur = _InterlockedCompareExchange64((volatile signed __int64 *)&this->m_first_free_slot, 0, 0);
+        cur = *(volatile signed __int64 *)&this->m_first_free_slot;
         v3 = (char *)LODWORD(cur);
         if (!v3)
-            break;
+            break; // free list empty, fall through to fresh alloc
+
+        next = __SPAIR64__(HIDWORD(cur) + 1, *(unsigned int *)v3);
         if (_InterlockedCompareExchange64(
             (volatile signed __int64 *)&this->m_first_free_slot,
-            __SPAIR64__(HIDWORD(cur) + 1, *(unsigned int *)v3),
+            next,
             cur) == cur)
         {
             this->extra_info_allocate(v3);
             return v3;
         }
+        // CAS failed, retry
     }
 
-    v5 = (char *)g_phys_memory_manager->allocate(
+    // No free slots — allocate fresh from memory manager
+    char *v5 = (char *)g_phys_memory_manager->allocate(
         (unsigned __int16)this->m_map_key,
         (unsigned int)this->m_map_key >> 16);
     this->extra_info_init(v5);

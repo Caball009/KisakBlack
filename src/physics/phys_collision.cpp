@@ -1761,7 +1761,6 @@ void create_entity_bpi(gjk_physics_collision_visitor *collision_visitor, int mas
     //int savedregs; // [esp+44h] [ebp+0h] BYREF
 
     get_database_id(&database_id, collision_visitor);
-    //bpei = bpei_database_t::get_bpei_mt(&G_BPM->g_bpei_database, database_id);
     bpei = G_BPM->g_bpei_database.get_bpei_mt(database_id);
     if (!bpei->m_data)
     {
@@ -1770,7 +1769,6 @@ void create_entity_bpi(gjk_physics_collision_visitor *collision_visitor, int mas
         if (!bpei->m_data)
         {
             ebpih = (entity_bpi_header *)collision_visitor->allocate(sizeof(entity_bpi_header), 4, 0);
-            //if (rigid_body::is_environment_rigid_body(collision_visitor->rb))
             if (collision_visitor->rb->is_environment_rigid_body())
                 ebpih->m_mat = create_ent_mat(collision_visitor);
             else
@@ -1783,11 +1781,10 @@ void create_entity_bpi(gjk_physics_collision_visitor *collision_visitor, int mas
         //minspec_mutex::Unlock(&bpei->m_mutex);
         bpei->m_mutex.Unlock();
     }
-    else // lwss: slight logic change here
-    {
-        //iassert(bpei->m_data);
-        ebpih = (entity_bpi_header *)bpei->m_data;
-    }
+
+    iassert(bpei->m_data);
+    ebpih = (entity_bpi_header *)bpei->m_data;
+
     //if (rigid_body::is_environment_rigid_body(collision_visitor->rb))
     if (collision_visitor->rb->is_environment_rigid_body())
     {

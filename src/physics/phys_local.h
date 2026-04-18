@@ -252,39 +252,25 @@ struct minspec_mutex // sizeof=0x4
 {                                       // XREF: .data:minspec_mutex g_render_mutex/r
     volatile unsigned int m_token;      // XREF: _dynamic_initializer_for__g_render_mutex__+3/w
 
+    // aislopped function def's for correctness
+
     inline void Lock()
     {
-        volatile unsigned int Target; // [esp+4h] [ebp-4h] BYREF
-
-        while (_InterlockedCompareExchange(&this->m_token, 1, 0))
+        while (_InterlockedCompareExchange((volatile LONG *)&m_token, 1, 0) != 0)
             ;
-        Target = 0;
-        InterlockedExchange(&Target, 0);
+        // acquire barrier — no reads/writes below can move above this
+        _ReadWriteBarrier();
+        MemoryBarrier();
     }
 
     inline void Unlock()
     {
-        LONG Target; // [esp+4h] [ebp-8h] BYREF
-
-        Target = 0;
-        InterlockedExchange(&Target, 0);
-
-        iassert(this->m_token == 1);
-        //if (this->m_token != 1
-        //    && _tlAssert(
-        //        "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_mutex.h",
-        //        85,
-        //        "GetStuff32(&m_token) == 1",
-        //        ""))
-        //{
-        //    __debugbreak();
-        //}
-        if (_InterlockedCompareExchange(&this->m_token, 0, 1) != 1)
-        {
-            iassert(0);
-            //if (_tlAssert("c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_mutex.h", 88, "retv", ""))
-            //    __debugbreak();
-        }
+        iassert(m_token == 1);
+        // release barrier — no reads/writes above can move below this
+        _ReadWriteBarrier();
+        MemoryBarrier();
+        LONG prev = _InterlockedCompareExchange((volatile LONG *)&m_token, 0, 1);
+        iassert(prev == 1);
     }
 };
 
@@ -292,76 +278,50 @@ struct minspec_read_write_mutex // sizeof=0x4
 {                                       // XREF: phys_transient_allocator/r
     volatile unsigned int m_count;      // XREF: physics_system::time_step(float,bool)+158/w
 
+    // aislopped function def's for correctness
     inline void ReadLock()
     {
-        LONG Target[3]; // [esp+4h] [ebp-10h] BYREF
-        unsigned int count; // [esp+10h] [ebp-4h]
-
+        unsigned int count;
         do
         {
             do
-                count = this->m_count;
-            while (!count);
-            Target[1] = count;
-            Target[2] = count + 1;
-        } while (_InterlockedCompareExchange(&this->m_count, count + 1, count) != count);
-        Target[0] = 0;
-        InterlockedExchange(Target, 0);
+                count = m_count;
+            while (count == 0); // spin while writer holds
+        } while (_InterlockedCompareExchange((volatile LONG *)&m_count, count + 1, count) != (LONG)count);
+        // full barrier
+        _ReadWriteBarrier();
+        MemoryBarrier();
     }
 
     void ReadUnlock()
     {
-        volatile unsigned int count; // [esp+Ch] [ebp-4h]
-
+        unsigned int count;
         do
         {
-            count = this->m_count;
+            count = m_count;
             iassert(count > 1);
-            //if (this->m_count <= 1)
-            //{
-            //    if (_tlAssert(
-            //        "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_mutex.h",
-            //        116,
-            //        "count > 1",
-            //        ""))
-            //    {
-            //        __debugbreak();
-            //    }
-            //}
-        } while (_InterlockedCompareExchange(&this->m_count, count - 1, count) != count);
+        } while (_InterlockedCompareExchange((volatile LONG *)&m_count, count - 1, count) != (LONG)count);
     }
 
     inline void WriteLock()
     {
-        LONG Target; // [esp+4h] [ebp-4h] BYREF
-
-        while (_InterlockedCompareExchange(&this->m_count, 0, 1) != 1)
+        // must wait until exactly idle (count == 1), then CAS to 0
+        while (_InterlockedCompareExchange((volatile LONG *)&m_count, 0, 1) != 1)
             ;
-        Target = 0;
-        InterlockedExchange(&Target, 0);
+        // full barrier after acquisition
+        _ReadWriteBarrier();
+        MemoryBarrier();
     }
 
     void WriteUnlock()
     {
-        LONG Target; // [esp+4h] [ebp-8h] BYREF
-
-        Target = 0;
-        InterlockedExchange(&Target, 0);
-        iassert(!this->m_count);
-        //if (this->m_count
-        //    && _tlAssert(
-        //        "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_mutex.h",
-        //        135,
-        //        "GetStuff32(&m_count) == 0",
-        //        ""))
-        //{
-        //    __debugbreak();
-        //}
-        if (_InterlockedCompareExchange(&this->m_count, 1, 0) != 0)
-        {
-            //if (_tlAssert("c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_mutex.h", 138, "retv", ""))
-            //    __debugbreak();
-        }
+        iassert(m_count == 0);
+        // full barrier before release
+        _ReadWriteBarrier();
+        MemoryBarrier();
+        // restore to idle
+        LONG prev = _InterlockedCompareExchange((volatile LONG *)&m_count, 1, 0);
+        iassert(prev == 0);
     }
 };
 
@@ -407,6 +367,23 @@ struct phys_mat44 // sizeof=0x40
             this->w.y = that->w.y;
             this->w.z = that->w.z;
             return *this;
+    }
+
+    phys_mat44 &operator=(const phys_mat44 &that)
+    {
+        this->x.x = that.x.x;
+        this->x.y = that.x.y;
+        this->x.z = that.x.z;
+        this->y.x = that.y.x;
+        this->y.y = that.y.y;
+        this->y.z = that.y.z;
+        this->z.x = that.z.x;
+        this->z.y = that.z.y;
+        this->z.z = that.z.z;
+        this->w.x = that.w.x;
+        this->w.y = that.w.y;
+        this->w.z = that.w.z;
+        return *this;
     }
                                                                             // .data:PHYS_IDENTITY_MATRIX_0/r ...
     phys_vec3 x;                                                // XREF: gjk_cylinder_t::get_feature(phys_contact_manifold *)+63/r
@@ -716,86 +693,28 @@ struct phys_simple_allocator//<phys_heap_gjk_cache_system_avl_tree::phys_gjk_cac
 
         T *allocate()
         {
-                char *slot; // [esp+18h] [ebp-4h]
+            char *slot; // [esp+18h] [ebp-4h]
 
-                slot = PMM_ALLOC(sizeof(T), sizeof(T) % 16 == 0 ? 16 : 4);
-                if (!slot)
-                        return 0;
-                ++this->m_count;
-                new ((void *)slot) T();
-                return (T*)slot;
+            slot = PMM_ALLOC(sizeof(T), sizeof(T) % 16 == 0 ? 16 : 4);
+            if (!slot)
+                return 0;
+            ++this->m_count;
+            memset(slot, 0, sizeof(T));
+            new ((void *)slot) T();
+            return (T*)slot;
         }
 
         void free(T *slot)
         {
-                if (slot)
-                {
-                        PMM_VALIDATE((char *)slot, sizeof(T), sizeof(T) % 16 == 0 ? 16 : 4);
-                        --this->m_count;
-                        slot->~T(); // disgusting
-                        PMM_FREE((unsigned __int8 *)slot, sizeof(T), sizeof(T) % 16 == 0 ? 16 : 4);
-                }
+            if (slot)
+            {
+                PMM_VALIDATE((char *)slot, sizeof(T), sizeof(T) % 16 == 0 ? 16 : 4);
+                --this->m_count;
+                slot->~T(); // disgusting
+                PMM_FREE((unsigned __int8 *)slot, sizeof(T), sizeof(T) % 16 == 0 ? 16 : 4);
+            }
         }
 };
-
-//gjk_aabb_t *__thiscall phys_simple_allocator<gjk_aabb_t>::allocate(phys_simple_allocator<gjk_aabb_t> *this);
-//gjk_obb_t *__thiscall phys_simple_allocator<gjk_obb_t>::allocate(phys_simple_allocator<gjk_obb_t> *this);
-//gjk_brush_t *__thiscall phys_simple_allocator<gjk_brush_t>::allocate(phys_simple_allocator<gjk_brush_t> *this);
-//void __thiscall phys_simple_allocator<gjk_brush_t>::free(phys_simple_allocator<gjk_brush_t> *this, gjk_brush_t *slot);
-//gjk_partition_t *__thiscall phys_simple_allocator<gjk_partition_t>::allocate(
-//        phys_simple_allocator<gjk_partition_t> *this);
-//void __thiscall phys_simple_allocator<gjk_partition_t>::free(
-//        phys_simple_allocator<gjk_partition_t> *this,
-//        gjk_partition_t *slot);
-//gjk_double_sphere_t *__thiscall phys_simple_allocator<gjk_double_sphere_t>::allocate(
-//        phys_simple_allocator<gjk_double_sphere_t> *this);
-//void __thiscall phys_simple_allocator<gjk_double_sphere_t>::free(
-//        phys_simple_allocator<gjk_double_sphere_t> *this,
-//        gjk_double_sphere_t *slot);
-//gjk_cylinder_t *__thiscall phys_simple_allocator<gjk_cylinder_t>::allocate(phys_simple_allocator<gjk_cylinder_t> *this);
-//void __thiscall phys_simple_allocator<gjk_cylinder_t>::free(
-//        phys_simple_allocator<gjk_cylinder_t> *this,
-//        gjk_cylinder_t *slot);
-//gjk_polygon_cylinder_t *__thiscall phys_simple_allocator<gjk_polygon_cylinder_t>::allocate(
-//        phys_simple_allocator<gjk_polygon_cylinder_t> *this);
-//void __thiscall phys_simple_allocator<gjk_polygon_cylinder_t>::free(
-//        phys_simple_allocator<gjk_polygon_cylinder_t> *this,
-//        gjk_polygon_cylinder_t *slot);
-
-//struct phys_transient_allocator // sizeof=0x18
-//{                                       // XREF: pulse_sum_constraint_solver/r
-//    struct block_header // sizeof=0xC
-//    {
-//        unsigned int m_block_size;
-//        unsigned int m_block_alignment;
-//        phys_transient_allocator::block_header *m_next_block;
-//    };
-//    struct allocator_state // sizeof=0x10
-//    {                                       // XREF: gjk_query_output/r
-//        phys_transient_allocator::block_header *m_first_block;
-//        char *m_cur;                        // XREF: pulse_sum_constraint_solver::execute_constraint_solver(rigid_body * const)+2B9/w
-//        char *m_end;                        // XREF: pulse_sum_constraint_solver::execute_constraint_solver(rigid_body * const)+2CE/w
-//        unsigned int m_total_memory_allocated;
-//    };
-//
-//    phys_transient_allocator::block_header *m_first_block;
-//    char *m_cur;                        // XREF: physics_system::time_step(float,bool)+14F/w
-//    char *m_end;                        // XREF: physics_system::time_step(float,bool)+152/w
-//    unsigned int m_total_memory_allocated;
-//    minspec_read_write_mutex m_mutex;   // XREF: physics_system::time_step(float,bool)+158/w
-//    void *m_slot_pool;                  // XREF: physics_system::time_step(float,bool)+15F/w
-//
-//    void *__thiscall allocate(
-//        int size,
-//        int alignment,
-//        int no_error,
-//        const char *error_msg);
-//
-//    void resize();
-//    void reset();
-//
-//    void reset_to_state(const phys_transient_allocator::allocator_state *as);
-//};
 
 struct phys_memory_heap // sizeof=0x10
 {                                                                             // XREF: phys_contact_manifold_process/r
@@ -916,7 +835,8 @@ public:
         }
     };
 
-    struct __declspec(align(16)) T_internal : T_internal_base
+    //struct __declspec(align(16)) T_internal : T_internal_base
+    struct T_internal : T_internal_base // This struct itself is not align(16), it's whatever `m_data` is
     {
         T m_data;
         int m_ptr_list_index;
@@ -963,22 +883,18 @@ public:
 
     T *add(int no_error, const char *error_msg)
     {
-        T_internal *ptr;
-
-        ptr = (T_internal *)PMM_ALLOC(sizeof(T), sizeof(T) % 16 == 0 ? 16 : 4);
+        T_internal *ptr = (T_internal *)PMM_ALLOC(sizeof(T_internal), sizeof(T_internal) % 16 == 0 ? 16 : 4);
 
         if (ptr)
         {
-            new ((void*) & ptr->m_data) T();
+            new ((void *)&ptr->m_data) T();
+            ptr->m_ptr_list_index = -1;
             ptr->m_prev_T_internal = &this->m_dummy_head;
             ptr->m_next_T_internal = this->m_dummy_head.m_next_T_internal;
             this->m_dummy_head.m_next_T_internal->m_prev_T_internal = ptr;
             this->m_dummy_head.m_next_T_internal = ptr;
-            
             m_list_count++;
-
             debug_add(ptr);
-
             return &ptr->m_data;
         }
         else
@@ -1004,52 +920,41 @@ public:
 
     void remove(T_internal *data)
     {
-        T_internal_base *next; // [esp+14h] [ebp-8h]
-        T_internal_base *prev; // [esp+18h] [ebp-4h]
-
         iassert(data);
-
         --this->m_list_count;
         debug_remove(data);
-        next = data->m_next_T_internal;
-        prev = data->m_prev_T_internal;
+        T_internal_base *next = data->m_next_T_internal;
+        T_internal_base *prev = data->m_prev_T_internal;
         prev->m_next_T_internal = next;
         next->m_prev_T_internal = prev;
-        PMM_FREE((unsigned __int8 *)data, sizeof(T), sizeof(T) % 16 == 0 ? 16 : 4);
+        data->m_data.~T();
+        PMM_FREE((unsigned __int8 *)data, sizeof(T_internal), sizeof(T_internal) % 16 == 0 ? 16 : 4);
     }
 
     void remove(T *data_)
     {
         if (data_)
         {
-            PMM_VALIDATE((char *)data_ - (sizeof(T) % 16 == 0 ? 16 : 8), sizeof(T), (sizeof(T) % 16 == 0 ? 16 : 4));
-            remove((T_internal*)((char *)data_ - (sizeof(T) % 16 == 0 ? 16 : 8)));
+            T_internal *ti = (T_internal *)((char *)data_ - offsetof(T_internal, m_data));
+            PMM_VALIDATE((char *)ti, sizeof(T_internal), sizeof(T_internal) % 16 == 0 ? 16 : 4);
+            remove(ti);
         }
     }
 
     void remove_all()
     {
-        T_internal *data; // esi
-        T_internal_base *m_prev_T_internal; // ecx
-        T_internal_base *v4; // eax
-
         while ((phys_free_list<T> *)this->m_dummy_head.m_next_T_internal != this)
         {
-            data = (phys_free_list<T>::T_internal *)this->m_dummy_head.m_next_T_internal;
+            T_internal *data = (T_internal *)this->m_dummy_head.m_next_T_internal;
             iassert(data);
-            //if (!m_next_T_internal)
-            //{
-            //    if (_tlAssert("c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_mem.h", 477, "data", ""))
-            //        __debugbreak();
-            //}
             --this->m_list_count;
             debug_remove(data);
-            m_prev_T_internal = data->m_prev_T_internal;
-            v4 = data->m_next_T_internal;
-            m_prev_T_internal->m_next_T_internal = v4;
-            v4->m_prev_T_internal = m_prev_T_internal;
-            delete (T*)(&data->m_data);
-            PMM_FREE((unsigned __int8 *)data, 0x38u, 4u);
+            T_internal_base *prev = data->m_prev_T_internal;
+            T_internal_base *next = data->m_next_T_internal;
+            prev->m_next_T_internal = next;
+            next->m_prev_T_internal = prev;
+            data->m_data.~T();
+            PMM_FREE((unsigned __int8 *)data, sizeof(T_internal), sizeof(T_internal) % 16 == 0 ? 16 : 4);
         }
     }
 
@@ -1129,321 +1034,6 @@ struct phys_avl_node_accessor
     static const phys_inplace_avl_tree_node<T2> *get(const T2 *n) { return &n->m_avl_tree_node; }
 };
 
-
-// aislop
-#if 0
-template<typename T1, typename T2, typename Accessor>
-struct phys_inplace_avl_tree
-{
-    struct stack_item
-    {
-        T2 **m_node;
-        int  m_child; // -1 = left, +1 = right
-    };
-
-    T2 *m_tree_root;
-
-    phys_inplace_avl_tree()
-    {
-        m_tree_root = NULL;
-    }
-
-    /* ------------------------------------------------------------ */
-    /* rotations                                                    */
-    /* ------------------------------------------------------------ */
-
-    inline void rotate_left(T2 **root)
-    {
-        T2 *r = (*root)->m_avl_tree_node.m_right;
-
-        (*root)->m_avl_tree_node.m_right = r->m_avl_tree_node.m_left;
-        r->m_avl_tree_node.m_left = *root;
-
-        int delta = (r->m_avl_tree_node.m_balance <= 0)
-            ? 0
-            : r->m_avl_tree_node.m_balance;
-
-        (*root)->m_avl_tree_node.m_balance -= delta + 1;
-
-        int adj = ((*root)->m_avl_tree_node.m_balance >= 0)
-            ? 0
-            : -(*root)->m_avl_tree_node.m_balance;
-
-        r->m_avl_tree_node.m_balance -= adj + 1;
-
-        *root = r;
-    }
-
-    inline void rotate_right(T2 **root)
-    {
-        T2 *l = (*root)->m_avl_tree_node.m_left;
-
-        (*root)->m_avl_tree_node.m_left = l->m_avl_tree_node.m_right;
-        l->m_avl_tree_node.m_right = *root;
-
-        int delta = (l->m_avl_tree_node.m_balance >= 0)
-            ? 0
-            : -l->m_avl_tree_node.m_balance;
-
-        (*root)->m_avl_tree_node.m_balance += delta + 1;
-
-        int adj = ((*root)->m_avl_tree_node.m_balance <= 0)
-            ? 0
-            : (*root)->m_avl_tree_node.m_balance;
-
-        l->m_avl_tree_node.m_balance += adj + 1;
-
-        *root = l;
-    }
-
-    /* ------------------------------------------------------------ */
-    /* find                                                         */
-    /* ------------------------------------------------------------ */
-
-    inline T2 *find(const T1 &key) const
-    {
-        T2 *node = m_tree_root;
-
-        while (node)
-        {
-            if (Accessor::equals(node, key))
-                return node;
-
-            node = Accessor::less(key, node)
-                ? node->m_avl_tree_node.m_left
-                : node->m_avl_tree_node.m_right;
-        }
-
-        return nullptr;
-    }
-
-    /* ------------------------------------------------------------ */
-    /* add                                                          */
-    /* ------------------------------------------------------------ */
-
-    inline void add(const T1 &key, T2 *data)
-    {
-        stack_item stack[32];
-        stack_item *cur = stack;
-
-        cur->m_node = &m_tree_root;
-
-        while (*cur->m_node)
-        {
-            T2 *root = *cur->m_node;
-
-            iassert(cur + 1 - stack < 32,
-                "phys_avl_tree.h", 103, "cur_item + 1 - the_stack < 32");
-
-            stack_item *next = cur + 1;
-
-            if (key < root->m_avl_key)
-            {
-                cur->m_child = -1;
-                next->m_node = &root->m_avl_node_info.m_left;
-            }
-            else
-            {
-                // key == root->m_avl_key is a bug — assert and fall through to right
-                iassert(key > root->m_avl_key,
-                    "phys_avl_tree.h", 112, "key > accessor::get_avl_key(root)");
-
-                cur->m_child = +1;
-                next->m_node = &root->m_avl_node_info.m_right;
-            }
-
-            cur = next;
-        }
-
-        *cur->m_node = data;
-
-        data->m_avl_node_info.m_left = nullptr;
-        data->m_avl_node_info.m_right = nullptr;
-        data->m_avl_node_info.m_balance = 0;
-        data->m_avl_key = key;
-
-        // rebalance upward — continue while subtree height increased (balance != 0)
-        while (cur > stack)
-        {
-            --cur;
-
-            T2 **node = cur->m_node;
-            (*node)->m_avl_node_info.m_balance += cur->m_child;
-
-            if ((*node)->m_avl_node_info.m_balance == -2)
-            {
-                iassert((*node)->m_avl_node_info.m_left->m_avl_node_info.m_balance == -1
-                    || (*node)->m_avl_node_info.m_left->m_avl_node_info.m_balance == +1,
-                    "phys_avl_tree.h", 130,
-                    "accessor::get_avl_node(accessor::get_avl_node(root)->m_left)->m_balance == -1 || ...== 1");
-
-                if ((*node)->m_avl_node_info.m_left->m_avl_node_info.m_balance == 1)
-                    rotate_left(&(*node)->m_avl_node_info.m_left);
-
-                rotate_right(node);
-
-                iassert((*node)->m_avl_node_info.m_balance == 0,
-                    "phys_avl_tree.h", 134, "accessor::get_avl_node(root)->m_balance == 0");
-
-                break; // rotation always restores original height on insert
-            }
-            else if ((*node)->m_avl_node_info.m_balance == 2)
-            {
-                iassert((*node)->m_avl_node_info.m_right->m_avl_node_info.m_balance == -1
-                    || (*node)->m_avl_node_info.m_right->m_avl_node_info.m_balance == +1,
-                    "phys_avl_tree.h", 138,
-                    "accessor::get_avl_node(accessor::get_avl_node(root)->m_right)->m_balance == -1 || ...== 1");
-
-                if ((*node)->m_avl_node_info.m_right->m_avl_node_info.m_balance == -1)
-                    rotate_right(&(*node)->m_avl_node_info.m_right);
-
-                rotate_left(node);
-
-                iassert((*node)->m_avl_node_info.m_balance == 0,
-                    "phys_avl_tree.h", 142, "accessor::get_avl_node(root)->m_balance == 0");
-
-                break; // rotation always restores original height on insert
-            }
-            else if ((*node)->m_avl_node_info.m_balance == 0)
-            {
-                break; // height unchanged, done
-            }
-            // balance is ±1 — subtree grew, continue propagating up
-        }
-    }
-    /* ------------------------------------------------------------ */
-    /* remove                                                       */
-    /* ------------------------------------------------------------ */
-
-    inline void remove(const T1 &key)
-    {
-        stack_item stack[32];
-        stack_item *cur = stack;
-
-        cur->m_node = &m_tree_root;
-
-        // Find the node — key must exist, root is asserted non-null each iteration
-        while (true)
-        {
-            T2 *root = *cur->m_node;
-
-            iassert(root != nullptr,
-                "phys_avl_tree.h", 161, "root");
-            iassert(cur + 1 - stack < 32,
-                "phys_avl_tree.h", 162, "cur_item + 1 - the_stack < 32");
-
-            stack_item *next = cur + 1;
-
-            if (key < root->m_avl_key)
-            {
-                cur->m_child = -1;
-                next->m_node = &root->m_avl_node_info.m_left;
-                cur = next;
-            }
-            else if (key > root->m_avl_key)
-            {
-                cur->m_child = +1;
-                next->m_node = &root->m_avl_node_info.m_right;
-                cur = next;
-            }
-            else
-            {
-                iassert(key == root->m_avl_key,
-                    "phys_avl_tree.h", 176, "key == accessor::get_avl_key(root)");
-                break;
-            }
-        }
-
-        T2 **victim = cur->m_node;
-
-        if ((*victim)->m_avl_node_info.m_right)
-        {
-            // Descend to in-order successor (leftmost node of right subtree)
-            cur->m_child = +1;
-            ++cur;
-            cur->m_node = &(*victim)->m_avl_node_info.m_right;
-
-            stack_item *right_item = cur; // remember this slot — needs fixup after transplant
-
-            while ((*cur->m_node)->m_avl_node_info.m_left)
-            {
-                iassert(cur + 1 - stack < 32,
-                    "phys_avl_tree.h", 191, "cur_item + 1 - the_stack < 32");
-
-                stack_item *next = cur + 1;
-                cur->m_child = -1;
-                next->m_node = &(*cur->m_node)->m_avl_node_info.m_left;
-                cur = next;
-            }
-
-            T2 *replace = *cur->m_node;
-
-            // Unlink replace from its current position, replacing it with its right child
-            *cur->m_node = replace->m_avl_node_info.m_right;
-
-            // Copy victim's links and balance into replace (individual field assignment, not struct copy)
-            replace->m_avl_node_info.m_left = (*victim)->m_avl_node_info.m_left;
-            replace->m_avl_node_info.m_right = (*victim)->m_avl_node_info.m_right;
-            replace->m_avl_node_info.m_balance = (*victim)->m_avl_node_info.m_balance;
-
-            // right_item now tracks replace's right child pointer (not victim's)
-            right_item->m_node = &replace->m_avl_node_info.m_right;
-
-            *victim = replace;
-        }
-        else
-        {
-            // No right child — replace victim with its left child directly
-            *victim = (*victim)->m_avl_node_info.m_left;
-        }
-
-        // Rebalance upward — continue while balance == 0 (subtree height shrank)
-        while (cur > stack)
-        {
-            --cur;
-
-            T2 **node = cur->m_node;
-            (*node)->m_avl_node_info.m_balance -= cur->m_child;
-
-            if ((*node)->m_avl_node_info.m_balance == -2)
-            {
-                if ((*node)->m_avl_node_info.m_left->m_avl_node_info.m_balance == 1)
-                    rotate_left(&(*node)->m_avl_node_info.m_left);
-
-                rotate_right(node);
-
-                iassert((*node)->m_avl_node_info.m_balance == 0
-                    || (*node)->m_avl_node_info.m_balance == 1,
-                    "phys_avl_tree.h", 218,
-                    "accessor::get_avl_node(root)->m_balance == 0 || accessor::get_avl_node(root)->m_balance == +1");
-
-                if ((*node)->m_avl_node_info.m_balance != 0)
-                    break; // height unchanged, stop propagating
-            }
-            else if ((*node)->m_avl_node_info.m_balance == 2)
-            {
-                if ((*node)->m_avl_node_info.m_right->m_avl_node_info.m_balance == -1)
-                    rotate_right(&(*node)->m_avl_node_info.m_right);
-
-                rotate_left(node);
-
-                iassert((*node)->m_avl_node_info.m_balance == 0
-                    || (*node)->m_avl_node_info.m_balance == -1,
-                    "phys_avl_tree.h", 225,
-                    "accessor::get_avl_node(root)->m_balance == 0 || accessor::get_avl_node(root)->m_balance == -1");
-
-                if ((*node)->m_avl_node_info.m_balance != 0)
-                    break; // height unchanged, stop propagating
-            }
-            else if ((*node)->m_avl_node_info.m_balance != 0)
-            {
-                break; // balance is ±1, height unchanged, done
-            }
-            // balance == 0 — subtree shrank, continue propagating up
-        }
-    }
-};
-#else
 template<typename T1, typename T2, typename Accessor>
 struct phys_inplace_avl_tree
 {
@@ -1502,16 +1092,17 @@ struct phys_inplace_avl_tree
 
     inline T2 *find(const T1 &key) const
     {
-        T2 *node = m_tree_root;
-        while (node)
+        T2 *cur = m_tree_root;
+        while (cur)
         {
-            if (!Accessor::less(key, node) && !Accessor::less(node, key))
-                return node;
-            node = Accessor::less(key, node)
-                ? ni(node)->m_left
-                : ni(node)->m_right;
+            if (Accessor::equals(cur, key))
+                break;
+            if (Accessor::less(key, cur))
+                cur = ni(cur)->m_left;
+            else
+                cur = ni(cur)->m_right;
         }
-        return nullptr;
+        return cur;
     }
 
     /* ------------------------------------------------------------ */
@@ -1520,87 +1111,83 @@ struct phys_inplace_avl_tree
 
     inline void add(const T1 &key, T2 *data)
     {
-        stack_item stack[32];
-        stack_item *cur = stack;
+        stack_item the_stack[32];
+        stack_item *cur_item = the_stack;
 
-        cur->m_node = &m_tree_root;
+        cur_item->m_node = &m_tree_root;
 
-        while (*cur->m_node)
+        while (*cur_item->m_node)
         {
-            T2 *root = *cur->m_node;
+            T2 *root = *cur_item->m_node;
 
-            iassert(cur + 1 - stack < 32,
+            iassert(cur_item + 1 - the_stack < 32,
                 "phys_avl_tree.h", 103, "cur_item + 1 - the_stack < 32");
 
-            stack_item *next = cur + 1;
+            stack_item *next_item = cur_item + 1;
 
             if (Accessor::less(key, root))
             {
-                cur->m_child = -1;
-                next->m_node = &ni(root)->m_left;
+                cur_item->m_child = -1;
+                next_item->m_node = &ni(root)->m_left;
             }
             else
             {
                 iassert(Accessor::less(root, key),
                     "phys_avl_tree.h", 112, "key > accessor::get_avl_key(root)");
 
-                cur->m_child = +1;
-                next->m_node = &ni(root)->m_right;
+                cur_item->m_child = +1;
+                next_item->m_node = &ni(root)->m_right;
             }
 
-            cur = next;
+            cur_item = next_item;
         }
 
-        *cur->m_node = data;
+        // Link the new node
+        *cur_item->m_node = data;
         ni(data)->m_left = nullptr;
         ni(data)->m_right = nullptr;
         ni(data)->m_balance = 0;
-        //data->m_avl_key = key;
         Accessor::set_key(data, key);
 
-        // rebalance upward
-        while (cur > stack)
+        // Rebalance upward — continue while balance != 0 (subtree grew)
+        do
         {
-            --cur;
-            T2 **node = cur->m_node;
-            ni(*node)->m_balance += cur->m_child;
+            if (cur_item <= the_stack)
+                break;
 
-            if (ni(*node)->m_balance == -2)
+            --cur_item;
+            T2 **m_node = cur_item->m_node;
+            ni(*m_node)->m_balance += cur_item->m_child;
+
+            if (ni(*m_node)->m_balance == -2)
             {
-                iassert(ni(ni(*node)->m_left)->m_balance == -1
-                    || ni(ni(*node)->m_left)->m_balance == +1,
+                iassert(ni(ni(*m_node)->m_left)->m_balance == -1
+                    || ni(ni(*m_node)->m_left)->m_balance == +1,
                     "phys_avl_tree.h", 130,
                     "accessor::get_avl_node(accessor::get_avl_node(root)->m_left)->m_balance == -1 || ...== 1");
 
-                if (ni(ni(*node)->m_left)->m_balance == 1)
-                    rotate_left(&ni(*node)->m_left);
-                rotate_right(node);
+                if (ni(ni(*m_node)->m_left)->m_balance == 1)
+                    rotate_left(&ni(*m_node)->m_left);
+                rotate_right(m_node);
 
-                iassert(ni(*node)->m_balance == 0,
+                iassert(ni(*m_node)->m_balance == 0,
                     "phys_avl_tree.h", 134, "accessor::get_avl_node(root)->m_balance == 0");
-                break;
             }
-            else if (ni(*node)->m_balance == 2)
+            else if (ni(*m_node)->m_balance == 2)
             {
-                iassert(ni(ni(*node)->m_right)->m_balance == -1
-                    || ni(ni(*node)->m_right)->m_balance == +1,
+                iassert(ni(ni(*m_node)->m_right)->m_balance == -1
+                    || ni(ni(*m_node)->m_right)->m_balance == +1,
                     "phys_avl_tree.h", 138,
                     "accessor::get_avl_node(accessor::get_avl_node(root)->m_right)->m_balance == -1 || ...== 1");
 
-                if (ni(ni(*node)->m_right)->m_balance == -1)
-                    rotate_right(&ni(*node)->m_right);
-                rotate_left(node);
+                if (ni(ni(*m_node)->m_right)->m_balance == -1)
+                    rotate_right(&ni(*m_node)->m_right);
+                rotate_left(m_node);
 
-                iassert(ni(*node)->m_balance == 0,
+                iassert(ni(*m_node)->m_balance == 0,
                     "phys_avl_tree.h", 142, "accessor::get_avl_node(root)->m_balance == 0");
-                break;
             }
-            else if (ni(*node)->m_balance == 0)
-            {
-                break; // height unchanged
-            }
-            // ±1 — subtree grew, propagate up
-        }
+        } while (ni(*cur_item->m_node)->m_balance != 0);
     }
 
     /* ------------------------------------------------------------ */
@@ -1609,34 +1196,34 @@ struct phys_inplace_avl_tree
 
     inline void remove(const T1 &key)
     {
-        stack_item stack[32];
-        stack_item *cur = stack;
+        stack_item the_stack[32];
+        stack_item *cur_item = the_stack;
 
-        cur->m_node = &m_tree_root;
+        cur_item->m_node = &m_tree_root;
 
-        // Find — key must exist, asserts on null
+        // Find the node
         while (true)
         {
-            T2 *root = *cur->m_node;
+            T2 *root = *cur_item->m_node;
 
             iassert(root != nullptr,
                 "phys_avl_tree.h", 161, "root");
-            iassert(cur + 1 - stack < 32,
+            iassert(cur_item + 1 - the_stack < 32,
                 "phys_avl_tree.h", 162, "cur_item + 1 - the_stack < 32");
 
-            stack_item *next = cur + 1;
+            stack_item *next_item = cur_item + 1;
 
             if (Accessor::less(key, root))
             {
-                cur->m_child = -1;
-                next->m_node = &ni(root)->m_left;
-                cur = next;
+                cur_item->m_child = -1;
+                next_item->m_node = &ni(root)->m_left;
+                cur_item = next_item;
             }
             else if (Accessor::less(root, key))
             {
-                cur->m_child = +1;
-                next->m_node = &ni(root)->m_right;
-                cur = next;
+                cur_item->m_child = +1;
+                next_item->m_node = &ni(root)->m_right;
+                cur_item = next_item;
             }
             else
             {
@@ -1646,85 +1233,94 @@ struct phys_inplace_avl_tree
             }
         }
 
-        T2 **victim = cur->m_node;
+        T2 **node_to_be_removed = cur_item->m_node;
 
-        if (ni(*victim)->m_right)
+        if (ni(*node_to_be_removed)->m_right)
         {
             // Replace with in-order successor
-            cur->m_child = +1;
-            ++cur;
-            cur->m_node = &ni(*victim)->m_right;
+            cur_item->m_child = +1;
+            ++cur_item;
+            cur_item->m_node = &ni(*node_to_be_removed)->m_right;
 
-            stack_item *right_item = cur;
+            stack_item *right_item = cur_item;
 
-            while (ni(*cur->m_node)->m_left)
+            while (ni(*cur_item->m_node)->m_left)
             {
-                iassert(cur + 1 - stack < 32,
+                iassert(cur_item + 1 - the_stack < 32,
                     "phys_avl_tree.h", 191, "cur_item + 1 - the_stack < 32");
 
-                stack_item *next = cur + 1;
-                cur->m_child = -1;
-                next->m_node = &ni(*cur->m_node)->m_left;
-                cur = next;
+                stack_item *next_item = cur_item + 1;
+                cur_item->m_child = -1;
+                next_item->m_node = &ni(*cur_item->m_node)->m_left;
+                cur_item = next_item;
             }
 
-            T2 *replace = *cur->m_node;
-            *cur->m_node = ni(replace)->m_right;
+            T2 *replace_node = *cur_item->m_node;
 
-            ni(replace)->m_left = ni(*victim)->m_left;
-            ni(replace)->m_right = ni(*victim)->m_right;
-            ni(replace)->m_balance = ni(*victim)->m_balance;
+            // Unlink successor — splice out replace_node, promoting its right child
+            *cur_item->m_node = ni(replace_node)->m_right;
 
-            right_item->m_node = &ni(replace)->m_right;
-            *victim = replace;
+            // Copy victim's linkage to replace_node
+            ni(replace_node)->m_left = ni(*node_to_be_removed)->m_left;
+            ni(replace_node)->m_right = ni(*node_to_be_removed)->m_right;
+            ni(replace_node)->m_balance = ni(*node_to_be_removed)->m_balance;
+
+            // Fix right_item so rebalance walks through replace_node's right subtree
+            right_item->m_node = &ni(replace_node)->m_right;
+
+            // Publish replace_node into the tree
+            *node_to_be_removed = replace_node;
         }
         else
         {
-            *victim = ni(*victim)->m_left;
+            // No right child — promote left child directly
+            *node_to_be_removed = ni(*node_to_be_removed)->m_left;
         }
 
-        // Rebalance upward — continue while balance == 0 (height shrank)
-        while (cur > stack)
+        // Rebalance upward — continue while balance == 0 (subtree shrank)
+        do
         {
-            --cur;
-            T2 **node = cur->m_node;
-            ni(*node)->m_balance -= cur->m_child;
+            if (cur_item <= the_stack)
+                break;
 
-            if (ni(*node)->m_balance == -2)
+            --cur_item;
+            T2 **m_node = cur_item->m_node;
+            ni(*m_node)->m_balance -= cur_item->m_child;
+
+            if (ni(*m_node)->m_balance == -2)
             {
-                if (ni(ni(*node)->m_left)->m_balance == 1)
-                    rotate_left(&ni(*node)->m_left);
-                rotate_right(node);
+                if (ni(ni(*m_node)->m_left)->m_balance == 1)
+                    rotate_left(&ni(*m_node)->m_left);
+                rotate_right(m_node);
 
-                iassert((unsigned int)ni(*node)->m_balance < 2u,
+                iassert((unsigned int)ni(*m_node)->m_balance < 2u,
                     "phys_avl_tree.h", 218,
                     "accessor::get_avl_node(root)->m_balance == 0 || accessor::get_avl_node(root)->m_balance == +1");
 
-                if (ni(*node)->m_balance != 0)
+                if (ni(*m_node)->m_balance != 0)
                     break;
             }
-            else if (ni(*node)->m_balance == 2)
+            else if (ni(*m_node)->m_balance == 2)
             {
-                if (ni(ni(*node)->m_right)->m_balance == -1)
-                    rotate_right(&ni(*node)->m_right);
-                rotate_left(node);
+                if (ni(ni(*m_node)->m_right)->m_balance == -1)
+                    rotate_right(&ni(*m_node)->m_right);
+                rotate_left(m_node);
 
-                iassert(ni(*node)->m_balance == 0 || ni(*node)->m_balance == -1,
+                iassert(ni(*m_node)->m_balance == 0 || ni(*m_node)->m_balance == -1,
                     "phys_avl_tree.h", 225,
                     "accessor::get_avl_node(root)->m_balance == 0 || accessor::get_avl_node(root)->m_balance == -1");
 
-                if (ni(*node)->m_balance != 0)
+                if (ni(*m_node)->m_balance != 0)
                     break;
             }
-            else if (ni(*node)->m_balance != 0)
+            else if (ni(*m_node)->m_balance != 0)
             {
                 break; // ±1, height unchanged
             }
             // 0 — subtree shrank, continue up
-        }
+        } while (ni(*cur_item->m_node)->m_balance == 0);
     }
 };
-#endif
 
 struct __declspec(align(16)) cached_query_info_t // sizeof=0x30
 {                                       // XREF: gjk_query_output/r

@@ -2376,179 +2376,308 @@ const phys_vec3 *phys_gjk_geom::support_only(
     return result;
 }
 
-// local variable allocation has failed, the output may be wrong!
 void phys_gjk_info::comp_v(int w_set, phys_vec3 *v)
 {
-    char v5; // cl
-    int v6; // edi
-    float *p_y; // eax
-    float *v8; // eax
-    float *v9; // eax
-    double v10; // st7
+#if 0 // I believe this version has a slight bug (untested, uncompiled even) around array indexing of nside_sq[side_i].
+    //char w_set_; // cl
+    int list_w_vert_count; // edi
+    phys_vec3 *v7; // eax
+    phys_vec3 *v8; // eax
+    phys_vec3 *v9; // eax
+    double z; // st7
     double v11; // st7
     double v12; // st7
-    int v13; // esi
-    float *v14; // edi
+    int side_i; // esi
+    //float *v14; // edi
     int v15; // esi
-    float y; // [esp-Ch] [ebp-ACh] BYREF
-    float z; // [esp-8h] [ebp-A8h]
-    float w; // [esp-4h] [ebp-A4h]
-    phys_vec3 side[3]; // [esp+0h] [ebp-A0h] BYREF
-    phys_vec3 list_w_vert[3]; // [esp+30h] [ebp-70h]
-    float v21; // [esp+60h] [ebp-40h]
-    float v22; // [esp+64h] [ebp-3Ch]
-    float v23; // [esp+68h] [ebp-38h]
-    double ne1_sq; // [esp+6Ch] [ebp-34h] OVERLAPPED
-    float v25; // [esp+74h] [ebp-2Ch]
-    float v26; // [esp+78h] [ebp-28h]
-    float v27; // [esp+7Ch] [ebp-24h]
-    phys_vec3 normal; // [esp+80h] [ebp-20h] BYREF
-    float nside_sq[4]; // [esp+90h] [ebp-10h]
-    float retaddr; // [esp+A0h] [ebp+0h]
+    phys_vec3 sides[3]; // [esp-Ch] [ebp-ACh] BYREF
+    phys_vec3 list_w_vert[3]; // [esp+24h] [ebp-7Ch] BYREF
+    float ne1_sq; // [esp+60h] [ebp-40h]
+    float nnormal_sq; // [esp+64h] [ebp-3Ch]
+    float v20; // [esp+68h] [ebp-38h]
+    float v21; // [esp+6Ch] [ebp-34h] OVERLAPPED
+    float v22; // [esp+70h] [ebp-30h]
+    phys_vec3 normal; // [esp+74h] [ebp-2Ch]
+    phys_vec3 nside_sq; // [esp+84h] [ebp-1Ch] BYREF
+    //_UNKNOWN *v25; // [esp+94h] [ebp-Ch]
+    //int w_seta; // [esp+98h] [ebp-8h]
+    //int vars0; // [esp+A0h] [ebp+0h]
+    //
+    //v25 = a2;
+    //w_seta = vars0;
+    //w_set_ = w_set;
+    iassert(w_set > 0 && w_set < 15);
 
-    //nside_sq[1] = a2;
-    //nside_sq[2] = retaddr;
-    v5 = w_set;
-    if ( w_set <= 0 || w_set >= 15 )
+    list_w_vert_count = 0;
+    if ((w_set & 1) != 0)
     {
-        if ( _tlAssert("source/phys_gjk.cpp", 79, "w_set > 0 && w_set < 15", "") )
-            __debugbreak();
-        v5 = w_set;
+        list_w_vert[list_w_vert_count].x = this->m_w_verts[list_w_vert_count].x;
+        list_w_vert[list_w_vert_count].y = this->m_w_verts[list_w_vert_count].y;
+        list_w_vert[list_w_vert_count].z = this->m_w_verts[list_w_vert_count].z;
+        ++list_w_vert_count;
     }
-    v6 = 0;
-    if ( (v5 & 1) != 0 )
+    if ((w_set & 2) != 0)
     {
-        v6 = 1;
-        side[2].y = this->m_w_verts[0].x;
-        side[2].z = this->m_w_verts[0].y;
-        side[2].w = this->m_w_verts[0].z;
+        list_w_vert[list_w_vert_count].x = this->m_w_verts[1].x;
+        list_w_vert[list_w_vert_count].y = this->m_w_verts[1].y;
+        list_w_vert[list_w_vert_count].z = this->m_w_verts[1].z;
+        ++list_w_vert_count;
     }
-    if ( (v5 & 2) != 0 )
+    if ((w_set & 4) != 0)
     {
-        p_y = &side[v6 + 2].y;
-        *p_y = this->m_w_verts[1].x;
-        ++v6;
-        p_y[1] = this->m_w_verts[1].y;
-        p_y[2] = this->m_w_verts[1].z;
+        list_w_vert[list_w_vert_count].x = this->m_w_verts[2].x;
+        list_w_vert[list_w_vert_count].y = this->m_w_verts[2].y;
+        list_w_vert[list_w_vert_count].z = this->m_w_verts[2].z;
+        ++list_w_vert_count;
     }
-    if ( (v5 & 4) != 0 )
+    if ((w_set & 8) != 0)
     {
-        v8 = &side[v6 + 2].y;
-        *v8 = this->m_w_verts[2].x;
-        ++v6;
-        v8[1] = this->m_w_verts[2].y;
-        v8[2] = this->m_w_verts[2].z;
+        list_w_vert[list_w_vert_count].x = this->m_w_verts[3].x;
+        list_w_vert[list_w_vert_count].y = this->m_w_verts[3].y;
+        list_w_vert[list_w_vert_count].z = this->m_w_verts[3].z;
+        ++list_w_vert_count;
     }
-    if ( (v5 & 8) != 0 )
+
+    iassert(list_w_vert_count > 0 && list_w_vert_count < 4);
+
+    if (list_w_vert_count == 1)
     {
-        v9 = &side[v6 + 2].y;
-        *v9 = this->m_w_verts[3].x;
-        ++v6;
-        v9[1] = this->m_w_verts[3].y;
-        v9[2] = this->m_w_verts[3].z;
-    }
-    if ( (v6 <= 0 || v6 >= 4)
-        && _tlAssert("source/phys_gjk.cpp", 87, "list_w_vert_count > 0 && list_w_vert_count < 4", "") )
-    {
-        __debugbreak();
-    }
-    if ( v6 == 1 )
-    {
-        v->x = side[2].y;
-        v->y = side[2].z;
-        v->z = side[2].w;
+        v->x = list_w_vert[0].x;
+        v->y = list_w_vert[0].y;
+        v->z = list_w_vert[0].z;
         return;
     }
-    normal.y = list_w_vert[0].y - side[2].y;
-    normal.z = list_w_vert[0].z - side[2].z;
-    normal.w = list_w_vert[0].w - side[2].w;
-    if ( v6 != 2 )
+
+    nside_sq.x = list_w_vert[1].x - list_w_vert[0].x;
+    nside_sq.y = list_w_vert[1].y - list_w_vert[0].y;
+    nside_sq.z = list_w_vert[1].z - list_w_vert[0].z;
+    if (list_w_vert_count != 2)
     {
-        if ( v6 != 3 && _tlAssert("source/phys_gjk.cpp", 103, "list_w_vert_count == 3", "") )
-            __debugbreak();
-        v22 = list_w_vert[1].y - side[2].y;
-        v23 = list_w_vert[1].z - side[2].z;
-        *(float *)&ne1_sq = list_w_vert[1].w - side[2].w;
-        v11 = *(float *)&ne1_sq;
-        v25 = *(float *)&ne1_sq * normal.z - v23 * normal.w;
-        v26 = normal.w * v22 - *(float *)&ne1_sq * normal.y;
-        v27 = v23 * normal.y - normal.z * v22;
-        ne1_sq = v27;
-        *((float *)&ne1_sq + 1) = v26 * v26 + v25 * v25 + ne1_sq * ne1_sq;
-        if ( *((float *)&ne1_sq + 1) > 0.010000001 )
+        iassert(list_w_vert_count == 3);
+
+        nnormal_sq = list_w_vert[2].x - list_w_vert[0].x;
+        v20 = list_w_vert[2].y - list_w_vert[0].y;
+        v21 = list_w_vert[2].z - list_w_vert[0].z;
+        v11 = v21;
+        normal.x = v21 * nside_sq.y - v20 * nside_sq.z;
+        normal.y = nside_sq.z * nnormal_sq - v21 * nside_sq.x;
+        normal.z = v20 * nside_sq.x - nside_sq.y * nnormal_sq;
+
+        v22 = normal.y * normal.y + normal.x * normal.x + normal.z * normal.z;
+        if (v22 > 0.010000001)
         {
-            v12 = *((float *)&ne1_sq + 1);
-            *((float *)&ne1_sq + 1) = v26 * side[2].z + v25 * side[2].y + v27 * side[2].w;
-            *((float *)&ne1_sq + 1) = *((float *)&ne1_sq + 1) / v12;
-            v25 = v25 * *((float *)&ne1_sq + 1);
-            v26 = v26 * *((float *)&ne1_sq + 1);
-            v27 = *((float *)&ne1_sq + 1) * v27;
-            v->x = v25;
-            v->y = v26;
-            v->z = v27;
+            v12 = v22;
+            v22 = normal.y * list_w_vert[0].y + normal.x * list_w_vert[0].x + normal.z * list_w_vert[0].z;
+            v22 = v22 / v12;
+            normal.x = normal.x * v22;
+            normal.y = normal.y * v22;
+            normal.z = v22 * normal.z;
+            v->x = normal.x;
+            v->y = normal.y;
+            v->z = normal.z;
             return;
         }
-        y = normal.y;
-        side[0].y = list_w_vert[1].y - list_w_vert[0].y;
-        w = normal.w;
-        z = normal.z;
-        side[0].x = nside_sq[0];
-        side[0].z = list_w_vert[1].z - list_w_vert[0].z;
-        side[0].w = list_w_vert[1].w - list_w_vert[0].w;
-        side[1].y = -v22;
-        side[1].z = -v23;
-        side[1].w = -v11;
-        normal.z = normal.z * normal.z + normal.y * normal.y + normal.w * normal.w;
-        normal.w = side[0].z * side[0].z + side[0].y * side[0].y + side[0].w * side[0].w;
-        nside_sq[0] = side[1].z * side[1].z + side[1].y * side[1].y + side[1].w * side[1].w;
-        if ( normal.w > (double)normal.z )
+        sides[0] = nside_sq;
+        sides[1].x = list_w_vert[2].x - list_w_vert[1].x;
+        sides[1].y = list_w_vert[2].y - list_w_vert[1].y;
+        sides[1].z = list_w_vert[2].z - list_w_vert[1].z;
+        sides[2].x = -nnormal_sq;
+        sides[2].y = -v20;
+        sides[2].z = -v11;
+        nside_sq.y = nside_sq.y * nside_sq.y + nside_sq.x * nside_sq.x + nside_sq.z * nside_sq.z;
+        nside_sq.z = sides[1].y * sides[1].y + sides[1].x * sides[1].x + sides[1].z * sides[1].z;
+        nside_sq.w = sides[2].y * sides[2].y + sides[2].x * sides[2].x + sides[2].z * sides[2].z;
+        if (nside_sq.z > (double)nside_sq.y)
         {
-            v13 = 1;
-            if ( nside_sq[0] <= (double)normal.w )
+            side_i = 1;
+            if (nside_sq.w <= (double)nside_sq.z)
                 goto LABEL_35;
         }
-        else if ( nside_sq[0] <= (double)normal.z )
+        else if (nside_sq.w <= (double)nside_sq.y)
         {
-            v13 = 0;
+            side_i = 0;
             goto LABEL_35;
         }
-        v13 = 2;
-LABEL_35:
-        v14 = &normal.z + v13;
-        if ( *v14 <= 0.0 && _tlAssert("source/phys_gjk.cpp", 137, "nside_sq[side_i] > 0.0f", "") )
-            __debugbreak();
-        v15 = v13;
-        *((float *)&ne1_sq + 1) = side[v15 + 2].z * *(float *)((char *)&z + v15 * 16)
-                                                        + side[v15 + 2].y * *(float *)((char *)&y + v15 * 16)
-                                                        + side[v15 + 2].w * *(float *)((char *)&w + v15 * 16);
-        *((float *)&ne1_sq + 1) = *((float *)&ne1_sq + 1) / *v14;
-        v25 = *((float *)&ne1_sq + 1) * *(float *)((char *)&y + v15 * 16);
-        v26 = *(float *)((char *)&y + v15 * 16 + 4) * *((float *)&ne1_sq + 1);
-        v27 = *((float *)&ne1_sq + 1) * *(float *)((char *)&w + v15 * 16);
-        normal.y = side[v15 + 2].y - v25;
-        normal.z = side[v15 + 2].z - v26;
-        v10 = side[v15 + 2].w;
+        side_i = 2;
+    LABEL_35:
+        iassert(nside_sq[side_i] > 0.0f);
+        //v14 = &nside_sq.y + side_i;
+        //if (*v14 <= 0.0 && _tlAssert("source/phys_gjk.cpp", 137, "nside_sq[side_i] > 0.0f", &toastPopupTitle))
+        //    __debugbreak();
+        v15 = side_i;
+        v22 = list_w_vert[v15].y * sides[v15].y + list_w_vert[v15].x * sides[v15].x + list_w_vert[v15].z * sides[v15].z;
+        v22 = v22 / nside_sq[side_i];
+        normal.x = v22 * sides[v15].x;
+        normal.y = sides[v15].y * v22;
+        normal.z = v22 * sides[v15].z;
+        nside_sq.x = list_w_vert[v15].x - normal.x;
+        nside_sq.y = list_w_vert[v15].y - normal.y;
+        z = list_w_vert[v15].z;
         goto LABEL_39;
     }
-    v21 = normal.z * normal.z + normal.y * normal.y + normal.w * normal.w;
-    if ( v21 <= 0.0 )
-    {
-        if ( _tlAssert("source/phys_gjk.cpp", 98, "ne1_sq > 0.0f", "") )
-            __debugbreak();
-    }
-    *((float *)&ne1_sq + 1) = normal.y * side[2].y + normal.z * side[2].z + normal.w * side[2].w;
-    *((float *)&ne1_sq + 1) = *((float *)&ne1_sq + 1) / v21;
-    v25 = normal.y * *((float *)&ne1_sq + 1);
-    v26 = normal.z * *((float *)&ne1_sq + 1);
-    v27 = normal.w * *((float *)&ne1_sq + 1);
-    normal.y = side[2].y - v25;
-    normal.z = side[2].z - v26;
-    v10 = side[2].w;
+    ne1_sq = nside_sq.y * nside_sq.y + nside_sq.x * nside_sq.x + nside_sq.z * nside_sq.z;
+    iassert(ne1_sq > 0.0f);
+
+    v22 = nside_sq.x * list_w_vert[0].x + nside_sq.y * list_w_vert[0].y + nside_sq.z * list_w_vert[0].z;
+    v22 = v22 / ne1_sq;
+    normal.x = nside_sq.x * v22;
+    normal.y = nside_sq.y * v22;
+    normal.z = nside_sq.z * v22;
+    nside_sq.x = list_w_vert[0].x - normal.x;
+    nside_sq.y = list_w_vert[0].y - normal.y;
+    z = list_w_vert[0].z;
 LABEL_39:
-    normal.w = v10 - v27;
-    v->x = normal.y;
-    v->y = normal.z;
-    v->z = normal.w;
+    nside_sq.z = z - normal.z;
+    v->x = nside_sq.x;
+    v->y = nside_sq.y;
+    v->z = nside_sq.z;
+#else // aislop
+    int list_w_vert_count; // edi
+    int side_i;            // esi
+    phys_vec3 sides[3];    // [ebp-ACh]
+    phys_vec3 list_w_vert[3]; // [ebp-7Ch]
+    float ne1_sq;          // [ebp-40h]
+    float nnormal_sq;      // [ebp-3Ch]
+    float e2x;             // [ebp-38h]  (list_w_vert[2] - list_w_vert[0])
+    float e2y;             // [ebp-34h]
+    float e2z;             // [ebp-30h]
+    phys_vec3 normal;      // [ebp-2Ch]
+    float t;               // [ebp-24h]  (scratch: dot/len ratio)
+    float sq_lens[3];      // [ebp-Ch]   side squared lengths
+
+    iassert(w_set > 0 && w_set < 15);
+
+    list_w_vert_count = 0;
+    if (w_set & 1)
+    {
+        list_w_vert[0].x = this->m_w_verts[0].x;
+        list_w_vert[0].y = this->m_w_verts[0].y;
+        list_w_vert[0].z = this->m_w_verts[0].z;
+        list_w_vert_count = 1;
+    }
+    if (w_set & 2)
+    {
+        list_w_vert[list_w_vert_count].x = this->m_w_verts[1].x;
+        list_w_vert[list_w_vert_count].y = this->m_w_verts[1].y;
+        list_w_vert[list_w_vert_count].z = this->m_w_verts[1].z;
+        ++list_w_vert_count;
+    }
+    if (w_set & 4)
+    {
+        list_w_vert[list_w_vert_count].x = this->m_w_verts[2].x;
+        list_w_vert[list_w_vert_count].y = this->m_w_verts[2].y;
+        list_w_vert[list_w_vert_count].z = this->m_w_verts[2].z;
+        ++list_w_vert_count;
+    }
+    if (w_set & 8)
+    {
+        list_w_vert[list_w_vert_count].x = this->m_w_verts[3].x;
+        list_w_vert[list_w_vert_count].y = this->m_w_verts[3].y;
+        list_w_vert[list_w_vert_count].z = this->m_w_verts[3].z;
+        ++list_w_vert_count;
+    }
+
+    iassert(list_w_vert_count > 0 && list_w_vert_count < 4);
+
+    if (list_w_vert_count == 1)
+    {
+        v->x = list_w_vert[0].x;
+        v->y = list_w_vert[0].y;
+        v->z = list_w_vert[0].z;
+        return;
+    }
+
+    // edge w[1] - w[0], stored into sides[0] temporarily via nside regs
+    sides[0].x = list_w_vert[1].x - list_w_vert[0].x;
+    sides[0].y = list_w_vert[1].y - list_w_vert[0].y;
+    sides[0].z = list_w_vert[1].z - list_w_vert[0].z;
+
+    if (list_w_vert_count != 2)
+    {
+        iassert(list_w_vert_count == 3);
+
+        // edge w[2] - w[0]
+        nnormal_sq = list_w_vert[2].x - list_w_vert[0].x;
+        e2x = nnormal_sq;
+        e2y = list_w_vert[2].y - list_w_vert[0].y;
+        e2z = list_w_vert[2].z - list_w_vert[0].z;
+
+        // cross product: normal = (w[1]-w[0]) x (w[2]-w[0])
+        normal.x = e2z * sides[0].y - e2y * sides[0].z;
+        normal.y = sides[0].z * nnormal_sq - e2z * sides[0].x;
+        normal.z = e2y * sides[0].x - sides[0].y * nnormal_sq;
+
+        float normal_sq = normal.x * normal.x + normal.y * normal.y + normal.z * normal.z;
+        if (normal_sq > 0.010000001f)
+        {
+            // project origin onto plane: v = normal * (dot(normal, w[0]) / |normal|^2)
+            t = (normal.x * list_w_vert[0].x + normal.y * list_w_vert[0].y + normal.z * list_w_vert[0].z) / normal_sq;
+            v->x = normal.x * t;
+            v->y = normal.y * t;
+            v->z = normal.z * t;
+            return;
+        }
+
+        // degenerate triangle — fall back to closest point on longest edge
+        // sides[0] already = w[1]-w[0], built above
+        sides[1].x = list_w_vert[2].x - list_w_vert[1].x;
+        sides[1].y = list_w_vert[2].y - list_w_vert[1].y;
+        sides[1].z = list_w_vert[2].z - list_w_vert[1].z;
+        sides[2].x = -e2x;   // w[0]-w[2]
+        sides[2].y = -e2y;
+        sides[2].z = -e2z;
+
+        sq_lens[0] = sides[0].x * sides[0].x + sides[0].y * sides[0].y + sides[0].z * sides[0].z;
+        sq_lens[1] = sides[1].x * sides[1].x + sides[1].y * sides[1].y + sides[1].z * sides[1].z;
+        sq_lens[2] = sides[2].x * sides[2].x + sides[2].y * sides[2].y + sides[2].z * sides[2].z;
+
+        if (sq_lens[1] > sq_lens[0])
+        {
+            side_i = 1;
+            if (sq_lens[2] <= sq_lens[1])
+                goto LABEL_35;
+        }
+        else if (sq_lens[2] <= sq_lens[0])
+        {
+            side_i = 0;
+            goto LABEL_35;
+        }
+        side_i = 2;
+
+    LABEL_35:
+        iassert(sq_lens[side_i] > 0.0f);
+
+        // project origin onto edge: t = dot(w[side_i], sides[side_i]) / sq_lens[side_i]
+        t = list_w_vert[side_i].dot(sides[side_i]) / sq_lens[side_i];
+        normal.x = sides[side_i].x * t;
+        normal.y = sides[side_i].y * t;
+        normal.z = sides[side_i].z * t;
+        // closest = w[side_i] - proj
+        sides[0].x = list_w_vert[side_i].x - normal.x;
+        sides[0].y = list_w_vert[side_i].y - normal.y;
+        float vz = list_w_vert[side_i].z;
+        sides[0].z = vz - normal.z;
+        v->x = sides[0].x;
+        v->y = sides[0].y;
+        v->z = sides[0].z;
+        return;
+    }
+
+    // 2-vertex case: project origin onto line segment w[0]->w[1]
+    // sides[0] = w[1]-w[0] already computed above
+    ne1_sq = sides[0].x * sides[0].x + sides[0].y * sides[0].y + sides[0].z * sides[0].z;
+    iassert(ne1_sq > 0.0f);
+
+    // t = dot(w[0], edge) / |edge|^2
+    t = list_w_vert[0].dot(sides[0]) / ne1_sq;
+    normal.x = sides[0].x * t;
+    normal.y = sides[0].y * t;
+    normal.z = sides[0].z * t;
+    // closest = w[0] - proj
+    v->x = list_w_vert[0].x - normal.x;
+    v->y = list_w_vert[0].y - normal.y;
+    v->z = list_w_vert[0].z - normal.z;
+#endif
 }
 
 int phys_gjk_info::init_gjk(

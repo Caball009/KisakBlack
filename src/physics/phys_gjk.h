@@ -377,12 +377,17 @@ struct create_gjk_geom_collision_visitor : gjk_collision_visitor // sizeof=0x8
         return 0;
     }
 
-    bool query_create_prolog(const void *geom) override
+    virtual bool query_create_prolog(const void *geom) override
     {
-        return 1;
+        return true;
     }
 
-    void query_create_epilog(gjk_base_t *gjk_geom) override
+    //virtual bool query_create_prolog_1(const float *, const float *, const void *) override
+    //{
+    //    return true;
+    //}
+
+    virtual void query_create_epilog_1(gjk_base_t *gjk_geom) override
     {
         this->gjk_geom_list->add_geom(gjk_geom);
     }

@@ -584,120 +584,158 @@ rigid_body_constraint_contact *__cdecl phys_sys::create_rbc_contact(
                      "OUT_OF_MEMORY, rbc_contact, INCREASE phys_mem_info::m_num_rbc_contact.");
 }
 
+void __cdecl phys_sys::destroy(rigid_body *const rb)
+{
+    phys_sys::destroy_all_constraint(rb);
+
+    if (rb)
+    {
+        using TI = phys_free_list<rigid_body>::T_internal;
+        static_assert(sizeof(TI) == 0x180);
+        TI *ti = (TI *)((char *)rb - offsetof(TI, m_data));
+        PMM_VALIDATE((char *)ti, sizeof(TI), 0x10u);
+
+        g_physics_system->m_list_rigid_body.remove(ti);
+    }
+}
+static_assert(offsetof(phys_free_list<rigid_body>::T_internal, m_data) == 0x10, "offset mismatch");
+static_assert(sizeof(phys_free_list<rigid_body>::T_internal) == 0x180, "size mismatch");
+
+void __cdecl phys_sys::destroy(user_rigid_body *const rb)
+{
+    phys_sys::destroy_all_constraint(rb);
+
+    if (rb)
+    {
+        using TI = phys_free_list<user_rigid_body>::T_internal;
+        static_assert(sizeof(TI) == 0x1D0);
+        TI *ti = (TI *)((char *)rb - offsetof(TI, m_data));
+        PMM_VALIDATE((char *)ti, sizeof(TI), 0x10u);
+
+        g_physics_system->m_list_user_rigid_body.remove(ti);
+    }
+}
+static_assert(offsetof(phys_free_list<user_rigid_body>::T_internal, m_data) == 0x10, "offset mismatch");
+static_assert(sizeof(phys_free_list<user_rigid_body>::T_internal) == 0x1D0, "size mismatch");
+
+void __cdecl phys_sys::destroy(rigid_body_constraint_contact *const rbc)
+{
+    using TI = phys_free_list<rigid_body_constraint_contact>::T_internal;
+    static_assert(sizeof(TI) == 0x38);
+
+    if (rbc)
+    {
+        TI *ti = (TI *)((char *)rbc - offsetof(TI, m_data));
+        PMM_VALIDATE((char *)ti, sizeof(TI), 4u);
+        g_physics_system->m_list_rbc_contact.remove(ti);
+    }
+}
+
 void __cdecl phys_sys::destroy(rigid_body_constraint_point *const rbc)
 {
-    phys_free_list<rigid_body_constraint_point> *p_m_list_rbc_point; // edi
-
-    p_m_list_rbc_point = &g_physics_system->m_list_rbc_point;
-    if ( rbc )
+    using TI = phys_free_list<rigid_body_constraint_point>::T_internal;
+    static_assert(sizeof(TI) == 0x70);
+    if (rbc)
     {
-        PMM_VALIDATE((char *)&rbc[-1].m_spring_k, 0x70u, 0x10u);
-        //phys_free_list<rigid_body_constraint_point>::remove(p_m_list_rbc_point, (phys_free_list<rigid_body_constraint_point>::T_internal *)&rbc[-1].m_spring_k);
-        p_m_list_rbc_point->remove((phys_free_list<rigid_body_constraint_point>::T_internal *) &rbc[-1].m_spring_k);
+        TI *ti = (TI *)((char *)rbc - offsetof(TI, m_data));
+        PMM_VALIDATE((char *)ti, sizeof(TI), 0x10u);
+        g_physics_system->m_list_rbc_point.remove(ti);
     }
 }
 
 void __cdecl phys_sys::destroy(rigid_body_constraint_hinge *const rbc)
 {
-    phys_free_list<rigid_body_constraint_wheel> *p_m_list_rbc_hinge; // edi
-
-    p_m_list_rbc_hinge = (phys_free_list<rigid_body_constraint_wheel> *)&g_physics_system->m_list_rbc_hinge;
-    if ( rbc )
+    using TI = phys_free_list<rigid_body_constraint_hinge>::T_internal;
+    static_assert(sizeof(TI) == 0xF0);
+    if (rbc)
     {
-        PMM_VALIDATE((char *)&rbc[-1].m_ps_cache[6], 0xF0u, 0x10u);
-        //phys_free_list<rigid_body_constraint_wheel>::remove(p_m_list_rbc_hinge, (phys_free_list<rigid_body_constraint_wheel>::T_internal *)&rbc[-1].m_ps_cache[6]);
-        p_m_list_rbc_hinge->remove((phys_free_list<rigid_body_constraint_wheel>::T_internal *) &rbc[-1].m_ps_cache[6]);
+        TI *ti = (TI *)((char *)rbc - offsetof(TI, m_data));
+        PMM_VALIDATE((char *)ti, sizeof(TI), 0x10u);
+        g_physics_system->m_list_rbc_hinge.remove(ti);
     }
 }
 
 void __cdecl phys_sys::destroy(rigid_body_constraint_distance *const rbc)
 {
-    phys_free_list<broad_phase_group> *p_m_list_rbc_dist; // edi
-
-    p_m_list_rbc_dist = (phys_free_list<broad_phase_group> *)&g_physics_system->m_list_rbc_dist;
-    if ( rbc )
+    using TI = phys_free_list<rigid_body_constraint_distance>::T_internal;
+    static_assert(sizeof(TI) == 0x80);
+    if (rbc)
     {
-        PMM_VALIDATE((char *)&rbc[-1].m_ps_cache_list[2], 0x80u, 0x10u);
-        //phys_free_list<broad_phase_group>::remove(p_m_list_rbc_dist, (phys_free_list<broad_phase_group>::T_internal *)&rbc[-1].m_ps_cache_list[2]);
-        p_m_list_rbc_dist->remove((phys_free_list<broad_phase_group>::T_internal *) &rbc[-1].m_ps_cache_list[2]);
+        TI *ti = (TI *)((char *)rbc - offsetof(TI, m_data));
+        PMM_VALIDATE((char *)ti, sizeof(TI), 0x10u);
+        g_physics_system->m_list_rbc_dist.remove(ti);
     }
 }
 
 void __cdecl phys_sys::destroy(rigid_body_constraint_ragdoll *const rbc)
 {
-    phys_free_list<rigid_body_constraint_ragdoll> *p_m_list_rbc_ragdoll; // edi
-
-    p_m_list_rbc_ragdoll = &g_physics_system->m_list_rbc_ragdoll;
-    if ( rbc )
+    using TI = phys_free_list<rigid_body_constraint_ragdoll>::T_internal;
+    static_assert(sizeof(TI) == 0x140);
+    if (rbc)
     {
-        PMM_VALIDATE((char *)&rbc[-1].m_joint_limits_count, 0x140u, 0x10u);
-        //phys_free_list<rigid_body_constraint_ragdoll>::remove(p_m_list_rbc_ragdoll, (phys_free_list<rigid_body_constraint_ragdoll>::T_internal *)&rbc[-1].m_joint_limits_count);
-        p_m_list_rbc_ragdoll->remove((phys_free_list<rigid_body_constraint_ragdoll>::T_internal *) &rbc[-1].m_joint_limits_count);
+        TI *ti = (TI *)((char *)rbc - offsetof(TI, m_data));
+        PMM_VALIDATE((char *)ti, sizeof(TI), 0x10u);
+        g_physics_system->m_list_rbc_ragdoll.remove(ti);
     }
 }
 
 void __cdecl phys_sys::destroy(rigid_body_constraint_wheel *const rbc)
 {
-    phys_free_list<rigid_body_constraint_wheel> *p_m_list_rbc_wheel; // edi
-
-    p_m_list_rbc_wheel = &g_physics_system->m_list_rbc_wheel;
-    if ( rbc )
+    using TI = phys_free_list<rigid_body_constraint_wheel>::T_internal;
+    static_assert(sizeof(TI) == 0xF0);
+    if (rbc)
     {
-        PMM_VALIDATE((char *)&rbc[-1].m_ps_cache_list[3], 0xF0u, 0x10u);
-        //phys_free_list<rigid_body_constraint_wheel>::remove(p_m_list_rbc_wheel, (phys_free_list<rigid_body_constraint_wheel>::T_internal *)&rbc[-1].m_ps_cache_list[3]);
-        p_m_list_rbc_wheel->remove((phys_free_list<rigid_body_constraint_wheel>::T_internal *) &rbc[-1].m_ps_cache_list[3]);
+        TI *ti = (TI *)((char *)rbc - offsetof(TI, m_data));
+        PMM_VALIDATE((char *)ti, sizeof(TI), 0x10u);
+        g_physics_system->m_list_rbc_wheel.remove(ti);
     }
 }
 
 void __cdecl phys_sys::destroy(rigid_body_constraint_angular_actuator *const rbc)
 {
-    phys_free_list<rigid_body_constraint_angular_actuator> *p_m_list_rbc_angular_actuator; // edi
-
-    p_m_list_rbc_angular_actuator = &g_physics_system->m_list_rbc_angular_actuator;
-    if ( rbc )
+    using TI = phys_free_list<rigid_body_constraint_angular_actuator>::T_internal;
+    static_assert(sizeof(TI) == 0xE0);
+    if (rbc)
     {
-        PMM_VALIDATE((char *)&rbc[-1].m_ps_cache_list[1], 0xE0u, 0x10u);
-        //phys_free_list<rigid_body_constraint_angular_actuator>::remove(p_m_list_rbc_angular_actuator, (phys_free_list<rigid_body_constraint_angular_actuator>::T_internal *)&rbc[-1].m_ps_cache_list[1]);
-        p_m_list_rbc_angular_actuator->remove((phys_free_list<rigid_body_constraint_angular_actuator>::T_internal *) &rbc[-1].m_ps_cache_list[1]);
+        TI *ti = (TI *)((char *)rbc - offsetof(TI, m_data));
+        PMM_VALIDATE((char *)ti, sizeof(TI), 0x10u);
+        g_physics_system->m_list_rbc_angular_actuator.remove(ti);
     }
 }
 
 void __cdecl phys_sys::destroy(rigid_body_constraint_upright *const rbc)
 {
-    phys_free_list<rigid_body_constraint_upright> *p_m_list_rbc_upright; // edi
-
-    p_m_list_rbc_upright = &g_physics_system->m_list_rbc_upright;
-    if ( rbc )
+    using TI = phys_free_list<rigid_body_constraint_upright>::T_internal;
+    static_assert(sizeof(TI) == 0xD0);
+    if (rbc)
     {
-        PMM_VALIDATE((char *)rbc[-1].m_ps_cache_list, 0xD0u, 0x10u);
-        //phys_free_list<rigid_body_constraint_upright>::remove(p_m_list_rbc_upright, (phys_free_list<rigid_body_constraint_upright>::T_internal *)rbc[-1].m_ps_cache_list);
-        p_m_list_rbc_upright->remove((phys_free_list<rigid_body_constraint_upright>::T_internal *)rbc[-1].m_ps_cache_list);
+        TI *ti = (TI *)((char *)rbc - offsetof(TI, m_data));
+        PMM_VALIDATE((char *)ti, sizeof(TI), 0x10u);
+        g_physics_system->m_list_rbc_upright.remove(ti);
     }
 }
 
 void __cdecl phys_sys::destroy(rigid_body_constraint_custom_orientation *const rbc)
 {
-    phys_free_list<rigid_body_constraint_custom_orientation> *p_m_list_rbc_custom_orientation; // edi
-
-    p_m_list_rbc_custom_orientation = &g_physics_system->m_list_rbc_custom_orientation;
-    if ( rbc )
+    using TI = phys_free_list<rigid_body_constraint_custom_orientation>::T_internal;
+    static_assert(sizeof(TI) == 0x3C);
+    if (rbc)
     {
-        PMM_VALIDATE((char *)&rbc[-1].m_torque_resistance_yaw, 0x3Cu, 4u);
-        //phys_free_list<rigid_body_constraint_custom_orientation>::remove(p_m_list_rbc_custom_orientation, (phys_free_list<rigid_body_constraint_custom_orientation>::T_internal *)&rbc[-1].m_torque_resistance_yaw);
-        p_m_list_rbc_custom_orientation->remove((phys_free_list<rigid_body_constraint_custom_orientation>::T_internal *) &rbc[-1].m_torque_resistance_yaw);
+        TI *ti = (TI *)((char *)rbc - offsetof(TI, m_data));
+        PMM_VALIDATE((char *)ti, sizeof(TI), 4u);
+        g_physics_system->m_list_rbc_custom_orientation.remove(ti);
     }
 }
 
 void __cdecl phys_sys::destroy(rigid_body_constraint_custom_path *const rbc)
 {
-    phys_free_list<rigid_body_constraint_custom_path> *p_m_list_rbc_custom_path; // edi
-
-    p_m_list_rbc_custom_path = &g_physics_system->m_list_rbc_custom_path;
-    if ( rbc )
+    using TI = phys_free_list<rigid_body_constraint_custom_path>::T_internal;
+    static_assert(sizeof(TI) == 0xA0);
+    if (rbc)
     {
-        PMM_VALIDATE((char *)&rbc[-1].m_list_psc[3], 0xA0u, 0x10u);
-        //phys_free_list<rigid_body_constraint_custom_path>::remove(p_m_list_rbc_custom_path, (phys_free_list<rigid_body_constraint_custom_path>::T_internal *)&rbc[-1].m_list_psc[3]);
-        p_m_list_rbc_custom_path->remove((phys_free_list<rigid_body_constraint_custom_path>::T_internal *) &rbc[-1].m_list_psc[3]);
+        TI *ti = (TI *)((char *)rbc - offsetof(TI, m_data));
+        PMM_VALIDATE((char *)ti, sizeof(TI), 0x10u);
+        g_physics_system->m_list_rbc_custom_path.remove(ti);
     }
 }
 
@@ -984,19 +1022,6 @@ rigid_body_constraint_custom_path *__cdecl phys_sys::create_rbc_custom_path(
         result->b2 = b2;
     }
     return result;
-}
-
-void __cdecl phys_sys::destroy(rigid_body_constraint_contact *const rbc)
-{
-    phys_free_list<rigid_body_constraint_contact> *p_m_list_rbc_contact; // edi
-
-    p_m_list_rbc_contact = &g_physics_system->m_list_rbc_contact;
-    if ( rbc )
-    {
-        PMM_VALIDATE((char *)&rbc[-1].m_avl_key, 0x38u, 4u);
-        //phys_free_list<rigid_body_constraint_contact>::remove(p_m_list_rbc_contact, (phys_free_list<rigid_body_constraint_contact>::T_internal *)&rbc[-1].m_avl_key);
-        p_m_list_rbc_contact->remove((phys_free_list<rigid_body_constraint_contact>::T_internal *) &rbc[-1].m_avl_key);
-    }
 }
 
 void __cdecl phys_sys::destroy_all_rigid_body()
@@ -2471,35 +2496,6 @@ void __cdecl phys_sys::destroy_all_constraint_with_user_rigid_body(rigid_body *c
         {
             v73 = v73->m_next_T_internal;
         }
-    }
-}
-
-void __cdecl phys_sys::destroy(rigid_body *const rb)
-{
-    phys_free_list<rigid_body> *p_m_list_rigid_body; // edi
-
-    //phys_sys::destroy_all_constraint(rb);
-    phys_sys::destroy_all_constraint(rb);
-    p_m_list_rigid_body = &g_physics_system->m_list_rigid_body;
-    if ( rb )
-    {
-        PMM_VALIDATE((char *)&rb[-1].m_partition_node.m_partition_head, 0x180u, 0x10u);
-        //phys_free_list<rigid_body>::remove(p_m_list_rigid_body, (phys_free_list<rigid_body>::T_internal *)&rb[-1].m_partition_node.m_partition_head);
-        p_m_list_rigid_body->remove((phys_free_list<rigid_body>::T_internal *) &rb[-1].m_partition_node.m_partition_head);
-    }
-}
-
-void __cdecl phys_sys::destroy(user_rigid_body *const rb)
-{
-    phys_free_list<rigid_body> *p_m_list_rigid_body; // edi
-
-    phys_sys::destroy_all_constraint(rb);
-    p_m_list_rigid_body = &g_physics_system->m_list_rigid_body;
-    if (rb)
-    {
-        PMM_VALIDATE((char *)&rb[-1].m_partition_node.m_partition_head, 0x180u, 0x10u);
-        //phys_free_list<rigid_body>::remove(p_m_list_rigid_body, (phys_free_list<rigid_body>::T_internal *) & rb[-1].m_partition_node.m_partition_head);
-        p_m_list_rigid_body->remove((phys_free_list<rigid_body>::T_internal *) &rb[-1].m_partition_node.m_partition_head);
     }
 }
 

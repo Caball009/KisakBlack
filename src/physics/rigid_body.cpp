@@ -40,16 +40,20 @@ void rigid_body::set_mass(float mass)
 
 void user_rigid_body::setPosition(const phys_mat44 *const dictator)
 {
-    this->m_dictator_mat.x.x = dictator->x.x;
     this->m_dictator = &this->m_dictator_mat;
+
+    this->m_dictator_mat.x.x = dictator->x.x;
     this->m_dictator_mat.x.y = dictator->x.y;
     this->m_dictator_mat.x.z = dictator->x.z;
+
     this->m_dictator_mat.y.x = dictator->y.x;
     this->m_dictator_mat.y.y = dictator->y.y;
     this->m_dictator_mat.y.z = dictator->y.z;
+
     this->m_dictator_mat.z.x = dictator->z.x;
     this->m_dictator_mat.z.y = dictator->z.y;
     this->m_dictator_mat.z.z = dictator->z.z;
+
     this->m_dictator_mat.w.x = dictator->w.x;
     this->m_dictator_mat.w.y = dictator->w.y;
     this->m_dictator_mat.w.z = dictator->w.z;

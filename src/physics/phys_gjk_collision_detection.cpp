@@ -549,7 +549,7 @@ broad_phase_environment_info *__thiscall bpei_database_t::get_bpei(bpei_database
 broad_phase_environment_info *__thiscall bpei_database_t::create_bpei(bpei_database_id database_id)
 {
     broad_phase_environment_info *bpei; // [esp+154h] [ebp-4h]
-
+    
     //bpei = phys_simple_allocator<broad_phase_environment_info>::allocate(&this->m_bpei_allocator);
     bpei = this->m_bpei_allocator.allocate();
     //phys_inplace_avl_tree<bpei_database_id, broad_phase_environment_info, broad_phase_environment_info::avl_tree_accessor>::add(&this->m_bpei_map, &database_id, bpei);

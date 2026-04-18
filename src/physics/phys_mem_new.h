@@ -2,7 +2,7 @@
 #include "phys_local.h"
 #include <tl/tl_system.h>
 
-volatile struct tagged_void_pointer_t // sizeof=0x8
+struct tagged_void_pointer_t // sizeof=0x8
 {                                       // XREF: phys_slot_pool/r
     void *m_ptr;
     unsigned int m_tag;
@@ -16,15 +16,14 @@ volatile struct tagged_void_pointer_t // sizeof=0x8
     }
 };
 
-struct phys_slot_pool // sizeof=0x18
+struct alignas(8) phys_slot_pool // sizeof=0x18
 {                                       // XREF: phys_memory_manager/r
     struct extra_info // sizeof=0x8
     {
         phys_slot_pool *m_slot_pool_owner;
         void *m_allocation_owner;
     };
-    //volatile tagged_void_pointer_t m_first_free_slot;
-    tagged_void_pointer_t m_first_free_slot;
+    volatile tagged_void_pointer_t m_first_free_slot;
     unsigned int m_map_key;
     phys_slot_pool *m_hash_next;
     volatile unsigned int m_total_slot_count;
@@ -47,6 +46,7 @@ struct phys_slot_pool // sizeof=0x18
     void  free_slot(unsigned __int8 *slot);
     char *allocate_slot();
 };
+static_assert(sizeof(phys_slot_pool) == 0x18);
 
 struct phys_memory_manager // sizeof=0x3D0
 {
@@ -61,7 +61,7 @@ struct phys_memory_manager // sizeof=0x3D0
     // padding byte
     // padding byte
     // padding byte
-    phys_slot_pool m_list_preallocated_slot_pools[28];
+    alignas(8) phys_slot_pool m_list_preallocated_slot_pools[28];
     int m_list_preallocated_slot_pools_count;
     // padding byte
     // padding byte
@@ -75,17 +75,17 @@ struct phys_memory_manager // sizeof=0x3D0
     phys_slot_pool *get_slot_pool(unsigned int slot_size, unsigned int slot_alignment);
 };
 
+static_assert(sizeof(phys_memory_manager) == 0x3D0);
+
 void __cdecl phys_memory_manager_term();
 void __cdecl ppu_pmm_get_linear_buffer(char ***linear_buffer_cur, char **linear_buffer_end);
-void __cdecl PSP_FREE(phys_slot_pool *slot_pool, unsigned __int8 *slot);
 void __cdecl transient_allocator_update_largest_size();
 
 void *__cdecl PMM_PERM_ALLOCATE(unsigned int size, unsigned int alignment);
-// bad sp value at call has been detected, the output may be wrong!
 char *__cdecl PMM_ALLOC(unsigned int size, unsigned int alignment);
 void __cdecl PMM_FREE(unsigned __int8 *ptr, unsigned int size, unsigned int alignment);
-// bad sp value at call has been detected, the output may be wrong!
 char *__cdecl PSP_ALLOC(phys_slot_pool *slot_pool);
+void __cdecl PSP_FREE(phys_slot_pool *slot_pool, unsigned __int8 *slot);
 phys_slot_pool *__cdecl GET_PHYS_SLOT_POOL(unsigned int size, unsigned int alignment);
 void __cdecl PMM_VALIDATE(char *ptr, unsigned int size, unsigned int alignment);
 
