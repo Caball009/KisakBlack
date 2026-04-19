@@ -887,114 +887,68 @@ void Mount_CheckLedge(pmove_t *pm, pml_t *pml, MantleResults *mresults)
 
 char    Mantle_FindMantleSurface(pmove_t *pm, pml_t *pml, trace_t *trace, float *mantleDir)
 {
-    double v6; // xmm0_8
-    long double v7; // [esp-14h] [ebp-8Ch]
-    float v8; // [esp-8h] [ebp-80h]
-    float v9; // [esp-4h] [ebp-7Ch] BYREF
-    float dot; // [esp+0h] [ebp-78h]
-    float len; // [esp+4h] [ebp-74h]
-    float end[4]; // [esp+8h] [ebp-70h] BYREF
-    float start[3]; // [esp+18h] [ebp-60h] BYREF
-    float v14; // [esp+24h] [ebp-54h]
-    float v15; // [esp+28h] [ebp-50h]
-    float traceDir[3]; // [esp+2Ch] [ebp-4Ch] BYREF
-    float traceDist; // [esp+38h] [ebp-40h]
-    float innerDist; // [esp+3Ch] [ebp-3Ch]
-    float maxs[3]; // [esp+40h] [ebp-38h]
-    float v20; // [esp+4Ch] [ebp-2Ch] BYREF
-    float v21; // [esp+50h] [ebp-28h]
-    int v22; // [esp+54h] [ebp-24h]
-    float mins[3]; // [esp+58h] [ebp-20h]
-    float v24; // [esp+64h] [ebp-14h]
+    float len; // [esp-8h] [ebp-80h]
+    float end[4]; // [esp-4h] [ebp-7Ch] BYREF
+    float start[5]; // [esp+Ch] [ebp-6Ch] BYREF
+    float traceDir[3]; // [esp+20h] [ebp-58h] BYREF
+    float traceDist; // [esp+2Ch] [ebp-4Ch]
+    float innerDist; // [esp+30h] [ebp-48h]
+    float maxs[3]; // [esp+34h] [ebp-44h] BYREF
+    int integer; // [esp+44h] [ebp-34h]
+    float mins[3]; // [esp+4Ch] [ebp-2Ch] BYREF
+    float playerRadius; // [esp+64h] [ebp-14h]
     playerState_s *ps; // [esp+68h] [ebp-10h]
-    //int v26; // [esp+6Ch] [ebp-Ch]
-    //float playerRadius; // [esp+70h] [ebp-8h]
-    //float retaddr; // [esp+78h] [ebp+0h]
 
-    //v26 = a1;
-    //playerRadius = retaddr;
     ps = pm->ps;
-    if ( !ps && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_mantle.cpp", 909, 0, "%s", "ps") )
-        __debugbreak();
-    v24 = playerMaxs[0];
-    //LODWORD(mins[2]) = mantle_check_radius->current.integer ^ _mask__NegFloat_;
-    mins[2] = -mantle_check_radius->current.value;
-    //LODWORD(mins[1]) = mantle_check_radius->current.integer ^ _mask__NegFloat_;
+
+    iassert(ps);
+
+    playerRadius = playerMaxs[0];
+    mins[0] = -mantle_check_radius->current.value;
     mins[1] = -mantle_check_radius->current.value;
-    mins[0] = 0.0;
-    v20 = mins[2];
-    v21 = mins[1];
-    v22 = 0;
-    maxs[2] = mantle_check_radius->current.value;
+    mins[2] = 0.0;
+
+    maxs[0] = mantle_check_radius->current.value;
     maxs[1] = mantle_check_radius->current.value;
-    maxs[0] = 70.0;
-    traceDir[2] = maxs[2];
-    traceDist = maxs[1];
-    innerDist = 70.0;
-    if ( (float)(70.0 - 0.0) < (float)(maxs[2] - mins[2])
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_mantle.cpp",
-                    917,
-                    0,
-                    "%s",
-                    "(maxs[0] - mins[0]) <= (playerMaxs[2] - playerMins[2])") )
-    {
-        __debugbreak();
-    }
-    if ( (float)(70.0 - 0.0) < (float)(traceDist - v21)
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_mantle.cpp",
-                    918,
-                    0,
-                    "%s",
-                    "(maxs[1] - mins[1]) <= (playerMaxs[2] - playerMins[2])") )
-    {
-        __debugbreak();
-    }
-    traceDir[1] = v24 - mantle_check_radius->current.value;
-    traceDir[0] = mantle_check_range->current.value + traceDir[1];
-    start[2] = pml->forward[0];
-    v14 = pml->forward[1];
-    v15 = 0.0f;
-    Vec3Normalize(&start[2]);
-    start[1] = -traceDir[1];
-    //LODWORD(start[0]) = ps->origin;
-    end[1] = (float)((-(traceDir[1])) * start[2]) + ps->origin[0];
-    end[2] = (float)((-(traceDir[1])) * v14) + ps->origin[1];
-    end[3] = (float)((-(traceDir[1])) * v15) + ps->origin[2];
-    //LODWORD(end[0]) = ps->origin;
-    v9 = (float)(traceDir[0] * start[2]) + ps->origin[0];
-    dot = (float)(traceDir[0] * v14) + ps->origin[1];
-    len = (float)(traceDir[0] * v15) + ps->origin[2];
-    PM_trace(pm, trace, &end[1], &v20, &traceDir[2], &v9, ps->clientNum, 0x1000000);
-    if ( trace->startsolid || trace->allsolid )
+    maxs[2] = 70.0;
+
+    iassert((maxs[0] - mins[0]) <= (playerMaxs[2] - playerMins[2]));
+    iassert((maxs[1] - mins[1]) <= (playerMaxs[2] - playerMins[2]));
+
+    innerDist = playerRadius - mantle_check_radius->current.value;
+    traceDist = mantle_check_range->current.value + innerDist;
+
+    traceDir[0] = pml->forward[0];
+    traceDir[1] = pml->forward[1];
+    traceDir[2] = 0.0f;
+
+    Vec3Normalize(traceDir);
+
+    Vec3Mad(ps->origin, -innerDist, traceDir, start);
+    Vec3Mad(ps->origin, traceDist, traceDir, end);
+
+    PM_trace(pm, trace, start, mins, maxs, end, ps->clientNum, 0x1000000);
+    if (trace->startsolid || trace->allsolid)
     {
         Mantle_DebugPrint("Mantle Failed: Mantle brush is too thick");
         return 0;
     }
-    else if ( trace->fraction == 1.0 )
+    else if (trace->fraction == 1.0)
     {
         Mantle_DebugPrint("Mantle Failed: No mantle surface found");
         return 0;
     }
-    else if ( (trace->sflags & 0x1C000000) != 0 )
+    else if ((trace->sflags & 0x1C000000) != 0)
     {
-        //*(unsigned int *)mantleDir = trace->normal.vec.u[0] ^ _mask__NegFloat_;
-        //*((unsigned int *)mantleDir + 1) = trace->normal.vec.u[1] ^ _mask__NegFloat_;
-        //*((unsigned int *)mantleDir + 2) = trace->normal.vec.u[2] ^ _mask__NegFloat_;
         mantleDir[0] = -trace->normal.vec.v[0];
         mantleDir[1] = -trace->normal.vec.v[1];
         mantleDir[2] = -trace->normal.vec.v[2];
         mantleDir[2] = 0.0f;
-        v8 = Vec3Normalize(mantleDir);
-        if ( v8 >= 0.000099999997 )
+        len = Vec3Normalize(mantleDir);
+        if (len >= 0.000099999997)
         {
-            v6 = (float)((float)((float)(start[2] * *mantleDir) + (float)(v14 * mantleDir[1])) + (float)(v15 * mantleDir[2]));
-            //__libm_sse2_acos(v7);
-            //*(float *)&v6 = v6;
-            //if ( (float)(*(float *)&v6 * 57.295776) <= mantle_check_angle->current.value )
-            v6 = acos(v6);
-            if ( (float)(v6 * 57.295776) <= mantle_check_angle->current.value )
+            float dot = Vec3Dot(traceDir, mantleDir);
+            if ((float)(acos(dot) * 57.295776) <= mantle_check_angle->current.value)
             {
                 return 1;
             }

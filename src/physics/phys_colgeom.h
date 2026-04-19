@@ -336,9 +336,11 @@ struct __declspec(align(16)) gjk_partition_t : gjk_base_t // sizeof=0x70
 
         const phys_vec3 *get_center(phys_vec3 *result) const
         {
-            // This doesn't exist for this class (right?)
-            iassert(0);
-            return NULL;
+            // This is technically "gjk_brush_t::get_center()" but dont see it in hierachy, maybe re-used name
+            result->x = 0.0f;
+            result->y = 0.0f;
+            result->z = 0.0f;
+            return result;
         }
 
         static gjk_partition_t *__cdecl create(const CollisionAabbTree *tree, gjk_collision_visitor *allocator);
@@ -560,8 +562,8 @@ struct __declspec(align(8)) gjk_polygon_cylinder_t : gjk_base_t // sizeof=0x80
 
         const phys_vec3 *get_center(phys_vec3 *result) const
         {
-            iassert(0);
-            return NULL;
+            *result = this->m_center; // This is "gjk_aabb_t::get_center()" in the decomp, but I dont see inheritance going that way, maybe reused function name
+            return result;
         }
         void get_feature(struct phys_contact_manifold *) const
         {
