@@ -63,6 +63,7 @@
 #include <bgame/bg_unlockable_items.h>
 #include <client/client.h>
 #include <server/sv_world.h>
+#include <cgame/cg_effects_load_obj.h>
 
 unsigned __int8 riflePriorityMap[19] = { 1u, 9u, 9u, 9u, 8u, 7u, 6u, 6u, 6u, 6u, 5u, 5u, 4u, 4u, 4u, 4u, 3u, 3u, 0u };
 
@@ -667,10 +668,10 @@ void __cdecl CG_RegisterWeapon(int localClientNum, unsigned int weaponNum)
             if ( !weapInfo->handModel )
                 weapInfo->handModel = weapDef->handXModel;
             weapInfo->item = &bg_itemlist[weaponNum];
-            if ( weapDef->hudIcon )
-                cgMedia.stanceMaterials[weaponNum - 2049] = weapDef->hudIcon;
+            if (weapDef->hudIcon)
+                cgMedia.hintMaterials[weaponNum + 7] = weapDef->hudIcon;
             else
-                cgMedia.stanceMaterials[weaponNum - 2049] = cgMedia.hintMaterials[3];
+                cgMedia.hintMaterials[weaponNum + 7] = cgMedia.hintMaterials[3];
             weapInfo->translatedDisplayName = SEH_StringEd_GetString((char*)weapVariantDef->szDisplayName);
             if ( !weapInfo->translatedDisplayName )
             {
@@ -6447,170 +6448,170 @@ void __cdecl CG_ImpactEffectForWeapon(
     const WeaponDef *weaponDef; // [esp+30h] [ebp-4h]
 
     weaponDef = BG_GetWeaponDef(weaponIndex);
-    if ( !weaponDef
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_weapons.cpp", 7163, 0, "%s", "weaponDef") )
+    if (!weaponDef
+        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_weapons.cpp", 7163, 0, "%s", "weaponDef"))
     {
         __debugbreak();
     }
-    if ( surfType >= 0x1F
+    if (surfType >= 0x1F
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_weapons.cpp",
-                    7164,
-                    0,
-                    "surfType doesn't index SURF_TYPECOUNT\n\t%i not in [0, %i)",
-                    surfType,
-                    31) )
+            "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_weapons.cpp",
+            7164,
+            0,
+            "surfType doesn't index SURF_TYPECOUNT\n\t%i not in [0, %i)",
+            surfType,
+            31))
     {
         __debugbreak();
     }
     fxType = -1;
     *outSnd = 0;
     impactType = weaponDef->impactType;
-    if ( (impactFlags & 8) != 0 )
+    if ((impactFlags & 8) != 0)
         impactType = 1;
-    switch ( impactType )
+    switch (impactType)
     {
-        case 1:
-            if ( (impactFlags & 4) != 0 )
-            {
-                fxType = 1;
-            }
-            else if ( (impactFlags & 8) != 0 )
-            {
-                fxType = 2;
-            }
-            else
-            {
-                fxType = 0;
-            }
-            if ( (impactFlags & 4) != 0 )
-                v11 = cgMedia.bulletExitSmallSound[surfType];
-            else
-                v11 = cgMedia.bulletHitSmallSound[surfType];
-            *outSnd = v11;
-            break;
-        case 2:
-            fxType = ((impactFlags & 4) != 0) + 3;
-            if ( (impactFlags & 4) != 0 )
-                v10 = cgMedia.bulletExitLargeSound[surfType];
-            else
-                v10 = cgMedia.bulletHitLargeSound[surfType];
-            *outSnd = v10;
-            break;
-        case 3:
-            fxType = ((impactFlags & 4) != 0) + 7;
-            if ( (impactFlags & 4) != 0 )
-                v9 = cgMedia.bulletExitAPSound[surfType];
-            else
-                v9 = cgMedia.bulletHitAPSound[surfType];
-            *outSnd = v9;
-            break;
-        case 4:
-            fxType = ((impactFlags & 4) != 0) + 9;
-            if ( (impactFlags & 4) != 0 )
-                v8 = cgMedia.bulletExitXTremeSound[surfType];
-            else
-                v8 = cgMedia.bulletHitXTremeSound[surfType];
-            *outSnd = v8;
-            break;
-        case 5:
-            fxType = ((impactFlags & 4) != 0) + 5;
-            if ( (impactFlags & 4) != 0 )
-                v7 = cgMedia.shotgunExitSound[surfType];
-            else
-                v7 = cgMedia.shotgunHitSound[surfType];
-            *outSnd = v7;
-            break;
-        case 6:
-            fxType = 11;
-            if ( weaponDef->bounceSound )
-                AliasId = SND_FindAliasId((char *)weaponDef->bounceSound[surfType]);
-            else
-                AliasId = SND_FindAliasId((char*)NULL);
-            *outSnd = AliasId;
-            break;
-        case 7:
-            fxType = 12;
-            *outSnd = cgMedia.grenadeExplodeSound[surfType];
-            break;
-        case 8:
-            fxType = 12;
-            *outSnd = cgMedia.rifleGrenadeSound[surfType];
-            break;
-        case 9:
-            fxType = 13;
-            *outSnd = cgMedia.rocketExplodeSound[surfType];
-            break;
-        case 10:
-            fxType = 14;
-            *outSnd = cgMedia.rocketExplodeSound[surfType];
-            break;
-        case 11:
-            fxType = 15;
-            *outSnd = SND_FindAliasId((char *)weaponDef->projDudSound);
-            break;
-        case 12:
-            fxType = 16;
-            if ( weaponDef->mortarShellSound )
-                *outSnd = SND_FindAliasId((char *)weaponDef->mortarShellSound);
-            else
-                *outSnd = cgMedia.mortarShellExplodeSound[surfType];
-            break;
-        case 13:
-            fxType = 17;
-            if ( weaponDef->tankShellSound )
-                *outSnd = SND_FindAliasId((char *)weaponDef->tankShellSound);
-            else
-                *outSnd = cgMedia.tankShellExplodeSound[surfType];
-            break;
-        case 14:
-            if ( (impactFlags & 4) != 0 )
-            {
-                fxType = 19;
-            }
-            else if ( (impactFlags & 8) != 0 )
-            {
-                fxType = 2;
-            }
-            else
-            {
-                fxType = 19;
-            }
-            if ( (impactFlags & 4) != 0 )
-                v6 = cgMedia.boltExitSound[surfType];
-            else
-                v6 = cgMedia.boltHitSound[surfType];
-            *outSnd = v6;
-            break;
-        case 15:
-            fxType = 20;
-            *outSnd = cgMedia.bladeHitSound[surfType];
-            break;
-        default:
-            break;
-    }
-    if ( fxType >= 0 )
-    {
-        if ( (impactFlags & 0x10) != 0 )
+    case 1:
+        if ((impactFlags & 4) != 0)
         {
-            if ( cgMedia.weaponImpactsTankArmorSound[impactType] )
-                *outSnd = cgMedia.weaponImpactsTankArmorSound[impactType];
+            fxType = 1;
         }
-        else if ( (impactFlags & 0x20) != 0 && cgMedia.weaponImpactsTankTreadSound[impactType] )
+        else if ((impactFlags & 8) != 0)
         {
-            *outSnd = cgMedia.weaponImpactsTankTreadSound[impactType];
-        }
-        if ( surfType == 7 )
-        {
-            if ( (impactFlags & 2) != 0 )
-                fleshType = (impactFlags & 1) != 0 ? 3 : 1;
-            else
-                fleshType = (impactFlags & 1) != 0 ? 2 : 0;
-            *outFx = *(const FxEffectDef **)(*(unsigned int *)&cgMedia.fxDogBlood->flags + 140 * fxType + 4 * fleshType + 124);
+            fxType = 2;
         }
         else
         {
-            *outFx = *(const FxEffectDef **)(*(unsigned int *)&cgMedia.fxDogBlood->flags + 140 * fxType + 4 * surfType);
+            fxType = 0;
+        }
+        if ((impactFlags & 4) != 0)
+            v11 = cgMedia.bulletExitSmallSound[surfType];
+        else
+            v11 = cgMedia.bulletHitSmallSound[surfType];
+        *outSnd = v11;
+        break;
+    case 2:
+        fxType = ((impactFlags & 4) != 0) + 3;
+        if ((impactFlags & 4) != 0)
+            v10 = cgMedia.bulletExitLargeSound[surfType];
+        else
+            v10 = cgMedia.bulletHitLargeSound[surfType];
+        *outSnd = v10;
+        break;
+    case 3:
+        fxType = ((impactFlags & 4) != 0) + 7;
+        if ((impactFlags & 4) != 0)
+            v9 = cgMedia.bulletExitAPSound[surfType];
+        else
+            v9 = cgMedia.bulletHitAPSound[surfType];
+        *outSnd = v9;
+        break;
+    case 4:
+        fxType = ((impactFlags & 4) != 0) + 9;
+        if ((impactFlags & 4) != 0)
+            v8 = cgMedia.bulletExitXTremeSound[surfType];
+        else
+            v8 = cgMedia.bulletHitXTremeSound[surfType];
+        *outSnd = v8;
+        break;
+    case 5:
+        fxType = ((impactFlags & 4) != 0) + 5;
+        if ((impactFlags & 4) != 0)
+            v7 = cgMedia.shotgunExitSound[surfType];
+        else
+            v7 = cgMedia.shotgunHitSound[surfType];
+        *outSnd = v7;
+        break;
+    case 6:
+        fxType = 11;
+        if (weaponDef->bounceSound)
+            AliasId = SND_FindAliasId((char *)weaponDef->bounceSound[surfType]);
+        else
+            AliasId = SND_FindAliasId((char*)0);
+        *outSnd = AliasId;
+        break;
+    case 7:
+        fxType = 12;
+        *outSnd = cgMedia.grenadeExplodeSound[surfType];
+        break;
+    case 8:
+        fxType = 12;
+        *outSnd = cgMedia.rifleGrenadeSound[surfType];
+        break;
+    case 9:
+        fxType = 13;
+        *outSnd = cgMedia.rocketExplodeSound[surfType];
+        break;
+    case 10:
+        fxType = 14;
+        *outSnd = cgMedia.rocketExplodeSound[surfType];
+        break;
+    case 11:
+        fxType = 15;
+        *outSnd = SND_FindAliasId((char *)weaponDef->projDudSound);
+        break;
+    case 12:
+        fxType = 16;
+        if (weaponDef->mortarShellSound)
+            *outSnd = SND_FindAliasId((char *)weaponDef->mortarShellSound);
+        else
+            *outSnd = cgMedia.mortarShellExplodeSound[surfType];
+        break;
+    case 13:
+        fxType = 17;
+        if (weaponDef->tankShellSound)
+            *outSnd = SND_FindAliasId((char *)weaponDef->tankShellSound);
+        else
+            *outSnd = cgMedia.tankShellExplodeSound[surfType];
+        break;
+    case 14:
+        if ((impactFlags & 4) != 0)
+        {
+            fxType = 19;
+        }
+        else if ((impactFlags & 8) != 0)
+        {
+            fxType = 2;
+        }
+        else
+        {
+            fxType = 19;
+        }
+        if ((impactFlags & 4) != 0)
+            v6 = cgMedia.boltExitSound[surfType];
+        else
+            v6 = cgMedia.boltHitSound[surfType];
+        *outSnd = v6;
+        break;
+    case 15:
+        fxType = 20;
+        *outSnd = cgMedia.bladeHitSound[surfType];
+        break;
+    default:
+        break;
+    }
+    if (fxType >= 0)
+    {
+        if ((impactFlags & 0x10) != 0)
+        {
+            if (cgMedia.weaponImpactsTankArmorSound[impactType])
+                *outSnd = cgMedia.weaponImpactsTankArmorSound[impactType];
+        }
+        else if ((impactFlags & 0x20) != 0 && cgMedia.weaponImpactsTankTreadSound[impactType])
+        {
+            *outSnd = cgMedia.weaponImpactsTankTreadSound[impactType];
+        }
+        if (surfType == 7)
+        {
+            if ((impactFlags & 2) != 0)
+                fleshType = (impactFlags & 1) != 0 ? 3 : 1;
+            else
+                fleshType = (impactFlags & 1) != 0 ? 2 : 0;
+            *outFx = cgMedia.fx->table[fxType].flesh[fleshType];
+        }
+        else
+        {
+            *outFx = cgMedia.fx->table[fxType].nonflesh[surfType];
         }
     }
     else

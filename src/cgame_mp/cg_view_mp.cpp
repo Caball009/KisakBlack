@@ -150,25 +150,22 @@ void __cdecl CG_DrawWaterTrail(int localClientNum, const float *pos, float water
     axis[0][0] = 0.0f;
     axis[0][1] = 0.0f;
     axis[0][2] = 1.0f;
-    //*(_QWORD *)&axis[0][1] = __PAIR64__(LODWORD(1.0f), 0);
     axis[1][0] = 0.0f;
     axis[1][1] = -1.0f;
-    //*(_QWORD *)&axis[1][0] = __PAIR64__(LODWORD(-1.0f), 0);
     axis[1][2] = 0.0f;
-
     axis[2][0] = 1.0f;
     axis[2][1] = 0.0f;
-    //*(_QWORD *)&axis[2][0] = __PAIR64__(0, LODWORD(1.0f));
     axis[2][2] = 0.0f;
-
-    fxPos[0] = *pos;
+    fxPos[0] = pos[0];
     fxPos[1] = pos[1];
     fxPos[2] = waterHeight;
-    if ( (float)(waterHeight - pos[2]) < cg_shallowWaterLevel )
+
+    if ((float)(waterHeight - pos[2]) < cg_shallowWaterLevel)
         waterEffect = 6;
     else
         waterEffect = 5;
-    FX_PlayOrientedEffect(localClientNum, cgMedia.physicsWaterEffects[waterEffect + 4], cgameGlob->time, fxPos, axis);
+
+    FX_PlayOrientedEffect(localClientNum, cgMedia.physicsWaterEffects[waterEffect], cgameGlob->time, fxPos, axis);
 }
 
 int __cdecl CG_GetNextRippleTime(centity_s *cent)

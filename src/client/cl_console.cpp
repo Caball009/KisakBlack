@@ -2575,8 +2575,8 @@ void __cdecl Con_DrawMessageLineOnHUD(
                     con_typewriterPrintSpeed->current.integer,
                     con_typewriterDecayStartTime->current.integer,
                     con_typewriterDecayDuration->current.integer,
-                    (Material *)cgMedia.physicsWaterEffects[2],
-                    (Material *)cgMedia.physicsWaterEffects[3]);
+                    cgMedia.textDecodeCharacters,
+                    cgMedia.textDecodeCharactersGlow);
             }
             else
             {

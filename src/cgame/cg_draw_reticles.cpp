@@ -106,9 +106,9 @@ char __cdecl CG_GetWeapReticleZoom(const cg_s *cgameGlob, float *zoom)
 void __cdecl CG_DrawNightVisionOverlay(int localClientNum)
 {
     CG_GetLocalClientGlobals(localClientNum);
-    if ( CG_LookingThroughNightVision(localClientNum) )
+    if (CG_LookingThroughNightVision(localClientNum))
     {
-        if ( cgMedia.hudDpadLeftHighlight )
+        if (cgMedia.nightVisionOverlay)
             CL_DrawStretchPic(
                 &scrPlaceView[localClientNum],
                 0.0,
@@ -122,7 +122,7 @@ void __cdecl CG_DrawNightVisionOverlay(int localClientNum)
                 1.0,
                 1.0,
                 colorWhite,
-                cgMedia.hudDpadLeftHighlight);
+                cgMedia.nightVisionOverlay);
         else
             Com_PrintWarning(14, "CG_DrawNightVisionOverlay(): Nightvision Assets not Precached.\n");
     }

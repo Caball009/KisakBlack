@@ -155,7 +155,7 @@ void __cdecl CG_DrawAmmoCounterSingle(int localClientNum, rectDef_s *rect, float
                 1.0,
                 1.0,
                 color,
-                cgMedia.textDecodeCharactersGlow);
+                cgMedia.ammoCounterSingle);
         placementX = placementX - 16.0;
     }
 }
@@ -832,9 +832,8 @@ void __cdecl CG_DrawPlayerActionSlot(
 {
     float v7; // xmm0_4
     float v8; // xmm0_4
-    int v9; // [esp+30h] [ebp-114h]
-    bool v10; // [esp+30h] [ebp-114h]
-    ActionSlotType v11; // [esp+34h] [ebp-110h]
+    bool v9; // [esp+30h] [ebp-114h]
+    ActionSlotType v10; // [esp+34h] [ebp-110h]
     char str[68]; // [esp+8Ch] [ebp-B8h] BYREF
     int ammo; // [esp+D4h] [ebp-70h]
     float circleX; // [esp+D8h] [ebp-6Ch]
@@ -867,22 +866,22 @@ void __cdecl CG_DrawPlayerActionSlot(
     circleY = 0.0f;
     ammoAlpha = 0.5f;
     memset(black, 0, 12);
-    black[3] = 0.8f;
-    if ( !rect && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_ammocounter.cpp", 1045, 0, "%s", "rect") )
+    black[3] = 0.80000001f;
+    if (!rect && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_ammocounter.cpp", 1045, 0, "%s", "rect"))
         __debugbreak();
-    if ( slotIdx > 3
+    if (slotIdx > 3
         && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_ammocounter.cpp",
-                    1046,
-                    0,
-                    "slotIdx not in [0, (ACTIONSLOTS_NUM - 1)]\n\t%i not in [%i, %i]",
-                    slotIdx,
-                    0,
-                    3) )
+            "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_ammocounter.cpp",
+            1046,
+            0,
+            "slotIdx not in [0, (ACTIONSLOTS_NUM - 1)]\n\t%i not in [%i, %i]",
+            slotIdx,
+            0,
+            3))
     {
         __debugbreak();
     }
-    if ( CL_LocalClient_GetActiveCount() > 1 )
+    if (CL_LocalClient_GetActiveCount() > 1)
     {
         highlightSize = highlightSize * 2.0;
         topHighlightSize = topHighlightSize * 2.0;
@@ -898,28 +897,28 @@ void __cdecl CG_DrawPlayerActionSlot(
     ammoAlpha = AmmoCounterFadeAlpha(localClientNum, cgameGlob) * ammoAlpha;
     black[3] = AmmoCounterFadeAlpha(localClientNum, cgameGlob) * black[3];
     colorMod[3] = AmmoCounterFadeAlpha(localClientNum, cgameGlob) * colorMod[3];
-    if ( colorMod[3] != 0.0 )
+    if (colorMod[3] != 0.0)
     {
-        v11 = ps->actionSlotType[slotIdx];
-        if ( v11 == ACTIONSLOTTYPE_SPECIFYWEAPON )
+        v10 = ps->actionSlotType[slotIdx];
+        if (v10 == ACTIONSLOTTYPE_SPECIFYWEAPON)
         {
             weapIdx = ps->actionSlotParam[slotIdx].specifyWeapon.index;
-            if ( weapIdx && BG_PlayerHasWeapon(ps, weapIdx) )
+            if (weapIdx && BG_PlayerHasWeapon(ps, weapIdx))
             {
                 weapVariantDef = BG_GetWeaponVariantDef(weapIdx);
                 weapDef = BG_GetWeaponDef(weapIdx);
-                v10 = !BG_GetAmmoInClip(ps, weapIdx) && !BG_GetAmmoNotInClip(ps, weapIdx) && !weapDef->unlimitedAmmo;
-                new_weapon_has_no_ammo = v10;
-                if ( weapDef->offhandSlot == OFFHAND_SLOT_EQUIPMENT && new_weapon_has_no_ammo )
+                v9 = !BG_GetAmmoInClip(ps, weapIdx) && !BG_GetAmmoNotInClip(ps, weapIdx) && !weapDef->unlimitedAmmo;
+                new_weapon_has_no_ammo = v9;
+                if (weapDef->offhandSlot == OFFHAND_SLOT_EQUIPMENT && new_weapon_has_no_ammo)
                 {
-                    if ( cgameGlob->extraCamEntity == 1023 && I_strcmp(weapVariantDef->szInternalName, "satchel_charge_mp") )
+                    if (cgameGlob->extraCamEntity == 1023 && I_strcmp(weapVariantDef->szInternalName, "satchel_charge_mp"))
                         return;
                     colorMod[3] = colorMod[3] * 0.5;
                 }
                 DpadIconDims(rect, slotIdx, weapVariantDef, &x, &y, &w, &h);
-                if ( slotIdx )
+                if (slotIdx)
                 {
-                    if ( slotIdx == 3 )
+                    if (slotIdx == 3)
                     {
                         leftHighlightX = (float)(x - (float)((float)(highlightSize - w) / 2.0)) - leftHighlightOffset;
                         leftHighlightY = y - (float)((float)(highlightSize - h) / 2.0);
@@ -933,13 +932,13 @@ void __cdecl CG_DrawPlayerActionSlot(
                             rect->vertAlign,
                             colorMod,
                             180.0,
-                            cgMedia.ammoCounterRocket);
+                            cgMedia.hudDpadLeftHighlight);
                     }
                 }
                 else
                 {
                     leftHighlightX = (float)(x - (float)((float)(topHighlightSize - w) / 2.0))
-                                                 - (float)(leftHighlightOffset / 2.0);
+                        - (float)(leftHighlightOffset / 2.0);
                     leftHighlightY = (float)(y - (float)((float)(topHighlightSize - h) / 2.0)) + leftHighlightOffset;
                     UI_DrawHandlePicRotated(
                         &scrPlaceView[localClientNum],
@@ -951,12 +950,12 @@ void __cdecl CG_DrawPlayerActionSlot(
                         rect->vertAlign,
                         colorMod,
                         90.0,
-                        cgMedia.ammoCounterRocket);
+                        cgMedia.hudDpadLeftHighlight);
                 }
-                if ( !I_strcmp(weapVariantDef->szInternalName, "minigun_drop_mp")
+                if (!I_strcmp(weapVariantDef->szInternalName, "minigun_drop_mp")
                     || !I_strcmp(weapVariantDef->szInternalName, "supplydrop_mp")
                     || !I_strcmp(weapVariantDef->szInternalName, "rcbomb_mp")
-                    || !I_strcmp(weapVariantDef->szInternalName, "helicopter_gunner_mp") )
+                    || !I_strcmp(weapVariantDef->szInternalName, "helicopter_gunner_mp"))
                 {
                     v7 = w * 1.1;
                     w = v7;
@@ -978,13 +977,13 @@ void __cdecl CG_DrawPlayerActionSlot(
                     colorMod,
                     weapVariantDef->dpadIcon);
                 ammo = BG_WeaponAmmo(ps, weapIdx);
-                if ( !ammo )
+                if (!ammo)
                 {
                     colorMod[0] = colorLowAmmo[0];
                     colorMod[1] = colorLowAmmo[1];
                     colorMod[2] = colorLowAmmo[2];
                 }
-                if ( weapDef->iStartAmmo > 1 && !weapDef->bIsCarriedKillstreakWeapon )
+                if (weapDef->iStartAmmo > 1 && !weapDef->bIsCarriedKillstreakWeapon)
                 {
                     circleX = (float)((float)(rect->w / 2.0) + x) - (float)(circleSize / 2.0);
                     circleY = (float)((float)(rect->h / 2.0) + y) - (float)(circleSize / 2.0);
@@ -1001,9 +1000,9 @@ void __cdecl CG_DrawPlayerActionSlot(
                         1.0,
                         1.0,
                         black,
-                        cgMedia.ammoCounterRifleBullet);
+                        cgMedia.hudDpadCircle);
                     DpadTextPos(localClientNum, rect, slotIdx, weapVariantDef, &x, &y);
-                    Com_sprintf(str, 64, "%3i", ammo);
+                    Com_sprintf(str, 0x40u, "%3i", ammo);
                     colorMod[3] = ammoAlpha;
                     UI_DrawText(
                         &scrPlaceView[localClientNum],
@@ -1020,20 +1019,20 @@ void __cdecl CG_DrawPlayerActionSlot(
                 }
             }
         }
-        else if ( v11 == ACTIONSLOTTYPE_ALTWEAPONTOGGLE )
+        else if (v10 == ACTIONSLOTTYPE_ALTWEAPONTOGGLE)
         {
             weapIdx = cgameGlob->weaponSelect;
             weapVariantDef = BG_GetWeaponVariantDef(weapIdx);
             weapDef = BG_GetWeaponDef(weapIdx);
-            if ( weapDef->inventoryType != WEAPINVENTORY_ALTMODE )
+            if (weapDef->inventoryType != WEAPINVENTORY_ALTMODE)
             {
                 weapIdx = CG_AltWeaponToggleIndex(localClientNum, cgameGlob, 0);
-                if ( !weapIdx )
+                if (!weapIdx)
                     return;
                 weapVariantDef = BG_GetWeaponVariantDef(weapIdx);
             }
             DpadIconDims(rect, slotIdx, weapVariantDef, &x, &y, &w, &h);
-            if ( slotIdx == 2 )
+            if (slotIdx == 2)
             {
                 leftHighlightX = (float)(x - (float)((float)(highlightSize - w) / 2.0)) + leftHighlightOffset;
                 leftHighlightY = (float)(y - (float)((float)(highlightSize - h) / 2.0)) + leftHighlightOffset;
@@ -1047,7 +1046,7 @@ void __cdecl CG_DrawPlayerActionSlot(
                     rect->vertAlign,
                     colorMod,
                     0.0,
-                    cgMedia.ammoCounterRocket);
+                    cgMedia.hudDpadLeftHighlight);
             }
             CL_DrawStretchPic(
                 &scrPlaceView[localClientNum],
@@ -1078,16 +1077,16 @@ void __cdecl CG_DrawPlayerActionSlot(
                 1.0,
                 1.0,
                 black,
-                cgMedia.ammoCounterRifleBullet);
+                cgMedia.hudDpadCircle);
             ammo = BG_WeaponAmmo(ps, weapIdx);
-            if ( !ammo )
+            if (!ammo)
             {
                 colorMod[0] = colorLowAmmo[0];
                 colorMod[1] = colorLowAmmo[1];
                 colorMod[2] = colorLowAmmo[2];
             }
             DpadTextPos(localClientNum, rect, slotIdx, weapVariantDef, &x, &y);
-            Com_sprintf(str, 64, "%3i", ammo);
+            Com_sprintf(str, 0x40u, "%3i", ammo);
             colorMod[3] = ammoAlpha;
             UI_DrawText(
                 &scrPlaceView[localClientNum],
@@ -1102,14 +1101,14 @@ void __cdecl CG_DrawPlayerActionSlot(
                 colorMod,
                 textStyle);
         }
-        else if ( v11 != ACTIONSLOTTYPE_NIGHTVISION
-                     && ps->actionSlotType[slotIdx]
-                     && !Assert_MyHandler(
-                                 "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_ammocounter.cpp",
-                                 1225,
-                                 0,
-                                 "%s",
-                                 "ps->actionSlotType[slotIdx] == ACTIONSLOTTYPE_DONOTHING") )
+        else if (v10 != ACTIONSLOTTYPE_NIGHTVISION
+            && ps->actionSlotType[slotIdx]
+            && !Assert_MyHandler(
+                "C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_ammocounter.cpp",
+                1225,
+                0,
+                "%s",
+                "ps->actionSlotType[slotIdx] == ACTIONSLOTTYPE_DONOTHING"))
         {
             __debugbreak();
         }
@@ -1510,7 +1509,7 @@ void __cdecl DrawClipAmmoMagazine(
             color[1] = colorSpentRound[1];
             color[2] = colorSpentRound[2];
         }
-        CL_DrawStretchPicPhysical(bulletX, bulletY, 4.0, 8.0, 0.0, 0.0, 1.0, 1.0, color, cgMedia.ammoCounterShotgunShell);
+        CL_DrawStretchPicPhysical(bulletX, bulletY, 4.0, 8.0, 0.0, 0.0, 1.0, 1.0, color, cgMedia.ammoCounterBullet);
         bulletX = bulletX - 4.0;
     }
 }
@@ -1551,7 +1550,7 @@ void __cdecl DrawClipAmmoShortMagazine(
             color[1] = colorSpentRound[1];
             color[2] = colorSpentRound[2];
         }
-        CL_DrawStretchPicPhysical(bulletX, bulletY, 32.0, 8.0, 0.0, 0.0, 1.0, 1.0, color, cgMedia.lifeCounterAlive);
+        CL_DrawStretchPicPhysical(bulletX, bulletY, 32.0, 8.0, 0.0, 0.0, 1.0, 1.0, color, cgMedia.ammoCounterRifleBullet);
         bulletX = bulletX - 40.0;
     }
 }
@@ -1605,7 +1604,7 @@ void __cdecl DrawClipAmmoShotgunShells(
             1.0,
             1.0,
             color,
-            cgMedia.textDecodeCharacters);
+            cgMedia.ammoCounterShotgunShell);
         bulletX = bulletX - TEST_bullet_step_1[0];
     }
 }
@@ -1663,7 +1662,7 @@ void __cdecl DrawClipAmmoRockets(
             1.0,
             1.0,
             color,
-            cgMedia.lifeCounterDead);
+            cgMedia.ammoCounterRocket);
         bulletX = bulletX - TEST_bullet_step_2[0];
     }
 }
@@ -1720,7 +1719,7 @@ void __cdecl DrawClipAmmoBeltfed(
                 color[1] = colorSpentRound[1];
                 color[2] = colorSpentRound[2];
             }
-            CL_DrawStretchPicPhysical(bulletX, bulletY, 4.0, 8.0, 0.0, 0.0, 1.0, 1.0, color, cgMedia.ammoCounterShotgunShell);
+            CL_DrawStretchPicPhysical(bulletX, bulletY, 4.0, 8.0, 0.0, 0.0, 1.0, 1.0, color, cgMedia.ammoCounterBullet);
             bulletX = bulletX - 4.0;
         }
     }
@@ -1767,7 +1766,7 @@ void __cdecl DrawClipAmmoBeltfed(
                 1.0,
                 1.0,
                 color,
-                cgMedia.ammoCounterSingle);
+                cgMedia.ammoCounterBeltBullet);
             x = x + stepX;
         }
     }

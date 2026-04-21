@@ -336,6 +336,7 @@ struct centity_s // sizeof=0x328
         // padding bit
         // padding bit
 };
+static_assert(sizeof(centity_s) == 0x328);
 
 struct fake_centity_s // sizeof=0x32C
 {                                                                             // XREF: fake_centity_t/r

@@ -31,6 +31,7 @@
 #include <qcommon/dobj_management.h>
 #include <algorithm>
 #include <clientscript/cscr_stringlist.h>
+#include <cgame/cg_effects_load_obj.h>
 
 const dvar_t *dynEnt_bulletForce;
 const dvar_t *dynEnt_explodeForce;
@@ -2545,74 +2546,46 @@ void __cdecl DynEntCl_PlayImpactEffects(
     const WeaponDef *weaponDef; // [esp+40h] [ebp-8h]
     const FxEffectDef *hitFx; // [esp+44h] [ebp-4h]
 
-    if ( surfType >= 0x1F
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\DynEntity\\DynEntity_client.cpp",
-                    1680,
-                    0,
-                    "surfType doesn't index SURF_TYPECOUNT\n\t%i not in [0, %i)",
-                    surfType,
-                    31) )
-    {
-        __debugbreak();
-    }
-    if ( !hitPos
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\DynEntity\\DynEntity_client.cpp", 1681, 0, "%s", "hitPos") )
-    {
-        __debugbreak();
-    }
-    if ( !hitNormal
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\DynEntity\\DynEntity_client.cpp",
-                    1682,
-                    0,
-                    "%s",
-                    "hitNormal") )
-    {
-        __debugbreak();
-    }
+    bcassert(surfType, SURF_TYPECOUNT);
+    iassert(hitPos);
+    iassert(hitNormal);
+    
     attacker = CG_GetEntity(localClientNum, sourceEntityNum);
     weaponDef = BG_GetWeaponDef(attacker->nextState.weapon);
-    if ( !weaponDef
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\DynEntity\\DynEntity_client.cpp",
-                    1687,
-                    0,
-                    "%s",
-                    "weaponDef") )
-    {
-        __debugbreak();
-    }
+
+    iassert(weaponDef);
+    
     hitFx = 0;
     hitSound = 0;
-    switch ( weaponDef->impactType )
+    switch (weaponDef->impactType)
     {
-        case IMPACT_TYPE_BULLET_SMALL:
-            hitFx = *(const FxEffectDef **)(*(unsigned int *)&cgMedia.fxDogBlood->flags + 4 * surfType);
-            hitSound = cgMedia.bulletHitSmallSound[surfType];
-            break;
-        case IMPACT_TYPE_BULLET_LARGE:
-            hitFx = *(const FxEffectDef **)(*(unsigned int *)&cgMedia.fxDogBlood->flags + 4 * surfType + 420);
-            hitSound = cgMedia.bulletHitLargeSound[surfType];
-            break;
-        case IMPACT_TYPE_BULLET_AP:
-            hitFx = *(const FxEffectDef **)(*(unsigned int *)&cgMedia.fxDogBlood->flags + 4 * surfType + 980);
-            hitSound = cgMedia.bulletHitAPSound[surfType];
-            break;
-        case IMPACT_TYPE_BULLET_XTREME:
-            hitFx = *(const FxEffectDef **)(*(unsigned int *)&cgMedia.fxDogBlood->flags + 4 * surfType + 1260);
-            hitSound = cgMedia.bulletHitXTremeSound[surfType];
-            break;
-        case IMPACT_TYPE_SHOTGUN:
-            hitFx = *(const FxEffectDef **)(*(unsigned int *)&cgMedia.fxDogBlood->flags + 4 * surfType + 700);
-            hitSound = cgMedia.shotgunHitSound[surfType];
-            break;
-        default:
-            break;
+    case IMPACT_TYPE_BULLET_SMALL:
+        hitFx = cgMedia.fx->table->nonflesh[surfType];
+        hitSound = cgMedia.bulletHitSmallSound[surfType];
+        break;
+    case IMPACT_TYPE_BULLET_LARGE:
+        hitFx = cgMedia.fx->table[3].nonflesh[surfType];
+        hitSound = cgMedia.bulletHitLargeSound[surfType];
+        break;
+    case IMPACT_TYPE_BULLET_AP:
+        hitFx = cgMedia.fx->table[7].nonflesh[surfType];
+        hitSound = cgMedia.bulletHitAPSound[surfType];
+        break;
+    case IMPACT_TYPE_BULLET_XTREME:
+        hitFx = cgMedia.fx->table[9].nonflesh[surfType];
+        hitSound = cgMedia.bulletHitXTremeSound[surfType];
+        break;
+    case IMPACT_TYPE_SHOTGUN:
+        hitFx = cgMedia.fx->table[5].nonflesh[surfType];
+        hitSound = cgMedia.shotgunHitSound[surfType];
+        break;
+    default:
+        break;
     }
-    if ( hitFx && (*hitNormal != 0.0 || hitNormal[1] != 0.0 || hitNormal[2] != 0.0) )
+    if (hitFx && (*hitNormal != 0.0 || hitNormal[1] != 0.0 || hitNormal[2] != 0.0))
     {
-        *(_QWORD *)&axis[0][0] = *(_QWORD *)hitNormal;
+        axis[0][0] = hitNormal[0];
+        axis[0][1] = hitNormal[1];
         axis[0][2] = hitNormal[2];
         CG_RandomEffectAxis(axis[0], axis[1], axis[2]);
         DynEntCl_PlayEventFx(hitFx, hitPos, axis);

@@ -697,7 +697,11 @@ struct phys_simple_allocator//<phys_heap_gjk_cache_system_avl_tree::phys_gjk_cac
 
             slot = PMM_ALLOC(sizeof(T), sizeof(T) % 16 == 0 ? 16 : 4);
             if (!slot)
+            {
+                // lwss add
+                iassert(0);
                 return 0;
+            }
             ++this->m_count;
             memset(slot, 0, sizeof(T));
             new ((void *)slot) T();

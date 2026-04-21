@@ -2378,7 +2378,7 @@ void __cdecl CG_DrawWarMomentumMultiplierBlitzkrieg(
 
 void __cdecl CG_DrawLifeCounter(int localClientNum, rectDef_s *rect, float *color, bool alive)
 {
-    if ( alive )
+    if (alive)
         CL_DrawStretchPic(
             &scrPlaceView[localClientNum],
             rect->x,
@@ -2392,7 +2392,7 @@ void __cdecl CG_DrawLifeCounter(int localClientNum, rectDef_s *rect, float *colo
             1.0,
             1.0,
             color,
-            (Material *)cgMedia.physicsWaterEffects[0]);
+            cgMedia.lifeCounterAlive);
     else
         CL_DrawStretchPic(
             &scrPlaceView[localClientNum],
@@ -2407,7 +2407,7 @@ void __cdecl CG_DrawLifeCounter(int localClientNum, rectDef_s *rect, float *colo
             1.0,
             1.0,
             color,
-            (Material *)cgMedia.physicsWaterEffects[1]);
+            cgMedia.lifeCounterDead);
 }
 
 void __cdecl CG_DrawWristWatch(
@@ -3358,7 +3358,7 @@ void __cdecl CG_DrawDemoControls(int localClientNum, const rectDef_s *rect, Mate
             1.0,
             1.0,
             colorWhite,
-            (Material *)cgMedia.fxKnifeBlood);
+            cgMedia.theaterLeftArrow);
         controlNamesBoxIconX = (float)((float)(controlNamesBoxIconSpacing * 2.0) + controlNamesBoxX)
                                                  + (float)(controlNamesBoxIconWidth * 1.0);
         displayText = UI_SafeTranslateString("PATCH_DEMO_SPEED_DOWN");
@@ -3376,7 +3376,7 @@ void __cdecl CG_DrawDemoControls(int localClientNum, const rectDef_s *rect, Mate
             1.0,
             1.0,
             colorWhite,
-            (Material *)cgMedia.fxNoBloodFleshHit);
+            cgMedia.theaterDownArrow);
         controlNamesBoxIconX = (float)((float)(controlNamesBoxIconSpacing * 4.0) + controlNamesBoxX)
                                                  + (float)(controlNamesBoxIconWidth * 3.0);
         displayText = UI_SafeTranslateString("PATCH_DEMO_SPEED_UP");
@@ -3394,7 +3394,7 @@ void __cdecl CG_DrawDemoControls(int localClientNum, const rectDef_s *rect, Mate
             1.0,
             1.0,
             colorWhite,
-            (Material *)cgMedia.fx);
+            cgMedia.theaterUpArrow);
         controlNamesBoxIconX = (float)((float)(controlNamesBoxIconSpacing * 5.0) + controlNamesBoxX)
                                                  + (float)(controlNamesBoxIconWidth * 4.0);
         displayText = UI_SafeTranslateString("PATCH_DEMO_SKIPFOWARD");
@@ -3412,7 +3412,7 @@ void __cdecl CG_DrawDemoControls(int localClientNum, const rectDef_s *rect, Mate
             1.0,
             1.0,
             colorWhite,
-            (Material *)cgMedia.fxKnifeNoBlood);
+            cgMedia.theaterRightArrow);
         controlNamesBoxX = (float)(controlNamesBoxWidth + innerGreyBoxXSpacing) + controlNamesBoxX;
         v13 = innerGreyBoxWidth * 0.15;
         controlNamesBoxWidth = v13;

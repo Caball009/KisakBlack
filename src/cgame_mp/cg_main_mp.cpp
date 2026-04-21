@@ -2788,14 +2788,17 @@ void __cdecl CG_Init(int localClientNum, int serverMessageNum, int serverCommand
     cgs = CG_GetLocalClientStaticGlobals(localClientNum);
     CL_GetLocalClientConnection(localClientNum);
     destroy_client_gjkcc_info(localClientNum);
-    memset((unsigned __int8 *)cgs, 0, 0x31A8u);
-    memset((unsigned __int8 *)cgameGlob, 0, sizeof(cg_s));
-    memset((unsigned __int8 *)&cgDC[localClientNum], 0, sizeof(UiContext));
-    memset((unsigned __int8 *)cg_entitiesArray[localClientNum], 0, 0xCA000u);
-    memset((unsigned __int8 *)cg_weaponsArray[localClientNum], 0, 0x12000u);
-    memset((unsigned __int8 *)&cg_viewModelArray[localClientNum], 0, sizeof(ViewModelInfo));
+
+    memset(cgs, 0, sizeof(cgs_t));
+    memset(cgameGlob, 0, sizeof(cg_s));
+    memset(&cgDC[localClientNum], 0, sizeof(UiContext));
+    memset(cg_entitiesArray[localClientNum], 0, 1024 * sizeof(centity_s)/*0xCA000u*/);
+    memset(cg_weaponsArray[localClientNum], 0, 2048 * sizeof(weaponInfo_s) /*0x12000u*/);
+    memset(&cg_viewModelArray[localClientNum], 0, sizeof(ViewModelInfo));
     memset(&cg_BattleChatters[0].WhichSoundIsPlaying, 0, sizeof(cg_BattleChatters));
+
     cgDC[localClientNum].contextIndex = localClientNum;
+
     CG_InitDestructibles(localClientNum);
     CG_ClearCompassPingData();
     CG_ClearOverheadFade();
@@ -2814,18 +2817,12 @@ void __cdecl CG_Init(int localClientNum, int serverMessageNum, int serverCommand
     cgameGlob->localClientNum = localClientNum;
     cgameGlob->viewModelPose.eType = 21;
     cgameGlob->viewModelPose.localClientNum = localClientNum;
-    if ( cgameGlob->viewModelPose.localClientNum != localClientNum
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\cgame_mp\\cg_main_mp.cpp",
-                    2896,
-                    0,
-                    "%s",
-                    "cgameGlob->viewModelPose.localClientNum == localClientNum") )
-    {
-        __debugbreak();
-    }
+
+    iassert(cgameGlob->viewModelPose.localClientNum == localClientNum);
+
     CL_SetStance(localClientNum, CL_STANCE_STAND);
     CL_SetADS(localClientNum, 0);
+
     cgameGlob->objectiveText[0] = 0;
     cgameGlob->bgs.animData = &cg_bgsAnim;
     cgameGlob->bgs.animData->animScriptData.soundAlias = SND_FindAlias;
@@ -2841,20 +2838,26 @@ void __cdecl CG_Init(int localClientNum, int serverMessageNum, int serverCommand
     cgameGlob->bgs.Random = CG_random;
     cgameGlob->clientNum = clientNum;
     cgameGlob->drawHud = 1;
+
     Dvar_SetBoolByName("r_grassEnable", 0);
+
     cgameGlob->cameraLinkedEntitiesCount = 0;
     cgameGlob->groundTiltEntNum = -1;
     cgameGlob->lastPlayerStateOverride = -1;
     cgameGlob->extraCamEntity = 1023;
     cgameGlob->lastHealthLerpDelay = 1;
+
     cgs->processedSnapshotNum = serverMessageNum;
     cgs->serverCommandSequence = serverCommandSequence;
     cgs->localServer = com_sv_running->current.color[0];
+
     CG_ParseServerInfo(localClientNum);
     CG_ParseCodInfo(localClientNum);
     R_BeginRemoteScreenUpdate();
+
     if ( !r_reflectionProbeGenerate->current.enabled )
         UI_LoadIngameMenus(localClientNum);
+
     UI_ClearLocalUIVisibilityBits(localClientNum);
     SCR_UpdateLoadScreen();
     cgMedia.whiteMaterial = Material_RegisterHandle("white", 7);
@@ -2872,10 +2875,11 @@ void __cdecl CG_Init(int localClientNum, int serverMessageNum, int serverCommand
     cgMedia.lifeCounterDead = Material_RegisterHandle("ammo_counter_rocket", 7);
     cgMedia.textDecodeCharacters = Material_RegisterHandle("ammo_counter_shotgunshell", 7);
     cgMedia.textDecodeCharactersGlow = Material_RegisterHandle("ammo_counter_single", 7);
-    cgMedia.physicsWaterEffects[0] = (const FxEffectDef *)Material_RegisterHandle("life_counter_alive", 7);
-    cgMedia.physicsWaterEffects[1] = (const FxEffectDef *)Material_RegisterHandle("life_counter_dead", 7);
-    cgMedia.physicsWaterEffects[2] = (const FxEffectDef *)Material_RegisterHandle("decode_characters", 7);
-    cgMedia.physicsWaterEffects[3] = (const FxEffectDef *)Material_RegisterHandle("decode_characters_glow", 7);
+    cgMedia.lifeCounterAlive = Material_RegisterHandle("life_counter_alive", 7);
+    cgMedia.lifeCounterDead = Material_RegisterHandle("life_counter_dead", 7);
+    cgMedia.textDecodeCharacters = Material_RegisterHandle("decode_characters", 7);
+    cgMedia.textDecodeCharactersGlow = Material_RegisterHandle("decode_characters_glow", 7);
+
     Material_RegisterHandle("code_warning_soundcpu", 7);
     Material_RegisterHandle("code_warning_snapshotents", 7);
     Material_RegisterHandle("code_warning_maxeffects", 7);
@@ -2890,8 +2894,10 @@ void __cdecl CG_Init(int localClientNum, int serverMessageNum, int serverCommand
     Material_RegisterHandle("killiconsuicide", 7);
     Material_RegisterHandle("killiconheadshot", 7);
     Material_RegisterHandle("killiconmelee", 7);
+
     if ( cg_fs_debug->current.integer == 2 )
         Dvar_SetInt((dvar_s*)cg_fs_debug, 0);
+
     CG_AntiBurnInHUD_RegisterDvars();
     CG_InitConsoleCommands();
     CG_InitViewDimensions(localClientNum);
