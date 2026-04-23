@@ -1066,8 +1066,12 @@ void R_InitIntZRenderTarget_PC()
     mipCount = 1;
     depthTexture = 0;
     dx.supportsIntZ = 0;
+
     if ( !r_allow_intz->current.enabled || dx.d3d9->GetAdapterIdentifier(dx.adapterIndex, 0, &adapterId) )
         return;
+
+    // KISAKTODO: fix this INTZ thing, see if we can enable it on modern gpu's without nvapi (I believe the below code fails)
+#ifdef KISAK_NVAPI_INTZ
     if ( adapterId.VendorId == 4318 && dx.nvInitialized )
     {
         acceptableDriver = 728896;
@@ -1101,8 +1105,11 @@ void R_InitIntZRenderTarget_PC()
         dx.nvFloatZBufferHandle = 0;
         dx.supportsIntZ = 1;
     }
+
     if ( adapterId.VendorId != 4098 && adapterId.VendorId != 32902 )
         goto LABEL_22;
+#endif
+
     if ( !dx.d3d9->CheckDeviceFormat(dx.adapterIndex, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 2, D3DRTYPE_TEXTURE, FOURCC_INTZ)
         && !dx.d3d9->CheckDeviceFormat(dx.adapterIndex, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 1, D3DRTYPE_SURFACE, FOURCC_RESZ) )
     {

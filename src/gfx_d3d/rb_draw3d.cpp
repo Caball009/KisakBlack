@@ -196,7 +196,8 @@ void __cdecl R_InitLocalCmdBufState(GfxCmdBufState *state)
 
 bool __cdecl RB_ShouldDrawCoronas()
 {
-    return !R_StereoActivated() && !r_reflectionProbeGenerate->current.enabled;
+    //return !R_StereoActivated() && !r_reflectionProbeGenerate->current.enabled;
+    return !R_StereoActivated() && !r_reflectionProbeGenerate->current.enabled && r_drawSun->current.enabled; // LWSS ADD drawSun condition so I can turn this off (It uses Occlusion event query)
 }
 
 void __cdecl RB_Draw3DInternal(GfxViewInfo *viewInfo)

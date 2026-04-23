@@ -549,7 +549,7 @@ unsigned int __cdecl RB_HW_ReadOcclusionQuery(IDirect3DQuery9 *query)
 
     while ( 1 )
     {
-        hr = query->GetData(&pixelCount, 4u, 1u);
+        hr = query->GetData(&pixelCount, 4, D3DGETDATA_FLUSH);
         if ( hr != 1 )
             break;
         Sleep(0);

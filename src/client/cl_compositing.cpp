@@ -368,7 +368,7 @@ bool __cdecl R_HW_IsFencePending(IDirect3DQuery9 *const *fence)
     if ( *fence )
     {
         //hr = (*(int (__stdcall **)(unsigned int, unsigned int *, int, int))(**(unsigned int **)fence + 28))(*fence, &data, 4, 1);
-        hr = (*fence)->GetData(&data, 4, 1);
+        hr = (*fence)->GetData(&data, 4, D3DGETDATA_FLUSH);
         if ( sem )
             R_ReleaseDXDeviceOwnership();
         return hr && hr != -2005530520;

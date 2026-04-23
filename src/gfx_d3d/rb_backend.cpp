@@ -693,6 +693,23 @@ void __cdecl RB_SplitScreenTexCoords(float x, float y, float w, float h, float *
     *t1 = ya + ha;
 }
 
+static void R_GetIntZHandles()
+{
+#ifdef KISAK_NVAPI_INTZ
+    NVDX_ObjectHandle__ *h; // [esp+0h] [ebp-4h] BYREF
+
+    if (!NvAPI_D3D9_GetCurrentZBufferHandle(dx.device, &h))
+    {
+        dx.nvDepthBufferHandle = h;
+
+        if (!NvAPI_D3D9_GetTextureHandle(gfxRenderTargets[R_RENDERTARGET_FLOAT_Z].image->texture.map, &h))
+        {
+            dx.nvFloatZBufferHandle = h;
+        }
+    }
+#endif
+}
+
 void R_ResolveIntZ_PC()
 {
     NVDX_ObjectHandle__ *v2; // ecx
@@ -701,11 +718,13 @@ void R_ResolveIntZ_PC()
 
     iassert(dx.supportsIntZ);
 
+    // LWSS: this library sucks and inside it will spam dx9 CreateQuery()
+#ifdef KISAK_NVAPI_INTZ
     if (dx.nvInitialized)
     {
         if (!dx.nvDepthBufferHandle || !dx.nvFloatZBufferHandle)
             R_GetIntZHandles();
-
+    
         if (NvAPI_D3D9_StretchRect(dx.device, (NVDX_ObjectHandle)dx.nvDepthBufferHandle, 0, (NVDX_ObjectHandle)dx.nvFloatZBufferHandle, 0, D3DTEXF_POINT))
         {
             R_GetIntZHandles();
@@ -719,6 +738,7 @@ void R_ResolveIntZ_PC()
         }
     }
     else
+#endif
     {
         memset(dummy, 0, sizeof(dummy));
         dx.device->SetTexture(0, gfxRenderTargets[R_RENDERTARGET_FLOAT_Z].image->texture.basemap);
@@ -730,21 +750,6 @@ void R_ResolveIntZ_PC()
         R_ClearAllStreamSources(&gfxCmdBufContext.state->prim);
         if (gfxCmdBufContext.state->prim.indexBuffer)
             R_ChangeIndices(&gfxCmdBufContext.state->prim, 0);
-    }
-}
-
-void R_GetIntZHandles()
-{
-    NVDX_ObjectHandle__ *h; // [esp+0h] [ebp-4h] BYREF
-
-    if (!NvAPI_D3D9_GetCurrentZBufferHandle(dx.device, &h))
-    {
-        dx.nvDepthBufferHandle = h;
-
-        if (!NvAPI_D3D9_GetTextureHandle(gfxRenderTargets[R_RENDERTARGET_FLOAT_Z].image->texture.map, &h))
-        {
-            dx.nvFloatZBufferHandle = h;
-        }
     }
 }
 

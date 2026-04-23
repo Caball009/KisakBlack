@@ -346,7 +346,6 @@ void __cdecl RB_ColoredFilter(const Material *material, const GfxViewInfo *viewI
 void __cdecl RB_SplitScreenFilter(const Material *material, const GfxViewInfo *viewInfo, unsigned int color);
 void __cdecl RB_SplitScreenTexCoords(float x, float y, float w, float h, float *s0, float *t0, float *s1, float *t1);
 void R_ResolveIntZ_PC();
-void R_GetIntZHandles();
 void __cdecl R_Resolve(GfxCmdBufContext context, GfxImage *image);
 void __cdecl RB_StretchCompositeCmd(GfxRenderCommandExecState *execState);
 void __cdecl R_SetCodeImageSamplerState(
