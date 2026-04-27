@@ -4189,24 +4189,25 @@ pulse_sum_constraint_solver::pulse_sum_constraint_solver()
     this->m_solver_memory_allocator.m_total_memory_allocated = 0;
     this->m_solver_memory_allocator.m_mutex.m_count = 1;
     this->m_solver_memory_allocator.m_slot_pool = 0;
-    this->m_list_pulse_sum_node.m_first = 0;
-    this->m_list_pulse_sum_node.m_alloc_count = 0;
-    this->m_list_pulse_sum_node.m_last_next_ptr = &this->m_list_pulse_sum_node.m_first;
-    this->m_list_pulse_sum_normal.m_first = 0;
-    this->m_list_pulse_sum_normal.m_alloc_count = 0;
-    this->m_list_pulse_sum_normal.m_last_next_ptr = &this->m_list_pulse_sum_normal.m_first;
-    this->m_list_pulse_sum_point.m_first = 0;
-    this->m_list_pulse_sum_point.m_alloc_count = 0;
-    this->m_list_pulse_sum_point.m_last_next_ptr = &this->m_list_pulse_sum_point.m_first;
-    this->m_list_pulse_sum_angular.m_first = 0;
-    this->m_list_pulse_sum_angular.m_alloc_count = 0;
-    this->m_list_pulse_sum_angular.m_last_next_ptr = &this->m_list_pulse_sum_angular.m_first;
-    this->m_list_pulse_sum_wheel.m_first = 0;
-    this->m_list_pulse_sum_wheel.m_last_next_ptr = &this->m_list_pulse_sum_wheel.m_first;
-    this->m_list_pulse_sum_wheel.m_alloc_count = 0;
-    this->m_list_pulse_sum_contact.m_first = 0;
-    this->m_list_pulse_sum_contact.m_last_next_ptr = &this->m_list_pulse_sum_contact.m_first;
-    this->m_list_pulse_sum_contact.m_alloc_count = 0;
+
+    //this->m_list_pulse_sum_node.m_first = 0;
+    //this->m_list_pulse_sum_node.m_alloc_count = 0;
+    //this->m_list_pulse_sum_node.m_last_next_ptr = &this->m_list_pulse_sum_node.m_first;
+    //this->m_list_pulse_sum_normal.m_first = 0;
+    //this->m_list_pulse_sum_normal.m_alloc_count = 0;
+    //this->m_list_pulse_sum_normal.m_last_next_ptr = &this->m_list_pulse_sum_normal.m_first;
+    //this->m_list_pulse_sum_point.m_first = 0;
+    //this->m_list_pulse_sum_point.m_alloc_count = 0;
+    //this->m_list_pulse_sum_point.m_last_next_ptr = &this->m_list_pulse_sum_point.m_first;
+    //this->m_list_pulse_sum_angular.m_first = 0;
+    //this->m_list_pulse_sum_angular.m_alloc_count = 0;
+    //this->m_list_pulse_sum_angular.m_last_next_ptr = &this->m_list_pulse_sum_angular.m_first;
+    //this->m_list_pulse_sum_wheel.m_first = 0;
+    //this->m_list_pulse_sum_wheel.m_last_next_ptr = &this->m_list_pulse_sum_wheel.m_first;
+    //this->m_list_pulse_sum_wheel.m_alloc_count = 0;
+    //this->m_list_pulse_sum_contact.m_first = 0;
+    //this->m_list_pulse_sum_contact.m_last_next_ptr = &this->m_list_pulse_sum_contact.m_first;
+    //this->m_list_pulse_sum_contact.m_alloc_count = 0;
 }
 
 void __thiscall pulse_sum_constraint_solver::solve_constraints(rigid_body *const head)
@@ -4651,24 +4652,14 @@ void __thiscall pulse_sum_constraint_solver::execute_constraint_solver(rigid_bod
             //phys_transient_allocator::reset_to_state(p_m_solver_memory_allocator, &saved_allocator_state);
             p_m_solver_memory_allocator->reset_to_state(&saved_allocator_state);
             v25 = head;
-            this->m_list_pulse_sum_node.m_first = 0;
-            this->m_list_pulse_sum_node.m_alloc_count = 0;
-            this->m_list_pulse_sum_node.m_last_next_ptr = &this->m_list_pulse_sum_node.m_first;
-            this->m_list_pulse_sum_normal.m_first = 0;
-            this->m_list_pulse_sum_normal.m_alloc_count = 0;
-            this->m_list_pulse_sum_normal.m_last_next_ptr = &this->m_list_pulse_sum_normal.m_first;
-            this->m_list_pulse_sum_point.m_first = 0;
-            this->m_list_pulse_sum_point.m_alloc_count = 0;
-            this->m_list_pulse_sum_point.m_last_next_ptr = &this->m_list_pulse_sum_point.m_first;
-            this->m_list_pulse_sum_angular.m_first = 0;
-            this->m_list_pulse_sum_angular.m_alloc_count = 0;
-            this->m_list_pulse_sum_angular.m_last_next_ptr = &this->m_list_pulse_sum_angular.m_first;
-            this->m_list_pulse_sum_wheel.m_first = 0;
-            this->m_list_pulse_sum_wheel.m_last_next_ptr = &this->m_list_pulse_sum_wheel.m_first;
-            this->m_list_pulse_sum_wheel.m_alloc_count = 0;
-            this->m_list_pulse_sum_contact.m_first = 0;
-            this->m_list_pulse_sum_contact.m_last_next_ptr = &this->m_list_pulse_sum_contact.m_first;
-            this->m_list_pulse_sum_contact.m_alloc_count = 0;
+
+            this->m_list_pulse_sum_node.clear();
+            this->m_list_pulse_sum_normal.clear();
+            this->m_list_pulse_sum_point.clear();
+            this->m_list_pulse_sum_angular.clear();
+            this->m_list_pulse_sum_wheel.clear();
+            this->m_list_pulse_sum_contact.clear();
+
             do
             {
                 //v26 = (pulse_sum_node *)phys_transient_allocator::allocate(p_m_solver_memory_allocator, 128, 16, 0, SOLVER_MEMORY_ALLOCATOR_ERROR_MSG);

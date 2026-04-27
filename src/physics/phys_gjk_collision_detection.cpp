@@ -57,7 +57,7 @@ phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal *__cdecl get_g
     return gjk_cache->get_gjk_cache_info(cg1->get_geom_id(), cg2->get_geom_id(), 1);
 }
 
-phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal *__thiscall phys_heap_gjk_cache_system_avl_tree::get_gjk_cache_info(
+phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal *phys_heap_gjk_cache_system_avl_tree::get_gjk_cache_info(
                 unsigned int id1,
                 unsigned int id2,
                 bool __formal)
@@ -68,17 +68,9 @@ phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal *__thiscall ph
     phys_gjk_geom_id_pair_key key; // [esp+1B4h] [ebp-10h] BYREF
     bool swapped; // [esp+1BFh] [ebp-5h]
     phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal *gjk_ci; // [esp+1C0h] [ebp-4h]
-    int savedregs; // [esp+1C4h] [ebp+0h] BYREF
 
-    if ( id1 == id2
-        && _tlAssert(
-                 "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\collision\\phys_gjk_cache_system.h",
-                 309,
-                 "id1 != id2",
-                 "") )
-    {
-        __debugbreak();
-    }
+    iassert(id1 != id2);
+    
     if ( id1 <= id2 )
     {
         swapped = 0;
@@ -90,15 +82,9 @@ phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal *__thiscall ph
         id1 = id2;
         id2 = temp;
     }
-    if ( id1 >= id2
-        && _tlAssert(
-                 "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\collision\\phys_gjk_cache_system.h",
-                 24,
-                 "id1 < id2",
-                 "") )
-    {
-        __debugbreak();
-    }
+
+    iassert(id1 < id2);
+    
     key.m_id1 = id1;
     key.m_id2 = id2;
     gjk_ci = this->m_search_tree.find(key);
@@ -193,81 +179,16 @@ phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal *__thiscall ph
     return gjk_ci;
 }
 
-// local variable allocation has failed, the output may be wrong!
-void phys_gjk_cache_info::update_swapped(bool swapped)
-{
-    cached_simplex_info v3; // [esp-Ch] [ebp-6Ch] BYREF
-    float temp_36; // [esp+24h] [ebp-3Ch]
-    float temp_40; // [esp+28h] [ebp-38h]
-    float temp_44; // [esp+2Ch] [ebp-34h]
-    float v7; // [esp+40h] [ebp-20h]
-    float v8; // [esp+44h] [ebp-1Ch]
-    float v9; // [esp+48h] [ebp-18h]
-    unsigned int m_flags; // [esp+4Ch] [ebp-14h]
-    phys_gjk_cache_info *thisa; // [esp+50h] [ebp-10h]
-    //_UNKNOWN *v12; // [esp+54h] [ebp-Ch]
-    //int swappeda; // [esp+58h] [ebp-8h]
-    //int vars0; // [esp+60h] [ebp+0h]
-    //
-    //v12 = a2;
-    //swappeda = vars0;
-    thisa = this;
-    if (swapped != ((this->m_flags & 2) != 0))
-    {
-        if (swapped)
-            thisa->m_flags |= 2u;
-        else
-            thisa->m_flags &= ~2u;
-        m_flags = thisa->m_flags;
-        if ((thisa->m_flags & 4) != 0)
-        {
-            (v9) = -(thisa->m_support_dir.x);
-            (v8) = -(thisa->m_support_dir.y);
-            (v7) = -(thisa->m_support_dir.z);
-            temp_36 = v9;
-            temp_40 = v8;
-            temp_44 = v7;
-            thisa->m_support_dir.x = v9;
-            thisa->m_support_dir.y = temp_40;
-            thisa->m_support_dir.z = temp_44;
-        }
-        if ((thisa->m_flags & 8) != 0)
-        {
-            memcpy((void *)&v3, &thisa->m_support_a, sizeof(v3));
-            //cached_simplex_info::operator=(&thisa->m_support_a, &thisa->m_support_b);
-            thisa->m_support_a = thisa->m_support_b;
-            //cached_simplex_info::operator=(&thisa->m_support_b, &v3);
-            thisa->m_support_b = v3;
-        }
-    }
-}
-
-//cached_simplex_info *__thiscall cached_simplex_info::operator=(const cached_simplex_info *__that)
-//{
-//    phys_vec3 *v2; // eax
-//    float *p_x; // [esp+8h] [ebp-8h]
-//    unsigned int _S1; // [esp+Ch] [ebp-4h]
-//
-//    for ( _S1 = 0; _S1 < 3; ++_S1 )
-//    {
-//        p_x = &this->m_indices[_S1].x;
-//        *p_x = __that->m_indices[_S1].x;
-//        v2 = &__that->m_indices[_S1];
-//        p_x[1] = v2->y;
-//        p_x[2] = v2->z;
-//    }
-//    return this;
-//}
-
-void __thiscall gjk_query_output::reset_cache()
+void gjk_query_output::reset_cache()
 {
     //bpei_database_t::update_database(&this->m_bpei_database);
     this->m_bpei_database.update_database();
     this->m_ent_count = 0;
     this->m_geom_count = 0;
-    this->m_list_geom_info.m_first = 0;
-    this->m_list_geom_info.m_last_next_ptr = &this->m_list_geom_info.m_first;
-    this->m_list_geom_info.m_alloc_count = 0;
+    //this->m_list_geom_info.m_first = 0;
+    //this->m_list_geom_info.m_last_next_ptr = &this->m_list_geom_info.m_first;
+    //this->m_list_geom_info.m_alloc_count = 0;
+    this->m_list_geom_info.clear();
     this->m_query_visitor_count = 0;
     this->m_gent_query_visitor_count = 0;
     this->m_cent_query_visitor_count = 0;
@@ -279,7 +200,7 @@ void __thiscall gjk_query_output::reset_cache()
     this->m_cached_query_info.m_query_flags = 0;
 }
 
-void __thiscall bpei_database_t::update_database()
+void bpei_database_t::update_database()
 {
     broad_phase_environment_info *bpei; // [esp+154h] [ebp-8h]
     broad_phase_environment_info **prev_next; // [esp+158h] [ebp-4h]
@@ -303,11 +224,13 @@ void __thiscall bpei_database_t::update_database()
     }
 }
 
-void __thiscall gjk_query_output::query_prolog(const gjk_query_input *input)
+void gjk_query_output::query_prolog(const gjk_query_input *input)
 {
-    this->m_list_geom_info.m_first = 0;
-    this->m_list_geom_info.m_last_next_ptr = &this->m_list_geom_info.m_first;
-    this->m_list_geom_info.m_alloc_count = 0;
+    //this->m_list_geom_info.m_first = 0;
+    //this->m_list_geom_info.m_last_next_ptr = &this->m_list_geom_info.m_first;
+    //this->m_list_geom_info.m_alloc_count = 0;
+    this->m_list_geom_info.clear();
+
     //gjk_query_input::visit_skip_list(input, ++this->m_query_visitor_count);
     input->visit_skip_list(++this->m_query_visitor_count);
     gjk_query_output::calc_query_aabb(input);
@@ -315,7 +238,7 @@ void __thiscall gjk_query_output::query_prolog(const gjk_query_input *input)
     this->m_allocator.reset_to_state(&this->m_allocator_state);
 }
 
-void __thiscall gjk_query_input::visit_skip_list(int query_visitor_count) const 
+void gjk_query_input::visit_skip_list(int query_visitor_count) const 
 {
     gjk_geom_info_t *gi_i; // [esp+14h] [ebp-4h]
 
@@ -451,7 +374,7 @@ void gjk_query_output::calc_query_aabb(const gjk_query_input *input)
     v4->z = v6;
 }
 
-void __thiscall gjk_query_output::query_epilog()
+void gjk_query_output::query_epilog()
 {
     phys_transient_allocator::allocator_state v1; // [esp+18h] [ebp-10h]
 
@@ -465,7 +388,7 @@ void *gjk_query_output::allocate(int size, int alignment, bool no_error)
     return this->m_allocator.allocate(size, alignment, no_error, "gjk player trace out of memory");
 }
 
-void __thiscall gjk_query_output::get_local_query_aabb(
+void gjk_query_output::get_local_query_aabb(
                 float *local_query_aabb_min,
                 float *local_query_aabb_max)
 {
@@ -473,7 +396,7 @@ void __thiscall gjk_query_output::get_local_query_aabb(
     Phys_NitrousVecToVec3(&this->m_local_query_aabb_max, local_query_aabb_max);
 }
 
-bool __thiscall gjk_query_output::query_create_prolog(const void *geom)
+bool gjk_query_output::query_create_prolog(const void *geom)
 {
     iassert(geom);
     iassert(m_local_ent_info);
@@ -487,7 +410,7 @@ bool __thiscall gjk_query_output::query_create_prolog(const void *geom)
     return this->m_local_bpei->m_data == 0;
 }
 
-broad_phase_environment_info *__thiscall bpei_database_t::get_bpei_mt(bpei_database_id database_id)
+broad_phase_environment_info *bpei_database_t::get_bpei_mt(bpei_database_id database_id)
 {
     broad_phase_environment_info *bpei; // [esp+64h] [ebp-4h]
 
@@ -512,7 +435,7 @@ broad_phase_environment_info *__thiscall bpei_database_t::get_bpei_mt(bpei_datab
     return bpei;
 }
 
-broad_phase_environment_info *__thiscall bpei_database_t::get_bpei(bpei_database_id database_id)
+broad_phase_environment_info *bpei_database_t::get_bpei(bpei_database_id database_id)
 {
     broad_phase_environment_info *bpei; // [esp+160h] [ebp-4h]
 
@@ -537,7 +460,7 @@ broad_phase_environment_info *__thiscall bpei_database_t::get_bpei(bpei_database
     return bpei;
 }
 
-broad_phase_environment_info *__thiscall bpei_database_t::create_bpei(bpei_database_id database_id)
+broad_phase_environment_info *bpei_database_t::create_bpei(bpei_database_id database_id)
 {
     broad_phase_environment_info *bpei; // [esp+154h] [ebp-4h]
     
@@ -551,7 +474,7 @@ broad_phase_environment_info *__thiscall bpei_database_t::create_bpei(bpei_datab
     return bpei;
 }
 
-const void *__thiscall gjk_entity_info_t::get_ent()
+const void *gjk_entity_info_t::get_ent()
 {
     if ( (this->m_ent_type == ET_NONE || !this->m_ent)
         && !Assert_MyHandler(
@@ -566,7 +489,7 @@ const void *__thiscall gjk_entity_info_t::get_ent()
     return this->m_ent;
 }
 
-void __thiscall gjk_query_output::query_create_epilog(gjk_base_t *gjk_geom)
+void gjk_query_output::query_create_epilog(gjk_base_t *gjk_geom)
 {
     bool v2; // [esp+0h] [ebp-10h]
 
@@ -673,13 +596,13 @@ bool __cdecl phys_are_aabb_overlapping(
             && aabb1_max->z >= aabb2_min->z;
 }
 
-broad_phase_environment_info *__thiscall gjk_query_output::get_ent_info(unsigned int ent_id)
+broad_phase_environment_info *gjk_query_output::get_ent_info(unsigned int ent_id)
 {
     //return bpei_database_t::get_bpei(&this->m_bpei_database, (bpei_database_id)ent_id);
     return this->m_bpei_database.get_bpei((bpei_database_id)ent_id); // KISAKTODO: idk how to convert this yet
 }
 
-void __thiscall gjk_query_output::set_local_query_info(const gjk_query_input *input, gjk_entity_info_t *ent_info)
+void gjk_query_output::set_local_query_info(const gjk_query_input &input, gjk_entity_info_t *ent_info)
 {
     phys_calc_local_aabb(
         &this->m_query_aabb_min,
@@ -687,14 +610,15 @@ void __thiscall gjk_query_output::set_local_query_info(const gjk_query_input *in
         &ent_info->m_mat,
         &this->m_local_query_aabb_min,
         &this->m_local_query_aabb_max);
-    this->m_local_query_input = input;
+
+    this->m_local_query_input = &input;
     this->m_local_ent_info = ent_info;
 
     iassert(ent_info->get_ent());
 
 }
 
-gjk_geom_info_t *__thiscall gjk_query_output::create_geom_info(
+gjk_geom_info_t *gjk_query_output::create_geom_info(
                 gjk_base_t *cg,
                 gjk_entity_info_t *ent_info,
                 float *aabb_min,
@@ -743,7 +667,7 @@ gjk_geom_info_t *__thiscall gjk_query_output::create_geom_info(
     return v6;
 }
 
-void __thiscall gjk_geom_info_t::calc_aabb()
+void gjk_geom_info_t::calc_aabb()
 {
     gjk_entity_info_t *xform; // eax
 
@@ -751,7 +675,7 @@ void __thiscall gjk_geom_info_t::calc_aabb()
     this->m_cg->calc_aabb(&xform->m_mat, &this->m_aabb_min, &this->m_aabb_max);
 }
 
-gjk_entity_info_t *__thiscall gjk_query_output::create_entity_info()
+gjk_entity_info_t *gjk_query_output::create_entity_info()
 {
     unsigned int *v2; // [esp+0h] [ebp-34h]
     unsigned int *v3; // [esp+2Ch] [ebp-8h]
@@ -773,10 +697,7 @@ gjk_entity_info_t *__thiscall gjk_query_output::create_entity_info()
     return (gjk_entity_info_t *)v2;
 }
 
-void __thiscall gjk_query_output::add(
-                const gjk_query_input *input,
-                const CollisionPartition *partition,
-                const CollisionAabbTree *tree)
+void gjk_query_output::add(const gjk_query_input &input, const CollisionPartition *partition, const CollisionAabbTree *tree)
 {
     gjk_geom_info_t *geom_info; // eax
     float aabb_max[3]; // [esp+20h] [ebp-28h] BYREF
@@ -805,11 +726,7 @@ void __thiscall gjk_query_output::add(
     }
 }
 
-void __thiscall gjk_query_output::add(
-                const gjk_query_input *input,
-                const cbrush_t *brush,
-                const float *query_mins,
-                const float *query_maxs)
+void gjk_query_output::add(const gjk_query_input &input, const cbrush_t *brush, const float *query_mins, const float *query_maxs)
 {
     gjk_brush_t *cg; // [esp+30h] [ebp-10h]
     broad_phase_environment_info *bpei; // [esp+3Ch] [ebp-4h]
@@ -831,9 +748,9 @@ void __thiscall gjk_query_output::add(
 }
 
 // local variable allocation has failed, the output may be wrong!
-void gjk_query_output::add(const gjk_query_input *input, gentity_s *gent)
+void gjk_query_output::add(const gjk_query_input &input, gentity_s *gent)
 {
-    gjk_entity_info_t *m_data; // [esp-Ch] [ebp-5Ch]
+    gjk_entity_info_t *ent_info; // [esp-Ch] [ebp-5Ch]
     float axis[3][3]; // [esp-8h] [ebp-58h] OVERLAPPED BYREF
     phys_vec3 *p_w; // [esp+1Ch] [ebp-34h]
     const phys_vec3 *v7; // [esp+20h] [ebp-30h]
@@ -885,7 +802,8 @@ void gjk_query_output::add(const gjk_query_input *input, gentity_s *gent)
     {
         __debugbreak();
     }
-    m_data = (gjk_entity_info_t *)bpei->m_data;
+    ent_info = (gjk_entity_info_t *)bpei->m_data;
+
     //if (*((_DWORD *)bpei->m_data + 16)
     //    && !Assert_MyHandler(
     //        "C:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_gjk_collision_detection.cpp",
@@ -896,18 +814,16 @@ void gjk_query_output::add(const gjk_query_input *input, gentity_s *gent)
     //{
     //    __debugbreak();
     //}
-    if (m_data->m_query_visitor_count != thisa->m_gent_query_visitor_count)
+    if (ent_info->m_query_visitor_count != thisa->m_gent_query_visitor_count)
     {
-        m_data->m_query_visitor_count = thisa->m_gent_query_visitor_count;
-        gjk_query_output::set_local_query_info(input, m_data);
-        create_gjk_geom(gent, thisa, 1, input->m_contents, 0);
+        ent_info->m_query_visitor_count = thisa->m_gent_query_visitor_count;
+        gjk_query_output::set_local_query_info(input, ent_info);
+        create_gjk_geom(gent, thisa, 1, input.m_contents, 0);
     }
 }
 
 // local variable allocation has failed, the output may be wrong!
-void gjk_query_output::add(
-                const gjk_query_input *input,
-                centity_s *cent)
+void gjk_query_output::add(const gjk_query_input &input, centity_s *cent)
 {
     gjk_entity_info_t *m_data; // [esp-8h] [ebp-5Ch]
     float axis[3][3]; // [esp-4h] [ebp-58h] OVERLAPPED BYREF
@@ -977,11 +893,11 @@ void gjk_query_output::add(
     {
         m_data->m_query_visitor_count = v12->m_cent_query_visitor_count;
         gjk_query_output::set_local_query_info(input, m_data);
-        create_gjk_geom(cgCollWorldLocalClientNum, cent, v12, 1, input->m_contents, 0, 0);
+        create_gjk_geom(cgCollWorldLocalClientNum, cent, v12, 1, input.m_contents, 0, 0);
     }
 }
 
-void __thiscall gjk_query_output::add(const gjk_query_input *input, const Glass *glass)
+void gjk_query_output::add(const gjk_query_input &input, const Glass *glass)
 {
     float axis[3][3]; // [esp+4h] [ebp-34h] BYREF
     gjk_entity_info_t *glass_id; // [esp+28h] [ebp-10h]
@@ -1026,11 +942,11 @@ void __thiscall gjk_query_output::add(const gjk_query_input *input, const Glass 
     {
         m_data->m_query_visitor_count = this->m_gent_query_visitor_count;
         gjk_query_output::set_local_query_info(input, m_data);
-        create_gjk_geom(glass, this, input->m_contents);
+        create_gjk_geom(glass, this, input.m_contents);
     }
 }
 
-void __thiscall gjk_query_output::add(const gjk_query_input *input, const DynEntityDef *dent)
+void gjk_query_output::add(const gjk_query_input &input, const DynEntityDef *dent)
 {
     float axis[3][3]; // [esp+4h] [ebp-44h] BYREF
     DynEntityDrawType v5; // [esp+28h] [ebp-20h]
@@ -1083,11 +999,11 @@ void __thiscall gjk_query_output::add(const gjk_query_input *input, const DynEnt
     {
         ent_info->m_query_visitor_count = this->m_dent_query_visitor_count;
         gjk_query_output::set_local_query_info(input, ent_info);
-        create_gjk_geom(dent, this, input->m_contents);
+        create_gjk_geom(dent, this, input.m_contents);
     }
 }
 
-void __cdecl gjk_query_prims(const gjk_query_input *input, gjk_query_output *output)
+void __cdecl gjk_query_prims(const gjk_query_input &input, gjk_query_output *output)
 {
     const cbrush_t *brush; // [esp+14h] [ebp-50h]
     const CollisionAabbTree *tree; // [esp+38h] [ebp-2Ch]
@@ -1098,18 +1014,10 @@ void __cdecl gjk_query_prims(const gjk_query_input *input, gjk_query_output *out
     int nprims; // [esp+54h] [ebp-10h]
     float query_mins[3]; // [esp+58h] [ebp-Ch] BYREF
 
-    if ( input->m_proximity_data->overflow
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_gjk_collision_detection.cpp",
-                    680,
-                    0,
-                    "%s",
-                    "input.m_proximity_data->overflow == false") )
-    {
-        __debugbreak();
-    }
-    prims = input->m_proximity_data->prims;
-    nprims = input->m_proximity_data->nprims;
+    iassert(input.m_proximity_data->overflow == false);
+    
+    prims = input.m_proximity_data->prims;
+    nprims = input.m_proximity_data->nprims;
     Phys_NitrousVecToVec3(&output->m_query_aabb_min, query_mins);
     Phys_NitrousVecToVec3(&output->m_query_aabb_max, query_maxs);
     prim = prims;
@@ -1117,18 +1025,9 @@ void __cdecl gjk_query_prims(const gjk_query_input *input, gjk_query_output *out
     {
         if ( prim->type )
         {
-            if ( prim->type != 1
-                && !Assert_MyHandler(
-                            "C:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_gjk_collision_detection.cpp",
-                            710,
-                            0,
-                            "%s",
-                            "prim->type == COL_BRUSH") )
-            {
-                __debugbreak();
-            }
+            iassert(prim->type == COL_BRUSH);
             brush = prim->brush;
-            if ( (brush->contents & input->m_contents) != 0
+            if ( (brush->contents & input.m_contents) != 0
                 && query_maxs[0] >= brush->mins[0]
                 && query_maxs[1] >= brush->mins[1]
                 && query_maxs[2] >= brush->mins[2]
@@ -1143,7 +1042,7 @@ void __cdecl gjk_query_prims(const gjk_query_input *input, gjk_query_output *out
         else
         {
             tree = prim->tree;
-            if ( (cm.materials[tree->materialIndex].contentFlags & input->m_contents) != 0
+            if ( (cm.materials[tree->materialIndex].contentFlags & input.m_contents) != 0
                 && query_maxs[0] >= (float)(tree->origin[0] - tree->halfSize[0])
                 && query_maxs[1] >= (float)(tree->origin[1] - tree->halfSize[1])
                 && query_maxs[2] >= (float)(tree->origin[2] - tree->halfSize[2])
@@ -1159,7 +1058,7 @@ void __cdecl gjk_query_prims(const gjk_query_input *input, gjk_query_output *out
     }
 }
 
-void __cdecl gjk_query_terrain(const gjk_query_input *input, gjk_query_output *output)
+void __cdecl gjk_query_terrain(const gjk_query_input &input, gjk_query_output *output)
 {
     int j; // [esp+20h] [ebp-10A4h]
     int i; // [esp+28h] [ebp-109Ch]
@@ -1178,7 +1077,7 @@ void __cdecl gjk_query_terrain(const gjk_query_input *input, gjk_query_output *o
     v5 = 0;
     v7 = 0;
     //colgeom_visitor_t::intersect_box(&v4, outVector, mx, input->m_contents);
-    v4.intersect_box(outVector, mx, input->m_contents);
+    v4.intersect_box(outVector, mx, input.m_contents);
     for (i = 0; i < v7; ++i)
     {
         //gjk_query_output::add(output, input, (const cbrush_t *)v8[i], outVector, mx);
@@ -1191,7 +1090,7 @@ void __cdecl gjk_query_terrain(const gjk_query_input *input, gjk_query_output *o
     }
 }
 
-void __cdecl gjk_query_gents(const gjk_query_input *input, gjk_query_output *output)
+void __cdecl gjk_query_gents(const gjk_query_input &input, gjk_query_output *output)
 {
     DObj *ServerDObj; // [esp+0h] [ebp-1034h]
     gentity_s *gent; // [esp+8h] [ebp-102Ch]
@@ -1205,7 +1104,7 @@ void __cdecl gjk_query_gents(const gjk_query_input *input, gjk_query_output *out
     ++output->m_gent_query_visitor_count;
     Phys_NitrousVecToVec3(&output->m_query_aabb_min, outVector);
     Phys_NitrousVecToVec3(&output->m_query_aabb_max, maxs);
-    v7 = CM_AreaEntities(outVector, maxs, entityList, 1024, input->m_contents);
+    v7 = CM_AreaEntities(outVector, maxs, entityList, 1024, input.m_contents);
     for ( i = 0; i < v7; ++i )
     {
         gent = &g_entities[entityList[i]];
@@ -1215,7 +1114,7 @@ void __cdecl gjk_query_gents(const gjk_query_input *input, gjk_query_output *out
                 ServerDObj = Com_GetServerDObj(gent->s.number);
             else
                 ServerDObj = 0;
-            if (!ServerDObj || DObjHasCollmap(ServerDObj) && DObjHasContents(ServerDObj, input->m_contents))
+            if (!ServerDObj || DObjHasCollmap(ServerDObj) && DObjHasContents(ServerDObj, input.m_contents))
             {
                 //gjk_query_output::add(output, (broad_phase_environment_info *)&savedregs, input, gent);
                 output->add(input, gent);
@@ -1224,23 +1123,23 @@ void __cdecl gjk_query_gents(const gjk_query_input *input, gjk_query_output *out
     }
 }
 
-char __cdecl query_should_pass_gentity(const gjk_query_input *input, gentity_s *gent)
+bool __cdecl query_should_pass_gentity(const gjk_query_input &input, const gentity_s *gent)
 {
-    if (input->m_pass_entity_num == 1023)
+    if (input.m_pass_entity_num == 1023)
         return (gent->s.lerp.eFlags2 & 0x1000000) != 0;
-    if (gent->s.number == input->m_pass_entity_num)
+    if (gent->s.number == input.m_pass_entity_num)
         return 1;
     //if (!EntHandle::isDefined(&gent->r.ownerNum))
     if (!gent->r.ownerNum.isDefined())
         return (gent->s.lerp.eFlags2 & 0x1000000) != 0;
     //if (EntHandle::entnum(&gent->r.ownerNum) == input->m_pass_entity_num)
-    if (gent->r.ownerNum.entnum() == input->m_pass_entity_num)
+    if (gent->r.ownerNum.entnum() == input.m_pass_entity_num)
         return 1;
     //return EntHandle::entnum(&gent->r.ownerNum) == input->m_pass_owner_num || (gent->s.lerp.eFlags2 & 0x1000000) != 0;
-    return gent->r.ownerNum.entnum() == input->m_pass_owner_num || (gent->s.lerp.eFlags2 & 0x1000000) != 0;
+    return gent->r.ownerNum.entnum() == input.m_pass_owner_num || (gent->s.lerp.eFlags2 & 0x1000000) != 0;
 }
 
-void __cdecl gjk_query_cents(const gjk_query_input *input, gjk_query_output *output)
+void __cdecl gjk_query_cents(const gjk_query_input &input, gjk_query_output *output)
 {
     DObj *ClientDObj; // [esp+0h] [ebp-1058h]
     int entityIndex; // [esp+24h] [ebp-1034h]
@@ -1256,12 +1155,12 @@ void __cdecl gjk_query_cents(const gjk_query_input *input, gjk_query_output *out
     ++output->m_cent_query_visitor_count;
     Phys_NitrousVecToVec3(&output->m_query_aabb_min, outVector);
     Phys_NitrousVecToVec3(&output->m_query_aabb_max, maxs);
-    v10 = CG_AreaEntities(outVector, maxs, entityList, 1024, input->m_contents);
+    v10 = CG_AreaEntities(outVector, maxs, entityList, 1024, input.m_contents);
     for ( i = 0; i < v10; ++i )
     {
         entityIndex = entityList[i];
         if ((CG_GetEntity(0, entityIndex)->nextState.lerp.eFlags2 & 0x1000000) == 0
-            && entityIndex != input->m_pass_entity_num
+            && entityIndex != input.m_pass_entity_num
             && entityIndex < 1024 )
         {
             localClientNum = cgCollWorldLocalClientNum;
@@ -1274,12 +1173,12 @@ void __cdecl gjk_query_cents(const gjk_query_input *input, gjk_query_output *out
                     ClientDObj = 0;
                 if ( ClientDObj )
                 {
-                    if ( DObjHasCollmap(ClientDObj) && DObjHasContents(ClientDObj, input->m_contents) )
+                    if ( DObjHasCollmap(ClientDObj) && DObjHasContents(ClientDObj, input.m_contents) )
                         goto LABEL_22;
                 }
                 else if (cent->nextState.solid
                     && (cent->nextState.solid != 0xFFFFFF || (cent->nextState.lerp.eFlags & 1) == 0)
-                    && (input->m_contents & CG_GetEntityBModelContents(cent)) != 0)
+                    && (input.m_contents & CG_GetEntityBModelContents(cent)) != 0)
                 {
 LABEL_22:
                     //gjk_query_output::add(output, (broad_phase_environment_info *)&savedregs, input, cent);
@@ -1291,29 +1190,29 @@ LABEL_22:
     }
 }
 
-void __cdecl gjk_query_glass(const gjk_query_input *input, gjk_query_output *output)
+void __cdecl gjk_query_glass(const gjk_query_input &input, gjk_query_output *output)
 {
     unsigned int i; // [esp+0h] [ebp-1024h]
     float maxs[3]; // [esp+8h] [ebp-101Ch] BYREF
-    unsigned int v4; // [esp+14h] [ebp-1010h]
+    unsigned int numGlasses; // [esp+14h] [ebp-1010h]
     float outVector[3]; // [esp+18h] [ebp-100Ch] BYREF
     const Glass *glasses[1024]; // [esp+24h] [ebp-1000h] BYREF
 
-    if ( (input->m_contents & 0x10) != 0 )
+    if ( (input.m_contents & 0x10) != 0 )
     {
         Phys_NitrousVecToVec3(&output->m_query_aabb_min, outVector);
         Phys_NitrousVecToVec3(&output->m_query_aabb_max, maxs);
-        if ( input->m_is_server_thread )
-            v4 = GlassSv_AreaGlasses(outVector, maxs, glasses, 0x400u);
+        if ( input.m_is_server_thread )
+            numGlasses = GlassSv_AreaGlasses(outVector, maxs, glasses, 0x400u);
         else
-            v4 = GlassCl_AreaGlasses(outVector, maxs, glasses, 0x400u);
+            numGlasses = GlassCl_AreaGlasses(outVector, maxs, glasses, 0x400u);
 
-        for ( i = 0; i < v4; ++i )
+        for ( i = 0; i < numGlasses; ++i )
             output->add(input, glasses[i]);
     }
 }
 
-void __cdecl gjk_query_dents(const gjk_query_input *input, gjk_query_output *output)
+void __cdecl gjk_query_dents(const gjk_query_input &input, gjk_query_output *output)
 {
     const DynEntityDef *dynEntDef; // [esp+4h] [ebp-2044h]
     unsigned __int16 Id; // [esp+8h] [ebp-2040h]
@@ -1329,7 +1228,7 @@ void __cdecl gjk_query_dents(const gjk_query_input *input, gjk_query_output *out
     Phys_NitrousVecToVec3(&output->m_query_aabb_max, v8);
     areaParms.mins = outVector;
     areaParms.maxs = v8;
-    areaParms.contentMask = input->m_contents;
+    areaParms.contentMask = input.m_contents;
     areaParms.list = v7;
     areaParms.maxCount = 4096;
     for ( drawType = DYNENT_DRAW_MODEL; drawType < DYNENT_DRAW_COUNT; ++drawType )
@@ -1349,34 +1248,27 @@ void __cdecl gjk_query_dents(const gjk_query_input *input, gjk_query_output *out
     }
 }
 
-void __cdecl gjk_query(const gjk_query_input *input, gjk_query_output *output)
+void __cdecl gjk_query(const gjk_query_input &input, gjk_query_output *output)
 {
     float mins[3]; // [esp+0h] [ebp-24h] BYREF
     float expand_vec[3]; // [esp+Ch] [ebp-18h] BYREF
     float maxs[3]; // [esp+18h] [ebp-Ch] BYREF
 
     ++output->m_total_query_count;
-    if ( (input->m_gjk_query_flags & 1) != 0 )
+    if ( (input.m_gjk_query_flags & 1) != 0 )
     {
-        if ( input->m_proximity_data )
+        if ( input.m_proximity_data )
         {
             Phys_NitrousVecToVec3(&output->m_query_aabb_min, mins);
             Phys_NitrousVecToVec3(&output->m_query_aabb_max, maxs);
             expand_vec[0] = 70.0f;
             expand_vec[1] = 70.0f;
             expand_vec[2] = 20.0f;
-            input->m_proximity_data->update(mins, maxs, input->m_proximity_mask, expand_vec);
-            if ( (input->m_contents & input->m_proximity_mask) != input->m_contents
-                && !Assert_MyHandler(
-                            "C:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_gjk_collision_detection.cpp",
-                            994,
-                            0,
-                            "%s",
-                            "(input.m_proximity_mask & input.m_contents) == input.m_contents") )
-            {
-                __debugbreak();
-            }
-            if ( input->m_proximity_data->overflow )
+            input.m_proximity_data->update(mins, maxs, input.m_proximity_mask, expand_vec);
+
+            iassert((input.m_proximity_mask & input.m_contents) == input.m_contents);
+
+            if ( input.m_proximity_data->overflow )
                 gjk_query_terrain(input, output);
             else
                 gjk_query_prims(input, output);
@@ -1386,15 +1278,15 @@ void __cdecl gjk_query(const gjk_query_input *input, gjk_query_output *output)
             gjk_query_terrain(input, output);
         }
     }
-    if ( (input->m_gjk_query_flags & 2) != 0 )
+    if ( (input.m_gjk_query_flags & 2) != 0 )
     {
-        if ( input->m_is_server_thread )
+        if ( input.m_is_server_thread )
             gjk_query_gents(input, output);
         else
             gjk_query_cents(input, output);
         gjk_query_glass(input, output);
     }
-    if ( (input->m_gjk_query_flags & 4) != 0 )
+    if ( (input.m_gjk_query_flags & 4) != 0 )
         gjk_query_dents(input, output);
 }
 
@@ -1447,9 +1339,11 @@ void gjk_query_output::cached_query_resize(
     //{
     //    __debugbreak();
     //}
-    resize_input.m_geom_skip_list.m_first = 0;
-    resize_input.m_geom_skip_list.m_last_next_ptr = &resize_input.m_geom_skip_list.m_first;
-    resize_input.m_geom_skip_list.m_alloc_count = 0;
+    //resize_input.m_geom_skip_list.m_first = 0;
+    //resize_input.m_geom_skip_list.m_last_next_ptr = &resize_input.m_geom_skip_list.m_first;
+    //resize_input.m_geom_skip_list.m_alloc_count = 0;
+    resize_input.m_geom_skip_list.clear();
+
     resize_input.m_contents = thisa->m_cached_query_info.m_query_contents;
     resize_input.m_pass_entity_num = 1023;
     resize_input.m_pass_owner_num = 1023;
@@ -1457,9 +1351,11 @@ void gjk_query_output::cached_query_resize(
     resize_input.m_proximity_data = proximity_data;
     resize_input.m_proximity_mask = proximity_mask;
     resize_input.m_gjk_query_flags = thisa->m_cached_query_info.m_query_flags;
-    resize_input.m_geom_skip_list.m_first = 0;
-    resize_input.m_geom_skip_list.m_last_next_ptr = &resize_input.m_geom_skip_list.m_first;
-    resize_input.m_geom_skip_list.m_alloc_count = 0;
+    //resize_input.m_geom_skip_list.m_first = 0;
+    //resize_input.m_geom_skip_list.m_last_next_ptr = &resize_input.m_geom_skip_list.m_first;
+    //resize_input.m_geom_skip_list.m_alloc_count = 0;
+    resize_input.m_geom_skip_list.clear();
+
     saved_query_aabb_max_4 = thisa->m_query_aabb_min.x;
     saved_query_aabb_max_8 = thisa->m_query_aabb_min.y;
     saved_query_aabb_max_12 = thisa->m_query_aabb_min.z;
@@ -1476,7 +1372,7 @@ void gjk_query_output::cached_query_resize(
     thisa->m_query_aabb_max.x = thisa->m_cached_query_info.m_query_aabb_max.x;
     v7->y = p_m_query_aabb_max->y;
     v7->z = p_m_query_aabb_max->z;
-    gjk_query(&resize_input, thisa);
+    gjk_query(resize_input, thisa);
     v6 = &thisa->m_query_aabb_min;
     thisa->m_query_aabb_min.x = saved_query_aabb_max_4;
     v6->y = saved_query_aabb_max_8;
@@ -1487,7 +1383,7 @@ void gjk_query_output::cached_query_resize(
     v5->z = z;
 }
 
-bool __thiscall cached_query_info_t::aabb_is_valid()
+bool cached_query_info_t::aabb_is_valid()
 {
     return this->m_query_aabb_max.x >= this->m_query_aabb_min.x
             && this->m_query_aabb_max.y >= this->m_query_aabb_min.y
@@ -1597,7 +1493,7 @@ void gjk_query_output::cached_query_prolog(
     p_m_allocator_state->m_total_memory_allocated = m_total_memory_allocated;
 }
 
-void __thiscall cached_query_info_t::init_query(
+void cached_query_info_t::init_query(
                 const phys_vec3 *query_aabb_min,
                 const phys_vec3 *query_aabb_max,
                 const phys_vec3 *extra,
@@ -1623,7 +1519,7 @@ void __thiscall cached_query_info_t::init_query(
     this->m_query_flags = query_flags;
 }
 
-void __thiscall gjk_query_output::cached_query_epilog()
+void gjk_query_output::cached_query_epilog()
 {
     char *m_cur; // [esp+2Ch] [ebp-Ch]
     char *m_end; // [esp+30h] [ebp-8h]
@@ -1651,7 +1547,7 @@ void __thiscall gjk_query_output::cached_query_epilog()
     this->m_allocator_state.m_total_memory_allocated = m_total_memory_allocated;
 }
 
-void __thiscall gjk_query_output::accum_query_reset(const phys_vec3 *start_origin)
+void gjk_query_output::accum_query_reset(const phys_vec3 *start_origin)
 {
     this->m_accum_start_origin.x = start_origin->x;
     this->m_accum_start_origin.y = start_origin->y;
@@ -1660,98 +1556,83 @@ void __thiscall gjk_query_output::accum_query_reset(const phys_vec3 *start_origi
     this->m_accum_query_info.m_query_flags = 0;
 }
 
-void    gjk_query_cached(const gjk_query_input *input, gjk_query_output *output)
+void    gjk_query_cached(const gjk_query_input &input, gjk_query_output *output)
 {
     phys_vec3 mx; // [esp-Ch] [ebp-3Ch] BYREF
     phys_vec3 mn; // [esp+4h] [ebp-2Ch] BYREF
     float hit_time; // [esp+18h] [ebp-18h] BYREF
     int flags; // [esp+1Ch] [ebp-14h]
-    gjk_geom_info_t *i; // [esp+20h] [ebp-10h]
+    gjk_geom_info_t *gi; // [esp+20h] [ebp-10h]
     //float hit_time[2]; // [esp+24h] [ebp-Ch] BYREF
     //float retaddr; // [esp+30h] [ebp+0h]
     //
     //hit_time[0] = a1;
     //hit_time[1] = retaddr;
-    if (!input->m_contents
-        && !Assert_MyHandler(
-            "C:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_gjk_collision_detection.cpp",
-            1122,
-            0,
-            "%s",
-            "input.m_contents != 0"))
-    {
-        __debugbreak();
-    }
+
+    iassert(input.m_contents != 0);
+
     ++output->m_total_cached_query_count;
     //if (!cached_query_info_t::is_subset(
-        if (!output->m_cached_query_info.is_subset(
+      if (!output->m_cached_query_info.is_subset(
         &output->m_query_aabb_min,
         &output->m_query_aabb_max,
-        input->m_contents,
-        input->m_gjk_query_flags))
+        input.m_contents,
+        input.m_gjk_query_flags))
     {
         //cached_query_info_t::add_query(
             output->m_cached_query_info.add_query(
             &output->m_query_aabb_min,
             &output->m_query_aabb_max,
             &CACHED_QUERY_RESIZE_EXTRA,
-            input->m_contents,
-            input->m_gjk_query_flags);
+            input.m_contents,
+            input.m_gjk_query_flags);
         //gjk_query_output::cached_query_resize(
             output->cached_query_resize(
-            input->m_is_server_thread,
-            input->m_proximity_data,
-            input->m_proximity_mask);
+            input.m_is_server_thread,
+            input.m_proximity_data,
+            input.m_proximity_mask);
     }
     //cached_query_info_t::add_query(
         output->m_accum_query_info.add_query(
         &output->m_query_aabb_min,
         &output->m_query_aabb_max,
         &PHYS_ZERO_VEC,
-        input->m_contents,
-        input->m_gjk_query_flags);
+        input.m_contents,
+        input.m_gjk_query_flags);
 
-    for (i = output->m_total_list_geom_info; i; i = i->m_total_next_link)
+    for (gi = output->m_total_list_geom_info; gi; gi = gi->m_total_next_link)
     {
         //if ((input->m_contents & gjk_base_t::get_contents(i->m_cg)) != 0)
-        if ((input->m_contents & i->m_cg->get_contents()) != 0)
+        if ((input.m_contents & gi->m_cg->get_contents()) != 0)
         {
-            if (i->m_ent_info)
-                flags = i->m_ent_info->m_ent_type == gjk_entity_info_t::ENTITY_TYPE::ET_DENT ? 4 : 2;
+            if (gi->m_ent_info)
+                flags = gi->m_ent_info->m_ent_type == gjk_entity_info_t::ENTITY_TYPE::ET_DENT ? 4 : 2;
             else
                 flags = 1;
-            if ((input->m_gjk_query_flags & flags) != 0
-                && !query_should_pass_entity(input, i->m_ent_info)
-                && i->m_query_visitor_count != output->m_query_visitor_count)
+            if ((input.m_gjk_query_flags & flags) != 0
+                && !query_should_pass_entity(input, gi->m_ent_info)
+                && gi->m_query_visitor_count != output->m_query_visitor_count)
             {
-                //if (gjk_query_input::is_in_skip_list(input, i)
-                //    && !Assert_MyHandler(
-                //        "C:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_gjk_collision_detection.cpp",
-                //        1149,
-                //        0,
-                //        "%s",
-                //        "!input.is_in_skip_list(gi)"))
-                //{
-                //    __debugbreak();
-                //}
-                i->m_query_visitor_count = output->m_query_visitor_count;
+                iassert(!input.is_in_skip_list(gi));
+
+                gi->m_query_visitor_count = output->m_query_visitor_count;
                 hit_time = 0.0f;
                 //operator-(&mn, &i->m_aabb_min, &input->m_cg_aabb_max);
-                mn = i->m_aabb_min - input->m_cg_aabb_max;
-                mx = i->m_aabb_max - input->m_cg_aabb_min;
+                mn = gi->m_aabb_min - input.m_cg_aabb_max;
+                mx = gi->m_aabb_max - input.m_cg_aabb_min;
                 //operator-(&mx, &i->m_aabb_max, &input->m_cg_aabb_min);
-                if (gjk_trace_aabb(&input->m_cg_position, &input->m_cg_translation, &mn, &mx, &hit_time))
+                if (gjk_trace_aabb(&input.m_cg_position, &input.m_cg_translation, &mn, &mx, &hit_time))
                 {
-                    i->m_hit_time = hit_time;
+                    gi->m_hit_time = hit_time;
                     //phys_link_list<gjk_geom_info_t>::add(&output->m_list_geom_info, i);
-                    output->m_list_geom_info.add(i);
+                    output->m_list_geom_info.add(gi);
                 }
             }
         }
     }
 }
 
-char __thiscall gjk_query_input::is_in_skip_list(gjk_geom_info_t *gi_)
+bool gjk_query_input::is_in_skip_list(const gjk_geom_info_t *gi_) const
 {
     gjk_geom_info_t *gi_i; // [esp+14h] [ebp-4h]
 
@@ -1883,7 +1764,7 @@ void cached_query_info_t::add_query(
     }
 }
 
-bool __thiscall cached_query_info_t::is_subset(
+bool cached_query_info_t::is_subset(
                 const phys_vec3 *query_aabb_min,
                 const phys_vec3 *query_aabb_max,
                 int query_contents,
@@ -1930,7 +1811,7 @@ bool __thiscall cached_query_info_t::is_subset(
             && (query_flags & this->m_query_flags) == query_flags;
 }
 
-bool __thiscall cached_query_info_t::is_subset_aabb(
+bool cached_query_info_t::is_subset_aabb(
                 const phys_vec3 *query_aabb_min,
                 const phys_vec3 *query_aabb_max)
 {
@@ -1942,6 +1823,48 @@ bool __thiscall cached_query_info_t::is_subset_aabb(
             && this->m_query_aabb_max.z >= query_aabb_max->z;
 }
 
+static bool gjk_trace_plane_1d(float d1, float d2, float *min_t, float *max_t, bool use_iw_logic)
+{
+    if (d1 <= 0.0f)
+    {
+        if (d2 > 0.0f)
+        {
+            float delta = d1 - d2;
+            iassert(delta < 0.0f); // "delta < 0.0f"
+
+            if (!use_iw_logic)
+                d1 -= 0.0625f;
+
+            if (*max_t * delta > d1)
+            {
+                *max_t = d1 / delta;
+                if (*min_t >= *max_t)
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    float threshold = (d1 >= 0.125f) ? 0.125f : d1;
+
+    if (d2 < threshold)
+    {
+        float delta = d1 - d2;
+        iassert(delta > 0.0f); // "delta > 0.0f"
+
+        float d1_biased = d1 - 0.125f;
+        if (d1_biased > *min_t * delta)
+        {
+            *min_t = d1_biased / delta;
+            if (*min_t >= *max_t)
+                return false;
+        }
+        return true;
+    }
+
+    return d1 <= 0.0625f && !use_iw_logic;
+}
+
 char __cdecl gjk_trace_aabb(
                 const phys_vec3 *p0,
                 const phys_vec3 *dir,
@@ -1949,146 +1872,25 @@ char __cdecl gjk_trace_aabb(
                 const phys_vec3 *aabb_max,
                 float *t_)
 {
-    float d1; // [esp+30h] [ebp-14h]
-    float d1a; // [esp+30h] [ebp-14h]
-    int i; // [esp+38h] [ebp-Ch]
-    float min_t; // [esp+3Ch] [ebp-8h] BYREF
-    float max_t; // [esp+40h] [ebp-4h] BYREF
+    float min_t = 0.0f;
+    float max_t = 1.0f;
 
-    min_t = 0.0f;
-    max_t = 1.0f;
-    for ( i = 0; i < 3; ++i )
+    for (int i = 0; i < 3; ++i)
     {
-        if ( i < 0
-            && _tlAssert(
-                     "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\old_phys_math.h",
-                     32,
-                     "i >= 0 && i < 3",
-                     "") )
-        {
-            __debugbreak();
-        }
-        if ( i < 0
-            && _tlAssert(
-                     "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\old_phys_math.h",
-                     32,
-                     "i >= 0 && i < 3",
-                     "") )
-        {
-            __debugbreak();
-        }
-        d1 = *(&p0->x + i) - *(&aabb_max->x + i);
-        if ( i < 0
-            && _tlAssert(
-                     "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\old_phys_math.h",
-                     32,
-                     "i >= 0 && i < 3",
-                     "") )
-        {
-            __debugbreak();
-        }
-        if ( !gjk_trace_plane_1d(d1, d1 + *(&dir->x + i), &min_t, &max_t, 0) )
+        float d_max = (*p0)[i] - (*aabb_max)[i];
+        if (!gjk_trace_plane_1d(d_max, d_max + (*dir)[i], &min_t, &max_t, 0))
             return 0;
-        if ( i < 0
-            && _tlAssert(
-                     "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\old_phys_math.h",
-                     32,
-                     "i >= 0 && i < 3",
-                     "") )
-        {
-            __debugbreak();
-        }
-        if ( i < 0
-            && _tlAssert(
-                     "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\old_phys_math.h",
-                     32,
-                     "i >= 0 && i < 3",
-                     "") )
-        {
-            __debugbreak();
-        }
-        (d1a) = -(*(&p0->x + i) - *(&aabb_min->x + i));
-        if ( i < 0 )
-        {
-            if ( _tlAssert(
-                         "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\old_phys_math.h",
-                         32,
-                         "i >= 0 && i < 3",
-                         "") )
-            {
-                __debugbreak();
-            }
-        }
-        if ( !gjk_trace_plane_1d(d1a, d1a - *(&dir->x + i), &min_t, &max_t, 0) )
+
+        float d_min = -((*p0)[i] - (*aabb_min)[i]);
+        if (!gjk_trace_plane_1d(d_min, d_min - (*dir)[i], &min_t, &max_t, 0))
             return 0;
     }
+
     *t_ = min_t;
     return 1;
 }
 
-bool __cdecl gjk_trace_plane_1d(float d1, float d2, float *min_t, float *max_t, bool use_iw_logic)
-{
-    float v6; // [esp+0h] [ebp-10h]
-    float v7; // [esp+8h] [ebp-8h]
-    float delta; // [esp+Ch] [ebp-4h]
-    float d1a; // [esp+18h] [ebp+8h]
-
-    if ( d1 <= 0.0 )
-    {
-        if ( d2 > 0.0 )
-        {
-            v7 = d1 - d2;
-            if ( (float)(d1 - d2) >= 0.0
-                && !Assert_MyHandler(
-                            "c:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_gjk_collision_detection.h",
-                            644,
-                            0,
-                            "%s",
-                            "delta < 0.0f") )
-            {
-                __debugbreak();
-            }
-            if ( !use_iw_logic )
-                d1 = d1 - 0.0625;
-            if ( (float)(*max_t * v7) > d1 )
-            {
-                *max_t = d1 / v7;
-                if ( *min_t >= *max_t )
-                    return 0;
-            }
-        }
-        return 1;
-    }
-    if ( d1 >= 0.125 )
-        v6 = 0.125f;
-    else
-        v6 = d1;
-    if ( d2 < v6 )
-    {
-        delta = d1 - d2;
-        if ( (float)(d1 - d2) <= 0.0
-            && !Assert_MyHandler(
-                        "c:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_gjk_collision_detection.h",
-                        629,
-                        0,
-                        "%s",
-                        "delta > 0.0f") )
-        {
-            __debugbreak();
-        }
-        d1a = d1 - 0.125;
-        if ( d1a > (float)(*min_t * delta) )
-        {
-            *min_t = d1a / delta;
-            if ( *min_t >= *max_t )
-                return 0;
-        }
-        return 1;
-    }
-    return d1 <= 0.0625 && !use_iw_logic;
-}
-
-char __cdecl query_should_pass_entity(const gjk_query_input *input, gjk_entity_info_t *ent_info)
+char __cdecl query_should_pass_entity(const gjk_query_input &input, gjk_entity_info_t *ent_info)
 {
     const gentity_s *gent; // eax
     int entityIndex; // [esp+8h] [ebp-8h]
@@ -2101,7 +1903,7 @@ char __cdecl query_should_pass_entity(const gjk_query_input *input, gjk_entity_i
         {
             //entityIndex = gjk_entity_info_t::get_cent(ent_info)->nextState.number;
             entityIndex = ent_info->get_cent()->nextState.number;
-            return (CG_GetEntity(0, entityIndex)->nextState.lerp.eFlags2 & 0x1000000) != 0 || entityIndex == input->m_pass_entity_num;
+            return (CG_GetEntity(0, entityIndex)->nextState.lerp.eFlags2 & 0x1000000) != 0 || entityIndex == input.m_pass_entity_num;
         }
         else if ( ent_info->m_ent_type == gjk_entity_info_t::ENTITY_TYPE::ET_GLASS )
         {
@@ -2128,11 +1930,11 @@ char __cdecl query_should_pass_entity(const gjk_query_input *input, gjk_entity_i
     {
         //gent = gjk_entity_info_t::get_gent(ent_info);
         gent = ent_info->get_gent();
-        return query_should_pass_gentity(input, (gentity_s*)gent);
+        return query_should_pass_gentity(input, gent);
     }
 }
 
-const DynEntityDef *__thiscall gjk_entity_info_t::get_dent()
+const DynEntityDef *gjk_entity_info_t::get_dent()
 {
     if ( (this->m_ent_type != ET_DENT || !this->m_ent)
         && !Assert_MyHandler(
@@ -2153,55 +1955,34 @@ void    setup_gjk_capsule(
                 float radius_adjust,
                 gjk_double_sphere_t *gjk_capsule)
 {
-    float v5; // [esp-Ch] [ebp-ACh]
-    float v6; // [esp-8h] [ebp-A8h]
-    float v7; // [esp-4h] [ebp-A4h]
-    float v8; // [esp+14h] [ebp-8Ch]
-    float v9; // [esp+18h] [ebp-88h]
-    float v10; // [esp+1Ch] [ebp-84h]
-    float v11; // [esp+50h] [ebp-50h]
+    float height; // [esp+50h] [ebp-50h]
     phys_vec3 pv_maxs; // [esp+74h] [ebp-2Ch] BYREF
     phys_vec3 pv_mins; // [esp+84h] [ebp-1Ch] BYREF
-    //float pv_mins_4; // [esp+94h] [ebp-Ch]
-    //void *pv_mins_8; // [esp+98h] [ebp-8h]
-    //void *retaddr; // [esp+A0h] [ebp+0h]
-    //
-    //pv_mins_4 = a1;
-    //pv_mins_8 = retaddr;
+
     Phys_Vec3ToNitrousVec(mins, &pv_mins);
     Phys_Vec3ToNitrousVec(maxs, &pv_maxs);
-    if ((float)(pv_maxs.x - pv_mins.x) <= (float)(pv_maxs.z - pv_mins.z))
-        v11 = pv_maxs.x - pv_mins.x;
+
+    if ((pv_maxs.x - pv_mins.x) <= (pv_maxs.z - pv_mins.z))
+        height = pv_maxs.x - pv_mins.x;
     else
-        v11 = pv_maxs.z - pv_mins.z;
-    v8 = pv_maxs.x - (float)(0.5 * v11);
-    v9 = pv_maxs.y - (float)(0.5 * v11);
-    v10 = pv_maxs.z - (float)(0.5 * v11);
-    v5 = pv_mins.x + (float)(0.5 * v11);
-    v6 = pv_mins.y + (float)(0.5 * v11);
-    v7 = pv_mins.z + (float)(0.5 * v11);
-    gjk_capsule->m_list_center[0].x = v8;
-    gjk_capsule->m_list_center[0].y = v9;
-    gjk_capsule->m_list_center[0].z = v10;
-    gjk_capsule->m_list_center[1].x = v5;
-    gjk_capsule->m_list_center[1].y = v6;
-    gjk_capsule->m_list_center[1].z = v7;
+        height = pv_maxs.z - pv_mins.z;
+
+    gjk_capsule->m_list_center[0].x = pv_maxs.x - (float)(0.5 * height);
+    gjk_capsule->m_list_center[0].y = pv_maxs.y - (float)(0.5 * height);
+    gjk_capsule->m_list_center[0].z = pv_maxs.z - (float)(0.5 * height);
+    gjk_capsule->m_list_center[1].x = pv_mins.x + (float)(0.5 * height);
+    gjk_capsule->m_list_center[1].y = pv_mins.y + (float)(0.5 * height);
+    gjk_capsule->m_list_center[1].z = pv_mins.z + (float)(0.5 * height);
     gjk_capsule->m_list_radius[0] = 0.0f;
     gjk_capsule->m_list_radius[1] = 0.0f;
-    gjk_capsule->m_geom_radius = (float)(0.5 * v11) + radius_adjust;
-    if (gjk_capsule->m_geom_radius <= 0.0
-        && !Assert_MyHandler(
-            "C:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_gjk_collision_detection.cpp",
-            1193,
-            0,
-            "%s",
-            "gjk_capsule->m_geom_radius > 0.0f"))
-    {
-        __debugbreak();
-    }
-    gjk_capsule->m_center.x = 0.5 * (float)(v8 + v5);
-    gjk_capsule->m_center.y = 0.5 * (float)(v9 + v6);
-    gjk_capsule->m_center.z = 0.5 * (float)(v10 + v7);
+    gjk_capsule->m_geom_radius = (float)(0.5 * height) + radius_adjust;
+
+    iassert(gjk_capsule->m_geom_radius > 0.0f);
+
+    gjk_capsule->m_center.x = 0.5 * (gjk_capsule->m_list_center[0].x + gjk_capsule->m_list_center[1].x);
+    gjk_capsule->m_center.y = 0.5 * (gjk_capsule->m_list_center[0].y + gjk_capsule->m_list_center[1].y);
+    gjk_capsule->m_center.z = 0.5 * (gjk_capsule->m_list_center[0].z + gjk_capsule->m_list_center[1].z);
+
     gjk_capsule->m_count = 2;
 }
 
@@ -2211,7 +1992,6 @@ void    setup_gjk_cylinder(
                 float radius_adjust,
                 gjk_cylinder_t *gjk_cylinder)
 {
-    float v5; // [esp-2Ch] [ebp-74h]
     float v6; // [esp-8h] [ebp-50h]
     phys_vec3 pv_maxs; // [esp+1Ch] [ebp-2Ch] OVERLAPPED BYREF
     phys_vec3 pv_mins; // [esp+2Ch] [ebp-1Ch] BYREF
@@ -2233,10 +2013,9 @@ void    setup_gjk_cylinder(
     gjk_cylinder->m_geom_radius = radius_adjust;
     //phys_mat44::operator=(&gjk_cylinder->xform, &PHYS_IDENTITY_MATRIX_42);
     gjk_cylinder->xform = PHYS_IDENTITY_MATRIX;
-    v5 = (float)(pv_mins.z + pv_maxs.z) * 0.5;
     gjk_cylinder->xform.w.x = 0.0f;
     gjk_cylinder->xform.w.y = 0.0f;
-    gjk_cylinder->xform.w.z = v5;
+    gjk_cylinder->xform.w.z = (pv_mins.z + pv_maxs.z) * 0.5;
 }
 
 bool gjk_aabb_t::is_walkable(
@@ -2437,16 +2216,13 @@ bool    is_walkable(
                 const phys_vec3 *hit_point_loc,
                 const phys_vec3 *up_loc)
 {
-#if 0
     char v5; // [esp-12h] [ebp-82h]
     bool v6; // [esp-11h] [ebp-81h]
     float v7; // [esp-Ch] [ebp-7Ch]
     float v8; // [esp-8h] [ebp-78h]
     float v9; // [esp-4h] [ebp-74h]
     float walk_normal; // [esp+0h] [ebp-70h]
-    float plane_dist; // [esp+4h] [ebp-6Ch] BYREF
-    float hit_point_dist; // [esp+8h] [ebp-68h]
-    float nnormal; // [esp+Ch] [ebp-64h]
+    phys_vec3 plane_dist; // [esp+4h] [ebp-6Ch] BYREF
     float triNormalScaledByAreaX2[3]; // [esp+20h] [ebp-50h] BYREF
     float v0_v2[3]; // [esp+2Ch] [ebp-44h] BYREF
     float v0_v1[3]; // [esp+38h] [ebp-38h] BYREF
@@ -2458,40 +2234,39 @@ bool    is_walkable(
     int i; // [esp+58h] [ebp-18h]
     float furthest_walk_normal; // [esp+5Ch] [ebp-14h]
     float furthest_dist; // [esp+60h] [ebp-10h]
-    //_UNKNOWN *v25; // [esp+64h] [ebp-Ch]
-    //const CollisionPartition *partitiona; // [esp+68h] [ebp-8h]
-    //const phys_vec3 *up_loca; // [esp+70h] [ebp+0h]
-    //
-    //v25 = a1;
-    //partitiona = (const CollisionPartition *)up_loca;
-    furthest_dist = -100000.0;
+
+    furthest_dist = -100000.0f;
     furthest_walk_normal = 0.0f;
     for (i = 0; i < partition->triCount; ++i)
     {
         triIndex = i + partition->firstTri;
         indices = &cm.triIndices[3 * triIndex];
-        v0 = cm.verts[*indices];
+
+        v0 = cm.verts[indices[0]];
         v1 = cm.verts[indices[1]];
         v2 = cm.verts[indices[2]];
-        v0_v1[0] = *v0 - *v1;
+
+        v0_v1[0] = v0[0] - v1[0];
         v0_v1[1] = v0[1] - v1[1];
         v0_v1[2] = v0[2] - v1[2];
-        v0_v2[0] = *v0 - *v2;
+
+        v0_v2[0] = v0[0] - v2[0];
         v0_v2[1] = v0[1] - v2[1];
         v0_v2[2] = v0[2] - v2[2];
+
         Vec3Cross(v0_v2, v0_v1, triNormalScaledByAreaX2);
-        Phys_Vec3ToNitrousVec(triNormalScaledByAreaX2, (phys_vec3 *)&plane_dist);
-        walk_normal = Abs(&plane_dist);
+        Phys_Vec3ToNitrousVec(triNormalScaledByAreaX2, &plane_dist);
+        walk_normal = Abs(&plane_dist.x);
         if (walk_normal > 0.000099999997)
         {
-            v9 = (float)((float)((float)(hit_point_loc->x * plane_dist) + (float)(hit_point_loc->y * hit_point_dist))
-                + (float)(hit_point_loc->z * nnormal))
+            v9 = (float)((float)((float)(hit_point_loc->x * plane_dist.x) + (float)(hit_point_loc->y * plane_dist.y))
+                + (float)(hit_point_loc->z * plane_dist.z))
                 / walk_normal;
             v8 = (float)((float)((float)(*v0 * triNormalScaledByAreaX2[0]) + (float)(v0[1] * triNormalScaledByAreaX2[1]))
                 + (float)(v0[2] * triNormalScaledByAreaX2[2]))
                 / walk_normal;
-            v7 = (float)((float)((float)(plane_dist * up_loc->x) + (float)(hit_point_dist * up_loc->y))
-                + (float)(nnormal * up_loc->z))
+            v7 = (float)((float)((float)(plane_dist.x * up_loc->x) + (float)(plane_dist.y * up_loc->y))
+                + (float)(plane_dist.z * up_loc->z))
                 / walk_normal;
             v6 = v9 >= (float)(0.99900001 * v8) || (float)(0.99900001 * v9) >= v8;
             if (v6 && v7 >= 0.69999999)
@@ -2512,87 +2287,14 @@ bool    is_walkable(
         }
     }
     return furthest_walk_normal >= 0.69999999;
-#else // aislop
-    float furthest_dist = -100000.0f;
-    float furthest_walk_normal = 0.0f;
-
-    for (int i = 0; i < partition->triCount; ++i)
-    {
-        int triIndex = partition->firstTri + i;
-        uint16_t *indices = &cm.triIndices[3 * triIndex];
-
-        const float *v0 = cm.verts[indices[0]];
-        const float *v1 = cm.verts[indices[1]];
-        const float *v2 = cm.verts[indices[2]];
-
-        // edge vectors
-        float e1x = v0[0] - v1[0];
-        float e1y = v0[1] - v1[1];
-        float e1z = v0[2] - v1[2];
-
-        float e2x = v0[0] - v2[0];
-        float e2y = v0[1] - v2[1];
-        float e2z = v0[2] - v2[2];
-
-        // cross product (triangle normal * area*2)
-        float nx = e2y * e1z - e2z * e1y;
-        float ny = e2z * e1x - e2x * e1z;
-        float nz = e2x * e1y - e2y * e1x;
-
-        // length of normal
-        float normalLen = sqrtf(nx * nx + ny * ny + nz * nz);
-        if (normalLen <= 0.0001f)
-            continue;
-
-        // normalize
-        float invLen = 1.0f / normalLen;
-        nx *= invLen;
-        ny *= invLen;
-        nz *= invLen;
-
-        // hit point plane distance
-        float hitDist =
-            hit_point_loc->x * nx +
-            hit_point_loc->y * ny +
-            hit_point_loc->z * nz;
-
-        // triangle plane distance
-        float planeDist =
-            v0[0] * nx +
-            v0[1] * ny +
-            v0[2] * nz;
-
-        // slope vs up vector
-        float walkNormal =
-            nx * up_loc->x +
-            ny * up_loc->y +
-            nz * up_loc->z;
-
-        bool onPlane =
-            hitDist >= 0.999f * planeDist ||
-            0.999f * hitDist >= planeDist;
-
-        if (onPlane && walkNormal >= 0.7f)
-            return true;
-
-        float dist = hitDist - planeDist;
-        if (dist > furthest_dist)
-        {
-            furthest_dist = dist;
-            furthest_walk_normal = walkNormal;
-        }
-    }
-
-    return furthest_walk_normal >= 0.7f;
-#endif
 }
 
-#if 0
 void    project(
                 const phys_vec3 *point,
                 phys_static_array<geom_plane,128> *list_geom_plane,
                 phys_vec3 *result)
 {
+#if 0
     float v4; // [esp-2Ch] [ebp-178h]
     float v5; // [esp-28h] [ebp-174h]
     float v6; // [esp-14h] [ebp-160h]
@@ -2896,122 +2598,92 @@ void    project(
     result->x = *(float *)&break_val;
     result->y = *(float *)&cur_set;
     result->z = cur_dist_sq;
-}
 #else // aislop
-// Project 'point' through the constraint planes in list_geom_plane,
-// writing the closest feasible point (as an offset from origin) into 'result'.
-//
-// Uses the Johnson distance algorithm — iteratively finds the support plane
-// (most violated constraint) and builds a simplex of up to 4 planes,
-// computing barycentric weights via the determinant recurrence.
-//
-// mat[i][j]  = dot(normal_i, normal_j)  — Gram matrix entries
-// lambda[i]  = barycentric weight for plane i in the active simplex
-// cur_set    = bitmask of planes in the current simplex
-// result     = weighted sum of plane normals * lambda, starting from 'point'
-void project(
-    const phys_vec3 *point,
-    phys_static_array<geom_plane, 128> *list_geom_plane,
-    phys_vec3 *result)
-{
-    // --- Reset all plane lambdas ---
-    for (int pi = 0; pi < list_geom_plane->m_alloc_count; ++pi)
-        list_geom_plane->m_slot_array[pi].m_lambda = 0.0f;
 
-    // Johnson distance algorithm state
-    // mat[i][j]  = dot(normal_i, normal_j) for simplex planes i,j (1-indexed, slot 0 unused)
-    // delta[i][j]= determinant sub-expressions for barycentric weight computation
-    // w[i]       = pointer to the normal of simplex plane i (1-indexed)
-    float mat[4][4];     // Gram matrix: mat[i][j] = dot(w[i], w[j])
-    float delta[4][4];   // Determinant recurrence table
-    float rs[4];         // Scratch for max_index computation
-    const float *w[4];   // Pointers to plane normals (1-indexed: w[1..4])
+    // Reset all lambdas to 0 (= "not in simplex" sentinel)
+    for (geom_plane *gp = list_geom_plane->m_slot_array,
+        *end = list_geom_plane->m_slot_array + list_geom_plane->m_alloc_count;
+        gp != end; ++gp)
+    {
+        gp->m_lambda = 0.0f;
+    }
 
-    // Active simplex bitmask and best distance tracking
-    int   cur_set = 0;       // bitmask of planes currently in simplex
-    float cur_dist_sq = 0.0f;  // best squared distance found so far (unused in output but drives iter check)
-
-    // Accumulator for result (starts at point, planes contribute via lambda)
+    // cur_result accumulates: starts at point, gets lambda_i * normal_i added per simplex update
     phys_vec3 cur_result;
     cur_result.x = point->x;
     cur_result.y = point->y;
     cur_result.z = point->z;
 
-    float best_dist_sq = 0.0f;    // best candidate squared distance across simplex subsets
-    int   best_set = 0;       // bitmask of best candidate simplex
-    float best_lambdas[4];          // lambda weights for best candidate (1-indexed)
+    // cur_set: bitmask of planes currently in best simplex (0-3 bits)
+    int   cur_set = 0;
+    // iter / cur_dist_sq: best squared distance found so far (stored as float, compared as float)
+    float cur_dist_sq = 0.0f;
 
-    // support_gp is used as a sentinel on exit:
-    //   (geom_plane*)-1 = no support plane found yet (initial)
-    //   (geom_plane*) 0 = no violated plane found, converged
-    //   (geom_plane*) 1 = all constraints satisfied
-    //   (geom_plane*) 2 = distance stopped improving
-    geom_plane *exit_code = (geom_plane *)-1;
+    // rhs[i]        = right_side_i - dot(point, normal_i)   for simplex plane i (0-based slot)
+    // cross[i][j]   = dot(normal_i, normal_j)               for i != j
+    // lambda[i]     = barycentric weight for best candidate simplex
+    float rhs[4];          // [ebp-90h] indexed by slot
+    float cross[4][4];     // [ebp-0D0h] indexed [row][col], row/col are 0-based simplex slots
+    float lambda[4];       // [ebp-108h] best lambdas for current best candidate
+    float new_dist_sq;     // [ebp-0F4h] best dist_sq for current support plane's candidates
+    int   new_set;         // [ebp-0F8h] bitmask for current best candidate
 
-    // =========================================================
-    // Main support-plane loop
-    // Finds the most violated active plane (most negative signed
-    // distance from cur_result) and adds it to the simplex.
-    // =========================================================
-    for (int support_iter = 0; ; ++support_iter)
+    // list_gp[i]: pointer to the geom_plane for simplex slot i
+    geom_plane *list_gp[4];
+
+    // support_gp: exit sentinel
+    //   (geom_plane*)-1 = initial / no break yet
+    //   (geom_plane*) 0 = no violated plane found (converged)
+    //   (geom_plane*) 1 = all violated planes satisfied (feasible)
+    //   (geom_plane*) 2 = dist stopped improving
+    geom_plane *support_gp = (geom_plane *)-1;
+
+    for (int support_iter = 0; support_iter < list_geom_plane->m_alloc_count; ++support_iter)
     {
-        if (support_iter >= list_geom_plane->m_alloc_count)
-            break;
+        // -------------------------------------------------------
+        // Find most violated active plane not yet in simplex
+        // "active" = m_active != 0, "not in simplex" = m_lambda == 0.0
+        // Violation = dot(cur_result, normal) - right_side  (most negative = most violated)
+        // -------------------------------------------------------
+        geom_plane *best_gp = nullptr;
+        float       best_viol = 9.9999998e12f;
 
-        // --- Find most violated active plane not yet in simplex ---
-        const float *best_normal = nullptr;
-        float best_violation = 9.9999998e12f; // large positive, looking for minimum
-
-        for (int pi = 0; pi < list_geom_plane->m_alloc_count; ++pi)
+        for (geom_plane *gp = list_geom_plane->m_slot_array,
+            *end = list_geom_plane->m_slot_array + list_geom_plane->m_alloc_count;
+            gp != end; ++gp)
         {
-            geom_plane *gp = &list_geom_plane->m_slot_array[pi];
-            const float *n = &gp->m_normal.x;
-
-            // m_active here (offset +9 floats = offset +36 bytes) is m_lambda
-            // n[9] = gp->m_lambda (lambda == -1.0 means already in simplex)
-            // n[10] = gp->m_right_side
             if (gp->m_active && gp->m_lambda == 0.0f)
             {
-                // Signed distance from cur_result to this plane
-                float signed_dist = (cur_result.x * gp->m_normal.x
+                float viol = cur_result.x * gp->m_normal.x
                     + cur_result.y * gp->m_normal.y
-                    + cur_result.z * gp->m_normal.z)
+                    + cur_result.z * gp->m_normal.z
                     - gp->m_right_side;
-                if (best_violation > signed_dist)
+                if (best_viol > viol)
                 {
-                    best_violation = signed_dist;
-                    best_normal = n;
+                    best_viol = viol;
+                    best_gp = gp;
                 }
             }
         }
 
-        if (!best_normal)
+        if (!best_gp)
         {
-            exit_code = nullptr; // no active planes found
+            support_gp = nullptr; // no active planes at all
             break;
         }
-        if (best_violation >= 0.0f)
+        if (best_viol >= 0.0f)
         {
-            exit_code = (geom_plane *)1; // all active planes satisfied
+            support_gp = (geom_plane *)1; // all satisfied
             break;
         }
 
-        // Mark this plane as in the simplex (lambda = -1 sentinel)
-        // best_normal points into geom_plane, cast back to set lambda
-        geom_plane *new_gp = (geom_plane *)((char *)best_normal - offsetof(geom_plane, m_normal));
-        new_gp->m_lambda = -1.0f;
+        // Mark as in simplex
+        best_gp->m_lambda = -1.0f;
 
-        // --- Determine new plane index (v29) in the simplex (0-based, maps to 1-based slots) ---
-        // Count bits set in cur_set to find the next slot index
-        if (cur_set > 14)
-        {
-            if (!Assert_MyHandler(
-                "C:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_gjk_collision_detection.cpp",
-                1494, 0, "%s", "cur_set >= 0 && cur_set < 15"))
-                __debugbreak();
-        }
+        // Validate cur_set
+        iassert(cur_set >= 0 && cur_set < 15);
 
-        // Compute new_index = popcount of cur_set (0-based slot for new plane)
+        // Compute new_index = popcount(cur_set), i.e. next free slot index (0-based)
         int new_index;
         if (cur_set & 1)
         {
@@ -3025,171 +2697,161 @@ void project(
             new_index = 0;
         }
 
-        // Compute max_index = number of planes currently in simplex
+        // max_index = number of planes currently in simplex before adding new one
         int max_index;
-        if (cur_set & 8)
-        {
-            max_index = 4;
-        }
-        else if (cur_set & 4)
-        {
-            max_index = 3;
-        }
-        else if (cur_set & 2)
-        {
-            max_index = 2;
-        }
-        else
-        {
-            max_index = (cur_set & 1) ? 1 : 0;
-        }
+        if (cur_set & 8) max_index = 4;
+        else if (cur_set & 4) max_index = 3;
+        else if (cur_set & 2) max_index = 2;
+        else                  max_index = (cur_set & 1) ? 1 : 0;
 
-        // --- Set up Gram matrix entry for new plane ---
-        // mat[new_index][new_index] = right_side - dot(point, normal)
-        mat[new_index][new_index] = new_gp->m_right_side
-            - (point->x * new_gp->m_normal.x
-                + point->y * new_gp->m_normal.y
-                + point->z * new_gp->m_normal.z);
+        // Store new plane's RHS term and record its pointer
+        rhs[new_index] = best_gp->m_right_side
+            - (point->x * best_gp->m_normal.x
+                + point->y * best_gp->m_normal.y
+                + point->z * best_gp->m_normal.z);
+        cross[new_index][new_index] = 1.0f;  // diagonal sentinel (used in cross-product checks)
+        list_gp[new_index] = best_gp;
 
-        // Initial delta for singleton: delta[new_index][new_index] = 1.0
-        delta[new_index][new_index] = 1.0f;
-        w[new_index] = &new_gp->m_normal.x;
-
-        // Cross-terms: dot(normal_new, normal_i) for existing simplex planes
+        // Compute cross-dot terms between new plane and existing simplex planes
         for (int i = 0; i < max_index; ++i)
         {
             if (cur_set & (1 << i))
             {
-                // mat[new_index][i] = dot(normal_new, normal_i)
-                mat[new_index][i] = (new_gp->m_normal.x * w[i][0]
-                    + new_gp->m_normal.y * w[i][1]
-                    + new_gp->m_normal.z * w[i][2]);
-                mat[i][new_index] = mat[new_index][i];
+                float dot_ij = list_gp[new_index]->m_normal.x * list_gp[i]->m_normal.x
+                    + list_gp[new_index]->m_normal.y * list_gp[i]->m_normal.y
+                    + list_gp[new_index]->m_normal.z * list_gp[i]->m_normal.z;
+                cross[new_index][i] = dot_ij;
+                cross[i][new_index] = dot_ij;
             }
         }
 
-        // --- Johnson distance algorithm: find best simplex subset ---
-        // Track best squared distance and corresponding lambdas
-        best_dist_sq = cur_dist_sq;
-        best_set = 1 << new_index;
-        best_lambdas[new_index] = mat[new_index][new_index];
+        // -------------------------------------------------------
+        // Johnson distance algorithm: find best subset of
+        // {cur_set | new_index} that minimizes squared distance
+        // -------------------------------------------------------
+        // Start with singleton {new_index}
+        new_dist_sq = rhs[new_index];
+        float new_dist_sq_sq = new_dist_sq * new_dist_sq;
+        new_set = 1 << new_index;
+        lambda[new_index] = rhs[new_index];
 
-        float diag_new = mat[new_index][new_index];
-        float diag_new_sq = diag_new * diag_new;
-
-        // --- Check all 1-plane subsets involving new plane ---
+        // Test all 2-plane subsets {new_index, j}
         for (int j = 0; j < max_index; ++j)
         {
             if (!(cur_set & (1 << j)))
                 continue;
 
-            // 2-plane subset {new_index, j}
-            float det_new = mat[new_index][new_index]
-                - mat[j][new_index] * delta[new_index][j];
-            float det_j = mat[j][j]
-                - mat[new_index][j] * delta[new_index][j]; // wait — uses mat[new_index][j]
+            // det_new = rhs[new_index] - rhs[j] * cross[new_index][j]
+            float det_new = rhs[new_index] - rhs[j] * cross[new_index][j];
+            if (det_new < 0.0f)
+                goto next_j;
 
-            // Actually: det_new = delta_new_in_{new,j} = mat[new][new] - mat[j][new]*delta[new][j]
-            //           det_j   = delta_j_in_{new,j}   = mat[j][j]   - mat[new][j]*delta[new][j]
-            // (This matches the Johnson recurrence)
-
-            if (det_new >= 0.0f && det_j >= 0.0f)
             {
-                // Cosine between the two normals
-                float cos_ij = delta[new_index][j]; // mat[new_index][j] cross-term already stored
+                // det_j = rhs[j] - rhs[new_index] * cross[new_index][j]
+                float det_j = rhs[j] - rhs[new_index] * cross[new_index][j];
+                if (det_j < 0.0f)
+                    goto next_j;
+
+                // cos_ij = cross[new_index][j]
+                float cos_ij = cross[new_index][j];
                 float sin_sq = 1.0f - cos_ij * cos_ij;
 
                 if (sin_sq > 0.0000099999997f)
                 {
-                    // Squared distance for this 2-subset
-                    float dist_sq_2 = ((2.0f * det_j * delta[new_index][j] + det_new) * det_new
-                        + det_j * det_j)
-                        / (sin_sq * sin_sq);
+                    // dist_sq for {new_index, j}
+                    float d = (2.0f * det_j * cross[new_index][j] + det_new) * det_new
+                        + det_j * det_j;
+                    d /= (sin_sq * sin_sq);
 
-                    if (dist_sq_2 > best_dist_sq)
+                    if (d > new_dist_sq_sq)
                     {
-                        best_lambdas[new_index] = det_new / sin_sq;
-                        best_lambdas[j] = det_j / sin_sq;
-                        best_dist_sq = dist_sq_2;
-                        best_set = (1 << j) | (1 << new_index);
+                        lambda[new_index] = det_new / sin_sq;
+                        lambda[j] = det_j / sin_sq;
+                        new_dist_sq_sq = d;
+                        new_set = (1 << j) | (1 << new_index);
+                    }
+                }
+
+                // Test all 3-plane subsets {new_index, j, k}
+                for (int k = j + 1; k < max_index; ++k)
+                {
+                    if (!(cur_set & (1 << k)))
+                        continue;
+
+                    // First set of cofactors (using cross table, row k)
+                    float ck_new = cross[k][j] * rhs[k] - rhs[j] * cross[k][k];
+                    float ck_j = -cross[k][new_index] * rhs[k] + rhs[new_index] * cross[k][k];
+                    float ck_k = cross[k][new_index] * rhs[j] - rhs[new_index] * cross[k][j];
+
+                    // Feasibility check 1: dot with row j of cross table
+                    float check1 = ck_new * cross[j][new_index]
+                        + ck_j * cross[j][j]
+                        + ck_k * cross[j][k];
+                    if (check1 < 0.0f)
+                        continue;
+
+                    // Feasibility check 2: negated dot with row new_index
+                    float check2 = -(ck_new * cross[new_index][new_index]
+                        + ck_j * cross[new_index][j]
+                        + ck_k * cross[new_index][k]);
+                    if (check2 < 0.0f)
+                        continue;
+
+                    // Second set of cofactors (using cross table differently)
+                    float ck2_new = cross[new_index][j] * cross[j][k]
+                        - cross[j][j] * cross[new_index][k];
+                    float ck2_j = -cross[new_index][new_index] * cross[j][k]
+                        + cross[j][new_index] * cross[new_index][k];
+                    float ck2_k = cross[new_index][new_index] * cross[j][j]
+                        - cross[j][new_index] * cross[new_index][j];
+
+                    // check3: dot of ck2 with rhs
+                    float check3 = ck2_new * rhs[new_index]
+                        + ck2_j * rhs[j]
+                        + ck2_k * rhs[k];
+                    if (check3 < 0.0f)
+                        continue;
+
+                    // denom: dot of ck2 with cross row k
+                    float denom = ck2_new * cross[k][new_index]
+                        + ck2_j * cross[k][j]
+                        + ck2_k * cross[k][k];
+                    if (denom <= 0.0000099999997f)
+                        continue;
+
+                    // dist_sq for {new_index, j, k}
+                    float d3 = check1 * check1 + check2 * check2 + check3 * check3
+                        + 2.0f * ((check2 * cross[new_index][j]
+                            + check3 * cross[new_index][k]) * check1
+                            + check2 * check3 * cross[j][k]);
+                    d3 /= (denom * denom);
+
+                    if (d3 > new_dist_sq_sq)
+                    {
+                        lambda[new_index] = check1 / denom;
+                        lambda[j] = check2 / denom;
+                        lambda[k] = check3 / denom;
+                        new_dist_sq_sq = d3;
+                        new_set = (1 << k) | (1 << j) | (1 << new_index);
                     }
                 }
             }
 
-            // --- Check 3-plane subsets {new_index, j, k} ---
-            for (int k = j + 1; k < max_index; ++k)
-            {
-                if (!(cur_set & (1 << k)))
-                    continue;
-
-                // Cofactors for 3-subset
-                float ck_new = mat[k][j] * mat[k][k] - mat[j][j] * mat[k][new_index];
-                float ck_j = -mat[k][new_index] * mat[k][k] + mat[new_index][new_index] * mat[k][k];
-                float ck_k = mat[k][new_index] * mat[j][j] - mat[new_index][new_index] * mat[k][j];
-
-                // Check feasibility for subset {j, k} (rows j and k without new)
-                float check_jk_new = ck_new * delta[j][new_index]
-                    + ck_j * delta[j][j]
-                    + ck_k * delta[j][k];
-                if (check_jk_new < 0.0f)
-                    continue;
-
-                // Check feasibility for subset {new, k}
-                float check_new_neg = -(ck_new * delta[new_index][new_index]
-                    + ck_j * delta[new_index][j]
-                    + ck_k * delta[new_index][k]);
-                if (check_new_neg < 0.0f)
-                    continue;
-
-                // Recompute cofactors using delta table
-                float ck2_new = delta[new_index][j] * delta[j][k] - delta[j][j] * delta[new_index][k];
-                float ck2_j = -delta[new_index][new_index] * delta[j][k] + delta[j][new_index] * delta[new_index][k];
-                float ck2_k = delta[new_index][new_index] * delta[j][j] - delta[j][new_index] * delta[new_index][j];
-
-                float denom = ck2_new * mat[new_index][new_index]
-                    + ck2_j * mat[j][j]
-                    + ck2_k * mat[k][k];
-                if (denom < 0.0f)
-                    continue;
-
-                float numerator_check = ck2_new * delta[k][new_index]
-                    + ck2_j * delta[k][j]
-                    + ck2_k * delta[k][k];
-                if (numerator_check <= 0.0000099999997f)
-                    continue;
-
-                // Squared distance for this 3-subset
-                float dist_sq_3 = (check_jk_new * check_jk_new
-                    + check_new_neg * check_new_neg
-                    + denom * denom
-                    + 2.0f * ((check_new_neg * delta[new_index][j]
-                        + denom * delta[new_index][k]) * check_jk_new
-                        + check_new_neg * denom * delta[j][k]))
-                    / (numerator_check * numerator_check);
-
-                if (dist_sq_3 > best_dist_sq)
-                {
-                    best_lambdas[new_index] = check_jk_new / numerator_check;
-                    best_lambdas[j] = check_new_neg / numerator_check;
-                    best_lambdas[k] = denom / numerator_check;
-                    best_dist_sq = dist_sq_3;
-                    best_set = (1 << k) | (1 << j) | (1 << new_index);
-                }
-            }
+        next_j:;
         }
 
-        // --- Check if distance improved ---
-        if (cur_dist_sq > best_dist_sq)
+        // Check if distance improved
+        if (cur_dist_sq > new_dist_sq_sq)
         {
-            exit_code = (geom_plane *)2; // distance stopped improving
+            support_gp = (geom_plane *)2;
             break;
         }
 
-        // Accept this simplex update
-        cur_dist_sq = best_dist_sq;
-        cur_set = best_set;
+        // Accept this update
+        cur_dist_sq = new_dist_sq_sq;
+        cur_set = new_set;
 
-        // --- Accumulate result: point + sum(lambda_i * normal_i) ---
+        // Recompute cur_result = point + sum(lambda[m] * normal_m) for m in cur_set
         cur_result.x = point->x;
         cur_result.y = point->y;
         cur_result.z = point->z;
@@ -3197,10 +2859,10 @@ void project(
         {
             if (cur_set & (1 << m))
             {
-                float lam = best_lambdas[m];
-                cur_result.x += lam * w[m][0];
-                cur_result.y += lam * w[m][1];
-                cur_result.z += lam * w[m][2];
+                float lam = lambda[m];
+                cur_result.x += lam * list_gp[m]->m_normal.x;
+                cur_result.y += lam * list_gp[m]->m_normal.y;
+                cur_result.z += lam * list_gp[m]->m_normal.z;
             }
         }
     }
@@ -3208,8 +2870,9 @@ void project(
     result->x = cur_result.x;
     result->y = cur_result.y;
     result->z = cur_result.z;
-}
 #endif
+}
+
 void __cdecl get_material_from_brush(const cbrush_t *brush, int *sflags)
 {
     cplane_s *plane; // edx
@@ -3346,7 +3009,7 @@ void __cdecl fill_results(const gjk_trace_output_t &gto, bool is_walkable, trace
     trace->staticModel = 0;
 }
 
-void __cdecl fill_results_type_and_id(const gjk_trace_output_t *gto, trace_t *results)
+void __cdecl fill_results_type_and_id(const gjk_trace_output_t *gto, trace_t *trace)
 {
     unsigned __int16 index; // [esp+2h] [ebp-6h]
     unsigned __int16 number; // [esp+4h] [ebp-4h]
@@ -3360,7 +3023,7 @@ void __cdecl fill_results_type_and_id(const gjk_trace_output_t *gto, trace_t *re
             {
                 //number = gjk_entity_info_t::get_cent(gto->m_gi->m_ent_info)->nextState.number;
                 number = gto->m_gi->m_ent_info->get_cent()->nextState.number;
-                if ( !results
+                if ( !trace
                     && !Assert_MyHandler(
                                 "c:\\projects_pc\\cod\\codsrc\\src\\physics\\../qcommon/cm_public.h",
                                 175,
@@ -3370,14 +3033,14 @@ void __cdecl fill_results_type_and_id(const gjk_trace_output_t *gto, trace_t *re
                 {
                     __debugbreak();
                 }
-                results->hitType = TRACE_HITTYPE_ENTITY;
-                results->hitId = number;
+                trace->hitType = TRACE_HITTYPE_ENTITY;
+                trace->hitId = number;
             }
             else if ( gto->m_gi->m_ent_info->m_ent_type == gjk_entity_info_t::ENTITY_TYPE::ET_GLASS )
             {
                 //index = gjk_entity_info_t::get_glass(gto->m_gi->m_ent_info)->index;
                 index = gto->m_gi->m_ent_info->get_glass()->index;
-                if ( !results
+                if ( !trace
                     && !Assert_MyHandler(
                                 "c:\\projects_pc\\cod\\codsrc\\src\\physics\\../qcommon/cm_public.h",
                                 175,
@@ -3387,8 +3050,8 @@ void __cdecl fill_results_type_and_id(const gjk_trace_output_t *gto, trace_t *re
                 {
                     __debugbreak();
                 }
-                results->hitType = TRACE_HITTYPE_GLASS;
-                results->hitId = index;
+                trace->hitType = TRACE_HITTYPE_GLASS;
+                trace->hitId = index;
             }
             else
             {
@@ -3402,7 +3065,7 @@ void __cdecl fill_results_type_and_id(const gjk_trace_output_t *gto, trace_t *re
                 {
                     __debugbreak();
                 }
-                if ( !results
+                if ( !trace
                     && !Assert_MyHandler(
                                 "c:\\projects_pc\\cod\\codsrc\\src\\physics\\../qcommon/cm_public.h",
                                 175,
@@ -3412,15 +3075,15 @@ void __cdecl fill_results_type_and_id(const gjk_trace_output_t *gto, trace_t *re
                 {
                     __debugbreak();
                 }
-                results->hitType = TRACE_HITTYPE_ENTITY;
-                results->hitId = 1022;
+                trace->hitType = TRACE_HITTYPE_ENTITY;
+                trace->hitId = 1022;
             }
         }
         else
         {
             //v4 = gjk_entity_info_t::get_gent(gto->m_gi->m_ent_info)->s.number;
             v4 = gto->m_gi->m_ent_info->get_gent()->s.number;
-            if ( !results
+            if ( !trace
                 && !Assert_MyHandler(
                             "c:\\projects_pc\\cod\\codsrc\\src\\physics\\../qcommon/cm_public.h",
                             175,
@@ -3430,289 +3093,72 @@ void __cdecl fill_results_type_and_id(const gjk_trace_output_t *gto, trace_t *re
             {
                 __debugbreak();
             }
-            results->hitType = TRACE_HITTYPE_ENTITY;
-            results->hitId = v4;
+            trace->hitType = TRACE_HITTYPE_ENTITY;
+            trace->hitId = v4;
         }
     }
     else
     {
-        if ( !results
+        if ( !trace
             && !Assert_MyHandler("c:\\projects_pc\\cod\\codsrc\\src\\physics\\../qcommon/cm_public.h", 175, 0, "%s", "trace") )
         {
             __debugbreak();
         }
-        results->hitType = TRACE_HITTYPE_ENTITY;
-        results->hitId = 1022;
+        trace->hitType = TRACE_HITTYPE_ENTITY;
+        trace->hitId = 1022;
     }
 }
 
-const Glass *__thiscall gjk_entity_info_t::get_glass()
+const Glass *gjk_entity_info_t::get_glass()
 {
-    if ( (this->m_ent_type != ET_GLASS || !this->m_ent)
-        && !Assert_MyHandler(
-                    "c:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_gjk_collision_detection.h",
-                    89,
-                    0,
-                    "%s",
-                    "m_ent_type == ET_GLASS && m_ent != NULL") )
-    {
-        __debugbreak();
-    }
+    iassert(m_ent_type == ET_GLASS && m_ent != NULL);
     return (const Glass *)this->m_ent;
 }
 
-void __cdecl fill_results_no_hit(trace_t *results)
+void __cdecl fill_results_no_hit(trace_t *trace)
 {
-    results->fraction = 1.0f;
-    results->allsolid = 0;
-    results->startsolid = 0;
-    results->normal.vec.u[0] = 0;
-    results->normal.vec.u[1] = 0;
-    results->normal.vec.u[2] = 0;
-    results->walkable = 0;
-    if ( !results
-        && !Assert_MyHandler("c:\\projects_pc\\cod\\codsrc\\src\\physics\\../qcommon/cm_public.h", 175, 0, "%s", "trace") )
-    {
-        __debugbreak();
-    }
-    results->hitType = TRACE_HITTYPE_NONE;
-    results->hitId = 0;
-    results->cflags = 0;
-    results->sflags = 0;
-    results->modelIndex = 0;
-    results->partName = 0;
-    results->partGroup = 0;
-    results->boneIndex = 254;
-    results->staticModel = 0;
+    iassert(trace);
+
+    trace->fraction = 1.0f;
+    trace->allsolid = 0;
+    trace->startsolid = 0;
+    trace->normal.vec.u[0] = 0;
+    trace->normal.vec.u[1] = 0;
+    trace->normal.vec.u[2] = 0;
+    trace->walkable = 0;
+    trace->hitType = TRACE_HITTYPE_NONE;
+    trace->hitId = 0;
+    trace->cflags = 0;
+    trace->sflags = 0;
+    trace->modelIndex = 0;
+    trace->partName = 0;
+    trace->partGroup = 0;
+    trace->boneIndex = 254;
+    trace->staticModel = 0;
 }
 
 bool    is_walkable(const gjk_trace_output_t *gto)
 {
     phys_vec3 up_loc; // [esp-Ch] [ebp-7Ch] BYREF
-    const phys_vec3 *v4; // [esp+10h] [ebp-60h]
-    phys_vec3 v5; // [esp+14h] [ebp-5Ch] BYREF
     phys_vec3 hit_loc; // [esp+24h] [ebp-4Ch] BYREF
-    phys_vec3 *v7; // [esp+40h] [ebp-30h]
-    phys_vec3 v8; // [esp+44h] [ebp-2Ch] BYREF
-    gjk_entity_info_t *m_ent_info; // [esp+5Ch] [ebp-14h]
-    float z; // [esp+60h] [ebp-10h]
-    //int v11; // [esp+64h] [ebp-Ch] BYREF
-    //const phys_mat44 *mat; // [esp+68h] [ebp-8h]
-    //const phys_mat44 *retaddr; // [esp+70h] [ebp+0h]
-    //
-    //v11 = a1;
-    //mat = retaddr;
+    
     if (!gto->m_is_foot)
         return 0;
-    z = gto->m_hit_normal.z;
-    if (z >= 0.69999999)
-        return 1;
+
+    if (gto->m_hit_normal.z >= 0.69999999)
+        return true;
+
     if (gto->m_gi->m_ent_info)
     {
-        m_ent_info = gto->m_gi->m_ent_info;
-        v7 = phys_full_inv_multiply(&v8, &m_ent_info->m_mat, &gto->m_hit_point);
-        hit_loc.x = v7->x;
-        hit_loc.y = v7->y;
-        hit_loc.z = v7->z;
-        v4 = phys_inv_multiply(&v5, &m_ent_info->m_mat, &PHYS_Z_VEC);
-        up_loc.x = v4->x;
-        up_loc.y = v4->y;
-        up_loc.z = v4->z;
+        phys_full_inv_multiply(&hit_loc, &gto->m_gi->m_ent_info->m_mat, &gto->m_hit_point);
+        phys_inv_multiply(&up_loc, &gto->m_gi->m_ent_info->m_mat, &PHYS_Z_VEC);
     }
     else
     {
-        hit_loc.x = gto->m_hit_point.x;
-        hit_loc.y = gto->m_hit_point.y;
-        hit_loc.z = gto->m_hit_point.z;
-        up_loc.x = PHYS_Z_VEC.x;
-        up_loc.y = PHYS_Z_VEC.y;
-        up_loc.z = PHYS_Z_VEC.z;
+        hit_loc = gto->m_hit_point;
+        up_loc = PHYS_Z_VEC;
     }
     return gto->m_gi->m_cg->is_walkable(&hit_loc, &up_loc);
-}
-
-//phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal *__thiscall phys_simple_allocator<phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal>::allocate()
-//{
-//    char *slot; // [esp+30h] [ebp-4h]
-//
-//    slot = PMM_ALLOC(0x90u, 0x10u);
-//    if ( !slot )
-//        return 0;
-//    ++this->m_count;
-//    //phys_gjk_cache_info::phys_gjk_cache_info((phys_gjk_cache_info *)slot);
-//    new (slot) phys_gjk_cache_info;
-//    return (phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal *)slot;
-//}
-//
-//phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal *__thiscall phys_inplace_avl_tree<phys_gjk_geom_id_pair_key,phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal,phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal::avl_tree_accessor>::find(
-//                const phys_gjk_geom_id_pair_key *key)
-//{
-//    bool v3; // [esp+0h] [ebp-18h]
-//    phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal *cur; // [esp+14h] [ebp-4h]
-//
-//    cur = this->m_tree_root;
-//    while ( cur )
-//    {
-//        if ( key->m_id1 == cur->m_key.m_id1 && key->m_id2 == cur->m_key.m_id2 )
-//            break;
-//        if ( key->m_id1 == cur->m_key.m_id1 )
-//            v3 = key->m_id2 < cur->m_key.m_id2;
-//        else
-//            v3 = key->m_id1 < cur->m_key.m_id1;
-//        if ( v3 )
-//            cur = cur->m_avl_tree_node.m_left;
-//        else
-//            cur = cur->m_avl_tree_node.m_right;
-//    }
-//    return cur;
-//}
-//
-//void __thiscall phys_inplace_avl_tree<phys_gjk_geom_id_pair_key,phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal,phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal::avl_tree_accessor>::add(
-//                const phys_gjk_geom_id_pair_key *key,
-//                phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal *data)
-//{
-//    unsigned int m_id2; // edx
-//    bool v4; // [esp+4h] [ebp-180h]
-//    bool v5; // [esp+8h] [ebp-17Ch]
-//    phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal **m_node; // [esp+74h] [ebp-110h]
-//    phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal *root; // [esp+78h] [ebp-10Ch]
-//    phys_inplace_avl_tree<phys_gjk_geom_id_pair_key,phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal,phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal::avl_tree_accessor>::stack_item *next_item; // [esp+7Ch] [ebp-108h]
-//    phys_inplace_avl_tree<phys_gjk_geom_id_pair_key,phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal,phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal::avl_tree_accessor>::stack_item *cur_item; // [esp+80h] [ebp-104h]
-//    phys_inplace_avl_tree<phys_gjk_geom_id_pair_key,phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal,phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal::avl_tree_accessor>::stack_item the_stack[32]; // [esp+84h] [ebp-100h] BYREF
-//
-//    cur_item = the_stack;
-//    the_stack[0].m_node = &this->m_tree_root;
-//    while ( *cur_item->m_node )
-//    {
-//        root = *cur_item->m_node;
-//        if ( &cur_item[1] - the_stack >= 32
-//            && _tlAssert(
-//                     "C:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_avl_tree.h",
-//                     103,
-//                     "cur_item + 1 - the_stack < 32",
-//                     "") )
-//        {
-//            __debugbreak();
-//        }
-//        next_item = cur_item + 1;
-//        if ( key->m_id1 == root->m_key.m_id1 )
-//            v5 = key->m_id2 < root->m_key.m_id2;
-//        else
-//            v5 = key->m_id1 < root->m_key.m_id1;
-//        if ( v5 )
-//        {
-//            cur_item->m_child = -1;
-//            next_item->m_node = &root->m_avl_tree_node.m_left;
-//        }
-//        else
-//        {
-//            if ( key->m_id1 == root->m_key.m_id1 )
-//                v4 = root->m_key.m_id2 < key->m_id2;
-//            else
-//                v4 = root->m_key.m_id1 < key->m_id1;
-//            if ( !v4 )
-//            {
-//                if ( _tlAssert(
-//                             "C:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_avl_tree.h",
-//                             112,
-//                             "key > accessor::get_avl_key(root)",
-//                             "") )
-//                {
-//                    __debugbreak();
-//                }
-//            }
-//            cur_item->m_child = 1;
-//            next_item->m_node = &root->m_avl_tree_node.m_right;
-//        }
-//        cur_item = next_item;
-//    }
-//    *cur_item->m_node = data;
-//    data->m_avl_tree_node.m_left = 0;
-//    data->m_avl_tree_node.m_right = 0;
-//    data->m_avl_tree_node.m_balance = 0;
-//    m_id2 = key->m_id2;
-//    data->m_key.m_id1 = key->m_id1;
-//    data->m_key.m_id2 = m_id2;
-//    do
-//    {
-//        if ( cur_item <= the_stack )
-//            break;
-//        --cur_item;
-//        m_node = cur_item->m_node;
-//        (*cur_item->m_node)->m_avl_tree_node.m_balance += cur_item->m_child;
-//        if ( (*m_node)->m_avl_tree_node.m_balance == -2 )
-//        {
-//            if ( (*m_node)->m_avl_tree_node.m_left->m_avl_tree_node.m_balance != -1
-//                && (*m_node)->m_avl_tree_node.m_left->m_avl_tree_node.m_balance != 1
-//                && _tlAssert(
-//                         "C:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_avl_tree.h",
-//                         130,
-//                         "accessor::get_avl_node(accessor::get_avl_node(root)->m_left)->m_balance == -1 || accessor::get_avl_node(acc"
-//                         "essor::get_avl_node(root)->m_left)->m_balance == 1",
-//                         "") )
-//            {
-//                __debugbreak();
-//            }
-//            if ( (*m_node)->m_avl_tree_node.m_left->m_avl_tree_node.m_balance == 1 )
-//                phys_inplace_avl_tree<phys_gjk_geom_id_pair_key,phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal,phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal::avl_tree_accessor>::rotate_left(
-//                    &(*m_node)->m_avl_tree_node.m_left);
-//            phys_inplace_avl_tree<phys_gjk_geom_id_pair_key,phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal,phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal::avl_tree_accessor>::rotate_right(
-//                m_node);
-//            if ( (*m_node)->m_avl_tree_node.m_balance
-//                && _tlAssert(
-//                         "C:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_avl_tree.h",
-//                         134,
-//                         "accessor::get_avl_node(root)->m_balance == 0",
-//                         "") )
-//            {
-//                __debugbreak();
-//            }
-//        }
-//        else if ( (*m_node)->m_avl_tree_node.m_balance == 2 )
-//        {
-//            if ( (*m_node)->m_avl_tree_node.m_right->m_avl_tree_node.m_balance != -1
-//                && (*m_node)->m_avl_tree_node.m_right->m_avl_tree_node.m_balance != 1
-//                && _tlAssert(
-//                         "C:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_avl_tree.h",
-//                         138,
-//                         "accessor::get_avl_node(accessor::get_avl_node(root)->m_right)->m_balance == -1 || accessor::get_avl_node(ac"
-//                         "cessor::get_avl_node(root)->m_right)->m_balance == 1",
-//                         "") )
-//            {
-//                __debugbreak();
-//            }
-//            if ( (*m_node)->m_avl_tree_node.m_right->m_avl_tree_node.m_balance == -1 )
-//                phys_inplace_avl_tree<phys_gjk_geom_id_pair_key,phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal,phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal::avl_tree_accessor>::rotate_right(
-//                    &(*m_node)->m_avl_tree_node.m_right);
-//            phys_inplace_avl_tree<phys_gjk_geom_id_pair_key,phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal,phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal::avl_tree_accessor>::rotate_left(
-//                m_node);
-//            if ( (*m_node)->m_avl_tree_node.m_balance
-//                && _tlAssert(
-//                         "C:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_avl_tree.h",
-//                         142,
-//                         "accessor::get_avl_node(root)->m_balance == 0",
-//                         "") )
-//            {
-//                __debugbreak();
-//            }
-//        }
-//    }
-//    while ( (*m_node)->m_avl_tree_node.m_balance );
-//}
-
-phys_gjk_cache_info::phys_gjk_cache_info()
-{
-    int v2; // [esp+8h] [ebp-14h]
-    cached_simplex_info *j; // [esp+Ch] [ebp-10h]
-    int v4; // [esp+14h] [ebp-8h]
-    cached_simplex_info *i; // [esp+18h] [ebp-4h]
-
-    v4 = 3;
-    for ( i = &this->m_support_a; --v4 >= 0; i = (cached_simplex_info *)((char *)i + 16) )
-        ;
-    v2 = 3;
-    for ( j = &this->m_support_b; --v2 >= 0; j = (cached_simplex_info *)((char *)j + 16) )
-        ;
 }
 
 void *gjk_physics_collision_visitor::allocate(

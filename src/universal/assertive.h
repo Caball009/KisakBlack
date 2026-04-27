@@ -42,7 +42,6 @@ bool __cdecl QuitOnError();
 bool Assert_MyHandler(const char *filename, int line, int type, const char *fmt, ...);
 
 #define IS_NAN(x) (isnan(x))
-#define BADFLOAT(v) (!isfinite(v) || fabsf(v) > 1e6f || isnan(v))
 
 #ifdef _DEBUG 
 #define iassert(expression) (void)(                                                                                                             \

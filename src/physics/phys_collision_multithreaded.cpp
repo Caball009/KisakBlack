@@ -131,9 +131,9 @@ phys_contact_manifold_process::phys_contact_manifold_process()
     this->m_allocator.m_user_start = 0;
     p_m_allocator = &this->m_allocator;
     this->m_cpi_allocator = 0;
-    this->m_list_cpi.m_first = 0;
-    this->m_list_cpi.m_alloc_count = 0;
-    this->m_list_cpi.m_last_next_ptr = &this->m_list_cpi.m_first;
+    //this->m_list_cpi.m_first = 0;
+    //this->m_list_cpi.m_alloc_count = 0;
+    //this->m_list_cpi.m_last_next_ptr = &this->m_list_cpi.m_first;
     this->m_cpi = 0;
     this->m_rbc_contact_search_tree_root = (rigid_body_constraint_contact *)-1;
     //phys_memory_heap::set_buffer(&this->m_allocator, this->m_allocator_memory, 0x4000, 1u);

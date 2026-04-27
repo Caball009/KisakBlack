@@ -43,4 +43,9 @@ struct phys_transient_allocator // sizeof=0x18
     void reset();
     void reset_to_state(const phys_transient_allocator::allocator_state *as);
     void resize();
+
+    bool is_empty() const
+    {
+        return m_cur == NULL;
+    }
 };

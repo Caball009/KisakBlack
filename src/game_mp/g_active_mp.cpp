@@ -724,7 +724,7 @@ void __cdecl AttemptLiveGrenadePickup(gentity_s *clientEnt)
     }
 }
 
-int __thiscall EntHandle::entnum()
+int __thiscall EntHandle::entnum() const
 {
     if ( (unsigned int)this->number - 1 >= 0x3FF
         && !Assert_MyHandler(

@@ -14,7 +14,7 @@ struct EntHandle // sizeof=0x4
     gentity_s *ent();
     const gentity_s *ent() const;
 
-    int entnum();
+    int entnum() const;
 
     unsigned __int16 number;
     unsigned __int16 infoIndex;

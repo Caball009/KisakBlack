@@ -1396,22 +1396,24 @@ void    phys_full_inverse(phys_mat44 *dest, const phys_mat44 *source)
 void __cdecl destroy_gjk_geom(gjk_geom_list_t *gjk_geom_list)
 {
     gjk_base_t *next_geom; // [esp+0h] [ebp-8h]
-    gjk_aabb_t *geom; // [esp+4h] [ebp-4h]
+    gjk_base_t *geom; // [esp+4h] [ebp-4h]
 
-    if ( gjk_geom_list->m_geom_count < 0
+    if (gjk_geom_list->m_geom_count < 0
         && _tlAssert(
-                 "c:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_colgeom.h",
-                 1035,
-                 "m_geom_count >= 0",
-                 "") )
+            "c:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_colgeom.h",
+            1035,
+            "m_geom_count >= 0",
+            ""))
     {
         __debugbreak();
     }
-    for ( geom = (gjk_aabb_t *)gjk_geom_list->m_first_geom; geom; geom = (gjk_aabb_t *)next_geom )
+
+    for (geom = gjk_geom_list->m_first_geom; geom; geom = next_geom)
     {
         next_geom = geom->m_next_geom;
         destroy_gjk_geom(geom);
     }
+
     gjk_geom_list->m_first_geom = 0;
     gjk_geom_list->m_geom_count = 0;
 }
@@ -1716,9 +1718,6 @@ void __cdecl Phys_ObjGetCenterOfMass(int id, float *outPosition)
 
 void __cdecl Phys_ObjAddCollFlags(int physObjId, int collFlags)
 {
-    broad_phase_info *i; // [esp+Ch] [ebp-14h]
-    broad_phase_info *bpi; // [esp+14h] [ebp-Ch]
-
     if (!physObjId
         && !Assert_MyHandler(
             "C:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_main.cpp",
@@ -1730,27 +1729,24 @@ void __cdecl Phys_ObjAddCollFlags(int physObjId, int collFlags)
         __debugbreak();
     }
 
-    PhysObjUserData *userData = (PhysObjUserData *)physObjId; // LWSS: yes, convert the int directly to a pointer to a struct. 
+    PhysObjUserData *userData = Phys_GetUserData(physObjId);
 
     if (userData->m_bpb->is_bpi())
     {
-        //bpi = broad_phase_base::get_bpi(userData->m_bpb);
-        bpi = userData->m_bpb->get_bpi();
+        broad_phase_info *bpi = userData->m_bpb->get_bpi();
         bpi->m_env_collision_flags |= collFlags;
     }
     else
     {
-        ///for (i = broad_phase_base::get_bpg(userData->m_bpb)->m_list_bpi_head; i; i = (broad_phase_info *)i->m_list_bpb_next)
-        for (i = userData->m_bpb->get_bpg()->m_list_bpi_head; i; i = (broad_phase_info *)i->m_list_bpb_next)
+        for (broad_phase_base *i = userData->m_bpb->get_bpg()->m_list_bpi_head; i; i = i->m_list_bpb_next)
+        {
             i->m_env_collision_flags |= collFlags;
+        }
     }
 }
 
 void __cdecl Phys_ObjRemoveCollFlags(int physObjId, int collFlags)
 {
-    broad_phase_info *i; // [esp+Ch] [ebp-14h]
-    broad_phase_info *bpi; // [esp+14h] [ebp-Ch]
-
     if (!physObjId
         && !Assert_MyHandler(
             "C:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_main.cpp",
@@ -1762,19 +1758,19 @@ void __cdecl Phys_ObjRemoveCollFlags(int physObjId, int collFlags)
         __debugbreak();
     }
 
-    PhysObjUserData *userData = (PhysObjUserData *)physObjId; // LWSS: yes, convert the int directly to a pointer to a struct. 
+    PhysObjUserData *userData = Phys_GetUserData(physObjId);
 
     if (userData->m_bpb->is_bpi())
     {
-        //bpi = broad_phase_base::get_bpi(userData->m_bpb);
-        bpi = userData->m_bpb->get_bpi();
+        broad_phase_info *bpi = userData->m_bpb->get_bpi();
         bpi->m_env_collision_flags &= ~collFlags;
     }
     else
     {
-        //for (i = broad_phase_base::get_bpg(userData->m_bpb)->m_list_bpi_head; i; i = (broad_phase_info *)i->m_list_bpb_next)
-        for (i = userData->m_bpb->get_bpg()->m_list_bpi_head; i; i = (broad_phase_info *)i->m_list_bpb_next)
+        for (broad_phase_base *i = userData->m_bpb->get_bpg()->m_list_bpi_head; i; i = i->m_list_bpb_next)
+        {
             i->m_env_collision_flags &= ~collFlags;
+        }
     }
 }
 

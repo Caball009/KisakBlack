@@ -26,7 +26,7 @@ struct __declspec(align(8)) broad_phase_base // sizeof=0x50
         FLAG_IS_BPG = 2,
         FLAG_IS_IN_CLUSTER = 16
     };
-    // broad_phase_group/r ...
+
     phys_vec3 m_trace_aabb_min_whace;
     phys_vec3 m_trace_aabb_max_whace;
     phys_vec3 m_trace_translation;
@@ -55,6 +55,11 @@ struct __declspec(align(8)) broad_phase_base // sizeof=0x50
     bool is_bpg()
     {
         return (this->m_flags & FLAG_IS_BPG) != 0;
+    }
+
+    bool is_in_cluster()
+    {
+        return (this->m_flags & FLAG_IS_IN_CLUSTER) != 0;
     }
 
     broad_phase_base *get_bpb_cluster_next()
@@ -205,6 +210,7 @@ struct broad_phase_memory // sizeof=0xCD8
     void list_bpb_remove(broad_phase_base *bpb_to_remove);
     static broad_phase_memory *allocate_buffer(const broad_phase_memory_info *bpmi);
 };
+static_assert(sizeof(broad_phase_memory) == 0xCD8);
 
 struct bpi_environment_collision_info // sizeof=0x10
 {                                       // XREF: ?broad_phase_process_object_environment_collision@@YAXXZ/r
@@ -307,6 +313,7 @@ struct axis_aligned_sweep_and_prune // sizeof=0x28
     void process_active_pair_list();
     void process();
 };
+static_assert(sizeof(axis_aligned_sweep_and_prune) == 40);
 
 struct __declspec(align(8)) broad_phase_info : broad_phase_base // sizeof=0x70
 {                                                                             // XREF: phys_free_list<broad_phase_info>::T_internal/r
@@ -434,7 +441,7 @@ void add_collision_pair_mutex(
 void    broad_phase_process_collision_pairs();
 void __cdecl process_cluster_environment_collision(broad_phase_base *bpb, const broad_phase_environement_query_results &bpeqr);
 
-char __cdecl phys_are_potentially_colliding(
+bool phys_are_potentially_colliding(
     const phys_vec3 *aabb_min0,
     const phys_vec3 *aabb_max0,
     const phys_vec3 *aabb0_translation,

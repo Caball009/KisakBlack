@@ -12,6 +12,8 @@
 
 #define FLAG_AABB_LOC_VALID 2
 
+#define SURFACE_CLIP_EPSILON 0.125f
+
 struct cpose_t;
 struct gentity_s;
 struct Glass;
@@ -45,8 +47,8 @@ struct phys_contact_manifold;
 struct phys_gjk_geom // sizeof=0x4
 {
     virtual void support(const phys_vec3 *, phys_vec3 *, phys_vec3 *) const = 0;
-    virtual void get_simplex(const struct cached_simplex_info *, const int, phys_vec3 *, phys_vec3 *) = 0;
-    virtual void set_simplex(const phys_vec3 *, const int, const phys_vec3 *, cached_simplex_info *);
+    virtual void get_simplex(const struct cached_simplex_info *, const int, phys_vec3 *, phys_vec3 *) const = 0;
+    virtual void set_simplex(const phys_vec3 *, const int, const phys_vec3 *, cached_simplex_info *) const;
     virtual const phys_vec3 *get_center(phys_vec3 *result) const = 0;
     virtual void get_feature(struct phys_contact_manifold *) const = 0;
     virtual float get_geom_radius() const
@@ -106,8 +108,11 @@ public:
         // padding byte
 
         static const int FLAG_TEMP_ALLOCATION = 1;
+        static const int FLAG_GEOM_ID_VALID = 4;
+        static const int FLAG_XFORM_VALID = 8;
+        static const int FLAG_CONTENTS_VALID = 16;
 
-        inline int get_flag(int flag)
+        inline int get_flag(int flag) const
         {
             return m_flags & flag;
         }
@@ -185,7 +190,7 @@ struct __declspec(align(16)) gjk_aabb_t : gjk_base_t // sizeof=0x80
         static void __cdecl destroy(gjk_aabb_t *geom);
 
         virtual void support(const phys_vec3 *v, phys_vec3 *support_vert, phys_vec3 *support_ind) const override;
-        virtual void get_simplex(const cached_simplex_info *cache_info, int index_count, phys_vec3 *simplex_verts, phys_vec3 *simplex_inds) override;
+        virtual void get_simplex(const cached_simplex_info *cache_info, int index_count, phys_vec3 *simplex_verts, phys_vec3 *simplex_inds) const override;
         // set_simplex() - phys_gjk_geom
         virtual const phys_vec3 * get_center(phys_vec3 *result) const override;
         virtual void get_feature(phys_contact_manifold *cman) const override;
@@ -270,7 +275,7 @@ struct gjk_obb_t : gjk_base_t // sizeof=0xA0
         //virtual const cbrush_t *get_brush() const;
 
         virtual void support(const phys_vec3 *v, phys_vec3 *support_vert, phys_vec3 *support_ind) const override;
-        virtual void get_simplex(const cached_simplex_info *cache_info, int index_count, phys_vec3 *simplex_verts, phys_vec3 *simplex_inds) override;
+        virtual void get_simplex(const cached_simplex_info *cache_info, int index_count, phys_vec3 *simplex_verts, phys_vec3 *simplex_inds) const override;
         // set_simplex - phys_gjk_geom
         virtual const phys_vec3 *get_center(phys_vec3 *result) const override;
         virtual void get_feature(phys_contact_manifold *cman) const override;
@@ -329,7 +334,7 @@ struct __declspec(align(8)) gjk_brush_t : gjk_base_t // sizeof=0x60
         //virtual const cbrush_t *get_brush() const;
 
         virtual void support(const phys_vec3 *v, phys_vec3 *support_vert, phys_vec3 *support_ind) const override;
-        virtual void get_simplex(const cached_simplex_info *cache_info, int index_count, phys_vec3 *simplex_verts, phys_vec3 *simplex_inds) override;
+        virtual void get_simplex(const cached_simplex_info *cache_info, int index_count, phys_vec3 *simplex_verts, phys_vec3 *simplex_inds) const override;
         // set_simplex() - phys_gjk_geom
         virtual const phys_vec3 *get_center(phys_vec3 *result) const override;
         virtual void get_feature(phys_contact_manifold *cman) const override;
@@ -418,7 +423,7 @@ struct __declspec(align(16)) gjk_partition_t : gjk_base_t // sizeof=0x70
         //virtual const cbrush_t *get_brush() const;
 
         virtual void support(const phys_vec3 *v, phys_vec3 *support_vert, phys_vec3 *support_ind) const override;
-        virtual void get_simplex(const cached_simplex_info *cache_info, int index_count, phys_vec3 *simplex_verts, phys_vec3 *simplex_inds) override;
+        virtual void get_simplex(const cached_simplex_info *cache_info, int index_count, phys_vec3 *simplex_verts, phys_vec3 *simplex_inds) const override;
         // set_simplex() - phys_gjk_geom
         virtual const phys_vec3 *get_center(phys_vec3 *result) const override // This is technically "gjk_brush_t::get_center()"
         {
@@ -454,7 +459,7 @@ struct gjk_double_sphere_t : gjk_base_t // sizeof=0x90
         float m_geom_radius;
         int m_count;
 
-        gjk_double_sphere_t();
+        gjk_double_sphere_t() = default;
 
         static gjk_double_sphere_t *__cdecl create(
             const phys_vec3 *c0,
@@ -485,8 +490,8 @@ struct gjk_double_sphere_t : gjk_base_t // sizeof=0x90
         //virtual const cbrush_t *get_brush() const;
 
         virtual void support(const phys_vec3 *v, phys_vec3 *support_vert, phys_vec3 *support_ind) const override;
-        virtual void get_simplex(const cached_simplex_info *cache_info, int index_count, phys_vec3 *simplex_verts, phys_vec3 *simplex_inds) override;
-        virtual void set_simplex(const phys_vec3 *simplex_inds, int w_set, const phys_vec3 *normal, cached_simplex_info *cache_info) override;
+        virtual void get_simplex(const cached_simplex_info *cache_info, int index_count, phys_vec3 *simplex_verts, phys_vec3 *simplex_inds) const override;
+        virtual void set_simplex(const phys_vec3 *simplex_inds, int w_set, const phys_vec3 *normal, cached_simplex_info *cache_info) const override;
         virtual const phys_vec3 *get_center(phys_vec3 *result) const override;
         virtual void get_feature(phys_contact_manifold *cman) const override;
         virtual float get_geom_radius() const override;
@@ -542,7 +547,7 @@ struct gjk_cylinder_t : gjk_base_t // sizeof=0xA0
         //virtual const cbrush_t *get_brush() const;
 
         virtual void support(const phys_vec3 *v, phys_vec3 *support_vert, phys_vec3 *support_ind) const override;
-        virtual void get_simplex(const cached_simplex_info *cache_info, int index_count, phys_vec3 *simplex_verts, phys_vec3 *simplex_inds) override;
+        virtual void get_simplex(const cached_simplex_info *cache_info, int index_count, phys_vec3 *simplex_verts, phys_vec3 *simplex_inds) const override;
         // set_simplex() - phys_gjk_geom
         virtual const phys_vec3 *get_center(phys_vec3 *result) const override;
         virtual void get_feature(phys_contact_manifold *cman) const override;
@@ -576,7 +581,7 @@ struct __declspec(align(8)) gjk_polygon_cylinder_t : gjk_base_t // sizeof=0x80
         float m_geom_radius;
         float m_head_offset;
         float m_foot_offset;
-        int m_mode;                                                 // XREF: render_gjkcc_collision(float const (&)[3],float const (&)[3],float const (&)[3])+10/w
+        int m_mode; // mode specifies capsule or cylinder mode. Capsule has 2 spheres like it would                                                 // XREF: render_gjkcc_collision(float const (&)[3],float const (&)[3],float const (&)[3])+10/w
         // padding byte
         // padding byte
         // padding byte
@@ -592,7 +597,7 @@ struct __declspec(align(8)) gjk_polygon_cylinder_t : gjk_base_t // sizeof=0x80
                 static constexpr int NUM_VERTS_ = 12;
                 static constexpr int VERTS_PER_FACE = 3;
 
-                inline void __thiscall get_co_si(int i, float *co_, float *si_)
+                inline void get_co_si(int i, float *co_, float *si_)
                 {
                     iassert(i >= 0 && i < NUM_VERTS_);
 
@@ -658,7 +663,7 @@ struct __declspec(align(8)) gjk_polygon_cylinder_t : gjk_base_t // sizeof=0x80
         //virtual const cbrush_t *get_brush() const;
 
         virtual void support(const phys_vec3 *v, phys_vec3 *support_vert, phys_vec3 *support_ind) const override;
-        virtual void get_simplex(const cached_simplex_info *cache_info, int index_count, phys_vec3 *simplex_verts, phys_vec3 *simplex_inds) override;
+        virtual void get_simplex(const cached_simplex_info *cache_info, int index_count, phys_vec3 *simplex_verts, phys_vec3 *simplex_inds) const override;
         //set_simplex() - phys_gjk_geom
         virtual const phys_vec3 *get_center(phys_vec3 *result) const override// This is "gjk_aabb_t::get_center()" in the decomp,
         {

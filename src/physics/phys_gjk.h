@@ -101,16 +101,92 @@ const struct cached_simplex_info // sizeof=0x30
 };
 
 struct phys_gjk_cache_info // sizeof=0x80
-{                                       // XREF: phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal/r
+{
+//private:
     phys_vec3 m_support_dir;
     cached_simplex_info m_support_a;
     cached_simplex_info m_support_b;
     int m_support_count;
     phys_gjk_geom_id_pair_key m_key;
     unsigned int m_flags;
+public:
+    enum phys_gjk_cache_info_e
+    {
+        FLAG_WAS_TOUCHED = (1 << 0),          // 1
+        FLAG_IS_SWAPPED = (1 << 1),           // 2
+        FLAG_IS_SUPPORT_DIR_VALID = (1 << 2), // 4
+        FLAG_IS_SIMPLEX_VALID = (1 << 3),     // 8
+    };
 
-    phys_gjk_cache_info();
-    void update_swapped(bool swapped);
+    phys_gjk_cache_info() = default;
+
+    inline void update_swapped(const bool swapped)
+    {
+        if (swapped != (get_flag(FLAG_IS_SWAPPED) ? true : false))
+        {
+            set_flag(FLAG_IS_SWAPPED, swapped);
+
+            if (get_flag(FLAG_IS_SUPPORT_DIR_VALID))
+                m_support_dir = -m_support_dir;
+
+            if (get_flag(FLAG_IS_SIMPLEX_VALID))
+            {
+                cached_simplex_info temp = m_support_a;
+                m_support_a = m_support_b;
+                m_support_b = temp;
+            }
+        }
+    }
+
+    const phys_vec3 &get_support_dir() const
+    {
+        iassert(get_flag(FLAG_IS_SUPPORT_DIR_VALID));
+        return m_support_dir;
+    }
+
+    void get_simplex(cached_simplex_info *support_a, cached_simplex_info *support_b, int *count)
+    {
+        iassert(get_flag(FLAG_IS_SIMPLEX_VALID));
+        *support_a = m_support_a;
+        *support_b = m_support_b;
+        *count = m_support_count;
+    }
+
+    void set_flag_was_touched()
+    {
+        set_flag(FLAG_WAS_TOUCHED, true);
+    }
+
+    const int get_flag_was_touched()
+    {
+        return get_flag(FLAG_WAS_TOUCHED);
+    }
+
+    void set_support_dir(const phys_vec3 &support_dir)
+    {
+        set_flag(FLAG_IS_SUPPORT_DIR_VALID, true);
+        m_support_dir = support_dir;
+    }
+
+    const uint get_flag(const uint f) const
+    {
+        return m_flags & f;
+    }
+
+    void set_flag(const uint f, const bool b)
+    {
+        b ? m_flags |= f : m_flags &= ~f;
+    }
+
+    const int is_support_dir_valid() const
+    {
+        return get_flag(FLAG_IS_SUPPORT_DIR_VALID);
+    }
+
+    const int is_simplex_valid() const
+    {
+        return get_flag(FLAG_IS_SIMPLEX_VALID);
+    }
 };
 
 struct phys_heap_gjk_cache_system_avl_tree // sizeof=0x10
@@ -259,13 +335,13 @@ const struct __declspec(align(16)) gjk_query_input // sizeof=0x80
 
     gjk_query_input()
     {
-        this->m_geom_skip_list.m_first = 0;
-        this->m_geom_skip_list.m_last_next_ptr = &this->m_geom_skip_list.m_first;
-        this->m_geom_skip_list.m_alloc_count = 0;
+        //this->m_geom_skip_list.m_first = 0;
+        //this->m_geom_skip_list.m_last_next_ptr = &this->m_geom_skip_list.m_first;
+        //this->m_geom_skip_list.m_alloc_count = 0;
     }
 
     void visit_skip_list(int query_visitor_count) const;
-    char is_in_skip_list(gjk_geom_info_t *gi_);
+    bool is_in_skip_list(const gjk_geom_info_t *gi_) const;
 };
 
 struct gjk_collision_visitor // sizeof=0x4
@@ -273,13 +349,13 @@ struct gjk_collision_visitor // sizeof=0x4
 
     //struct /*VFT*/ gjk_collision_visitor_vtbl // sizeof=0x1C
     //{
-    //    void *(__thiscall * allocate)(gjk_collision_visitor * this, const int, const int, const bool);
-    //    bool(__thiscall * is_query)(gjk_collision_visitor * this);
-    //    void(__thiscall *get_local_query_aabb)(gjk_collision_visitor *this, float *, float *);
-    //    bool(__thiscall * query_create_prolog)(gjk_collision_visitor * this, const void *);
-    //    void(__thiscall * query_create_epilog)(gjk_collision_visitor * this, gjk_base_t *);
-    //    bool(__thiscall * query_create_prolog_1)(gjk_collision_visitor * this, const float *, const float *, const void *);
-    //    void(__thiscall *query_create_epilog_1)(gjk_collision_visitor *this, gjk_base_t *);
+    //    void *(* allocate)(gjk_collision_visitor * this, const int, const int, const bool);
+    //    bool(* is_query)(gjk_collision_visitor * this);
+    //    void(*get_local_query_aabb)(gjk_collision_visitor *this, float *, float *);
+    //    bool(* query_create_prolog)(gjk_collision_visitor * this, const void *);
+    //    void(* query_create_epilog)(gjk_collision_visitor * this, gjk_base_t *);
+    //    bool(* query_create_prolog_1)(gjk_collision_visitor * this, const float *, const float *, const void *);
+    //    void(*query_create_epilog_1)(gjk_collision_visitor *this, gjk_base_t *);
     //
     // };
     virtual void *allocate(const int, const int, const bool) = 0;
@@ -353,13 +429,13 @@ struct gjk_physics_collision_visitor : gjk_collision_visitor // sizeof=0x80
 
     //struct /*VFT*/ gjk_collision_visitor_vtbl // sizeof=0x1C
     //{
-    //    void *(__thiscall *allocate)(gjk_collision_visitor *this, const int, const int, const bool);
-    //    bool (__thiscall *is_query)(gjk_collision_visitor *this);
-    //    void (__thiscall *get_local_query_aabb)(gjk_collision_visitor *this, float *, float *);
-    //    bool (__thiscall *query_create_prolog)(gjk_collision_visitor *this, const void *);
-    //    void (__thiscall *query_create_epilog)(gjk_collision_visitor *this, gjk_base_t *);
-    //    bool (__thiscall *query_create_prolog_1)(gjk_collision_visitor *this, const float *, const float *, const void *);
-    //    void (__thiscall *query_create_epilog_1)(gjk_collision_visitor *this, gjk_base_t *);
+    //    void *(*allocate)(gjk_collision_visitor *this, const int, const int, const bool);
+    //    bool (*is_query)(gjk_collision_visitor *this);
+    //    void (*get_local_query_aabb)(gjk_collision_visitor *this, float *, float *);
+    //    bool (*query_create_prolog)(gjk_collision_visitor *this, const void *);
+    //    void (*query_create_epilog)(gjk_collision_visitor *this, gjk_base_t *);
+    //    bool (*query_create_prolog_1)(gjk_collision_visitor *this, const float *, const float *, const void *);
+    //    void (*query_create_epilog_1)(gjk_collision_visitor *this, gjk_base_t *);
     //};
 
     virtual void *allocate(const int, const int, const bool) override;
@@ -397,13 +473,13 @@ struct create_gjk_geom_collision_visitor : gjk_collision_visitor // sizeof=0x8
 
     //struct /*VFT*/ gjk_collision_visitor_vtbl // sizeof=0x1C
     //{
-    //    void *(__thiscall *allocate)(gjk_collision_visitor *this, const int, const int, const bool);
-    //    bool (__thiscall *is_query)(gjk_collision_visitor *this);
-    //    void (__thiscall *get_local_query_aabb)(gjk_collision_visitor *this, float *, float *);
-    //    bool (__thiscall *query_create_prolog)(gjk_collision_visitor *this, const void *);
-    //    void (__thiscall *query_create_epilog)(gjk_collision_visitor *this, gjk_base_t *);
-    //    bool (__thiscall *query_create_prolog_1)(gjk_collision_visitor *this, const float *, const float *, const void *);
-    //    void (__thiscall *query_create_epilog_1)(gjk_collision_visitor *this, gjk_base_t *);
+    //    void *(*allocate)(gjk_collision_visitor *this, const int, const int, const bool);
+    //    bool (*is_query)(gjk_collision_visitor *this);
+    //    void (*get_local_query_aabb)(gjk_collision_visitor *this, float *, float *);
+    //    bool (*query_create_prolog)(gjk_collision_visitor *this, const void *);
+    //    void (*query_create_epilog)(gjk_collision_visitor *this, gjk_base_t *);
+    //    bool (*query_create_prolog_1)(gjk_collision_visitor *this, const float *, const float *, const void *);
+    //    void (*query_create_epilog_1)(gjk_collision_visitor *this, gjk_base_t *);
     //};
 
     virtual void *allocate(int size, int alignment, bool no_error) override
@@ -505,9 +581,9 @@ struct gjk_query_output : gjk_collision_visitor // sizeof=0x150
         this->m_allocator.m_total_memory_allocated = 0;
         this->m_allocator.m_mutex.m_count = 1;
         this->m_allocator.m_slot_pool = 0;
-        this->m_list_geom_info.m_first = 0;
-        this->m_list_geom_info.m_last_next_ptr = &this->m_list_geom_info.m_first;
-        this->m_list_geom_info.m_alloc_count = 0;
+        //this->m_list_geom_info.m_first = 0;
+        //this->m_list_geom_info.m_last_next_ptr = &this->m_list_geom_info.m_first;
+        //this->m_list_geom_info.m_alloc_count = 0;
         this->m_total_query_count = 0;
         this->m_total_cached_query_count = 0;
         gjk_query_output::reset_cache();
@@ -546,7 +622,7 @@ struct gjk_query_output : gjk_collision_visitor // sizeof=0x150
     virtual void query_create_epilog(gjk_base_t *gjk_geom) override;
     //////////////////
 
-    inline void __thiscall verify_empty()
+    inline void verify_empty()
     {
         iassert(m_ent_count == 0);
         iassert(m_geom_count == 0);
@@ -560,38 +636,27 @@ struct gjk_query_output : gjk_collision_visitor // sizeof=0x150
         iassert(m_cached_query_info.is_empty());
     }
 
-    void __thiscall reset_cache();
-    void __thiscall query_prolog(const gjk_query_input *input);
+    void reset_cache();
+    void query_prolog(const gjk_query_input *input);
     void calc_query_aabb(const gjk_query_input *input);
-    void __thiscall query_epilog();
+    void query_epilog();
 
-    broad_phase_environment_info *__thiscall get_ent_info(unsigned int ent_id);
-    void __thiscall set_local_query_info(
-        const gjk_query_input *input,
+    broad_phase_environment_info *get_ent_info(unsigned int ent_id);
+    void set_local_query_info(
+        const gjk_query_input &input,
         gjk_entity_info_t *ent_info);
-    gjk_geom_info_t *__thiscall create_geom_info(
+    gjk_geom_info_t *create_geom_info(
         gjk_base_t *cg,
         gjk_entity_info_t *ent_info,
         float *aabb_min,
         float *aabb_max);
-    gjk_entity_info_t *__thiscall create_entity_info();
-    void __thiscall add(
-        const gjk_query_input *input,
-        const CollisionPartition *partition,
-        const CollisionAabbTree *tree);
-    void __thiscall add(
-        const gjk_query_input *input,
-        const cbrush_t *brush,
-        const float *query_mins,
-        const float *query_maxs);
-    void add(
-        const gjk_query_input *input,
-        gentity_s *gent);
-    void add(
-        const gjk_query_input *input,
-        centity_s *cent);
-    void __thiscall add(const gjk_query_input *input, const Glass *glass);
-    void __thiscall add(const gjk_query_input *input, const DynEntityDef *dent);
+    gjk_entity_info_t *create_entity_info();
+    void add(const gjk_query_input &input, const CollisionPartition *partition, const CollisionAabbTree *tree);
+    void add(const gjk_query_input &input, const cbrush_t *brush, const float *query_mins, const float *query_maxs);
+    void add(const gjk_query_input &input, gentity_s *gent);
+    void add(const gjk_query_input &input, centity_s *cent);
+    void add(const gjk_query_input &input, const Glass *glass);
+    void add(const gjk_query_input &input, const DynEntityDef *dent);
     void cached_query_resize(
         bool is_server_thread,
         colgeom_visitor_inlined_t<200> *proximity_data,
@@ -739,17 +804,17 @@ struct __declspec(align(4)) gjkcc_info_database_t // sizeof=0x10
         m_is_server_thread = is_server_thread;
     }
 
-    gjkcc_info *__thiscall gjkcc_info_find_or_create(
+    gjkcc_info *gjkcc_info_find_or_create(
         unsigned int gjkcc_id,
         bool is_server_thread,
         const float *origin);
-    void __thiscall Lock();
-    void __thiscall Unlock();
-    void __thiscall verify_internal(bool is_server_thread);
-    gjkcc_info *__thiscall gjkcc_info_find(
+    void Lock();
+    void Unlock();
+    void verify_internal(bool is_server_thread);
+    gjkcc_info *gjkcc_info_find(
         unsigned int gjkcc_id,
         bool is_server_thread);
-    void __thiscall gjkcc_info_destroy(
+    void gjkcc_info_destroy(
         unsigned int gjkcc_id,
         bool is_server_thread);
 };
@@ -865,17 +930,18 @@ struct list_gjk_trace_output // sizeof=0x10
 
     list_gjk_trace_output() // inlined
     {
-        this->m_list.m_first = 0;
-        this->m_list.m_last_next_ptr = (gjk_trace_output_t **)this;
-        this->m_list.m_alloc_count = 0;
+        //this->m_list.m_first = 0;
+        //this->m_list.m_last_next_ptr = (gjk_trace_output_t **)this;
+        //this->m_list.m_alloc_count = 0;
         this->m_first_hit = 0;
     }
 
     ~list_gjk_trace_output() // inlined
     {
-        this->m_list.m_first = 0;
-        this->m_list.m_last_next_ptr = (gjk_trace_output_t **)this;
-        this->m_list.m_alloc_count = 0;
+        //this->m_list.m_first = 0;
+        //this->m_list.m_last_next_ptr = (gjk_trace_output_t **)this;
+        //this->m_list.m_alloc_count = 0;
+        this->m_list.clear();
         this->m_first_hit = 0;
     }
 };
@@ -1041,7 +1107,7 @@ struct phys_gjk_info // sizeof=0x3A0
     phys_vec3 m_support_dir;
     float m_geom_radii_sum;
     int m_cc_reset_iter;
-    int m_flags;
+    int m_flags; // 8 = use_ray_cast?
     int m_w_set;
     int m_last_w_set;
     int m_gjk_iter;
@@ -1073,8 +1139,8 @@ void    phys_full_inv_multiply_mat(
                 const phys_mat44 *left,
                 const phys_mat44 *right);
 void __cdecl get_simplex(
-                phys_gjk_geom *cg1,
-                phys_gjk_geom *cg2,
+                const phys_gjk_geom *cg1,
+                const phys_gjk_geom *cg2,
                 phys_gjk_cache_info *gjk_ci,
                 phys_vec3 *a_verts,
                 phys_vec3 *a_inds,
@@ -1082,8 +1148,8 @@ void __cdecl get_simplex(
                 phys_vec3 *b_inds,
                 int *vert_count);
 void __cdecl set_simplex(
-                phys_gjk_geom *cg1,
-                phys_gjk_geom *cg2,
+                const phys_gjk_geom *cg1,
+                const phys_gjk_geom *cg2,
                 phys_gjk_cache_info *gjk_ci,
                 const phys_vec3 *a_normal,
                 const phys_vec3 *b_normal,

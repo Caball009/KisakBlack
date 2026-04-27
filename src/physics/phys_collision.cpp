@@ -2186,6 +2186,7 @@ void *__cdecl generic_avl_map_destroy(
     return data;
 }
 
+// LWSS: yes, convert the int directly to a pointer to a struct. 
 PhysObjUserData *__cdecl Phys_GetUserData(int id)
 {
     iassert(id);
@@ -2906,27 +2907,21 @@ bool gjk_physics_collision_visitor::query_create_prolog_1(
     const float *local_aabb_max,
     const void *geom)
 {
-    float v6; // [esp-Ch] [ebp-40h] BYREF
-    phys_vec3 v7; // [esp-8h] [ebp-3Ch] BYREF
+    float hit_time; // [esp-Ch] [ebp-40h] BYREF
+    phys_vec3 pv_local_aabb_max; // [esp-8h] [ebp-3Ch] BYREF
     phys_vec3 pv_local_aabb_min; // [esp+8h] [ebp-2Ch] BYREF
-    gjk_physics_collision_visitor *thisa; // [esp+24h] [ebp-10h]
-    //_UNKNOWN *v10; // [esp+28h] [ebp-Ch]
-    //const float *local_aabb_mina; // [esp+2Ch] [ebp-8h]
-    //const void *geoma; // [esp+34h] [ebp+0h]
-    //
-    //v10 = a2;
-    //local_aabb_mina = (const float *)geoma;
-    thisa = this;
+
     Phys_Vec3ToNitrousVec(local_aabb_min, &pv_local_aabb_min);
-    Phys_Vec3ToNitrousVec(local_aabb_max, &v7);
+    Phys_Vec3ToNitrousVec(local_aabb_max, &pv_local_aabb_max);
+
     return phys_are_potentially_colliding(
-        &thisa->m_local_query_trace_aabb_min,
-        &thisa->m_local_query_trace_aabb_max,
-        &thisa->m_local_query_trace_translation,
+        &this->m_local_query_trace_aabb_min,
+        &this->m_local_query_trace_aabb_max,
+        &this->m_local_query_trace_translation,
         &pv_local_aabb_min,
-        &v7,
-        &v6)
-        && thisa->query_create_prolog(geom);
+        &pv_local_aabb_max,
+        &hit_time)
+        && this->query_create_prolog(geom);
 }
 
 void gjk_physics_collision_visitor::query_create_epilog(gjk_base_t *gjk_geom)

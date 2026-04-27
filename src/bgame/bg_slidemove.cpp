@@ -72,43 +72,44 @@ gjkcc_info *__cdecl create_gjkcc_info(unsigned int gjkcc_id, bool is_server_thre
                                     0,
                                     &g_empty_collision_visitor);
     //gjkcc_info::update_cg(gcci, gcci->m_mins, gcci->m_maxs, 1);
-    gcci->update_cg(gcci->m_mins, gcci->m_maxs, 1);
+    gcci->update_cg(gcci->m_mins, gcci->m_maxs, true);
     gcci->m_last_origin[0] = *origin;
     gcci->m_last_origin[1] = origin[1];
     gcci->m_last_origin[2] = origin[2];
     return gcci;
 }
 
-void __thiscall gjkcc_info::update_cg(float *mins, float *maxs, bool force)
+void gjkcc_info::update_cg(float *mins, float *maxs, bool force)
 {
-    int savedregs; // [esp+1Ch] [ebp+0h] BYREF
-
-    if ( *mins != this->m_mins[0]
+    if (   mins[0] != this->m_mins[0]
         || mins[1] != this->m_mins[1]
         || mins[2] != this->m_mins[2]
-        || *maxs != this->m_maxs[0]
+        || maxs[0] != this->m_maxs[0]
         || maxs[1] != this->m_maxs[1]
         || maxs[2] != this->m_maxs[2]
         || force )
     {
-        this->m_mins[0] = *mins;
+        this->m_mins[0] = mins[0];
         this->m_mins[1] = mins[1];
         this->m_mins[2] = mins[2];
-        this->m_maxs[0] = *maxs;
+
+        this->m_maxs[0] = maxs[0];
         this->m_maxs[1] = maxs[1];
         this->m_maxs[2] = maxs[2];
-        if ( this->m_cg_->get_type() == 4 )
+
+        if ( this->m_cg_->get_type() == GJK_DOUBLE_SPHERE )
         {
             setup_gjk_capsule(mins, maxs, 0.5, (gjk_double_sphere_t *)this->m_cg_);
         }
-        else if ( this->m_cg_->get_type() == 7 )
+        else if ( this->m_cg_->get_type() == GJK_POLYGON_CYLINDER )
         {
             setup_gjk_polygon_cylinder(mins, maxs, 0.5, (gjk_polygon_cylinder_t *)this->m_cg_);
         }
-        else if ( this->m_cg_->get_type() == 5 )
+        else if ( this->m_cg_->get_type() == GJK_CYLINDER )
         {
             setup_gjk_cylinder(mins, maxs, 0.5, (gjk_cylinder_t *)this->m_cg_);
         }
+
         this->m_cg_->calc_aabb(&PHYS_IDENTITY_MATRIX, &this->m_cg_aabb_min, &this->m_cg_aabb_max);
         this->m_cg_aabb_min.x = this->m_cg_aabb_min.x + PT_AC_EPS_VEC.x;
         this->m_cg_aabb_min.y = this->m_cg_aabb_min.y + PT_AC_EPS_VEC.y;
@@ -416,13 +417,11 @@ gjkcc_info *__cdecl find_gjkcc_info(unsigned int gjkcc_id, bool is_server_thread
 {
     if (is_server_thread)
     {
-        //return gjkcc_info_database_t::gjkcc_info_find(&g_gjkcc_info_server_database, gjkcc_id, 1);
-        return g_gjkcc_info_server_database.gjkcc_info_find(gjkcc_id, 1);
+        return g_gjkcc_info_server_database.gjkcc_info_find(gjkcc_id, true);
     }
     else
     {
-        //return gjkcc_info_database_t::gjkcc_info_find(&g_gjkcc_info_client_database, gjkcc_id, 0);
-        return g_gjkcc_info_client_database.gjkcc_info_find(gjkcc_id, 0);
+        return g_gjkcc_info_client_database.gjkcc_info_find(gjkcc_id, false);
     }
 }
 
@@ -601,15 +600,14 @@ void    gjk_trace(const gjk_trace_input_t &gti, list_gjk_trace_output *list)
     iassert(gti.m_query_input.m_cg_position.GetZ() == get_mat_wrow(gti.get_cg_mat()).GetZ());
 
     gti.m_query_output->query_prolog(&gti.m_query_input);
-    gjk_query_cached(&gti.m_query_input, gti.m_query_output);
+    gjk_query_cached(gti.m_query_input, gti.m_query_output);
     gti.m_query_output->query_epilog();
 
     //phys_gjk_info::phys_gjk_info(&info);
     phys_gjk_info info; // [esp+B8h] [ebp-3DCh] BYREF
 
-    list->m_list.m_first = 0;
-    list->m_list.m_last_next_ptr = &list->m_list.m_first;
-    list->m_list.m_alloc_count = 0;
+    list->m_list.clear();
+
     list->m_first_hit = 0;
     if (gti.m_query_output->m_list_geom_info.m_alloc_count)
     {
@@ -760,9 +758,8 @@ void __cdecl setup_query_input(
     query_input->m_proximity_data = gjkcc_in->proximity_data;
     query_input->m_proximity_mask = gjkcc_in->proximity_mask;
     query_input->m_gjk_query_flags = gjkcc_in->m_gjk_query_flags;
-    query_input->m_geom_skip_list.m_first = 0;
-    query_input->m_geom_skip_list.m_last_next_ptr = &query_input->m_geom_skip_list.m_first;
-    query_input->m_geom_skip_list.m_alloc_count = 0;
+
+    query_input->m_geom_skip_list.clear();
 }
 
 void    setup_trace_info(
@@ -1015,9 +1012,7 @@ bool gjk_push_out(
 
     // --- Set up trace (start == end == position, zero translation initially) ---
     gjk_trace_input_t gti;
-    gti.m_query_input.m_geom_skip_list.m_first = 0;
-    gti.m_query_input.m_geom_skip_list.m_last_next_ptr = &gti.m_query_input.m_geom_skip_list.m_first;
-    gti.m_query_input.m_geom_skip_list.m_alloc_count = 0;
+
     setup_trace_info(
         gjkcc_in,
         (float *)input->position,
@@ -1872,7 +1867,6 @@ void    gjk_sentient_push(
     geom_plane *v20; // [esp-1A98h] [ebp-1AA4h]
     geom_plane *m_slot_array; // [esp-1A94h] [ebp-1AA0h]
     gjk_slide_move_output_t v22; // [esp-1A90h] [ebp-1A9Ch] BYREF
-    player_push_slide_move_input_t v23; // [esp-1A74h] [ebp-1A80h] BYREF
     float v24; // [esp-1A3Ch] [ebp-1A48h]
     float v25; // [esp-1A38h] [ebp-1A44h]
     float v26; // [esp-1A34h] [ebp-1A40h]
@@ -1992,7 +1986,7 @@ void    gjk_sentient_push(
     v67.m_query_input.m_gjk_query_flags = 2;
     //gjk_query_output::query_prolog(v67.m_query_output, &v67.m_query_input);
     v67.m_query_output->query_prolog(&v67.m_query_input);
-    gjk_query_cached(&v67.m_query_input, v67.m_query_output);
+    gjk_query_cached(v67.m_query_input, v67.m_query_output);
     //gjk_query_output::query_epilog(v67.m_query_output);
     v67.m_query_output->query_epilog();
     v66.m_slot_array = (geom_plane *const)&v66;
@@ -2093,6 +2087,7 @@ void    gjk_sentient_push(
             v27.y = v27.y * (float)(pushRadius / v25);
             v27.z = v27.z * (float)(pushRadius / v25);
         }
+        player_push_slide_move_input_t v23; // [esp-1A74h] [ebp-1A80h] BYREF
         //v23.__vftable = (player_push_slide_move_input_t_vtbl *)&player_push_slide_move_input_t::`vftable';
         setup_player_push_slide_move_input(&v23, pm, pml, &v27);
         gjk_slide_move(gjkcc_in, &v23, &v22);
@@ -2121,12 +2116,9 @@ void    gjk_sentient_push(
         ;
 }
 
-bool render_bounding_box;
-// local variable allocation has failed, the output may be wrong!
-void    render_gjkcc_collision(float (*mins)[3], float (*maxs)[3], float (*origin)[3])
+bool render_bounding_box = true;
+void render_gjkcc_collision(float (*mins)[3], float (*maxs)[3], float (*origin)[3])
 {
-    // KISAKTODO: this isn't necessary atm
-#if 0
     const phys_vec3 *v4; // eax
     const phys_vec3 *v5; // eax
     const phys_vec3 *v6; // eax
@@ -2167,44 +2159,43 @@ void    render_gjkcc_collision(float (*mins)[3], float (*maxs)[3], float (*origi
     float v41; // [esp+13Ch] [ebp-258h]
     float v42; // [esp+140h] [ebp-254h]
     float v43; // [esp+144h] [ebp-250h]
-    float v44[3]; // [esp+148h] [ebp-24Ch] BYREF
-    phys_vec3 rvec2; // [esp+154h] [ebp-240h]
+    phys_vec3 v44; // [esp+148h] [ebp-24Ch] BYREF
+    float rvec2_12; // [esp+160h] [ebp-234h]
     float v46; // [esp+164h] [ebp-230h]
-    float v47[3]; // [esp+168h] [ebp-22Ch] BYREF
-    phys_vec3 rvec1; // [esp+174h] [ebp-220h] BYREF
-    float v49; // [esp+184h] [ebp-210h] BYREF
-    int v50; // [esp+188h] [ebp-20Ch]
+    phys_vec3 v47; // [esp+168h] [ebp-22Ch] BYREF
+    float rvec1_4; // [esp+178h] [ebp-21Ch]
+    float rvec1_8; // [esp+17Ch] [ebp-218h]
+    float rvec1_12; // [esp+180h] [ebp-214h] BYREF
+    float v51; // [esp+184h] [ebp-210h] BYREF
+    int v52; // [esp+188h] [ebp-20Ch]
     float co2; // [esp+18Ch] [ebp-208h] BYREF
     float si2; // [esp+190h] [ebp-204h] BYREF
     int next_i; // [esp+194h] [ebp-200h]
-    float co1; // [esp+198h] [ebp-1FCh] BYREF
-    float si1; // [esp+19Ch] [ebp-1F8h]
-    int i; // [esp+1A0h] [ebp-1F4h]
-    int v57; // [esp+1B4h] [ebp-1E0h]
-    float v58; // [esp+1B8h] [ebp-1DCh] BYREF
-    float v59; // [esp+1BCh] [ebp-1D8h]
-    float v60; // [esp+1C0h] [ebp-1D4h]
-    float v61; // [esp+1D4h] [ebp-1C0h]
-    float v62[3]; // [esp+1D8h] [ebp-1BCh] BYREF
-    phys_vec3 foot_pos; // [esp+1E4h] [ebp-1B0h]
-    float v64; // [esp+1F4h] [ebp-1A0h]
-    int v65; // [esp+1F8h] [ebp-19Ch]
-    int v66; // [esp+1FCh] [ebp-198h]
-    float v67; // [esp+200h] [ebp-194h]
-    float v68; // [esp+214h] [ebp-180h]
-    float v69[3]; // [esp+218h] [ebp-17Ch] BYREF
-    phys_vec3 head_pos; // [esp+224h] [ebp-170h]
+    phys_vec3 co1; // [esp+198h] [ebp-1FCh] BYREF
+    float v57; // [esp+1B4h] [ebp-1E0h]
+    phys_vec3 v58; // [esp+1B8h] [ebp-1DCh] BYREF
+    float v59; // [esp+1D4h] [ebp-1C0h]
+    phys_vec3 v60; // [esp+1D8h] [ebp-1BCh] BYREF
+    float foot_pos_8; // [esp+1ECh] [ebp-1A8h]
+    float foot_pos_12; // [esp+1F0h] [ebp-1A4h]
+    float v63; // [esp+1F4h] [ebp-1A0h]
+    int v64; // [esp+1F8h] [ebp-19Ch]
+    int v65; // [esp+1FCh] [ebp-198h]
+    float v66; // [esp+200h] [ebp-194h]
+    float v67; // [esp+214h] [ebp-180h]
+    phys_vec3 v68; // [esp+218h] [ebp-17Ch] BYREF
+    float head_pos_8; // [esp+22Ch] [ebp-168h]
+    float head_pos_12; // [esp+230h] [ebp-164h]
     float v71; // [esp+234h] [ebp-160h]
     int v72; // [esp+238h] [ebp-15Ch]
     int v73; // [esp+23Ch] [ebp-158h]
     float v74; // [esp+240h] [ebp-154h]
     float m_half_height; // [esp+250h] [ebp-144h]
     float v76; // [esp+254h] [ebp-140h]
-    float v77; // [esp+258h] [ebp-13Ch] BYREF
-    float v78; // [esp+25Ch] [ebp-138h]
-    float radius; // [esp+260h] [ebp-134h]
-    phys_vec3 pos; // [esp+264h] [ebp-130h]
-    float v81; // [esp+274h] [ebp-120h]
+    phys_vec3 v77; // [esp+258h] [ebp-13Ch] OVERLAPPED BYREF
+    float pos_8; // [esp+26Ch] [ebp-128h]
+    float pos_12; // [esp+270h] [ebp-124h]
+    float v80; // [esp+274h] [ebp-120h]
     phys_vec3 *p_m_center; // [esp+278h] [ebp-11Ch]
     const gjk_polygon_cylinder_t *pc; // [esp+27Ch] [ebp-118h]
     float mx[3]; // [esp+280h] [ebp-114h] BYREF
@@ -2214,22 +2205,15 @@ void    render_gjkcc_collision(float (*mins)[3], float (*maxs)[3], float (*origi
     phys_mat44 xform; // [esp+2B8h] [ebp-DCh] BYREF
     phys_vec3 position; // [esp+2F8h] [ebp-9Ch] BYREF
     gjk_polygon_cylinder_t gjk_geom; // [esp+308h] [ebp-8Ch] BYREF
-    //_UNKNOWN *v91[2]; // [esp+388h] [ebp-Ch] BYREF
-    //const float (*origina)[3]; // [esp+394h] [ebp+0h]
-    //
-    //*(float *)v91 = a1;
-    //v91[1] = origina;
-    //gjk_base_t::gjk_base_t(&gjk_geom);
 
-    //gjk_geom.__vftable = (gjk_polygon_cylinder_t_vtbl *)&gjk_polygon_cylinder_t::`vftable';
     setup_gjk_polygon_cylinder((float *)mins, (float *)maxs, 0.5, &gjk_geom);
     Phys_Vec3ToNitrousVec((float *)origin, &position);
     if (render_bounding_box)
     {
         memcpy(&xform, &PHYS_IDENTITY_MATRIX, sizeof(xform));
-        xform.w = position;
         //phys_vec3::operator=(&xform.w, &position);
-        //gjk_polygon_cylinder_t::calc_aabb(&gjk_geom, (int)v91, &xform, &aabb_min, &aabb_max);
+        xform.w = position;
+        //gjk_polygon_cylinder_t::calc_aabb(&gjk_geom, (int)v90, &xform, &aabb_min, &aabb_max);
         gjk_geom.calc_aabb(&xform, &aabb_min, &aabb_max);
         Phys_NitrousVecToVec3(&aabb_min, mn);
         Phys_NitrousVecToVec3(&aabb_max, mx);
@@ -2237,107 +2221,127 @@ void    render_gjkcc_collision(float (*mins)[3], float (*maxs)[3], float (*origi
     }
     pc = &gjk_geom;
     p_m_center = &gjk_geom.m_center;
-    v81 = gjk_geom.m_center.x + position.x;
-    pos.w = gjk_geom.m_center.y + position.y;
-    pos.z = gjk_geom.m_center.z + position.z;
-    v77 = gjk_geom.m_center.x + position.x;
-    v78 = gjk_geom.m_center.y + position.y;
-    radius = gjk_geom.m_center.z + position.z;
+    v80 = gjk_geom.m_center.x + position.x;
+    pos_12 = gjk_geom.m_center.y + position.y;
+    pos_8 = gjk_geom.m_center.z + position.z;
+    v77.x = gjk_geom.m_center.x + position.x;
+    v77.y = gjk_geom.m_center.y + position.y;
+    v77.z = gjk_geom.m_center.z + position.z;
     v76 = gjk_geom.m_polygon_cylinder_radius + gjk_geom.m_geom_radius;
     m_half_height = gjk_geom.m_half_height;
-    v72 = *(_DWORD *)&FLOAT_0_0;
-    v73 = *(_DWORD *)&FLOAT_0_0;
+    v72 = 0;
+    v73 = 0;
     v74 = gjk_geom.m_half_height;
     v71 = (float)(gjk_geom.m_center.x + position.x) + 0.0;
-    head_pos.w = (float)(gjk_geom.m_center.y + position.y) + 0.0;
-    head_pos.z = (float)(gjk_geom.m_center.z + position.z) + gjk_geom.m_half_height;
-    v69[0] = v71;
-    v69[1] = head_pos.w;
-    v69[2] = head_pos.z;
-    v68 = gjk_geom.m_half_height;
-    v65 = *(_DWORD *)&FLOAT_0_0;
-    v66 = *(_DWORD *)&FLOAT_0_0;
+    head_pos_12 = (float)(gjk_geom.m_center.y + position.y) + 0.0;
+    head_pos_8 = (float)(gjk_geom.m_center.z + position.z) + gjk_geom.m_half_height;
+    v68.x = v71;
+    v68.y = head_pos_12;
+    v68.z = head_pos_8;
     v67 = gjk_geom.m_half_height;
-    v64 = (float)(gjk_geom.m_center.x + position.x) - 0.0;
-    foot_pos.w = (float)(gjk_geom.m_center.y + position.y) - 0.0;
-    foot_pos.z = (float)(gjk_geom.m_center.z + position.z) - gjk_geom.m_half_height;
-    v62[0] = v64;
-    v62[1] = foot_pos.w;
-    v62[2] = foot_pos.z;
-    v61 = gjk_geom.m_half_height - gjk_geom.m_head_offset;
-    v58 = 0.0f;
-    v59 = 0.0f;
-    v60 = gjk_geom.m_half_height - gjk_geom.m_head_offset;
-    *(float *)&v57 = COERCE_FLOAT(LODWORD(gjk_geom.m_half_height) ^ _mask__NegFloat_) + gjk_geom.m_foot_offset;
-    co1 = 0.0f;
-    si1 = 0.0f;
-    i = v57;
+    v64 = 0;
+    v65 = 0;
+    v66 = gjk_geom.m_half_height;
+    v63 = (float)(gjk_geom.m_center.x + position.x) - 0.0;
+    foot_pos_12 = (float)(gjk_geom.m_center.y + position.y) - 0.0;
+    foot_pos_8 = (float)(gjk_geom.m_center.z + position.z) - gjk_geom.m_half_height;
+    v60.x = v63;
+    v60.y = foot_pos_12;
+    v60.z = foot_pos_8;
+    v59 = gjk_geom.m_half_height - gjk_geom.m_head_offset;
+    v58.x = 0.0f;
+    v58.y = 0.0f;
+    v58.z = gjk_geom.m_half_height - gjk_geom.m_head_offset;
+    //v57 = COERCE_FLOAT(LODWORD(gjk_geom.m_half_height) ^ _mask__NegFloat_) + gjk_geom.m_foot_offset;
+    v57 = -gjk_geom.m_half_height + gjk_geom.m_foot_offset;
+    co1.x = 0.0f;
+    co1.y = 0.0f;
+    co1.z = v57;
     for (next_i = 0; next_i < 12; ++next_i)
     {
-        gjk_polygon_cylinder_t::poly_verts::get_co_si(&gjk_polygon_cylinder_t::s_poly_verts, next_i, &co2, &si2);
-        v50 = (next_i + 1) % 12;
-        gjk_polygon_cylinder_t::poly_verts::get_co_si(&gjk_polygon_cylinder_t::s_poly_verts, v50, &rvec1.w, &v49);
-        rvec1.z = v76 * co2;
-        rvec1.y = v76 * si2;
-        v47[0] = v76 * co2;
-        v47[1] = v76 * si2;
-        v47[2] = 0.0f;
-        v46 = v76 * rvec1.w;
-        rvec2.w = v76 * v49;
-        v44[0] = v76 * rvec1.w;
-        v44[1] = v76 * v49;
-        v44[2] = 0.0f;
-        v43 = v77 + co1;
-        v42 = v78 + si1;
-        v41 = radius + *(float *)&i;
-        v38 = v77 + co1;
-        v39 = v78 + si1;
-        v40 = radius + *(float *)&i;
-        v37 = (float)(v77 + co1) + (float)(v76 * co2);
-        v36 = (float)(v78 + si1) + (float)(v76 * si2);
-        v35 = (float)(radius + *(float *)&i) + 0.0;
+        //gjk_polygon_cylinder_t::poly_verts::get_co_si(&gjk_polygon_cylinder_t::s_poly_verts, next_i, &co2, &si2);
+        gjk_polygon_cylinder_t::s_poly_verts.get_co_si(next_i, &co2, &si2);
+        v52 = (next_i + 1) % 12;
+        //gjk_polygon_cylinder_t::poly_verts::get_co_si(&gjk_polygon_cylinder_t::s_poly_verts, v52, &rvec1_12, &v51);
+        gjk_polygon_cylinder_t::s_poly_verts.get_co_si(v52, &rvec1_12, &v51);
+        rvec1_8 = v76 * co2;
+        rvec1_4 = v76 * si2;
+        v47.x = v76 * co2;
+        v47.y = v76 * si2;
+        v47.z = 0.0f;
+        v46 = v76 * rvec1_12;
+        rvec2_12 = v76 * v51;
+        v44.x = v76 * rvec1_12;
+        v44.y = v76 * v51;
+        v44.z = 0.0f;
+        v43 = v77.x + co1.x;
+        v42 = v77.y + co1.y;
+        v41 = v77.z + co1.z;
+        v38 = v77.x + co1.x;
+        v39 = v77.y + co1.y;
+        v40 = v77.z + co1.z;
+        v37 = (float)(v77.x + co1.x) + (float)(v76 * co2);
+        v36 = (float)(v77.y + co1.y) + (float)(v76 * si2);
+        v35 = (float)(v77.z + co1.z) + 0.0;
         v34.x = v37;
         v34.y = v36;
         v34.z = v35;
-        v33 = v77 + v58;
-        v32 = v78 + v59;
-        v31 = radius + v60;
-        v30.x = v77 + v58;
-        v30.y = v78 + v59;
-        v30.z = radius + v60;
-        v4 = operator+(&v29, &v30, (const phys_vec3 *)v47);
-        render_line(v4, &v34, colorBlue, 0, 0);
-        v5 = operator+(&v28, (const phys_vec3 *)&v77, (const phys_vec3 *)&v58);
-        v15 = operator+(&v27, v5, (const phys_vec3 *)v44);
-        v6 = operator+(&v26, (const phys_vec3 *)&v77, (const phys_vec3 *)&v58);
-        v7 = operator+(&v25, v6, (const phys_vec3 *)v47);
-        render_line(v7, v15, colorBlue, 0, 0);
-        v8 = operator+(&v24, (const phys_vec3 *)&v77, (const phys_vec3 *)&co1);
-        v16 = operator+(&v23, v8, (const phys_vec3 *)v44);
-        v9 = operator+(&v22, (const phys_vec3 *)&v77, (const phys_vec3 *)&co1);
-        v10 = operator+(&v21, v9, (const phys_vec3 *)v47);
-        render_line(v10, v16, colorBlue, 0, 0);
-        v11 = operator+(&v20, (const phys_vec3 *)&v77, (const phys_vec3 *)&v58);
-        v12 = operator+(&v19, v11, (const phys_vec3 *)v47);
-        render_line(v12, (const phys_vec3 *)v69, colorBlue, 0, 0);
-        v13 = operator+(&v18, (const phys_vec3 *)&v77, (const phys_vec3 *)&co1);
-        v14 = operator+(&v17, v13, (const phys_vec3 *)v47);
-        render_line(v14, (const phys_vec3 *)v62, colorBlue, 0, 0);
+        v33 = v77.x + v58.x;
+        v32 = v77.y + v58.y;
+        v31 = v77.z + v58.z;
+        v30.x = v77.x + v58.x;
+        v30.y = v77.y + v58.y;
+        v30.z = v77.z + v58.z;
+        v29 = v30 + v47;
+        //v4 = operator+(&v29, &v30, &v47);
+        v29 = v30 + v47;
+        //render_line(v4, &v34, colorBlue, 0, 0);
+        render_line(&v29, &v34, colorBlue, 0, 0);
+        //v5 = operator+(&v28, &v77, &v58);
+        v28 = v77 + v58;
+        //v15 = operator+(&v27, v5, &v44);
+        v27 = v28 + v44;
+        //v6 = operator+(&v26, &v77, &v58);
+        v26 = v77 + v58;
+        //v7 = operator+(&v25, v6, &v47);
+        v25 = v26 + v47;
+        //render_line(v7, v15, colorBlue, 0, 0);
+        render_line(&v25, &v27, colorBlue, 0, 0);
+        //v8 = operator+(&v24, &v77, &co1);
+        v24 = v77 + co1;
+        //v16 = operator+(&v23, v8, &v44);
+        v23 = v24 + v44;
+        //v9 = operator+(&v22, &v77, &co1);
+        v22 = v77 + co1;
+        //v10 = operator+(&v21, v9, &v47);
+        v21 = v22 + v47;
+        //render_line(v10, v16, colorBlue, 0, 0);
+        render_line(&v21, &v23, colorBlue, 0, 0);
+        //v11 = operator+(&v20, &v77, &v58);
+        v20 = v77 + v58;
+        //v12 = operator+(&v19, v11, &v47);
+        v19 = v20 + v47;
+        //render_line(v12, &v68, colorBlue, 0, 0);
+        render_line(&v19, &v68, colorBlue, 0, 0);
+        //v13 = operator+(&v18, &v77, &co1);
+        v18 = v77 + co1;
+        //v14 = operator+(&v17, v13, &v47);
+        v17 = v18 + v47;
+        //render_line(v14, &v60, colorBlue, 0, 0);
+        render_line(&v17, &v60, colorBlue, 0, 0);
     }
     //gjk_base_t::~gjk_base_t(&gjk_geom);
-#endif 
 }
 
 void __thiscall phys_gjk_geom::set_simplex(
                 const phys_vec3 *simplex_inds,
                 int w_set,
                 const phys_vec3 *normal,
-                cached_simplex_info *cache_info)
+                cached_simplex_info *cache_info) const
 {
     const phys_vec3 *v5; // [esp+4h] [ebp-Ch]
-    int i; // [esp+8h] [ebp-8h]
 
-    for ( i = 0; i < 4; ++i )
+    for ( int i = 0; i < 4; ++i )
     {
         if ( (w_set & (1 << i)) != 0 )
         {
@@ -3078,15 +3082,11 @@ int __cdecl PM_SlideMove(pmove_t *pm, pml_t *pml, int gravity)
 
 void __thiscall player_gjk_slide_move_input_t::custom_process(gjk_trace_output_t *gto)
 {
-    unsigned __int16 EntityHitId; // ax
-    unsigned int GlassHitId; // eax
     trace_t trace; // [esp+4h] [ebp-3Ch] BYREF
 
     fill_results_type_and_id(gto, &trace);
-    EntityHitId = Trace_GetEntityHitId(&trace);
-    PM_AddTouchEnt(this->pm, EntityHitId);
-    GlassHitId = Trace_GetGlassHitId(&trace);
-    PM_AddTouchGlass(this->pm, GlassHitId);
+    PM_AddTouchEnt(this->pm, Trace_GetEntityHitId(&trace));
+    PM_AddTouchGlass(this->pm, Trace_GetGlassHitId(&trace));
 }
 
 

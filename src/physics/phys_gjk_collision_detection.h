@@ -3,6 +3,12 @@
 #include "phys_gjk.h"
 #include "rigid_body.h"
 
+enum $067C566A97EEC6E7D3DB7B726B5C1A66 : __int32
+{
+    COL_PARTITION = 0x0,
+    COL_BRUSH     = 0x1,
+};
+
 struct centity_s;
 struct gentity_s;
 struct cbrush_t;
@@ -63,16 +69,16 @@ bool __cdecl phys_are_aabb_overlapping(
     const phys_vec3 *aabb2_min,
     const phys_vec3 *aabb2_max);
 
-void __cdecl gjk_query_prims(const gjk_query_input *input, gjk_query_output *output);
-void __cdecl gjk_query_terrain(const gjk_query_input *input, gjk_query_output *output);
-void __cdecl gjk_query_gents(const gjk_query_input *input, gjk_query_output *output);
-char __cdecl query_should_pass_gentity(const gjk_query_input *input, gentity_s *gent);
-void __cdecl gjk_query_cents(const gjk_query_input *input, gjk_query_output *output);
-void __cdecl gjk_query_glass(const gjk_query_input *input, gjk_query_output *output);
-void __cdecl gjk_query_dents(const gjk_query_input *input, gjk_query_output *output);
-void __cdecl gjk_query(const gjk_query_input *input, gjk_query_output *output);
+bool query_should_pass_gentity(const gjk_query_input &input, const gentity_s *gent);
 
-void    gjk_query_cached(const gjk_query_input *input, gjk_query_output *output);
+void gjk_query_prims(const gjk_query_input &input, gjk_query_output *output);
+void gjk_query_terrain(const gjk_query_input &input, gjk_query_output *output);
+void gjk_query_gents(const gjk_query_input &input, gjk_query_output *output);
+void gjk_query_cents(const gjk_query_input &input, gjk_query_output *output);
+void gjk_query_glass(const gjk_query_input &input, gjk_query_output *output);
+void gjk_query_dents(const gjk_query_input &input, gjk_query_output *output);
+void gjk_query(const gjk_query_input &input, gjk_query_output *output);
+void gjk_query_cached(const gjk_query_input &input, gjk_query_output *output);
 
 
 char __cdecl gjk_trace_aabb(
@@ -81,8 +87,7 @@ char __cdecl gjk_trace_aabb(
                 const phys_vec3 *aabb_min,
                 const phys_vec3 *aabb_max,
                 float *t_);
-bool __cdecl gjk_trace_plane_1d(float d1, float d2, float *min_t, float *max_t, bool use_iw_logic);
-char __cdecl query_should_pass_entity(const gjk_query_input *input, gjk_entity_info_t *ent_info);
+char __cdecl query_should_pass_entity(const gjk_query_input &input, gjk_entity_info_t *ent_info);
 void    setup_gjk_capsule(
                 float *mins,
                 float *maxs,

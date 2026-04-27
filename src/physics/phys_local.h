@@ -100,10 +100,10 @@ public:
 
     inline phys_vec3 &operator/=(float d)
     {
-        float inv = 1.0f / d;
-        x *= inv;
-        y *= inv;
-        z *= inv;
+        float d_inv = 1.0f / d;
+        x *= d_inv;
+        y *= d_inv;
+        z *= d_inv;
         return *this;
     }
 
@@ -397,21 +397,29 @@ struct phys_mat44 // sizeof=0x40
 };
 
 template <typename T>
-struct phys_link_list_base//<pulse_sum_node> // sizeof=0x4
+struct phys_link_list_base // sizeof=0x4
 {                                                                             // XREF: pulse_sum_node/r
-        //pulse_sum_node *m_next_link;
-        T *m_next_link;
+    T *m_next_link;
 };
 
 template <typename T>
-struct phys_link_list //<pulse_sum_node> // sizeof=0xC
-{                                       // XREF: pulse_sum_constraint_solver/r
-                                        // list_pulse_sum_node/r
-    //pulse_sum_node *m_first;
-    //pulse_sum_node **m_last_next_ptr;
+struct phys_link_list // sizeof=0xC
+{ 
     T *m_first;
     T **m_last_next_ptr;
     volatile unsigned int m_alloc_count;
+
+    phys_link_list() // INLINED
+    {
+        clear();
+    }
+
+    void clear()
+    {
+        m_first = NULL;
+        m_last_next_ptr = &this->m_first;
+        m_alloc_count = 0;
+    }
 
     void add(T *p)
     {
@@ -424,6 +432,7 @@ struct phys_link_list //<pulse_sum_node> // sizeof=0xC
         //{
         //    __debugbreak();
         //}
+        iassert(m_last_next_ptr);
 
         p->m_next_link = NULL;
         this->m_alloc_count++;
@@ -717,6 +726,11 @@ struct phys_simple_allocator//<phys_heap_gjk_cache_system_avl_tree::phys_gjk_cac
                 slot->~T(); // disgusting
                 PMM_FREE((unsigned __int8 *)slot, sizeof(T), sizeof(T) % 16 == 0 ? 16 : 4);
             }
+        }
+
+        const int get_count() const
+        {
+            return m_count;
         }
 };
 
@@ -1470,8 +1484,11 @@ inline const phys_vec3 *__cdecl phys_max(phys_vec3 *result, const phys_vec3 *v1,
 
 inline const phys_vec3 *__cdecl phys_multiply(phys_vec3 *result, const phys_mat44 *mat, const phys_vec3 *v)
 {
+    // x*x.x + y*y.x + z*z.x
     result->x = ((v->x * mat->x.x) + (v->y * mat->y.x)) + (v->z * mat->z.x);
+    // x*x.y + y*y.y + z*z.y
     result->y = ((v->x * mat->x.y) + (v->y * mat->y.y)) + (v->z * mat->z.y);
+    // x*x.z + y*y.z + z*z.z
     result->z = ((v->x * mat->x.z) + (v->y * mat->y.z)) + (v->z * mat->z.z);
 
     return result;
@@ -1492,7 +1509,7 @@ inline const phys_vec3 *phys_full_multiply(
     return result;
 }
 
-inline double __cdecl phys_dot(const phys_vec3 *a, const phys_vec3 *b)
+inline float phys_dot(const phys_vec3 *a, const phys_vec3 *b)
 {
     return a->x * b->x + a->y * b->y + a->z * b->z;
 }
@@ -1505,65 +1522,32 @@ inline void phys_calc_world_aabb(
     phys_vec3 *aabb_min,
     phys_vec3 *aabb_max)
 {
-    const phys_vec3 *v6; // eax
-    phys_vec3 v11; // [esp-Ch] [ebp-CCh] BYREF
-    phys_vec3 center; // [esp+4h] [ebp-BCh]
-    float v15; // [esp+20h] [ebp-A0h]
-    phys_vec3 v16; // [esp+24h] [ebp-9Ch] BYREF
-    float v17; // [esp+3Ch] [ebp-84h]
-    phys_vec3 *v18; // [esp+40h] [ebp-80h]
-    phys_vec3 v19; // [esp+44h] [ebp-7Ch] BYREF
-    float v20; // [esp+5Ch] [ebp-64h]
-    phys_vec3 *v21; // [esp+60h] [ebp-60h]
-    phys_vec3 v22; // [esp+64h] [ebp-5Ch] BYREF
-    phys_mat44 world_to_local_xform; // [esp+74h] [ebp-4Ch] BYREF
+    phys_vec3 transformedCenter; // [esp-Ch] [ebp-CCh] BYREF
+    float center[3]; // [esp+4h] [ebp-BCh]
+    phys_vec3 transformedX; // [esp+24h] [ebp-9Ch] BYREF
+    phys_vec3 transformedY; // [esp+44h] [ebp-7Ch] BYREF
+    phys_vec3 transformedZ; // [esp+64h] [ebp-5Ch] BYREF
+    phys_mat44 xform; // [esp+74h] [ebp-4Ch] OVERLAPPED BYREF
 
-    phys_transpose(&world_to_local_xform, local_to_world_xform);
+    phys_transpose(&xform, local_to_world_xform);
 
-    phys_vec3 absX, absY, absZ;
+    phys_AbsValue(&transformedX, &xform.x);
+    phys_AbsValue(&transformedZ, &xform.z);
+    phys_AbsValue(&transformedY, &xform.y);
 
-    phys_AbsValue(&absX, &world_to_local_xform.x);
-    phys_AbsValue(&absY, &world_to_local_xform.y);
-    phys_AbsValue(&absZ, &world_to_local_xform.z);
+    center[0] = phys_dot(&transformedX, local_half_aabb_dims);
+    center[1] = phys_dot(&transformedY, local_half_aabb_dims);
+    center[2] = phys_dot(&transformedZ, local_half_aabb_dims);
 
-    float ex = phys_dot(&absX, local_half_aabb_dims);
-    float ey = phys_dot(&absY, local_half_aabb_dims);
-    float ez = phys_dot(&absZ, local_half_aabb_dims);
+    phys_full_multiply(&transformedCenter, local_to_world_xform, local_center);
 
-    //phys_vec3 center;
-    phys_full_multiply(&center, local_to_world_xform, local_center);
+    aabb_min->x = transformedCenter.x - center[0];
+    aabb_min->y = transformedCenter.y - center[1];
+    aabb_min->z = transformedCenter.z - center[2];
 
-    aabb_min->x = center.x - ex;
-    aabb_min->y = center.y - ey;
-    aabb_min->z = center.z - ez;
-
-    aabb_max->x = center.x + ex;
-    aabb_max->y = center.y + ey;
-    aabb_max->z = center.z + ez;
-
-    iassert(!IS_NAN(aabb_max->x) && !IS_NAN(aabb_max->y) && !IS_NAN(aabb_max->z));
-    iassert(!IS_NAN(aabb_min->x) && !IS_NAN(aabb_min->y) && !IS_NAN(aabb_min->z));
-
-    //v21 = phys_AbsValue(&v22, &world_to_local_xform.z);
-    //v20 = (float)((float)(v21->x * local_half_aabb_dims->x) + (float)(v21->y * local_half_aabb_dims->y))
-    //    + (float)(v21->z * local_half_aabb_dims->z);
-    //v18 = phys_AbsValue(&v19, &world_to_local_xform.y);
-    //v17 = (float)((float)(v18->x * local_half_aabb_dims->x) + (float)(v18->y * local_half_aabb_dims->y))
-    //    + (float)(v18->z * local_half_aabb_dims->z);
-    //v6 = phys_AbsValue(&v16, &world_to_local_xform.x);
-    //v15 = phys_dot(v6, local_half_aabb_dims);
-    //center[0] = v15;
-    //center[1] = v17;
-    //center[2] = v20;
-    //phys_full_multiply(&v11, local_to_world_xform, local_center);
-    //
-    //aabb_min->x = v11.x - center[0];
-    //aabb_min->y = v11.y - center[1];
-    //aabb_min->z = v11.z - center[2];
-    //
-    //aabb_max->x = v11.x + center[0];
-    //aabb_max->y = v11.y + center[1];
-    //aabb_max->z = v11.z + center[2];
+    aabb_max->x = transformedCenter.x + center[0];
+    aabb_max->y = transformedCenter.y + center[1];
+    aabb_max->z = transformedCenter.z + center[2];
 }
 
 inline void __cdecl phys_transpose(phys_mat44 *dest, const phys_mat44 *source)
@@ -1780,6 +1764,11 @@ inline void __cdecl Phys_AxisToNitrousMat(float (*axis)[3], phys_mat44 *outMat)
 inline float Abs(const phys_vec3 &vec)
 {
     return sqrt( (vec.x * vec.x) + (vec.y * vec.y) + (vec.z * vec.z) );
+}
+
+inline float AbsSquared(const phys_vec3 &vec)
+{
+    return ((vec.x * vec.x) + (vec.y * vec.y) + (vec.z * vec.z));
 }
 
 inline const phys_vec3 &get_mat_wrow(const phys_mat44 &mat)

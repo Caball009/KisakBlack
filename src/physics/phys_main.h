@@ -137,6 +137,7 @@ struct __declspec(align(4)) phys_surface_type_info // sizeof=0x10
     // padding byte
     // padding byte
 };
+static_assert(sizeof(phys_surface_type_info) == 16);
 
 struct phys_convex_hull // sizeof=0x20D60
 {                                       // XREF: .data:phys_convex_hull g_hull/r
@@ -252,7 +253,7 @@ struct chull_t;
 struct rigid_body_constraint_ragdoll;
 struct XModel;
 
-void __cdecl destroy_gjk_geom(struct gjk_aabb_t *geom);
+void __cdecl destroy_gjk_geom(gjk_base_t *geom);
 void __cdecl Phys_Init();
 void __cdecl surface_type_info_database_set(int surface_type_1, int surface_type_2, const phys_surface_type_info *pst);
 void __cdecl create_broad_phase_info(rigid_body *body);

@@ -895,7 +895,9 @@ void __cdecl DynEnt_UpdateConstraints(int localClientNum, DynEntityClient *dynEn
                 {
                     if ( dynEntClient->physObjId )
                     {
-                        *(unsigned int *)(*(unsigned int *)dynEntClient->physObjId + 272) = 3;
+                        PhysObjUserData *userData = (PhysObjUserData *)dynEntClient->physObjId;
+                        userData->body->m_stable_min_contact_count = 3;
+                        //*(unsigned int *)(*(unsigned int *)dynEntClient->physObjId + 272) = 3;
                         Phys_ObjAddCollFlags(dynEntClient->physObjId, 455);
                     }
                     switch ( c->type )
