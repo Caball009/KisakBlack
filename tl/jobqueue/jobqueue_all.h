@@ -24,8 +24,17 @@ struct tlAtomicMutex // sizeof=0x10
     int LockCount;                      // XREF: jqInit(void)+64/w
     tlAtomicMutex *ThisPtr;             // XREF: jqInit(void)+4E/w
 
-    tlAtomicMutex();
-    ~tlAtomicMutex();
+    tlAtomicMutex()
+    {
+        ThisPtr = this;
+        ThreadId = 0;
+        LockCount = 0;
+    }
+    ~tlAtomicMutex()
+    {
+        this->ThreadId = 0;
+        this->ThisPtr = 0;
+    }
 
     void Lock();
     bool TryLock();

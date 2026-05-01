@@ -9,7 +9,12 @@ struct broad_phase_memory_info // sizeof=0xC
     int m_max_num_sap_active_pairs;     // XREF: Phys_Init(void)+893/w
     int m_max_num_surface_types;        // XREF: Phys_Init(void)+89A/w
 
-    broad_phase_memory_info();
+    broad_phase_memory_info()
+    {
+        this->m_max_num_gjk_ci = 0;
+        this->m_max_num_sap_active_pairs = 0;
+        this->m_max_num_surface_types = 0;
+    }
 };
 
 struct broad_phase_prolog_task_input // sizeof=0x8
@@ -210,8 +215,8 @@ struct broad_phase_memory // sizeof=0xCD8
     int m_max_num_surface_types;
     int m_max_num_surface_type_infos;
 
-    broad_phase_memory();
-    ~broad_phase_memory();
+    broad_phase_memory() = default; // verified all child constructors
+    ~broad_phase_memory() = default; // verified all child destructors
 
     void list_bpb_remove(broad_phase_base *bpb_to_remove);
     static broad_phase_memory *allocate_buffer(const broad_phase_memory_info *bpmi);

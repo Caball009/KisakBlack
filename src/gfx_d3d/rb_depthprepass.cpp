@@ -13,18 +13,18 @@ void    R_DepthPrepass(
                 const GfxViewInfo *viewInfo,
                 GfxCmdBuf *cmdBuf)
 {
-    GfxCmdBufSourceState state; // [sp+50h] [-F00h] BYREF
+    GfxCmdBufSourceState source; // [sp+50h] [-F00h] BYREF
 
     if ( !r_reflectionProbeGenerate->current.enabled )
     {
-        R_InitCmdBufSourceState(&state, &viewInfo->input, 1);
-        R_SetRenderTargetSize(&state, renderTargetId);
-        R_SetViewportStruct(&state, &viewInfo->cullViewInfo.sceneViewport);
-        R_SetADSZScaleConstants(viewInfo->localClientNum, &state);
+        R_InitCmdBufSourceState(&source, &viewInfo->input, 1);
+        R_SetRenderTargetSize(&source, renderTargetId);
+        R_SetViewportStruct(&source, &viewInfo->cullViewInfo.sceneViewport);
+        R_SetADSZScaleConstants(viewInfo->localClientNum, &source);
         R_DrawCall(
             R_DepthPrepassCallback,
             viewInfo,
-            &state,
+            &source,
             viewInfo,
             (GfxDrawSurfListInfo *)0,
             &viewInfo->cullViewInfo.viewParms,

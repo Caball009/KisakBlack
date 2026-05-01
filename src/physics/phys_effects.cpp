@@ -206,7 +206,7 @@ void __cdecl Phys_ReEvalPriority(PhysObjUserData *userData)
 
 void __cdecl Phys_EffectsProcess()
 {
-    ;
+    ; // KISAKTODO: this function actually exists but needs IDA rework
 }
 
 Phys_SurfaceType __cdecl Phys_RemmapSurfaceType(int stype)

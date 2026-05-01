@@ -80,7 +80,15 @@ struct bpei_database_t // sizeof=0x10
     broad_phase_environment_info *m_bpei_list;
     minspec_read_write_mutex m_mutex;
 
-    ~bpei_database_t();
+    bpei_database_t()
+    {
+        m_bpei_list = NULL;
+    }
+
+    ~bpei_database_t()
+    {
+        purge_database();
+    }
 
     void update_database();
     void purge_database();
@@ -229,13 +237,18 @@ struct phys_heap_gjk_cache_system_avl_tree // sizeof=0x10
         phys_inplace_avl_tree_node<phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal> m_avl_tree_node;
         phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal *m_next_gjk_ci;
     };
+    static_assert(sizeof(phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal) == 0x90);
+
     phys_simple_allocator<phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal> m_list_phys_gjk_cache_info_internal;
     phys_inplace_avl_tree<phys_gjk_geom_id_pair_key, phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal, phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal::avl_tree_accessor> m_search_tree;
     int m_max_num_gjk_ci;
     phys_gjk_cache_info_internal *m_list_head;
 
 
-    ~phys_heap_gjk_cache_system_avl_tree();
+    ~phys_heap_gjk_cache_system_avl_tree()
+    {
+        shutdown();
+    }
 
     phys_gjk_cache_info_internal *get_gjk_cache_info(
         unsigned int id1,
@@ -322,7 +335,7 @@ const struct __declspec(align(16)) gjk_query_input // sizeof=0x80
     // padding byte
     colgeom_visitor_inlined_t<200> *m_proximity_data;
     int m_proximity_mask;
-    unsigned int m_gjk_query_flags;
+    unsigned int m_gjk_query_flags; // 1 = terrain/prims; 2 = gents/cents/glass; 4 = dents(dynents)
     phys_link_list<gjk_geom_info_t> m_geom_skip_list;
     // padding byte
     // padding byte
@@ -556,10 +569,12 @@ struct gjk_query_output : gjk_collision_visitor // sizeof=0x150
     {
         //this->__vftable = (gjk_query_output_vtbl *)&gjk_collision_visitor::`vftable';
         //this->__vftable = (gjk_query_output_vtbl *)&gjk_query_output::`vftable';
-        this->m_bpei_database.m_bpei_map.m_tree_root = 0;
-        this->m_bpei_database.m_bpei_allocator.m_count = 0;
-        this->m_bpei_database.m_mutex.m_count = 1;
-        this->m_bpei_database.m_bpei_list = 0;
+        
+        //this->m_bpei_database.m_bpei_map.m_tree_root = 0;
+        //this->m_bpei_database.m_bpei_allocator.m_count = 0;
+        //this->m_bpei_database.m_mutex.m_count = 1;
+        //this->m_bpei_database.m_bpei_list = 0;
+
         this->m_allocator.m_first_block = 0;
         this->m_allocator.m_cur = 0;
         this->m_allocator.m_end = 0;
@@ -928,68 +943,6 @@ struct list_gjk_trace_output // sizeof=0x10
         //this->m_list.m_alloc_count = 0;
         this->m_list.clear();
         this->m_first_hit = 0;
-    }
-};
-
-
-
-struct __declspec(align(8)) gjk_entity_info_t // sizeof=0x50
-{
-    enum ENTITY_TYPE : __int32
-    {                                       // XREF: gjk_entity_info_t/r
-        ET_GENT  = 0x0,
-        ET_CENT  = 0x1,
-        ET_DENT  = 0x2,
-        ET_GLASS = 0x3,
-        ET_NONE  = 0x4,
-    };
-    phys_mat44 m_mat;
-    gjk_entity_info_t::ENTITY_TYPE m_ent_type;
-    const void *m_ent;
-    int m_query_visitor_count;
-    // padding byte
-    // padding byte
-    // padding byte
-    // padding byte
-
-    const Glass *get_glass();
-    const void *get_ent();
-
-    inline const gentity_s *get_gent()
-    {
-        if ((this->m_ent_type || !this->m_ent)
-            && !Assert_MyHandler(
-                "c:\\projects_pc\\cod\\codsrc\\src\\bgame\\../physics/phys_gjk_collision_detection.h",
-                86,
-                0,
-                "%s",
-                "m_ent_type == ET_GENT && m_ent != NULL"))
-        {
-            __debugbreak();
-        }
-        return (const gentity_s *)this->m_ent;
-    }
-
-    inline const centity_s *get_cent()
-    {
-        if ((this->m_ent_type != ET_CENT || !this->m_ent)
-            && !Assert_MyHandler(
-                "c:\\projects_pc\\cod\\codsrc\\src\\bgame\\../physics/phys_gjk_collision_detection.h",
-                87,
-                0,
-                "%s",
-                "m_ent_type == ET_CENT && m_ent != NULL"))
-        {
-            __debugbreak();
-        }
-        return (const centity_s *)this->m_ent;
-    }
-
-    const DynEntityDef *get_dent();
-
-    bool is_dent() const
-    {
-        return this->m_ent_type == ET_DENT;
     }
 };
 

@@ -2365,20 +2365,6 @@ void __cdecl jqStart()
 //  return v4;
 //}
 
-tlAtomicMutex::tlAtomicMutex()
-{
-    ThisPtr = this;
-    ThreadId = 0;
-    LockCount = 0;
-}
-
-
-tlAtomicMutex::~tlAtomicMutex()
-{
-  this->ThreadId = 0;
-  this->ThisPtr = 0;
-}
-
 jqAtomicHeap::~jqAtomicHeap()
 {
   unsigned __int8 *LevelData; // eax

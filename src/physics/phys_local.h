@@ -279,6 +279,11 @@ struct minspec_read_write_mutex // sizeof=0x4
 {                                       // XREF: phys_transient_allocator/r
     volatile unsigned int m_count;      // XREF: physics_system::time_step(float,bool)+158/w
 
+    minspec_read_write_mutex()
+    {
+        m_count = 1;
+    }
+
     // aislopped function def's for correctness
     inline void ReadLock()
     {
@@ -928,11 +933,11 @@ public:
 
     phys_free_list()
     {
-        m_dummy_head.m_next_T_internal = (phys_free_list<T>::T_internal_base *)this;
-        m_dummy_head.m_prev_T_internal = (phys_free_list<T>::T_internal_base *)this;
         m_list_count = 0;
         m_list_count_high_water = 0;
         m_ptr_list_count = 0;
+        m_dummy_head.m_next_T_internal = &m_dummy_head;
+        m_dummy_head.m_prev_T_internal = &m_dummy_head;
     }
 
     void debug_add(T_internal *T_i)

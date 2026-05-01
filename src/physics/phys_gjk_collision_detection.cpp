@@ -25,17 +25,15 @@ int s_caulk_sflags = 0x7FFFFFFF;
 
 phys_vec3 *__cdecl phys_Unitize(phys_vec3 *result, const phys_vec3 *a)
 {
-    float v3; // [esp+4h] [ebp-14h]
-    float v4; // [esp+8h] [ebp-10h]
     float na; // [esp+14h] [ebp-4h]
 
     na = Abs(&a->x);
+
     iassert(na > 0.0f);
-    v3 = a->y * (float)(1.0 / na);
-    v4 = a->z * (float)(1.0 / na);
+
     result->x = a->x * (float)(1.0 / na);
-    result->y = v3;
-    result->z = v4;
+    result->y = a->y * (float)(1.0 / na);
+    result->z = a->z * (float)(1.0 / na);
     return result;
 }
 
@@ -376,11 +374,10 @@ void gjk_query_output::calc_query_aabb(const gjk_query_input *input)
 
 void gjk_query_output::query_epilog()
 {
-    phys_transient_allocator::allocator_state v1; // [esp+18h] [ebp-10h]
-
-    *(_QWORD *)&v1.m_first_block = *(_QWORD *)&this->m_allocator.m_first_block;
-    *(_QWORD *)&v1.m_end = *(_QWORD *)&this->m_allocator.m_end;
-    this->m_allocator_state = v1;
+    m_allocator_state.m_first_block = m_allocator.m_first_block;
+    m_allocator_state.m_cur = m_allocator.m_cur;
+    m_allocator_state.m_end = m_allocator.m_end;
+    m_allocator_state.m_total_memory_allocated = m_allocator.m_total_memory_allocated;
 }
 
 void *gjk_query_output::allocate(int size, int alignment, bool no_error)
@@ -448,15 +445,19 @@ broad_phase_environment_info *bpei_database_t::get_bpei(bpei_database_id databas
         bpei->m_next_bpei = this->m_bpei_list;
         this->m_bpei_list = bpei;
     }
-    if ( !bpei
-        && _tlAssert(
-                 "C:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\collision\\phys_broad_phase.h",
-                 257,
-                 "bpei",
-                 "") )
-    {
-        __debugbreak();
-    }
+
+    iassert(this->m_bpei_map.find(database_id) != NULL); // LWSS ADD to ensure the avl tree worked
+
+    iassert(bpei);
+    //if ( !bpei
+    //    && _tlAssert(
+    //             "C:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\collision\\phys_broad_phase.h",
+    //             257,
+    //             "bpei",
+    //             "") )
+    //{
+    //    __debugbreak();
+    //}
     return bpei;
 }
 
@@ -472,21 +473,6 @@ broad_phase_environment_info *bpei_database_t::create_bpei(bpei_database_id data
     //bpei->m_gjk_geom_id = gjk_unique_id_database_t::get_unique_id(&g_gjk_unique_id_database);
     bpei->m_gjk_geom_id = g_gjk_unique_id_database.get_unique_id();
     return bpei;
-}
-
-const void *gjk_entity_info_t::get_ent()
-{
-    if ( (this->m_ent_type == ET_NONE || !this->m_ent)
-        && !Assert_MyHandler(
-                    "c:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_gjk_collision_detection.h",
-                    91,
-                    0,
-                    "%s",
-                    "m_ent_type != ET_NONE && m_ent != NULL") )
-    {
-        __debugbreak();
-    }
-    return this->m_ent;
 }
 
 void gjk_query_output::query_create_epilog(gjk_base_t *gjk_geom)
@@ -624,8 +610,7 @@ gjk_geom_info_t *gjk_query_output::create_geom_info(
                 float *aabb_min,
                 float *aabb_max)
 {
-    gjk_geom_info_t *v6; // [esp+0h] [ebp-3Ch]
-    gjk_geom_info_t *v8; // [esp+34h] [ebp-8h]
+    gjk_geom_info_t *geomInfo; // [esp+0h] [ebp-3Ch]
 
     ++this->m_geom_count;
     //v8 = (gjk_geom_info_t *)phys_transient_allocator::allocate(
@@ -634,37 +619,28 @@ gjk_geom_info_t *gjk_query_output::create_geom_info(
     //                                                    16,
     //                                                    0,
     //                                                    "phys_transient_allocator out of memory.");
-    v8 = (gjk_geom_info_t *)this->m_allocator.allocate(64, 16, 0, "phys_transient_allocator out of memory.");
-    if ( v8 )
-        v6 = v8;
-    else
-        v6 = 0;
-    v6->m_cg = cg;
-    v6->m_ent_info = ent_info;
-    v6->m_query_visitor_count = -1;
+
+    geomInfo = (gjk_geom_info_t *)this->m_allocator.allocate(sizeof(gjk_geom_info_t), 16, 0, "phys_transient_allocator out of memory.");
+    geomInfo->m_cg = cg;
+    geomInfo->m_ent_info = ent_info;
+    geomInfo->m_query_visitor_count = -1;
+
     if ( aabb_min )
     {
-        if ( !aabb_max
-            && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_gjk_collision_detection.cpp",
-                        521,
-                        0,
-                        "%s",
-                        "aabb_max") )
-        {
-            __debugbreak();
-        }
-        Phys_Vec3ToNitrousVec(aabb_min, &v6->m_aabb_min);
-        Phys_Vec3ToNitrousVec(aabb_max, &v6->m_aabb_max);
+        iassert(aabb_max);
+
+        Phys_Vec3ToNitrousVec(aabb_min, &geomInfo->m_aabb_min);
+        Phys_Vec3ToNitrousVec(aabb_max, &geomInfo->m_aabb_max);
     }
     else
     {
         //gjk_geom_info_t::calc_aabb(v6);
-        v6->calc_aabb();
+        geomInfo->calc_aabb();
     }
-    v6->m_total_next_link = this->m_total_list_geom_info;
-    this->m_total_list_geom_info = v6;
-    return v6;
+
+    geomInfo->m_total_next_link = this->m_total_list_geom_info;
+    this->m_total_list_geom_info = geomInfo;
+    return geomInfo;
 }
 
 void gjk_geom_info_t::calc_aabb()
@@ -677,24 +653,16 @@ void gjk_geom_info_t::calc_aabb()
 
 gjk_entity_info_t *gjk_query_output::create_entity_info()
 {
-    unsigned int *v2; // [esp+0h] [ebp-34h]
-    unsigned int *v3; // [esp+2Ch] [ebp-8h]
+    gjk_entity_info_t *info; // [esp+2Ch] [ebp-8h]
 
     ++this->m_ent_count;
-    //v3 = phys_transient_allocator::allocate(&this->m_allocator, 80, 16, 0, "phys_transient_allocator out of memory.");
-    v3 = (unsigned int*)this->m_allocator.allocate(80, 16, 0, "phys_transient_allocator out of memory.");
-    if ( v3 )
-    {
-        v3[16] = 4;
-        v3[17] = 0;
-        v2 = v3;
-    }
-    else
-    {
-        v2 = 0;
-    }
-    v2[18] = -1;
-    return (gjk_entity_info_t *)v2;
+    info = (gjk_entity_info_t *)this->m_allocator.allocate(sizeof(gjk_entity_info_t), 16, 0, "phys_transient_allocator out of memory.");
+
+    info->m_ent_type = gjk_entity_info_t::ENTITY_TYPE::ET_NONE;
+    info->m_ent = 0;
+    info->m_query_visitor_count = -1;
+
+    return info;
 }
 
 void gjk_query_output::add(const gjk_query_input &input, const CollisionPartition *partition, const CollisionAabbTree *tree)
@@ -715,12 +683,15 @@ void gjk_query_output::add(const gjk_query_input &input, const CollisionPartitio
         cg = gjk_partition_t::create(tree, this);
         //gjk_base_t::set_geom_id_new(cg, bpei->m_gjk_geom_id);
         cg->set_geom_id_new(bpei->m_gjk_geom_id);
+
         aabb_min[0] = tree->origin[0] - tree->halfSize[0];
         aabb_min[1] = tree->origin[1] - tree->halfSize[1];
         aabb_min[2] = tree->origin[2] - tree->halfSize[2];
+
         aabb_max[0] = tree->origin[0] + tree->halfSize[0];
         aabb_max[1] = tree->origin[1] + tree->halfSize[1];
         aabb_max[2] = tree->origin[2] + tree->halfSize[2];
+
         geom_info = gjk_query_output::create_geom_info(cg, 0, aabb_min, aabb_max);
         bpei->m_data = geom_info;
     }
@@ -747,42 +718,26 @@ void gjk_query_output::add(const gjk_query_input &input, const cbrush_t *brush, 
     }
 }
 
-// local variable allocation has failed, the output may be wrong!
 void gjk_query_output::add(const gjk_query_input &input, gentity_s *gent)
 {
     gjk_entity_info_t *ent_info; // [esp-Ch] [ebp-5Ch]
     float axis[3][3]; // [esp-8h] [ebp-58h] OVERLAPPED BYREF
-    phys_vec3 *p_w; // [esp+1Ch] [ebp-34h]
-    const phys_vec3 *v7; // [esp+20h] [ebp-30h]
-    phys_vec3 v8; // [esp+24h] [ebp-2Ch] BYREF
-    gjk_entity_info_t *entity_info; // [esp+34h] [ebp-1Ch]
     broad_phase_environment_info *bpei; // [esp+38h] [ebp-18h]
     unsigned int gent_id; // [esp+3Ch] [ebp-14h]
-    gjk_query_output *thisa; // [esp+40h] [ebp-10h]
-    //_UNKNOWN *v13; // [esp+44h] [ebp-Ch]
-    //const gjk_query_input *inputa; // [esp+48h] [ebp-8h]
-    //int vars0; // [esp+50h] [ebp+0h]
-    //
-    //v13 = a2;
-    //inputa = (const gjk_query_input *)vars0;
-    thisa = this;
+
     gent_id = (unsigned int)gent;
     bpei = gjk_query_output::get_ent_info((unsigned int)gent);
     if (!bpei->m_data)
     {
+        gjk_entity_info_t *entity_info;
         entity_info = gjk_query_output::create_entity_info();
         entity_info->m_ent_type = gjk_entity_info_t::ENTITY_TYPE::ET_GENT;
         entity_info->m_ent = gent;
-        if (gent->s.eType == 17 || gent->s.eType == 1)
+        if (gent->s.eType == ET_ACTOR || gent->s.eType == ET_PLAYER)
         {
             //phys_mat44::operator=(&entity_info->m_mat, &PHYS_IDENTITY_MATRIX_42);
             entity_info->m_mat = PHYS_IDENTITY_MATRIX;
-            Phys_Vec3ToNitrousVec(gent->r.currentOrigin, &v8);
-            v7 = &v8;
-            p_w = &entity_info->m_mat.w;
-            entity_info->m_mat.w.x = v7->x;
-            p_w->y = v7->y;
-            p_w->z = v7->z;
+            Phys_Vec3ToNitrousVec(gent->r.currentOrigin, &entity_info->m_mat.w);
         }
         else
         {
@@ -792,33 +747,17 @@ void gjk_query_output::add(const gjk_query_input &input, gentity_s *gent)
         }
         bpei->m_data = entity_info;
     }
-    if (!bpei->m_data
-        && !Assert_MyHandler(
-            "C:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_gjk_collision_detection.cpp",
-            590,
-            0,
-            "%s",
-            "bpei->m_data"))
-    {
-        __debugbreak();
-    }
+
+    iassert(bpei->m_data);
     ent_info = (gjk_entity_info_t *)bpei->m_data;
 
-    //if (*((_DWORD *)bpei->m_data + 16)
-    //    && !Assert_MyHandler(
-    //        "C:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_gjk_collision_detection.cpp",
-    //        592,
-    //        0,
-    //        "%s",
-    //        "ent_info->is_gent()"))
-    //{
-    //    __debugbreak();
-    //}
-    if (ent_info->m_query_visitor_count != thisa->m_gent_query_visitor_count)
+    iassert(ent_info->is_gent());
+
+    if (ent_info->m_query_visitor_count != this->m_gent_query_visitor_count)
     {
-        ent_info->m_query_visitor_count = thisa->m_gent_query_visitor_count;
+        ent_info->m_query_visitor_count = this->m_gent_query_visitor_count;
         gjk_query_output::set_local_query_info(input, ent_info);
-        create_gjk_geom(gent, thisa, 1, input.m_contents, 0);
+        create_gjk_geom(gent, this, 1, input.m_contents, 0);
     }
 }
 
@@ -1549,11 +1488,6 @@ void    gjk_query_cached(const gjk_query_input &input, gjk_query_output *output)
     float hit_time; // [esp+18h] [ebp-18h] BYREF
     int flags; // [esp+1Ch] [ebp-14h]
     gjk_geom_info_t *gi; // [esp+20h] [ebp-10h]
-    //float hit_time[2]; // [esp+24h] [ebp-Ch] BYREF
-    //float retaddr; // [esp+30h] [ebp+0h]
-    //
-    //hit_time[0] = a1;
-    //hit_time[1] = retaddr;
 
     iassert(input.m_contents != 0);
 
@@ -1920,54 +1854,50 @@ char __cdecl query_should_pass_entity(const gjk_query_input &input, gjk_entity_i
     }
 }
 
-const DynEntityDef *gjk_entity_info_t::get_dent()
-{
-    if ( (this->m_ent_type != ET_DENT || !this->m_ent)
-        && !Assert_MyHandler(
-                    "c:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_gjk_collision_detection.h",
-                    88,
-                    0,
-                    "%s",
-                    "m_ent_type == ET_DENT && m_ent != NULL") )
-    {
-        __debugbreak();
-    }
-    return (const DynEntityDef *)this->m_ent;
-}
-
 void    setup_gjk_capsule(
                 float *mins,
                 float *maxs,
                 float radius_adjust,
                 gjk_double_sphere_t *gjk_capsule)
 {
-    float height; // [esp+50h] [ebp-50h]
-    phys_vec3 pv_maxs; // [esp+74h] [ebp-2Ch] BYREF
-    phys_vec3 pv_mins; // [esp+84h] [ebp-1Ch] BYREF
-
+    phys_vec3 pv_mins, pv_maxs;
     Phys_Vec3ToNitrousVec(mins, &pv_mins);
     Phys_Vec3ToNitrousVec(maxs, &pv_maxs);
 
-    if ((pv_maxs.x - pv_mins.x) <= (pv_maxs.z - pv_mins.z))
-        height = pv_maxs.x - pv_mins.x;
-    else
-        height = pv_maxs.z - pv_mins.z;
+    // Compute dims, find the smallest horizontal extent (x vs z)
+    phys_vec3 dim;
+    dim.x = pv_maxs.x - pv_mins.x;
+    dim.y = pv_maxs.y - pv_mins.y;
+    dim.z = pv_maxs.z - pv_mins.z;
 
-    gjk_capsule->m_list_center[0].x = pv_maxs.x - (float)(0.5 * height);
-    gjk_capsule->m_list_center[0].y = pv_maxs.y - (float)(0.5 * height);
-    gjk_capsule->m_list_center[0].z = pv_maxs.z - (float)(0.5 * height);
-    gjk_capsule->m_list_center[1].x = pv_mins.x + (float)(0.5 * height);
-    gjk_capsule->m_list_center[1].y = pv_mins.y + (float)(0.5 * height);
-    gjk_capsule->m_list_center[1].z = pv_mins.z + (float)(0.5 * height);
+    float min_extent = (dim.x <= dim.z) ? dim.x : dim.z;
+    float half_extent = 0.5f * min_extent;
+
+    // Top sphere center: maxs pushed inward by half_extent
+    phys_vec3 ptop;
+    ptop.x = pv_maxs.x - half_extent;
+    ptop.y = pv_maxs.y - half_extent;
+    ptop.z = pv_maxs.z - half_extent;
+
+    // Bottom sphere center: mins pushed inward by half_extent
+    phys_vec3 pbot;
+    pbot.x = pv_mins.x + half_extent;
+    pbot.y = pv_mins.y + half_extent;
+    pbot.z = pv_mins.z + half_extent;
+
+    gjk_capsule->m_list_center[0] = ptop;
+    gjk_capsule->m_list_center[1] = pbot;
+
     gjk_capsule->m_list_radius[0] = 0.0f;
     gjk_capsule->m_list_radius[1] = 0.0f;
-    gjk_capsule->m_geom_radius = (float)(0.5 * height) + radius_adjust;
 
+    gjk_capsule->m_geom_radius = half_extent + radius_adjust;
     iassert(gjk_capsule->m_geom_radius > 0.0f);
 
-    gjk_capsule->m_center.x = 0.5 * (gjk_capsule->m_list_center[0].x + gjk_capsule->m_list_center[1].x);
-    gjk_capsule->m_center.y = 0.5 * (gjk_capsule->m_list_center[0].y + gjk_capsule->m_list_center[1].y);
-    gjk_capsule->m_center.z = 0.5 * (gjk_capsule->m_list_center[0].z + gjk_capsule->m_list_center[1].z);
+    // Overall center is midpoint between the two sphere centers
+    gjk_capsule->m_center.x = 0.5f * (ptop.x + pbot.x);
+    gjk_capsule->m_center.y = 0.5f * (ptop.y + pbot.y);
+    gjk_capsule->m_center.z = 0.5f * (ptop.z + pbot.z);
 
     gjk_capsule->m_count = 2;
 }
@@ -3093,12 +3023,6 @@ void __cdecl fill_results_type_and_id(const gjk_trace_output_t *gto, trace_t *tr
         trace->hitType = TRACE_HITTYPE_ENTITY;
         trace->hitId = 1022;
     }
-}
-
-const Glass *gjk_entity_info_t::get_glass()
-{
-    iassert(m_ent_type == ET_GLASS && m_ent != NULL);
-    return (const Glass *)this->m_ent;
 }
 
 void __cdecl fill_results_no_hit(trace_t *trace)

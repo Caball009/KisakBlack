@@ -526,31 +526,21 @@ LABEL_12:
 
 void __cdecl init_bpeqi(broad_phase_environment_query_input *bpeqi, broad_phase_base *bpb)
 {
-    float v2; // [esp-10h] [ebp-1Ch]
-    float v3; // [esp-10h] [ebp-1Ch]
-    float v4; // [esp-Ch] [ebp-18h]
-    float v5; // [esp-Ch] [ebp-18h]
-    float v6; // [esp-8h] [ebp-14h]
-    float v7; // [esp-8h] [ebp-14h]
-
     nanassertvec3(bpb->m_trace_aabb_min_whace); // LWSS ADD
     nanassertvec3(bpb->m_trace_aabb_max_whace); // LWSS ADD
 
-    v2 = bpb->m_trace_aabb_min_whace.x - 0.5099999904632568;
-    v4 = bpb->m_trace_aabb_min_whace.y - 0.5099999904632568;
-    v6 = bpb->m_trace_aabb_min_whace.z - 0.5099999904632568;
-    bpeqi->trace_aabb_min_wace.x = v2;
-    bpeqi->trace_aabb_min_wace.y = v4;
-    bpeqi->trace_aabb_min_wace.z = v6;
-    v3 = bpb->m_trace_aabb_max_whace.x + 0.5099999904632568;
-    v5 = bpb->m_trace_aabb_max_whace.y + 0.5099999904632568;
-    v7 = bpb->m_trace_aabb_max_whace.z + 0.5099999904632568;
-    bpeqi->trace_aabb_max_wace.x = v3;
-    bpeqi->trace_aabb_max_wace.y = v5;
-    bpeqi->trace_aabb_max_wace.z = v7;
+    bpeqi->trace_aabb_min_wace.x = bpb->m_trace_aabb_min_whace.x - 0.5099999904632568;
+    bpeqi->trace_aabb_min_wace.y = bpb->m_trace_aabb_min_whace.y - 0.5099999904632568;
+    bpeqi->trace_aabb_min_wace.z = bpb->m_trace_aabb_min_whace.z - 0.5099999904632568;
+
+    bpeqi->trace_aabb_max_wace.x = bpb->m_trace_aabb_max_whace.x + 0.5099999904632568;
+    bpeqi->trace_aabb_max_wace.y = bpb->m_trace_aabb_max_whace.y + 0.5099999904632568;
+    bpeqi->trace_aabb_max_wace.z = bpb->m_trace_aabb_max_whace.z + 0.5099999904632568;
+
     bpeqi->trace_translation.x = bpb->m_trace_translation.x;
     bpeqi->trace_translation.y = bpb->m_trace_translation.y;
     bpeqi->trace_translation.z = bpb->m_trace_translation.z;
+
     bpeqi->env_collision_flags = bpb->m_env_collision_flags;
 }
 
@@ -850,13 +840,6 @@ void __cdecl broad_phase_reset_buffer()
 {
     //phys_transient_allocator::reset(&G_BPM->g_collision_memory_buffer);
     G_BPM->g_collision_memory_buffer.reset();
-}
-
-broad_phase_memory_info::broad_phase_memory_info()
-{
-    this->m_max_num_gjk_ci = 0;
-    this->m_max_num_sap_active_pairs = 0;
-    this->m_max_num_surface_types = 0;
 }
 
 int    bp_env_jq_batch_function1(jqBatch *pBatch)
@@ -3398,18 +3381,6 @@ void    broad_phase_process_collision_pairs()
     }
 }
 
-// attributes: thunk
-phys_heap_gjk_cache_system_avl_tree::~phys_heap_gjk_cache_system_avl_tree()
-{
-    phys_heap_gjk_cache_system_avl_tree::shutdown();
-}
-
-// attributes: thunk
-bpei_database_t::~bpei_database_t()
-{
-    bpei_database_t::purge_database();
-}
-
 extern phys_assert_info pai_gjk_cache_system_max_num_gjk_ci;
 extern phys_assert_info pai_gjk_cache_system_create_gjk_ci;
 phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal *__thiscall phys_heap_gjk_cache_system_avl_tree::get_gjk_cache_info_mutex(
@@ -3426,7 +3397,6 @@ phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal *__thiscall ph
     phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal *v13; // eax
     unsigned int m_id2; // ecx
     phys_gjk_geom_id_pair_key key; // [esp+Ch] [ebp-8h] BYREF
-    int savedregs; // [esp+14h] [ebp+0h] BYREF
     bool swapped; // [esp+1Ch] [ebp+8h]
 
     v5 = id1;
@@ -3570,47 +3540,6 @@ phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal *__thiscall ph
     return 0;
 }
 
-broad_phase_memory::broad_phase_memory()
-{
-    this->g_bp_auto_activate_mutex.ThisPtr = &this->g_bp_auto_activate_mutex;
-    this->g_bp_auto_activate_mutex.ThreadId = 0;
-    this->g_bp_auto_activate_mutex.LockCount = 0;
-    this->g_bp_gjk_cache_mutex.WriteThreadId = 0;
-    this->g_bp_gjk_cache_mutex.ReadLockCount = 0;
-    this->g_bp_gjk_cache_mutex.WriteLockCount = 0;
-    this->g_bp_gjk_cache_mutex.ThisPtr = &this->g_bp_gjk_cache_mutex;
-    this->g_phys_gjk_cache_system.m_list_phys_gjk_cache_info_internal.m_count = 0;
-    this->g_phys_gjk_cache_system.m_search_tree.m_tree_root = 0;
-    this->g_list_broad_phase_info.m_list_count = 0;
-    this->g_list_broad_phase_info.m_list_count_high_water = 0;
-    this->g_list_broad_phase_info.m_ptr_list_count = 0;
-    this->g_list_broad_phase_info.m_dummy_head.m_next_T_internal = &this->g_list_broad_phase_info.m_dummy_head;
-    this->g_list_broad_phase_info.m_dummy_head.m_prev_T_internal = &this->g_list_broad_phase_info.m_dummy_head;
-    this->g_list_broad_phase_group.m_list_count = 0;
-    this->g_list_broad_phase_group.m_list_count_high_water = 0;
-    this->g_list_broad_phase_group.m_ptr_list_count = 0;
-    this->g_list_broad_phase_group.m_dummy_head.m_next_T_internal = &this->g_list_broad_phase_group.m_dummy_head;
-    this->g_list_broad_phase_group.m_dummy_head.m_prev_T_internal = &this->g_list_broad_phase_group.m_dummy_head;
-    this->g_list_broad_phase_collision_pair.m_list_count = 0;
-    this->g_list_broad_phase_collision_pair.m_list_count_high_water = 0;
-    this->g_list_broad_phase_collision_pair.m_ptr_list_count = 0;
-    this->g_list_broad_phase_collision_pair.m_dummy_head.m_next_T_internal = &this->g_list_broad_phase_collision_pair.m_dummy_head;
-    this->g_list_broad_phase_collision_pair.m_dummy_head.m_prev_T_internal = &this->g_list_broad_phase_collision_pair.m_dummy_head;
-    this->g_bpei_database.m_bpei_map.m_tree_root = 0;
-    this->g_bpei_database.m_bpei_allocator.m_count = 0;
-    this->g_bpei_database.m_mutex.m_count = 1;
-    this->g_bpei_database.m_bpei_list = 0;
-    //this->g_list_phys_collide_data.m_first = 0;
-    //this->g_list_phys_collide_data.m_alloc_count = 0;
-    //this->g_list_phys_collide_data.m_last_next_ptr = &this->g_list_phys_collide_data.m_first;
-    this->g_collision_memory_buffer.m_first_block = 0;
-    this->g_collision_memory_buffer.m_cur = 0;
-    this->g_collision_memory_buffer.m_end = 0;
-    this->g_collision_memory_buffer.m_total_memory_allocated = 0;
-    this->g_collision_memory_buffer.m_mutex.m_count = 1;
-    this->g_collision_memory_buffer.m_slot_pool = 0;
-}
-
 void    axis_aligned_sweep_and_prune::process_active_pair_list()
 {
     axis_aligned_sweep_and_prune::active_pair **p_m_list_bpi_bpi; // edx
@@ -3622,7 +3551,7 @@ void    axis_aligned_sweep_and_prune::process_active_pair_list()
     broad_phase_info **v8; // eax
     broad_phase_info *v9; // esi
     phys_heap_gjk_cache_system_avl_tree *v10; // esi
-    char *v11; // eax
+    phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal *v11; // eax
     char *m_gjk_ci; // esi
     axis_aligned_sweep_and_prune::active_pair *m_list_bpi_bpg; // esi
     axis_aligned_sweep_and_prune::active_pair **p_m_list_bpi_bpg; // edx
@@ -3730,20 +3659,20 @@ void    axis_aligned_sweep_and_prune::process_active_pair_list()
                     if (!m_list_bpi_bpi->m_gjk_ci)
                     {
                         v10 = &G_BPM->g_phys_gjk_cache_system;
-                        v11 = PMM_ALLOC(0x90u, 0x10u);
+                        v11 = (phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal*)PMM_ALLOC(sizeof(phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal), 16);
                         if (v11)
                         {
                             ++v10->m_list_phys_gjk_cache_info_internal.m_count;
-                            *((_DWORD *)v11 + 29) = 1;
-                            *((_DWORD *)v11 + 30) = 2;
-                            *((_DWORD *)v11 + 31) = 0;
+                            v11->m_key.m_id1 = 1;
+                            v11->m_key.m_id2 = 2;
+                            v11->m_flags = 0;
                         }
                         else
                         {
                             v11 = 0;
                         }
                         v9 = (broad_phase_info *)p_g_phys_gjk_cache_system;
-                        m_list_bpi_bpi->m_gjk_ci = (phys_gjk_cache_info *)v11;
+                        m_list_bpi_bpi->m_gjk_ci = v11;
                     }
                     add_collision_pair(v35, v9, hit_time, m_list_bpi_bpi->m_gjk_ci);
                 }
@@ -4124,30 +4053,6 @@ void __cdecl process_cluster_environment_collision(broad_phase_base *bpb, const 
             collide_bpg_environment(i->get_bpg(), bpeqr);
         }
     }
-}
-
-broad_phase_memory::~broad_phase_memory()
-{
-    if ( this->g_collision_memory_buffer.m_first_block
-        && _tlAssert(
-                 "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_transient_allocator.h",
-                 69,
-                 "m_first_block == NULL",
-                 "") )
-    {
-        __debugbreak();
-    }
-    //bpei_database_t::purge_database(&this->g_bpei_database);
-    this->g_bpei_database.purge_database();
-    //phys_free_list<broad_phase_collision_pair>::~phys_free_list<broad_phase_collision_pair>(&this->g_list_broad_phase_collision_pair);
-    //phys_free_list<broad_phase_group>::~phys_free_list<broad_phase_group>(&this->g_list_broad_phase_group);
-    //phys_free_list<broad_phase_info>::~phys_free_list<broad_phase_info>(&this->g_list_broad_phase_info);
-    //phys_heap_gjk_cache_system_avl_tree::shutdown(&this->g_phys_gjk_cache_system);
-    this->g_phys_gjk_cache_system.shutdown();
-    this->g_bp_gjk_cache_mutex.ThisPtr = 0;
-    LODWORD(this->g_bp_auto_activate_mutex.ThreadId) = 0;
-    HIDWORD(this->g_bp_auto_activate_mutex.ThreadId) = 0;
-    this->g_bp_auto_activate_mutex.ThisPtr = 0;
 }
 
 broad_phase_memory *__cdecl broad_phase_memory::allocate_buffer(const broad_phase_memory_info *bpmi)

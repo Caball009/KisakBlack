@@ -24,8 +24,33 @@ struct phys_transient_allocator // sizeof=0x18
     minspec_read_write_mutex m_mutex;   // XREF: physics_system::time_step(float,bool)+158/w
     void *m_slot_pool;                  // XREF: physics_system::time_step(float,bool)+15F/w
 
-    phys_transient_allocator(); // INLINED IN BINARY
-    ~phys_transient_allocator();
+    phys_transient_allocator()
+    {
+        m_first_block = NULL;
+        m_cur = NULL;
+        m_end = NULL;
+        m_total_memory_allocated = 0; // 16
+
+        m_mutex.m_count = 1;
+        m_slot_pool = NULL;
+    }
+
+    ~phys_transient_allocator()
+    {
+        // LWSS: if this goes off, it usually means that the allocator is declared in the wrong scope.
+        // Should be declared by "        memset(&transient_buffer, 0, 16);"
+        if (this->m_first_block)
+        {
+            if (_tlAssert(
+                "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_transient_allocator.h",
+                69,
+                "m_first_block == NULL",
+                ""))
+            {
+                __debugbreak();
+            }
+        }
+    }
 
     void *allocate(
         int size,

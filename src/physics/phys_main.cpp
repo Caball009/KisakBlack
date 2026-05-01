@@ -3553,7 +3553,7 @@ jqModule wheelCollisionModule =
 {
     .Name = "wheelCollision",
     .Type = JQ_WORKER_GENERIC,
-    .Code = (int(__cdecl *)(jqBatch *))wheel_collision_worker,
+    .Code = wheel_collision_worker,
 };
 void __cdecl prop_system_collision_process()
 {
@@ -3587,8 +3587,6 @@ void    Phys_CollisionCallback()
     float v3; // [esp-28h] [ebp-C8h]
     phys_vec3 v4; // [esp-Ch] [ebp-ACh] OVERLAPPED BYREF
     phys_vec3 v5; // [esp+4h] [ebp-9Ch] BYREF
-    phys_vec3 m_aabb_mx_loc; // [esp+14h] [ebp-8Ch] BYREF
-    phys_vec3 m_aabb_mn_loc; // [esp+24h] [ebp-7Ch] BYREF
     phys_vec3 player_origin_loc; // [esp+34h] [ebp-6Ch] BYREF
     gjk_base_t *geom; // [esp+50h] [ebp-50h]
     const phys_mat44 *geom_mat; // [esp+54h] [ebp-4Ch]
@@ -3640,28 +3638,10 @@ void    Phys_CollisionCallback()
             //((void(__thiscall *)(gjk_base_t *, _DWORD, _DWORD))geom->comp_aabb_loc)(geom, LODWORD(v2), LODWORD(v3));
             geom->comp_aabb_loc();
             phys_full_inv_multiply(&player_origin_loc, geom_mat, &player_origin);
-            if ((geom->m_flags & 2) == 0
-                && _tlAssert(
-                    "c:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_colgeom.h",
-                    82,
-                    "get_flag(FLAG_AABB_LOC_VALID)",
-                    ""))
-            {
-                __debugbreak();
-            }
-            m_aabb_mn_loc = geom->m_aabb_mn_loc;
-            if ((geom->m_flags & 2) == 0
-                && _tlAssert(
-                    "c:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_colgeom.h",
-                    83,
-                    "get_flag(FLAG_AABB_LOC_VALID)",
-                    ""))
-            {
-                __debugbreak();
-            }
-            m_aabb_mx_loc = geom->m_aabb_mx_loc;
-            v1 = phys_max(&v5, &m_aabb_mn_loc, &player_origin_loc);
-            phys_min(&v4, &m_aabb_mx_loc, v1);
+            //v1 = phys_max(&v5, &m_aabb_mn_loc, &player_origin_loc);
+            v1 = phys_max(&v5, geom->get_aabb_mn(), &player_origin_loc);
+            //phys_min(&v4, &m_aabb_mx_loc, v1);
+            phys_min(&v4, geom->get_aabb_mx(), v1);
             v2 = v4.x - player_origin_loc.x;
             v3 = v4.y - player_origin_loc.y;
             if (max_draw_dist_sq >= (float)((float)((float)((float)(v4.x - player_origin_loc.x)

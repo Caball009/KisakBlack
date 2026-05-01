@@ -60,6 +60,66 @@ struct dynamic_ent_aa : phys_auto_activate_callback // sizeof=0xC
     void auto_activate(broad_phase_info *bpi_impactor);
 };
 
+struct __declspec(align(8)) gjk_entity_info_t // sizeof=0x50
+{
+    enum ENTITY_TYPE : __int32
+    {                                       // XREF: gjk_entity_info_t/r
+        ET_GENT = 0x0,
+        ET_CENT = 0x1,
+        ET_DENT = 0x2,
+        ET_GLASS = 0x3,
+        ET_NONE = 0x4,
+    };
+    phys_mat44 m_mat;
+    gjk_entity_info_t::ENTITY_TYPE m_ent_type;
+    const void *m_ent;
+    int m_query_visitor_count;
+    // padding byte
+    // padding byte
+    // padding byte
+    // padding byte
+
+    const Glass *get_glass()
+    {
+        iassert(m_ent_type == ET_GLASS && m_ent != NULL);
+        return (const Glass *)this->m_ent;
+    }
+
+    const void *get_ent()
+    {
+        iassert(m_ent_type != ET_NONE && m_ent != NULL);
+        return this->m_ent;
+    }
+
+    inline const gentity_s *get_gent()
+    {
+        iassert(m_ent_type == ET_GENT && m_ent != NULL);
+        return (const gentity_s *)this->m_ent;
+    }
+
+    inline const centity_s *get_cent()
+    {
+        iassert(m_ent_type == ET_CENT && m_ent != NULL);
+        return (const centity_s *)this->m_ent;
+    }
+
+    const DynEntityDef *get_dent() const
+    {
+        iassert(m_ent_type == ET_DENT && m_ent != NULL);
+        return (const DynEntityDef *)this->m_ent;
+    }
+
+    bool is_dent() const
+    {
+        return this->m_ent_type == ET_DENT;
+    }
+
+    bool is_gent() const
+    {
+        return this->m_ent_type == ET_GENT;
+    }
+};
+
 phys_vec3 *__cdecl phys_Unitize(phys_vec3 *result, const phys_vec3 *a);
 void __cdecl gjk_collision_epilog(bool is_server_thread);
 

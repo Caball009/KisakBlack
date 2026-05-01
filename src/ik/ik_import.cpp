@@ -838,9 +838,9 @@ void __cdecl IKImport_ApplyIKToSkeleton(IKState *ikState, bool isLocalBones)
 
 IKState *__cdecl IKImport_FetchDObjIKState(const unsigned __int8 *model)
 {
-    if ( !model && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\ik\\ik_import.cpp", 1017, 0, "%s", "obj") )
-        __debugbreak();
-    return (IKState *)*((unsigned int *)model + 29);
+    const DObj *obj = (const DObj *)model;
+    iassert(obj);
+    return (IKState *)obj->ikState;
 }
 
 void __cdecl IKImport_SetDObjIKState(DObj *model, IKState *ikState)
@@ -2780,6 +2780,8 @@ void __cdecl IKImport_InitCollisionCache(IKState *ikState)
         //atexit(IKImport_InitCollisionCache_::_2_::_dynamic_atexit_destructor_for__dummy__);
     }
     //ikState->collisionCache.proximity_data.__vftable = dummy_2.__vftable;
+    //ikState->collisionCache.proximity_data = dummy_2;
+    new (&ikState->collisionCache) IKCollisionCache();
     //colgeom_visitor_inlined_t<500>::reset(&ikState->collisionCache.proximity_data);
     ikState->collisionCache.proximity_data.reset();
     ikState->collisionCache.hitIndex = 0;

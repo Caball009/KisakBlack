@@ -42,8 +42,8 @@ void __cdecl R_InitRenderCommands()
     int renderCmdWarnSize; // [esp+8h] [ebp-8h]
     unsigned int dataIndex; // [esp+Ch] [ebp-4h]
 
-    renderCmdBufferSize = 98304 * gfxCfg.maxClientViews;
-    renderCmdWarnSize = (signed int)(294912 * gfxCfg.maxClientViews) / 4;
+    renderCmdBufferSize = 0x18000 * gfxCfg.maxClientViews;
+    renderCmdWarnSize = (signed int)(0x48000 * gfxCfg.maxClientViews) / 4;
     GenerateLightGridBasisDirs();
     R_InitModelLightingGlobals();
     for ( dataIndex = 0; dataIndex < 2; ++dataIndex )

@@ -636,21 +636,16 @@ void    render_brush(
         clr[2] = color[2];
         clr[3] = color[3];
     }
+
     if (!xform)
         xform = &PHYS_IDENTITY_MATRIX;
+
     chull = get_brush_chull(brush);
+
     if (chull)
     {
-        if (chull->nverts >= 100
-            && !Assert_MyHandler(
-                "C:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_render.cpp",
-                664,
-                0,
-                "%s",
-                "chull->nverts < 100"))
-        {
-            __debugbreak();
-        }
+        iassert(chull->nverts < 100);
+
         for (vi = 0; vi < chull->nverts; ++vi)
         {
             v10 = vert_list[vi];
@@ -662,7 +657,8 @@ void    render_brush(
             if (ind_i >= chull->ninds)
                 return;
             v21 = vert_list[chull->inds[ind_i]];
-            *(_QWORD *)&verts[0][0] = *(_QWORD *)v21;
+            verts[0][0] = v21[0];
+            verts[0][1] = v21[1];
             verts[0][2] = v21[2];
             v19 = verts[1];
             // lwss add
@@ -778,20 +774,9 @@ void __cdecl render_convex_partition(const CollisionAabbTree *tree)
 
 void    render_chull(const chull_t *first, const phys_mat44 *xform, const float *color)
 {
-    const phys_vec3 *v4; // eax
-    float *v5; // [esp-24h] [ebp-530h]
-    float *v6; // [esp-1Ch] [ebp-528h]
-    float *v7; // [esp-14h] [ebp-520h]
-    float v8[3]; // [esp-Ch] [ebp-518h] BYREF
-    float tverts[3][3]; // [esp+0h] [ebp-50Ch] BYREF
     float verts[100][3]; // [esp+38h] [ebp-4D4h] BYREF
-    int vi; // [esp+4ECh] [ebp-20h]
     float clr[4]; // [esp+4F0h] [ebp-1Ch] BYREF
-    //_UNKNOWN *v13[2]; // [esp+500h] [ebp-Ch] BYREF
-    //const float *colora; // [esp+50Ch] [ebp+0h]
-    //
-    //*(float *)v13 = a1;
-    //v13[1] = colora;
+
     if (first)
     {
         clr[0] = 0.0f;
@@ -800,47 +785,40 @@ void    render_chull(const chull_t *first, const phys_mat44 *xform, const float 
         clr[3] = 0.25f;
         if (color)
         {
-            clr[0] = *color;
+            clr[0] = color[0];
             clr[1] = color[1];
             clr[2] = color[2];
             clr[3] = color[3];
         }
+
         if (!xform)
             xform = &PHYS_IDENTITY_MATRIX;
+
         while (first)
         {
-            if (first->nverts >= 100
-                && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_render.cpp",
-                    804,
-                    0,
-                    "%s",
-                    "first->nverts < 100"))
+            iassert(first->nverts < 100);
+
+            for (int vi = 0; vi < first->nverts; ++vi)
             {
-                __debugbreak();
+                phys_vec3 transformedVert;
+                phys_full_multiply(&transformedVert, xform, &first->verts[vi]);
+                Phys_NitrousVecToVec3(&transformedVert, verts[vi]);
             }
-            for (vi = 0; vi < first->nverts; ++vi)
+
+            for (int ii = 0; ii < first->ninds; ii += 3)
             {
-                v5 = verts[vi];
-                v4 = phys_full_multiply((phys_vec3 *)&tverts[2][2], xform, &first->verts[vi]);
-                Phys_NitrousVecToVec3(v4, v5);
+                float *v0 = verts[first->inds[ii + 0]];
+                float *v1 = verts[first->inds[ii + 1]];
+                float *v2 = verts[first->inds[ii + 2]];
+
+                float tverts[3][3]; // [esp+0h] [ebp-50Ch] BYREF
+                tverts[0][0] = v0[0]; tverts[0][1] = v0[1]; tverts[0][2] = v0[2];
+                tverts[1][0] = v1[0]; tverts[1][1] = v1[1]; tverts[1][2] = v1[2];
+                tverts[2][0] = v2[0]; tverts[2][1] = v2[1]; tverts[2][2] = v2[2];
+
+                R_AddDebugPolygon(&frontEndDataOut->debugGlobals, 3, tverts, clr, true, clr, true);
             }
-            for (tverts[2][1] = 0.0; SLODWORD(tverts[2][1]) < first->ninds; LODWORD(tverts[2][1]) += 3)
-            {
-                //LODWORD(tverts[2][0]) = verts[first->inds[LODWORD(tverts[2][1])]];
-                v8[0] = *(float *)LODWORD(tverts[2][0]);
-                v8[1] = *(float *)(LODWORD(tverts[2][0]) + 4);
-                v8[2] = *(float *)(LODWORD(tverts[2][0]) + 8);
-                v7 = verts[first->inds[LODWORD(tverts[2][1]) + 1]];
-                tverts[0][0] = *v7;
-                tverts[0][1] = v7[1];
-                tverts[0][2] = v7[2];
-                v6 = verts[first->inds[LODWORD(tverts[2][1]) + 2]];
-                tverts[1][0] = *v6;
-                tverts[1][1] = v6[1];
-                tverts[1][2] = v6[2];
-                R_AddDebugPolygon(&frontEndDataOut->debugGlobals, 3, (float (*)[3])v8, clr, 1, clr, 1);
-            }
+
             first = first->next;
         }
     }
