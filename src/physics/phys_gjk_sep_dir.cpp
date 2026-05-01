@@ -380,8 +380,14 @@ const phys_vec3 *gjk_sep_dir::comp_sep_dir(
 
         input->gjk_cg1->support(dir, &aVert, &dummy);
 
+        // -dir is in cg1's frame; rotate it through cg2_to_cg1_xform before
+        // querying cg2->support so the support point is taken in the right direction.
+        phys_vec3 negDir(-dir.x, -dir.y, -dir.z);
+        phys_vec3 dirInCg2;
+        phys_multiply(&dirInCg2, &info->cg2_to_cg1_xform, &negDir);
+
         phys_vec3 bLocal;
-        input->gjk_cg2->support(-dir, &bLocal, &dummy);
+        input->gjk_cg2->support(dirInCg2, &bLocal, &dummy);
 
         phys_vec3 bWorld;
         phys_multiply(&bWorld, &info->cg2_to_cg1_xform, &bLocal);
@@ -440,6 +446,9 @@ const phys_vec3 *gjk_sep_dir::comp_sep_dir(
         phys_vec3 tmp2 = -p0;
         float dist = Vec3Dot((float*)&tmp2, (float*)&n);
         float score = (dist * dist) / lenSq;
+        // Binary preserves sign of dist so the "deepest penetration" plane
+        // doesn't beat the "shallowest push-out" plane when origin is inside.
+        if (dist < 0.0f) score = -score;
 
         if (!bestNormal || score > bestScore)
         {

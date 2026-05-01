@@ -596,14 +596,15 @@ void phys_contact_manifold_process::process(
     // -----------------------------------------------------------------------
     broad_phase_info    *bpi1             = pcp->m_bpi1;
     const phys_mat44    *cg1_to_rb1_xform = bpi1->m_cg_to_rb_xform;
-    rigid_body          *rb1              = (rigid_body *)bpi1->m_cg_to_world_xform;
+    //rigid_body          *rb1              = (rigid_body *)bpi1->m_cg_to_world_xform;
+    rigid_body *rb1                       = bpi1->m_rb;
     const phys_mat44    *rb2_to_world     = pcp->m_bpi2->m_rb_to_world_xform;
  
     // cg1->rb2 = inv(rb2_to_world) * cg1_to_world
     phys_full_inv_multiply_mat(
         &this->cg1_to_rb2_xform,
         rb2_to_world,
-        (const phys_mat44 *)rb1);   // rb1 is used here as cg1_to_world
+        bpi1->m_cg_to_world_xform);   // rb1 is used here as cg1_to_world
  
     // -----------------------------------------------------------------------
     // Compute penetration_t – how far along the translation we are
@@ -1007,7 +1008,7 @@ FINALIZE:
         phys_vec3 neg_contact_n = -(*contact_n);
  
         phys_vec3 scratch4;
-        const phys_vec3 *n_rb1 = phys_multiply(&scratch4, (const phys_mat44 *)rb1, &neg_contact_n);
+        const phys_vec3 *n_rb1 = phys_multiply(&scratch4, bpi1->m_cg_to_world_xform, &neg_contact_n);
  
         this->m_cpi->m_normal.x = n_rb1->x;     // stored as m_feature_normal in the raw struct
         this->m_cpi->m_normal.y = n_rb1->y;
@@ -1203,7 +1204,7 @@ phys_auto_activate_callback *__cdecl create_ent_aac(gjk_physics_collision_visito
             new ((void *)v7) destructible_ent_aa();
             
             v7->m_has_auto_activated = 0;
-            //v7->m_cent = (centity_s *)cent;
+            v7->m_cent = (centity_s*)collision_visitor->cent; // de-const cast
             return (dynamic_ent_aa *)v7;
         }
         else

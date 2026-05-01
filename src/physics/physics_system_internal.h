@@ -49,8 +49,20 @@ struct __declspec(align(16)) physics_system // sizeof=0x32C0
     // padding byte
     // padding byte
     // padding byte
-    physics_system();
-    ~physics_system();
+    physics_system()
+    {
+        this->m_outside_sub_delta_t = 0.0;
+        this->m_max_delta_t = 0.051282052;
+        this->m_flags = 0;
+        this->m_collision_callback = 0;
+        this->m_max_vel_iters = 8;
+        this->m_max_vel_pos_iters = 4;
+        //environment_rigid_body::set(&this->m_environment_rigid_body);
+        this->m_environment_rigid_body.set();
+        this->m_solver_memory_high_water = 0;
+        this->m_contact_point_buffer_high_water = 0;
+    }
+    ~physics_system() = default;
 
     void validate_member(environment_rigid_body *rb);
     void solver_priority_sort(phys_transient_allocator *transient_buffer);
