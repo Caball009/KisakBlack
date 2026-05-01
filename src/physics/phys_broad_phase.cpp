@@ -269,48 +269,34 @@ void __cdecl setup_gjk_input_from_pcp(phys_gjk_input *pgi, phys_collision_pair *
 //    }
 //}
 
-// aislopped
-void phys_wheel_collide_info::collision_process(
-    broad_phase_info *bpi)
+void phys_wheel_collide_info::collision_process(broad_phase_info *bpi)
 {
-    if (!bpi || !bpi->m_gjk_geom)
-        return;
+    const phys_mat44 *cg_to_world = bpi->m_cg_to_world_xform;
 
-    phys_gjk_geom *gjk_geom = (phys_gjk_geom *)(bpi->m_gjk_geom);
+    // Ray origin into bpi cg-local space (full inverse, includes translation).
+    phys_vec3 ray_pos_loc;
+    phys_full_inv_multiply(&ray_pos_loc, cg_to_world, &this->m_ray_pos);
 
-    // Transform ray position into BPI local space
-    phys_vec3 ray_pos_local;
-    phys_full_inv_multiply(&ray_pos_local, bpi->m_cg_to_world_xform, &this->m_ray_pos);
-
-    // Transform ray direction into BPI local space
-    phys_vec3 ray_dir_local;
-    ray_dir_local.x = bpi->m_cg_to_world_xform->x.x * this->m_ray_dir.x
-        + bpi->m_cg_to_world_xform->x.y * this->m_ray_dir.y
-        + bpi->m_cg_to_world_xform->x.z * this->m_ray_dir.z;
-
-    ray_dir_local.y = bpi->m_cg_to_world_xform->y.x * this->m_ray_dir.x
-        + bpi->m_cg_to_world_xform->y.y * this->m_ray_dir.y
-        + bpi->m_cg_to_world_xform->y.z * this->m_ray_dir.z;
-
-    ray_dir_local.z = bpi->m_cg_to_world_xform->z.x * this->m_ray_dir.x
-        + bpi->m_cg_to_world_xform->z.y * this->m_ray_dir.y
-        + bpi->m_cg_to_world_xform->z.z * this->m_ray_dir.z;
+    // Ray direction into bpi cg-local space (rotation only).
+    phys_vec3 ray_dir_loc;
+    ray_dir_loc.x = cg_to_world->x.x * this->m_ray_dir.x
+                  + cg_to_world->x.y * this->m_ray_dir.y
+                  + cg_to_world->x.z * this->m_ray_dir.z;
+    ray_dir_loc.y = cg_to_world->y.x * this->m_ray_dir.x
+                  + cg_to_world->y.y * this->m_ray_dir.y
+                  + cg_to_world->y.z * this->m_ray_dir.z;
+    ray_dir_loc.z = cg_to_world->z.x * this->m_ray_dir.x
+                  + cg_to_world->z.y * this->m_ray_dir.y
+                  + cg_to_world->z.z * this->m_ray_dir.z;
 
     phys_vec3 hit_normal;
-    float hit_time = 0.0f;
+    float hit_t = 0.0f;
 
-    // Perform the ray cast
-    if (gjk_geom->ray_cast(&ray_pos_local, &ray_dir_local, this->m_hit_t, &hit_time, &hit_normal))
+    if (bpi->m_gjk_geom->ray_cast(&ray_pos_loc, &ray_dir_loc, this->m_hit_t, &hit_t, &hit_normal))
     {
-        // Ensure we never regress hit time
-        if (hit_time < this->m_hit_t)
-        {
-            if (_tlAssert("source/phys_broad_phase.cpp", 41, "hit_t <= m_hit_t", "Wheel collision assertion"))
-                __debugbreak();
-        }
+        iassert(hit_t <= this->m_hit_t);
 
-        // Update wheel hit info
-        this->m_hit_t = hit_time;
+        this->m_hit_t = hit_t;
         this->m_hitn = hit_normal;
         this->m_hit_bpi = bpi;
     }
@@ -378,72 +364,47 @@ void __userpurge phys_wheel_collide_info::collision_epilog(
 }
 #endif
 
-// aislop
 void phys_wheel_collide_info::collision_epilog(rigid_body_constraint_wheel *rbc_wheel)
 {
-    //rigid_body_constraint_wheel::set_no_collision(rbc_wheel);
     rbc_wheel->set_no_collision();
 
-    if (!m_hit_bpi)
+    if (!this->m_hit_bpi)
         return;
 
-    // ---------------------------------------------------------------------
-    // Normalize hit normal (local space)
-    // ---------------------------------------------------------------------
-    float lenSq =
-        m_hitn.x * m_hitn.x +
-        m_hitn.y * m_hitn.y +
-        m_hitn.z * m_hitn.z;
-
-    if (lenSq <= 1e-6f)
+    // Threshold is on length (post-sqrt), not squared length, per binary.
+    float len = sqrtf(this->m_hitn.x * this->m_hitn.x
+                    + this->m_hitn.y * this->m_hitn.y
+                    + this->m_hitn.z * this->m_hitn.z);
+    if (len <= 1.0e-6f)
         return;
 
-    float invLen = 1.0f / sqrtf(lenSq);
+    float invLen = 1.0f / len;
+    this->m_hitn.x *= invLen;
+    this->m_hitn.y *= invLen;
+    this->m_hitn.z *= invLen;
 
-    m_hitn.x *= invLen;
-    m_hitn.y *= invLen;
-    m_hitn.z *= invLen;
+    // Rotate normal into world space, then store back into m_hitn.
+    phys_vec3 worldNormal;
+    phys_multiply(&worldNormal, this->m_hit_bpi->m_cg_to_world_xform, &this->m_hitn);
+    this->m_hitn.x = worldNormal.x;
+    this->m_hitn.y = worldNormal.y;
+    this->m_hitn.z = worldNormal.z;
 
-    phys_vec3 hitNormalWorld;
-    phys_multiply(&hitNormalWorld,
-        m_hit_bpi->m_cg_to_world_xform,
-        &m_hitn);
-
-    m_hitn = hitNormalWorld;
-
-    // ---------------------------------------------------------------------
-    // Compute hit point in world space
-    // ---------------------------------------------------------------------
+    // World-space hit point: m_ray_pos + m_hit_t * m_ray_dir.
+    float t = this->m_hit_t;
     phys_vec3 hitPointWorld;
-    hitPointWorld.x = m_ray_pos.x + m_hit_t * m_ray_dir.x;
-    hitPointWorld.y = m_ray_pos.y + m_hit_t * m_ray_dir.y;
-    hitPointWorld.z = m_ray_pos.z + m_hit_t * m_ray_dir.z;
+    hitPointWorld.x = this->m_ray_pos.x + t * this->m_ray_dir.x;
+    hitPointWorld.y = this->m_ray_pos.y + t * this->m_ray_dir.y;
+    hitPointWorld.z = this->m_ray_pos.z + t * this->m_ray_dir.z;
 
-    // ---------------------------------------------------------------------
-    // Transform hit point and normal into rigid-body local space
-    // ---------------------------------------------------------------------
+    // Transform hit point + normal into rigid-body local space.
+    const phys_mat44 *rb_to_world = this->m_hit_bpi->m_rb_to_world_xform;
     phys_vec3 hitPointRBLocal;
     phys_vec3 hitNormalRBLocal;
+    phys_full_inv_multiply(&hitPointRBLocal, rb_to_world, &hitPointWorld);
+    phys_inv_multiply(&hitNormalRBLocal, rb_to_world, &this->m_hitn);
 
-    phys_full_inv_multiply(
-        &hitPointRBLocal,
-        m_hit_bpi->m_rb_to_world_xform,
-        &hitPointWorld);
-
-    phys_inv_multiply(
-        &hitNormalRBLocal,
-        m_hit_bpi->m_rb_to_world_xform,
-        &m_hitn);
-
-    // ---------------------------------------------------------------------
-    // Submit collision to wheel constraint
-    // ---------------------------------------------------------------------
-    //rigid_body_constraint_wheel::set_collision(
-    //    rbc_wheel,
-    //    m_hit_bpi->m_rb,
-    //    &hitPointRBLocal,
-    //    &hitNormalRBLocal);
-    rbc_wheel->set_collision(m_hit_bpi->m_rb, &hitPointRBLocal, &hitNormalRBLocal);
+    rbc_wheel->set_collision(this->m_hit_bpi->m_rb, &hitPointRBLocal, &hitNormalRBLocal);
 }
 
 
@@ -738,7 +699,7 @@ void calc_largest_vel_sq(broad_phase_info *bpi)
 
     if (a_vel_sq < EPSILON_SQ)
     {
-        // No meaningful angular velocity — translational speed alone is the bound.
+        // No meaningful angular velocity â€” translational speed alone is the bound.
         result_vel_sq = t_vel_sq;
     }
     else
@@ -753,7 +714,7 @@ void calc_largest_vel_sq(broad_phase_info *bpi)
 
         if (perp_sq < EPSILON_SQ)
         {
-            // t_vel is parallel to a_vel — perturb t_vel slightly off-axis and retry.
+            // t_vel is parallel to a_vel â€” perturb t_vel slightly off-axis and retry.
             // Construct an offset orthogonal to a_vel, add to t_vel, then cross with a_vel.
             phys_vec3 offset = {
                 a_vel.y * 0.0f - a_vel.z * 0.0f,  // = 0; degenerate row intentional (see asm)
@@ -770,7 +731,7 @@ void calc_largest_vel_sq(broad_phase_info *bpi)
 
             if (perp_sq < EPSILON_SQ)
             {
-                // Still degenerate — cross a_vel with world Y (0,2,0), add to t_vel, retry.
+                // Still degenerate â€” cross a_vel with world Y (0,2,0), add to t_vel, retry.
                 phys_vec3 world_y = { 0.0f, 2.0f, 0.0f };
                 phys_vec3 a_cross_y;
                 phys_cross(&a_cross_y, &a_vel, &world_y);
@@ -786,7 +747,7 @@ void calc_largest_vel_sq(broad_phase_info *bpi)
 
         if (perp_sq < EPSILON_SQ)
         {
-            // Completely degenerate — fall back to simple sum.
+            // Completely degenerate â€” fall back to simple sum.
             result_vel_sq = t_vel_sq + a_vel_sq;
         }
         else
@@ -2181,54 +2142,46 @@ bool phys_are_potentially_colliding_whace(broad_phase_info *p1, broad_phase_info
         hit_time);
 }
 
-// aislopped
 void collide_bpi_environment(broad_phase_info *bpi, const broad_phase_environement_query_results &bpeqr)
 {
     if (!(bpi->m_env_collision_flags & bpeqr.m_env_collision_flags))
         return;
 
-    broad_phase_base_list::node *end = *bpeqr.m_list_bpi_env.m_list_cur;
     broad_phase_base_list::node *iter = bpeqr.m_list_bpi_env.m_list;
+    broad_phase_base_list::node *end  = *bpeqr.m_list_bpi_env.m_list_cur;
 
     for (; iter != end; iter = iter->m_next)
     {
         broad_phase_base *bpi_env = iter->m_bpb;
+        float hit_time = 0.0f;
 
         if (!(bpi_env->m_env_collision_flags & bpi->m_env_collision_flags))
             continue;
 
-        float hit_time = 0.0f;
-
         if (!phys_are_potentially_colliding_whace(bpi, (broad_phase_info *)bpi_env, &hit_time))
             continue;
 
-        if (!(bpi_env->m_flags & 0x80))
+        if (bpi_env->m_flags & 0x80)
         {
-            // No auto-activate controller — add pair directly
-            add_collision_pair_mutex(bpi, (broad_phase_info *)bpi_env, hit_time, nullptr);
-            continue;
+            // bpi_env has an auto-activate controller. Try to wake it via GJK; binary
+            // never adds a collision pair on this branch.
+            phys_auto_activate_callback *aac = (phys_auto_activate_callback *)bpi_env->m_sap_node;
+
+            if (aac->has_auto_activated())
+                continue;
+
+            if (!bpi_do_gjk_intersect(bpi, (broad_phase_info *)bpi_env, hit_time))
+                continue;
+
+            G_BPM->g_bp_auto_activate_mutex.Lock();
+            if (!aac->has_auto_activated())
+                aac->auto_activate(bpi);
+            G_BPM->g_bp_auto_activate_mutex.Unlock();
         }
-
-        // BPI has an auto-activate controller
-        phys_auto_activate_callback *aac = (phys_auto_activate_callback *)bpi_env->m_sap_node;
-
-        // Skip GJK if already auto-activated (no need to wake it)
-        if (aac->has_auto_activated())
+        else
         {
             add_collision_pair_mutex(bpi, (broad_phase_info *)bpi_env, hit_time, nullptr);
-            continue;
         }
-
-        if (!bpi_do_gjk_intersect(bpi, (broad_phase_info *)bpi_env, hit_time))
-            continue;
-
-        // Double-checked lock: activate if not already activated
-        G_BPM->g_bp_auto_activate_mutex.Lock();
-
-        if (!aac->has_auto_activated())
-            aac->auto_activate(bpi);
-
-        G_BPM->g_bp_auto_activate_mutex.Unlock();
     }
 }
 
@@ -2496,7 +2449,7 @@ void collide_bpg_environment(broad_phase_group *bpg, const broad_phase_environem
                     };
 
                     if (!phys_are_potentially_colliding(
-                        &wci->m_ray_pos,  // point AABB — min == max
+                        &wci->m_ray_pos,  // point AABB â€” min == max
                         &wci->m_ray_pos,
                         &wheel_relative_translation,
                         &bpi_env->m_trace_aabb_min_whace,

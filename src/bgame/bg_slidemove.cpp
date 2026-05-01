@@ -1027,7 +1027,7 @@ bool gjk_push_out(
     int bumpcount = 0;
 
     // =========================================================
-    // Outer bump loop — retry up to 5 times if push converges
+    // Outer bump loop â€” retry up to 5 times if push converges
     // =========================================================
     for (;;)
     {
@@ -1049,7 +1049,7 @@ bool gjk_push_out(
 
         if (!traceOut.m_first_hit)
         {
-            // No collision — we can reach the goal, advance pos to goal
+            // No collision â€” we can reach the goal, advance pos to goal
             pos.x = pos.x + gti.m_query_input.m_cg_translation.x;
             pos.y = pos.y + gti.m_query_input.m_cg_translation.y;
             pos.z = pos.z + gti.m_query_input.m_cg_translation.z;
@@ -1091,7 +1091,7 @@ bool gjk_push_out(
 
         if (!project_succeeded(&list_geom_plane, &push_vec, 5.0f))
         {
-            // Projection failed — cannot push out
+            // Projection failed â€” cannot push out
             return false;
         }
 
@@ -1124,7 +1124,11 @@ bool gjk_push_out(
             const int MAX_INNER_ITERS = 5;
             const float CONVERGENCE_THRESH_SQ = 0.1f * 0.1f;
 
-            bool converged = false;
+            // Inner refinement loop. Three exit paths (matches ASM at gjk_push_out):
+            //   - max iters reached      -> ++bumpcount; continue outer  (retry)
+            //   - convergence reached    -> ++bumpcount; continue outer  (retry to verify)
+            //   - project_succeeded fail -> return false                 (give up)
+            bool projection_failed = false;
             for (int iter = 0; iter < MAX_INNER_ITERS; ++iter)
             {
                 // Move query position to current candidate
@@ -1139,11 +1143,13 @@ bool gjk_push_out(
 
                     set_pgi_cg2(&pgi, gti, gi);
 
-                    iassert(pgi.m_cg1_translation.GetX() == 0.0f && pgi.m_cg1_translation.GetY() == 0.0f && pgi.m_cg1_translation.GetZ() == 0.0f);
+                    iassert(pgi.m_cg1_translation.GetX() == 0.0f
+                         && pgi.m_cg1_translation.GetY() == 0.0f
+                         && pgi.m_cg1_translation.GetZ() == 0.0f);
 
                     if (!gjk_collide(&gjk_info, &pgi, &gto_temp, gti, gi))
                     {
-                        iassert(0);
+                        iassert(0); // "retv"
                     }
 
                     set_hit_info(gp, &gto_temp);
@@ -1173,7 +1179,10 @@ bool gjk_push_out(
                 project(&PHYS_ZERO_VEC, &list_geom_plane, &push_vec);
 
                 if (!project_succeeded(&list_geom_plane, &push_vec, 5.0f))
-                    break; // projection failed, give up on this inner loop
+                {
+                    projection_failed = true;
+                    break;
+                }
 
                 // Update candidate position
                 cur_pos.x = pos.x + push_vec.x;
@@ -1181,33 +1190,29 @@ bool gjk_push_out(
                 cur_pos.z = pos.z + push_vec.z;
                 push_mag = Abs(push_vec);
 
-                // Check convergence: if push vector moved less than threshold, we're done
+                // Convergence: if push vector moved less than threshold, refinement done.
+                // Falls through to outer retry (matches ASM goto LABEL_53).
                 float delta_x = push_vec.x - old_push_vec.x;
                 float delta_y = push_vec.y - old_push_vec.y;
                 float delta_z = push_vec.z - old_push_vec.z;
                 float delta_sq = delta_x * delta_x + delta_y * delta_y + delta_z * delta_z;
                 if (CONVERGENCE_THRESH_SQ >= delta_sq)
-                {
-                    converged = true;
                     break;
-                }
             }
 
-            if (!converged)
-            {
-                // Inner loop didn't converge — retry outer bump
-                ++bumpcount;
-                continue;
-            }
+            // Only the project_succeeded-failed path is fatal
+            if (projection_failed)
+                return false;
 
-            // Inner loop projection broke (project_succeeded failed)
-            return false;
+            // Convergence or max-iters: retry outer bump (re-trace from new pos)
+            ++bumpcount;
+            continue;
         }
     }
 
 write_output:
     Phys_NitrousVecToVec3(&cur_pos, output->new_position);
-    // Velocity is unchanged — copy directly from input
+    // Velocity is unchanged â€” copy directly from input
     output->new_velocity[0] = ((const float *)input->velocity)[0];
     output->new_velocity[1] = ((const float *)input->velocity)[1];
     output->new_velocity[2] = ((const float *)input->velocity)[2];
@@ -1222,142 +1227,36 @@ bool    gjk_slide_move1(
                 gjk_slide_move_output_t *output,
                 bool *needs_push_out)
 {
-    void *v6; // esp
-    int k; // [esp-1DDCh] [ebp-1DE8h]
-    geom_plane *v10; // [esp-1DACh] [ebp-1DB8h]
-    geom_plane *gp_itr; // [esp-1DA4h] [ebp-1DB0h]
-    float vel3[3]; // [esp-1D9Ch] [ebp-1DA8h] BYREF
-    float landing_plane_normal[3]; // [esp-1D90h] [ebp-1D9Ch] BYREF
-    float d; // [esp-1D84h] [ebp-1D90h]
-    float v15; // [esp-1D80h] [ebp-1D8Ch]
-    float v16; // [esp-1D7Ch] [ebp-1D88h]
-    float v17; // [esp-1D78h] [ebp-1D84h]
-    float v18; // [esp-1D6Ch] [ebp-1D78h]
-    float v19; // [esp-1D68h] [ebp-1D74h]
-    float v20; // [esp-1D64h] [ebp-1D70h]
-    phys_vec3 *v21; // [esp-1D60h] [ebp-1D6Ch]
-    geom_plane *gp; // [esp-1D5Ch] [ebp-1D68h]
-    geom_plane *v23; // [esp-1D58h] [ebp-1D64h]
-    geom_plane *v24; // [esp-1D54h] [ebp-1D60h]
-    geom_plane *v25; // [esp-1D50h] [ebp-1D5Ch]
-    geom_plane *v26; // [esp-1D4Ch] [ebp-1D58h]
-    float best_landing_dist; // [esp-1D48h] [ebp-1D54h]
-    geom_plane *landing_plane; // [esp-1D44h] [ebp-1D50h]
-    float v29; // [esp-1D40h] [ebp-1D4Ch]
-    float v30; // [esp-1D3Ch] [ebp-1D48h]
-    float v31; // [esp-1D38h] [ebp-1D44h]
-    float v32; // [esp-1D2Ch] [ebp-1D38h]
-    float v33; // [esp-1D28h] [ebp-1D34h]
-    float v34; // [esp-1D24h] [ebp-1D30h]
-    float v41; // [esp-1CFCh] [ebp-1D08h]
-    float v42; // [esp-1CF8h] [ebp-1D04h]
-    float v43; // [esp-1CF4h] [ebp-1D00h]
-    float v44; // [esp-1CF0h] [ebp-1CFCh]
-    float v45; // [esp-1CECh] [ebp-1CF8h]
-    float v46; // [esp-1CE8h] [ebp-1CF4h]
-    float v47; // [esp-1CD4h] [ebp-1CE0h]
-    float v48; // [esp-1CD0h] [ebp-1CDCh]
-    float v49; // [esp-1CCCh] [ebp-1CD8h]
-    phys_vec3 *v50; // [esp-1CC8h] [ebp-1CD4h]
-    geom_plane *v51; // [esp-1CC4h] [ebp-1CD0h]
-    geom_plane *v52; // [esp-1CC0h] [ebp-1CCCh]
-    geom_plane *v53; // [esp-1CBCh] [ebp-1CC8h]
-    geom_plane *v54; // [esp-1CB8h] [ebp-1CC4h]
-    geom_plane *v55; // [esp-1CB4h] [ebp-1CC0h]
-    float best_t; // [esp-1CB0h] [ebp-1CBCh]
-    geom_plane *potential_landing_plane; // [esp-1CACh] [ebp-1CB8h]
-    int v58; // [esp-1CA8h] [ebp-1CB4h]
-    int j; // [esp-1CA4h] [ebp-1CB0h]
-    phys_vec3 step_cur; // [esp-1CA0h] [ebp-1CACh] BYREF
-    phys_vec3 step_dir; // [esp-1C90h] [ebp-1C9Ch] BYREF
-    float dist_; // [esp-1C74h] [ebp-1C80h]
-    float v63; // [esp-1C70h] [ebp-1C7Ch]
-    float v64; // [esp-1C6Ch] [ebp-1C78h]
-    float v65; // [esp-1C68h] [ebp-1C74h]
-    float v66; // [esp-1C5Ch] [ebp-1C68h]
-    float v67; // [esp-1C58h] [ebp-1C64h]
-    float v68; // [esp-1C54h] [ebp-1C60h]
-    phys_vec3 *v69; // [esp-1C50h] [ebp-1C5Ch]
-    geom_plane *v70; // [esp-1C4Ch] [ebp-1C58h]
-    geom_plane *v71; // [esp-1C48h] [ebp-1C54h]
-    geom_plane *v72; // [esp-1C44h] [ebp-1C50h]
-    geom_plane *gp__; // [esp-1C40h] [ebp-1C4Ch]
-    geom_plane *v74; // [esp-1C3Ch] [ebp-1C48h]
-    int non_walkable_count; // [esp-1C38h] [ebp-1C44h]
-    float min_walkable_dist; // [esp-1C34h] [ebp-1C40h]
-    float inv_dt; // [esp-1C08h] [ebp-1C14h]
-    float disp_sq; // [esp-1C04h] [ebp-1C10h]
-    geom_plane *v85; // [esp-1C00h] [ebp-1C0Ch]
-    geom_plane *v86; // [esp-1BFCh] [ebp-1C08h]
-    geom_plane *v87; // [esp-1BF8h] [ebp-1C04h]
-    geom_plane *v88; // [esp-1BF4h] [ebp-1C00h]
-    geom_plane *v89; // [esp-1BF0h] [ebp-1BFCh]
-    int i; // [esp-1BECh] [ebp-1BF8h]
-    float total_disp_sq; // [esp-1BE4h] [ebp-1BF0h]
-    phys_vec3 total_disp; // [esp-1BE0h] [ebp-1BECh]
-    float v103; // [esp-1BA0h] [ebp-1BACh]
-    float v104; // [esp-1B9Ch] [ebp-1BA8h]
-    float v105; // [esp-1B98h] [ebp-1BA4h]
-    float contact_pt_z; // [esp-1B8Ch] [ebp-1B98h]
-    float contact_pt_y; // [esp-1B88h] [ebp-1B94h]
-    float contact_pt_x; // [esp-1B84h] [ebp-1B90h]
-    phys_vec3 *p_m_arm; // [esp-1B80h] [ebp-1B8Ch]
-    geom_plane *gp_; // [esp-1B7Ch] [ebp-1B88h]
-    geom_plane *v111; // [esp-1B78h] [ebp-1B84h]
-    geom_plane *v112; // [esp-1B74h] [ebp-1B80h]
-    geom_plane *v113; // [esp-1B70h] [ebp-1B7Ch]
-    phys_vec3 *v116; // [esp-1B64h] [ebp-1B70h]
-    float v117; // [esp-1B60h] [ebp-1B6Ch]
-    float v118; // [esp-1B5Ch] [ebp-1B68h]
-    float v119; // [esp-1B58h] [ebp-1B64h]
-    float v120; // [esp-1B48h] [ebp-1B54h]
-    float v121; // [esp-1B44h] [ebp-1B50h]
-    float v122; // [esp-1B40h] [ebp-1B4Ch]
-    float dist; // [esp-1B3Ch] [ebp-1B48h]
-    float v124[3]; // [esp-1B38h] [ebp-1B44h] BYREF
-    float v125[3]; // [esp-1B2Ch] [ebp-1B38h] BYREF
-    phys_vec3 v126; // [esp-1B20h] [ebp-1B2Ch] BYREF
-    gjk_trace_output_t *gto; // [esp-1AC4h] [ebp-1AD0h]
-    gjk_trace_output_t *v139; // [esp-1AC0h] [ebp-1ACCh]
-    gjk_trace_output_t *v140; // [esp-1ABCh] [ebp-1AC8h]
-    int plane_count; // [esp-1AB4h] [ebp-1AC0h]
-    float remaining_frac; // [esp-1A94h] [ebp-1AA0h]
-    float advanced_time; // [esp-1A60h] [ebp-1A6Ch]
-    float hit_real_time; // [esp-1A5Ch] [ebp-1A68h]
-    float x; // [esp-1A58h] [ebp-1A64h]
-    gjk_base_t *m_cg; // [esp-1A54h] [ebp-1A60h]
-    const phys_mat44 *p_m_mat; // [esp-1A50h] [ebp-1A5Ch]
-    gjk_entity_info_t *m_ent_info; // [esp-1A4Ch] [ebp-1A58h]
-    const cbrush_t *v165; // [esp-1A48h] [ebp-1A54h]
-    gjk_trace_output_t *v166; // [esp-1A44h] [ebp-1A50h]
-    gjk_trace_output_t *m_next_link; // [esp-1A40h] [ebp-1A4Ch]
-    gjk_trace_output_t *v168; // [esp-1A3Ch] [ebp-1A48h]
-    gjk_trace_output_t *m_first; // [esp-1A38h] [ebp-1A44h]
-    float remaining_time; // [esp-1A2Ch] [ebp-1A38h]
-    int bump; // [esp-1A24h] [ebp-1A30h]
-    int max_bumps; // [esp-1A20h] [ebp-1A2Ch]
-    int m_alloc_count; // [esp-1A1Ch] [ebp-1A28h]
-    float elapsed; // [esp-1A18h] [ebp-1A24h]
-    float MIN_SUBSTEP; // [esp-1A14h] [ebp-1A20h]
-    phys_vec3 start_pos; // [esp-1A10h] [ebp-1A1Ch]
-    float max_disp_sq; // [esp-1A00h] [ebp-1A0Ch]
-    float init_dist_sq; // [esp-19F8h] [ebp-1A04h]
-    phys_vec3 vel_translation; // [esp-19E0h] [ebp-19ECh] BYREF
-    phys_vec3 cur_translation; // [esp-19D0h] [ebp-19DCh] BYREF
-    phys_vec3 full_disp; // [esp-19C0h] [ebp-19CCh] BYREF
-    float frametime; // [esp-19A4h] [ebp-19B0h]
-    phys_vec3 remaining_disp; // [esp-19A0h] [ebp-19ACh] BYREF
-    float end[3]; // [esp-197Ch] [ebp-1988h] BYREF
-    phys_vec3 target_pos; // [esp-1970h] [ebp-197Ch] BYREF
-    phys_vec3 half_disp; // [esp-1950h] [ebp-195Ch]
-    float half_dt; // [esp-1934h] [ebp-1940h]
+    phys_vec3 pos;
+    phys_vec3 vel;
+    phys_vec3 vel_end;
+    phys_vec3 start_pos;
+    phys_vec3 target_pos;
+    phys_vec3 remaining_disp;
+    phys_vec3 cur_translation;
+    phys_vec3 vel_translation;
+    phys_vec3 full_disp;
+    phys_vec3 half_disp;
 
-    float *p_z; // [esp-1854h] [ebp-1860h]
-    phys_vec3 vel_end; // [esp-1850h] [ebp-185Ch] BYREF
-    phys_vec3 vel; // [esp-1840h] [ebp-184Ch] BYREF
-    phys_vec3 pos; // [esp-1830h] [ebp-183Ch] BYREF
-    phys_static_array<geom_plane, 128> list_geom_plane; // [esp-1820h] [ebp-182Ch] BYREF
+    float    end[3];
+    float    half_dt;
+    float    frametime;
+    float    init_dist_sq;
+    float    max_disp_sq;
+    float    elapsed;
+    float    remaining_time;
+    float    hit_real_time;
+    float    advanced_time;
+    int      plane_count;
+    int      max_bumps;
 
+    phys_static_array<geom_plane, 128> list_geom_plane;
+
+    const float MIN_SUBSTEP = 0.016666668f;
+
+    // ----------------------------------------------------------------
+    // Setup: convert input pos/vel, apply gravity to vel_end
+    // ----------------------------------------------------------------
     Phys_Vec3ToNitrousVec((const float *)input->position, &pos);
     Phys_Vec3ToNitrousVec((const float *)input->velocity, &vel);
 
@@ -1368,12 +1267,13 @@ bool    gjk_slide_move1(
         vel_end.z -= (float)input->gravity * input->frametime;
     }
 
-    gjk_trace_input_t gti; 
+    gjk_trace_input_t gti;
 
-    half_dt = input->frametime * 0.5;
-    half_disp.x = half_dt * (float)(vel.x + vel_end.x);
-    half_disp.y = half_dt * (float)(vel.y + vel_end.y);
-    half_disp.z = half_dt * (float)(vel.z + vel_end.z);
+    // target_pos = pos + 0.5 * (vel + vel_end) * dt   (trapezoidal integration)
+    half_dt = input->frametime * 0.5f;
+    half_disp.x = half_dt * (vel.x + vel_end.x);
+    half_disp.y = half_dt * (vel.y + vel_end.y);
+    half_disp.z = half_dt * (vel.z + vel_end.z);
 
     target_pos.x = pos.x + half_disp.x;
     target_pos.y = pos.y + half_disp.y;
@@ -1403,21 +1303,21 @@ bool    gjk_slide_move1(
     cur_translation = remaining_disp;
     vel_translation = full_disp;
 
-    list_gjk_trace_output traceOut; 
+    list_gjk_trace_output traceOut;
     *needs_push_out = 0;
 
-    init_dist_sq = (4.0 * 4.0) * ((remaining_disp.x * remaining_disp.x) + (remaining_disp.y * remaining_disp.y) + (remaining_disp.z * remaining_disp.z));
-    if (init_dist_sq <= (float)(20.0 * 20.0))
-        max_disp_sq = (20.0 * 20.0);
+    // max_disp_sq = max( (4*|disp|)^2 , 20^2 )
+    init_dist_sq = (4.0f * 4.0f) * ((remaining_disp.x * remaining_disp.x)
+                                  + (remaining_disp.y * remaining_disp.y)
+                                  + (remaining_disp.z * remaining_disp.z));
+    if (init_dist_sq <= (20.0f * 20.0f))
+        max_disp_sq = (20.0f * 20.0f);
     else
         max_disp_sq = init_dist_sq;
 
     start_pos = pos;
-    MIN_SUBSTEP = 0.016666668f;
     elapsed = 0.0f;
-    m_alloc_count = list_geom_plane.m_alloc_count;
     max_bumps = 128 - list_geom_plane.m_alloc_count;
-    bump = 0;
 
     if (g_bDebugRenderPlayerCollision->current.enabled)
     {
@@ -1425,7 +1325,10 @@ bool    gjk_slide_move1(
         clear_debug_brushes_and_patches();
     }
 
-    for (bump = 0; bump < max_bumps; ++bump)
+    // ----------------------------------------------------------------
+    // Bump loop: trace -> collect planes -> project remaining motion
+    // ----------------------------------------------------------------
+    for (int bump = 0; bump < max_bumps; ++bump)
     {
         gti.m_gcci->m_cg_to_world_xform.w = pos;
         gti.m_query_input.m_cg_position = pos;
@@ -1442,6 +1345,7 @@ bool    gjk_slide_move1(
 
         if (!traceOut.m_first_hit)
         {
+            // Clean step - advance to end of cg_translation, done
             pos.x += gti.m_query_input.m_cg_translation.x;
             pos.y += gti.m_query_input.m_cg_translation.y;
             pos.z += gti.m_query_input.m_cg_translation.z;
@@ -1450,42 +1354,33 @@ bool    gjk_slide_move1(
 
         //if (g_bDebugRenderPlayerCollision->current.enabled)
         //{
-        //    m_first = traceOut.m_list.m_first;
-        //    v168 = 0;
-        //    while (v168 != m_first)
+        //    for (gjk_trace_output_t *gto = traceOut.m_list.m_first; gto; gto = gto->m_next_link)
         //    {
-        //        v166 = m_first;
-        //        if (m_first->m_gi->m_cg->get_brush())
+        //        if (gto->m_gi->m_cg->get_brush())
         //        {
-        //            v165 = v166->m_gi->m_cg->get_brush();
-        //            if (v166->m_gi->m_ent_info)
-        //                m_ent_info = v166->m_gi->m_ent_info;
-        //            else
-        //                m_ent_info = 0;
-        //            p_m_mat = &m_ent_info->m_mat;
-        //            add_debug_brush(v165, &m_ent_info->m_mat);
+        //            const cbrush_t *brush = gto->m_gi->m_cg->get_brush();
+        //            gjk_entity_info_t *ei = gto->m_gi->m_ent_info ? gto->m_gi->m_ent_info : 0;
+        //            add_debug_brush(brush, &ei->m_mat);
         //        }
-        //        else if (v166->m_gi->m_cg->get_type() == 3)
+        //        else if (gto->m_gi->m_cg->get_type() == 3)
         //        {
-        //            m_cg = v166->m_gi->m_cg;
-        //            x = m_cg[1].m_aabb_mn_loc.x;
-        //            add_debug_patch((const CollisionAabbTree *)LODWORD(x));
+        //            gjk_base_t *cg = gto->m_gi->m_cg;
+        //            add_debug_patch((const CollisionAabbTree *)LODWORD(cg[1].m_aabb_mn_loc.x));
         //        }
-        //        m_next_link = m_first->m_next_link;
-        //        m_first = m_next_link;
         //    }
         //}
 
+        // ---- Advance pos to first-hit time, scale remaining_disp ----
         hit_real_time = traceOut.m_first_hit->m_hit_time * remaining_time;
         advanced_time = 0.0f;
         if (hit_real_time > MIN_SUBSTEP)
         {
-            pos.x += (traceOut.m_first_hit->m_hit_time * gti.m_query_input.m_cg_translation.x);
-            pos.y += (traceOut.m_first_hit->m_hit_time * gti.m_query_input.m_cg_translation.y);
-            pos.z += (traceOut.m_first_hit->m_hit_time * gti.m_query_input.m_cg_translation.z);
+            const float ht = traceOut.m_first_hit->m_hit_time;
+            pos.x += (ht * gti.m_query_input.m_cg_translation.x);
+            pos.y += (ht * gti.m_query_input.m_cg_translation.y);
+            pos.z += (ht * gti.m_query_input.m_cg_translation.z);
 
-            remaining_frac = 1.0 - traceOut.m_first_hit->m_hit_time;
-
+            const float remaining_frac = 1.0f - ht;
             remaining_disp.x = remaining_frac * cur_translation.x;
             remaining_disp.y = remaining_frac * cur_translation.y;
             remaining_disp.z = remaining_frac * cur_translation.z;
@@ -1500,60 +1395,68 @@ bool    gjk_slide_move1(
 
         plane_count = list_geom_plane.m_alloc_count;
 
-        // Iterate hit planes from the trace
-        for (gto = traceOut.m_list.m_first; gto; gto = gto->m_next_link)
+        // ---- Iterate trace hits and add ones within MIN_SUBSTEP of advanced_time ----
+        for (gjk_trace_output_t *gto = traceOut.m_list.m_first; gto; gto = gto->m_next_link)
         {
             if (MIN_SUBSTEP >= (gto->m_hit_time * remaining_time) - advanced_time)
             {
-                // This is dead code, the vec3's are never used at the end
+                // ORIGINAL CODE: dead block - the v124/v125 vec3's are written but never read.
+                // Kept here (commented) only because the compiled binary does execute these calls.
                 //if (gjkcc_in->m_ent_num != -1)
                 //{
-                //    v126.x = gto->m_hit_point.x + (20.0 * gto->m_hit_normal.x);
-                //    v126.y = gto->m_hit_point.y + (20.0 * gto->m_hit_normal.y);
-                //    v126.z = gto->m_hit_point.z + (20.0 * gto->m_hit_normal.z);
+                //    phys_vec3 v126;
+                //    v126.x = gto->m_hit_point.x + (20.0f * gto->m_hit_normal.x);
+                //    v126.y = gto->m_hit_point.y + (20.0f * gto->m_hit_normal.y);
+                //    v126.z = gto->m_hit_point.z + (20.0f * gto->m_hit_normal.z);
+                //    float v124[3], v125[3];
                 //    Phys_NitrousVecToVec3(&gto->m_hit_point, v125);
                 //    Phys_NitrousVecToVec3(&v126, v124);
                 //}
-                if (no_push_out && gto->m_hit_dist < 0.0)
+
+                if (no_push_out && gto->m_hit_dist < 0.0f)
                 {
-                    dist = gto->m_hit_dist;
+                    const float dist = gto->m_hit_dist;
                     gto->m_hit_point.x += dist * gto->m_hit_normal.x;
                     gto->m_hit_point.y += dist * gto->m_hit_normal.y;
                     gto->m_hit_point.z += dist * gto->m_hit_normal.z;
                     gto->m_hit_dist = 0.0f;
                 }
+
                 add_hit_info(gto, &list_geom_plane, &gti.m_query_input.m_geom_skip_list);
                 input->custom_process(gto);
             }
         }
 
-        // Make sure planes were actually added
+        // At least one plane should have been added
         iassert(list_geom_plane.get_count() > plane_count);
 
+        // ---- Compute right_side for every plane at the new pos ----
         for (int pi = 0; pi < list_geom_plane.m_alloc_count; ++pi)
         {
             geom_plane *gp = list_geom_plane[pi];
             gp->m_lambda = 0.0f;
-            phys_vec3 contact_pt;
-            contact_pt.x = pos.x + gp->m_arm.x;
-            contact_pt.y = pos.y + gp->m_arm.y;
-            contact_pt.z = pos.z + gp->m_arm.z;
+
+            const float cpx = pos.x + gp->m_arm.x;
+            const float cpy = pos.y + gp->m_arm.y;
+            const float cpz = pos.z + gp->m_arm.z;
+
             gp->m_right_side = gp->m_d
-                - (contact_pt.x * gp->m_normal.x
-                    + contact_pt.y * gp->m_normal.y
-                    + contact_pt.z * gp->m_normal.z);
+                             - ((cpx * gp->m_normal.x)
+                              + (cpy * gp->m_normal.y)
+                              + (cpz * gp->m_normal.z));
+
             if ((no_push_out || gp->m_no_push_out) && gp->m_right_side > 0.0f)
                 gp->m_right_side = 0.0f;
         }
 
+        // Project remaining_disp onto the plane set -> cur_translation
         project(&remaining_disp, &list_geom_plane, &cur_translation);
 
-        // Calc if moved too far
-        total_disp.x = (pos.x + cur_translation.x) - start_pos.x;
-        total_disp.y = (pos.y + cur_translation.y) - start_pos.y;
-        total_disp.z = (pos.z + cur_translation.z) - start_pos.z;
-
-        total_disp_sq = (total_disp.x * total_disp.x) + (total_disp.y * total_disp.y) + (total_disp.z * total_disp.z);
+        // ---- Bail to expensive push-out if total displacement got out of hand ----
+        const float tdx = (pos.x + cur_translation.x) - start_pos.x;
+        const float tdy = (pos.y + cur_translation.y) - start_pos.y;
+        const float tdz = (pos.z + cur_translation.z) - start_pos.z;
+        const float total_disp_sq = (tdx * tdx) + (tdy * tdy) + (tdz * tdz);
 
         if (total_disp_sq > max_disp_sq)
         {
@@ -1561,7 +1464,7 @@ bool    gjk_slide_move1(
             return false;
         }
 
-        // dont allow pushing outward?
+        // Clamp positive (outward-pushing) right_sides to 0 before re-projecting velocity
         for (int pi = 0; pi < list_geom_plane.m_alloc_count; ++pi)
         {
             geom_plane *gp = list_geom_plane[pi];
@@ -1569,43 +1472,52 @@ bool    gjk_slide_move1(
                 gp->m_right_side = 0.0f;
         }
 
+        // Project full_disp -> vel_translation
         project(&full_disp, &list_geom_plane, &vel_translation);
 
-        disp_sq = (cur_translation.x * cur_translation.x) + (cur_translation.y * cur_translation.y) + (cur_translation.z * cur_translation.z);
+        // Early-out if remaining motion is below 0.01 units
+        const float disp_sq = (cur_translation.x * cur_translation.x)
+                            + (cur_translation.y * cur_translation.y)
+                            + (cur_translation.z * cur_translation.z);
 
-        if ((float)(0.0099999998 * 0.0099999998) > disp_sq)
+        if ((0.0099999998f * 0.0099999998f) > disp_sq)
             break;
-    } // bump loop 
-
+    } // bump loop
 
     if (g_bDebugRenderPlayerCollision->current.enabled)
         Sys_LeaveCriticalSection(CRTISECT_DEBUG_BRUSHES_AND_PATCHES);
 
-    inv_dt = 1.0 / input->frametime;
+    // ----------------------------------------------------------------
+    // Recover velocity from accumulated vel_translation
+    // ----------------------------------------------------------------
+    const float inv_dt = 1.0f / input->frametime;
     vel.x = inv_dt * vel_translation.x;
     vel.y = inv_dt * vel_translation.y;
     vel.z = inv_dt * vel_translation.z;
 
+    // ----------------------------------------------------------------
+    // Step-down pass (find ground after a slide)
+    // ----------------------------------------------------------------
     if (do_step_down && input->do_step_down)
     {
-        // Find the minimum walkable surface distance
+        // Find min walkable distance below us; reset all m_active flags
         float min_walkable_dist = 10000.0f;
-        int non_walkable_count = 0;
+        int   non_walkable_count = 0;
 
         for (int pi = 0; pi < list_geom_plane.m_alloc_count; ++pi)
         {
             geom_plane *gp = list_geom_plane[pi];
             gp->m_active = 0;
+
             if (gp->m_walkable)
             {
-                phys_vec3 contact_pt;
-                contact_pt.x = pos.x + gp->m_arm.x;
-                contact_pt.y = pos.y + gp->m_arm.y;
-                contact_pt.z = pos.z + gp->m_arm.z;
-                float dist = (contact_pt.x * gp->m_normal.x
-                    + contact_pt.y * gp->m_normal.y
-                    + contact_pt.z * gp->m_normal.z)
-                    - gp->m_d;
+                const float cpx = pos.x + gp->m_arm.x;
+                const float cpy = pos.y + gp->m_arm.y;
+                const float cpz = pos.z + gp->m_arm.z;
+                const float dist = ((cpx * gp->m_normal.x)
+                                  + (cpy * gp->m_normal.y)
+                                  + (cpz * gp->m_normal.z))
+                                 - gp->m_d;
                 if (min_walkable_dist > dist)
                     min_walkable_dist = dist;
             }
@@ -1615,17 +1527,24 @@ bool    gjk_slide_move1(
             }
         }
 
-        // Only step down if we're above walkable surface by more than threshold
+        // Only step down if currently above any walkable surface by more than threshold
         if (min_walkable_dist > WALKABLE_DIST_THRESH && min_walkable_dist != 10000.0f)
         {
-            phys_vec3 step_dir = { 0.0f, 0.0f, -30.0f };
-            phys_vec3 step_cur = step_dir;
+            phys_vec3 step_dir;
+            phys_vec3 step_cur;
+            step_dir.x = 0.0f;
+            step_dir.y = 0.0f;
+            step_dir.z = -30.0f;
+            step_cur.x = 0.0f;
+            step_cur.y = 0.0f;
+            step_cur.z = -30.0f;
+            step_cur.w = step_dir.w; // matches original (uninitialised w copy)
 
-            for (int k = 0; k < list_geom_plane.m_alloc_count; ++k)
+            for (int j = 0; j < list_geom_plane.m_alloc_count; ++j)
             {
-                // Find the non-active plane hit earliest along step_cur
-                float     best_t = 1.0f;
-                geom_plane *best_plane = nullptr;
+                // ---- Find non-active plane hit earliest along step_cur ----
+                float       best_t = 1.0f;
+                geom_plane *potential_landing_plane = nullptr;
 
                 for (int pi = 0; pi < list_geom_plane.m_alloc_count; ++pi)
                 {
@@ -1633,72 +1552,72 @@ bool    gjk_slide_move1(
                     if (gp->m_active)
                         continue;
 
-                    phys_vec3 contact_pt;
-                    contact_pt.x = pos.x + gp->m_arm.x;
-                    contact_pt.y = pos.y + gp->m_arm.y;
-                    contact_pt.z = pos.z + gp->m_arm.z;
+                    const float cpx = pos.x + gp->m_arm.x;
+                    const float cpy = pos.y + gp->m_arm.y;
+                    const float cpz = pos.z + gp->m_arm.z;
 
-                    float dist_to_plane = (contact_pt.x * gp->m_normal.x
-                        + contact_pt.y * gp->m_normal.y
-                        + contact_pt.z * gp->m_normal.z)
-                        - gp->m_d;
-                    float dot_vel = step_cur.x * gp->m_normal.x
-                        + step_cur.y * gp->m_normal.y
-                        + step_cur.z * gp->m_normal.z;
+                    const float dist_to_plane = ((cpx * gp->m_normal.x)
+                                               + (cpy * gp->m_normal.y)
+                                               + (cpz * gp->m_normal.z))
+                                              - gp->m_d;
+                    const float dot_vel = (step_cur.x * gp->m_normal.x)
+                                        + (step_cur.y * gp->m_normal.y)
+                                        + (step_cur.z * gp->m_normal.z);
 
                     if (fabs(dot_vel) > 0.001f)
                     {
-                        float t = (-dist_to_plane) / dot_vel;
+                        const float t = (-dist_to_plane) / dot_vel;
                         if (best_t > t)
                         {
-                            best_plane = gp;
+                            potential_landing_plane = gp;
                             best_t = t;
                         }
                     }
                 }
 
-                if (!best_plane)
+                if (!potential_landing_plane)
                     break;
 
-                // Mark this plane as processed
-                best_plane->m_active = 1;
+                potential_landing_plane->m_active = 1;
 
-                // Step position along step_cur by best_t
-                phys_vec3 step_pos;
-                step_pos.x = pos.x + best_t * step_cur.x;
-                step_pos.y = pos.y + best_t * step_cur.y;
-                step_pos.z = pos.z + best_t * step_cur.z;
+                // Step pos along step_cur by best_t
+                const float step_pos_x = pos.x + best_t * step_cur.x;
+                const float step_pos_y = pos.y + best_t * step_cur.y;
+                const float step_pos_z = pos.z + best_t * step_cur.z;
 
-                // Find nearest walkable plane to land on
+                // ---- Resolve landing plane ----
                 geom_plane *landing_plane = nullptr;
 
-                if (best_plane->m_walkable)
+                if (potential_landing_plane->m_walkable)
                 {
-                    landing_plane = best_plane;
+                    landing_plane = potential_landing_plane;
                 }
                 else
                 {
-                    landing_plane = NULL;
+                    landing_plane = nullptr;
                     float best_landing_dist = WALKABLE_DIST_THRESH;
+
                     for (int pi = 0; pi < list_geom_plane.m_alloc_count; ++pi)
                     {
                         geom_plane *gp = list_geom_plane[pi];
                         if (!gp->m_walkable)
                             continue;
+
                         if (gp->m_active)
                         {
-                            if (!Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_slidemove.cpp",
-                                1482, 0, "%s", "gp->m_active == false"))
+                            if (!Assert_MyHandler(
+                                    "C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_slidemove.cpp",
+                                    1482, 0, "%s", "gp->m_active == false"))
                                 __debugbreak();
                         }
-                        phys_vec3 cp;
-                        cp.x = step_pos.x + gp->m_arm.x;
-                        cp.y = step_pos.y + gp->m_arm.y;
-                        cp.z = step_pos.z + gp->m_arm.z;
-                        float d = (cp.x * gp->m_normal.x
-                            + cp.y * gp->m_normal.y
-                            + cp.z * gp->m_normal.z)
-                            - gp->m_d;
+
+                        const float cpx = step_pos_x + gp->m_arm.x;
+                        const float cpy = step_pos_y + gp->m_arm.y;
+                        const float cpz = step_pos_z + gp->m_arm.z;
+                        const float d = ((cpx * gp->m_normal.x)
+                                       + (cpy * gp->m_normal.y)
+                                       + (cpz * gp->m_normal.z))
+                                      - gp->m_d;
                         if (best_landing_dist >= d)
                         {
                             landing_plane = gp;
@@ -1711,44 +1630,46 @@ bool    gjk_slide_move1(
                 {
                     if (best_t > 0.0f)
                     {
-                        pos = step_pos;
+                        pos.x = step_pos_x;
+                        pos.y = step_pos_y;
+                        pos.z = step_pos_z;
 
-                        // Project velocity onto landing plane normal
-                        float normal_f3[3], vel_f3[3];
-                        Phys_NitrousVecToVec3(&landing_plane->m_normal, normal_f3);
-                        Phys_NitrousVecToVec3(&vel, vel_f3);
-                        PM_ProjectVelocity(vel_f3, normal_f3, vel_f3);
-                        Phys_Vec3ToNitrousVec(vel_f3, &vel);
+                        // Project velocity onto the landing plane normal
+                        float landing_plane_normal[3];
+                        float vel3[3];
+                        Phys_NitrousVecToVec3(&landing_plane->m_normal, landing_plane_normal);
+                        Phys_NitrousVecToVec3(&vel, vel3);
+                        PM_ProjectVelocity(vel3, landing_plane_normal, vel3);
+                        Phys_Vec3ToNitrousVec(vel3, &vel);
                     }
                     break;
                 }
 
-                // No landing plane found — update right-sides for active planes
-                // at new pos and re-project step direction
+                // ---- No landing plane found: re-compute right_side for ALL planes ----
+                // (Compiled binary checks potential_landing_plane->m_active here, which
+                //  was just set to 1 above - so the gate is unconditionally true and
+                //  every plane in the list gets its right_side recomputed.)
                 for (int pi = 0; pi < list_geom_plane.m_alloc_count; ++pi)
                 {
                     geom_plane *gp = list_geom_plane[pi];
-                    if (!gp->m_active)
-                        continue;
-                    phys_vec3 cp;
-                    cp.x = pos.x + gp->m_arm.x;
-                    cp.y = pos.y + gp->m_arm.y;
-                    cp.z = pos.z + gp->m_arm.z;
-                    gp->m_right_side = gp->m_d
-                        - (cp.x * gp->m_normal.x
-                            + cp.y * gp->m_normal.y
-                            + cp.z * gp->m_normal.z);
-                    if (gp->m_right_side > 0.0f)
-                        gp->m_right_side = 0.0f;
+                    if (potential_landing_plane->m_active)
+                    {
+                        const float cpx = pos.x + gp->m_arm.x;
+                        const float cpy = pos.y + gp->m_arm.y;
+                        const float cpz = pos.z + gp->m_arm.z;
+                        gp->m_right_side = gp->m_d
+                                         - ((cpx * gp->m_normal.x)
+                                          + (cpy * gp->m_normal.y)
+                                          + (cpz * gp->m_normal.z));
+                        if (gp->m_right_side > 0.0f)
+                            gp->m_right_side = 0.0f;
+                    }
                 }
+
                 project(&step_dir, &list_geom_plane, &step_cur);
             }
         }
     }
-
-    iassert(!CrazyFloat(pos[0]));
-    iassert(!CrazyFloat(pos[1]));
-    iassert(!CrazyFloat(pos[2]));
 
     Phys_NitrousVecToVec3(&pos, output->new_position);
     Phys_NitrousVecToVec3(&vel, output->new_velocity);
@@ -2351,7 +2272,7 @@ bool phys_gjk_geom::ray_cast(
                 const phys_vec3 *ray_dir,
                 float t_input,
                 float *t_output,
-                phys_vec3 *hitn)
+                phys_vec3 *hitn) const
 {
     return 0;
 }

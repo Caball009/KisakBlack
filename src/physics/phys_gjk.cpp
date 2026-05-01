@@ -867,16 +867,6 @@ phys_gjk_info::gjk_retval_e phys_gjk_info::gjk_ray_cast(
     // init_gjk returns nonzero if initialized successfully; stores gjk_iter
     this->m_gjk_iter = init_gjk(d, initial_support_dir, in_separation_loop);
 
-    tlWarning("gjk_ray_cast post-init: iter=%d w_set=0x%X support_dir=(%.3f,%.3f,%.3f) "
-        "origin=(%.3f,%.3f,%.3f) lambda=%.6f cg1=%s cg2=%s",
-        this->m_gjk_iter,
-        this->m_w_set,
-        this->m_support_dir.x, this->m_support_dir.y, this->m_support_dir.z,
-        this->m_gjk_origin.x, this->m_gjk_origin.y, this->m_gjk_origin.z,
-        this->m_continuous_collision_lambda,
-        GjkTypeToString(d->gjk_cg1->get_type()),
-        GjkTypeToString(d->gjk_cg2->get_type()));
-
     // LWSS ADD
     iassert(d->m_start_time >= 0.0f && d->m_start_time <= 1.0f);
     iassert(d->m_end_time >= d->m_start_time && d->m_end_time <= 1.0f);
@@ -1037,7 +1027,7 @@ phys_gjk_info::gjk_retval_e phys_gjk_info::gjk_ray_cast(
                 // Degeneracy check: is w already in the simplex?
                 if (!has_converged)
                 {
-                    const float epsilon_sq = 1e-7f;
+                    const float epsilon_sq = 1e-6f;
                     for (int i = 0, mask = 1; i < 4; ++i, mask <<= 1)
                     {
                         if (this->m_last_w_set & mask)
@@ -1097,7 +1087,8 @@ phys_gjk_info::gjk_retval_e phys_gjk_info::gjk_ray_cast(
                             // Lambda advanced enough — check against end_time before breaking
                             if (d->m_end_time < new_lambda)
                             {
-                                float end_numerator = ray_end_dist_numer - move * d->m_end_time;
+                                //float end_numerator = ray_end_dist_numer - move * d->m_end_time;
+                                float end_numerator = ray_end_dist_numer + dot_origin - move * d->m_end_time;
 
                                 // Check: sep_thresh * nsupport_dir_len >= end_numerator
                                 float sep_limit = this->m_gjk_sep_thresh * nsupport_dir_len;
@@ -1341,11 +1332,6 @@ phys_gjk_info::gjk_retval_e phys_gjk_info::collide(const phys_gjk_input *d)
                 break;
         }
 
-        phys_vec3 backup_supp_dir = support_dir;
-        phys_gjk_info::comp_v(this->m_w_set, &support_dir);
-
-        support_dir = backup_supp_dir;
-
         phys_gjk_info::comp_v(this->m_w_set, &support_dir);
 
         support_dir_sq = AbsSquared(support_dir);
@@ -1354,7 +1340,7 @@ phys_gjk_info::gjk_retval_e phys_gjk_info::collide(const phys_gjk_input *d)
 
         float conv = 1.0f - SEP_CONV_THRESH;
         conv *= conv;
-        if (conv * this->m_lower_dist_sq >= 289.0f || iters >= 10)
+        if (conv * this->m_lower_dist_sq < 289.0f || iters >= 10)
             return GJK_PENETRATING;
     }
 

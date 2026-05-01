@@ -2277,7 +2277,8 @@ void __cdecl adjust_gjk_polygon_cylinder_query_aabb(float *mins, float *maxs)
     //    radius_scale_factor_0 = 1.0 / v2;
     //}
 
-    static float radius_scale_factor_0 = 1.0f / ((6.2831855 / 12.0) / 2.0);
+    static float radius_scale_factor_0 = 1.0f / cosf((6.2831855f / 12.0f) / 2.0f);
+
     mins[0] -= 0.125f;
     mins[1] -= 0.125f;
     mins[2] -= 0.125f;
@@ -2648,93 +2649,70 @@ void gjk_polygon_cylinder_t::get_simplex(
 {
     if (this->m_mode)
     {
-        // Capsule mode: two sphere centers at ±(half_height - capsule_radius) along z
         iassert(m_half_height >= m_capsule_radius);
         float cap_offset = m_half_height - m_capsule_radius;
 
-        // Offset vector: (0, 0, cap_offset)
-        const phys_vec3 offset = { 0.0f, 0.0f, cap_offset };
-
         for (int i = 0; i < index_count; ++i)
         {
-            // Index stored as raw int in the float field
-            int ind = (int)cache_info->m_indices[i].x;
-            iassert(ind == 0 || ind == 1);
+            float x = cache_info->m_indices[i].x;
+            iassert(LODWORD(x) == 0 || LODWORD(x) == 1);
 
-            simplex_inds[i].x = (float)ind;  // store back as raw int bits via float field
+            simplex_inds[i].x = x;
 
-            if (ind == 0)
+            if (x == 0.0f)
             {
-                // Top sphere center: m_center + offset
-                simplex_verts[i].x = m_center.x + offset.x;
-                simplex_verts[i].y = m_center.y + offset.y;
-                simplex_verts[i].z = m_center.z + offset.z;
+                simplex_verts[i].x = m_center.x + 0.0f;
+                simplex_verts[i].y = m_center.y + 0.0f;
+                simplex_verts[i].z = m_center.z + cap_offset;
             }
             else
             {
-                // Bottom sphere center: m_center - offset
-                simplex_verts[i].x = m_center.x - offset.x;
-                simplex_verts[i].y = m_center.y - offset.y;
-                simplex_verts[i].z = m_center.z - offset.z;
+                simplex_verts[i].x = m_center.x - 0.0f;
+                simplex_verts[i].y = m_center.y - 0.0f;
+                simplex_verts[i].z = m_center.z - cap_offset;
             }
         }
     }
     else
     {
-        // Polygon cylinder mode
         for (int i = 0; i < index_count; ++i)
         {
-            int ind = (int)cache_info->m_indices[i].x;
+            float x = cache_info->m_indices[i].x;
+            int ind = SLODWORD(x);
             iassert(ind >= 0);
 
-            simplex_inds[i].x = (float)ind;
+            simplex_inds[i].x = x;
 
             if (ind < 12)
             {
-                // Head ring vertex: top face ring at (half_height - head_offset)
                 float co, si;
                 s_poly_verts.get_co_si(ind, &co, &si);
 
-                phys_vec3 local = {
-                    m_polygon_cylinder_radius * co,
-                    m_polygon_cylinder_radius * si,
-                    m_half_height - m_head_offset
-                };
-
-                simplex_verts[i].x = local.x + m_center.x;
-                simplex_verts[i].y = local.y + m_center.y;
-                simplex_verts[i].z = local.z + m_center.z;
+                simplex_verts[i].x = (m_polygon_cylinder_radius * co) + m_center.x;
+                simplex_verts[i].y = (m_polygon_cylinder_radius * si) + m_center.y;
+                simplex_verts[i].z = (m_half_height - m_head_offset) + m_center.z;
             }
             else if (ind < 24)
             {
-                // Foot ring vertex: bottom face ring at -(half_height - foot_offset)
                 float co, si;
                 s_poly_verts.get_co_si(ind - 12, &co, &si);
 
-                phys_vec3 local = {
-                    m_polygon_cylinder_radius * co,
-                    m_polygon_cylinder_radius * si,
-                    -m_half_height + m_foot_offset
-                };
-
-                simplex_verts[i].x = local.x + m_center.x;
-                simplex_verts[i].y = local.y + m_center.y;
-                simplex_verts[i].z = local.z + m_center.z;
+                simplex_verts[i].x = (m_polygon_cylinder_radius * co) + m_center.x;
+                simplex_verts[i].y = (m_polygon_cylinder_radius * si) + m_center.y;
+                simplex_verts[i].z = (-m_half_height + m_foot_offset) + m_center.z;
             }
             else if (ind == 24)
             {
-                // Head apex: top center cap point at +half_height
-                simplex_verts[i].x = m_center.x;
-                simplex_verts[i].y = m_center.y;
-                simplex_verts[i].z = m_center.z + m_half_height;
+                simplex_verts[i].x = m_center.x + 0.0f;
+                simplex_verts[i].y = m_center.y + 0.0f;
+                simplex_verts[i].z = m_half_height + m_center.z;
             }
             else
             {
-                // Foot apex: bottom center cap point at -half_height (ind == 25)
-                iassert(ind == 25);
-                simplex_verts[i].x = m_center.x;
-                simplex_verts[i].y = m_center.y;
-                simplex_verts[i].z = m_center.z - m_half_height;
+                iassert(ind == 2 * poly_verts::NUM_VERTS_ + 1);
+                simplex_verts[i].x = m_center.x + 0.0f;
+                simplex_verts[i].y = m_center.y + 0.0f;
+                simplex_verts[i].z = -m_half_height + m_center.z;
             }
         }
     }
