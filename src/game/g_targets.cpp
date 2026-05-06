@@ -218,7 +218,7 @@ void __cdecl Scr_Target_Set()
     }
     else
     {
-        Scr_GetVector(1u, (float *)(28 * targetIndex + 66290436), SCRIPTINSTANCE_SERVER);
+        Scr_GetVector(1u, targGlob.targets[targetIndex].offset, SCRIPTINSTANCE_SERVER);
     }
     targGlob.targets[targetIndex].flags &= ~4u;
     configString[0] = 0;

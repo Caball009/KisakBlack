@@ -1012,28 +1012,32 @@ void CompleteCmdArgument()
 
 void __cdecl ReplaceConsoleInputArgument(int replaceCount, const char *replacement)
 {
-    const char *v2; // eax
+    char *v3; // eax
     int cmdLineLen; // [esp+10h] [ebp-8h]
 
-    if ( !replacement
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\client\\cl_keys.cpp", 861, 0, "%s", "replacement") )
+    if (!replacement
+        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\client\\cl_keys.cpp", 861, 0, "%s", "replacement"))
     {
         __debugbreak();
     }
-    if ( *replacement )
+    if (*replacement)
     {
-        for ( cmdLineLen = strlen(g_consoleField.buffer); cmdLineLen && isspace(*(char *)(cmdLineLen + 16423183)); --cmdLineLen )
-            ;
-        if ( replaceCount >= cmdLineLen )
+        for (cmdLineLen = strlen(g_consoleField.buffer);
+            cmdLineLen && isspace(g_consoleField.buffer[cmdLineLen - 1]);
+            --cmdLineLen)
         {
-            v2 = va("%s: %i, %i", g_consoleField.buffer, replaceCount, cmdLineLen);
-            if ( !Assert_MyHandler(
-                            "C:\\projects_pc\\cod\\codsrc\\src\\client\\cl_keys.cpp",
-                            868,
-                            0,
-                            "%s\n\t%s",
-                            "replaceCount < cmdLineLen",
-                            v2) )
+            ;
+        }
+        if (replaceCount >= cmdLineLen)
+        {
+            v3 = va("%s: %i, %i", g_consoleField.buffer, replaceCount, cmdLineLen);
+            if (!Assert_MyHandler(
+                "C:\\projects_pc\\cod\\codsrc\\src\\client\\cl_keys.cpp",
+                868,
+                0,
+                "%s\n\t%s",
+                "replaceCount < cmdLineLen",
+                v3))
                 __debugbreak();
         }
         I_strncpyz(&g_consoleField.buffer[cmdLineLen - replaceCount], replacement, 256 - (cmdLineLen - replaceCount));
@@ -1660,42 +1664,42 @@ void __cdecl Key_WriteBindingsToTempBuf(int localClientNum)
 
     keys = playerKeys[localClientNum].keys;
     bytesUsed = 0;
-    for ( keyIndex = 0; keyIndex < 256; ++keyIndex )
+    for (keyIndex = 0; keyIndex < 256; ++keyIndex)
     {
-        if ( keys[keyIndex].binding && *keys[keyIndex].binding || keys[keyIndex].binding2 && *keys[keyIndex].binding2 )
+        if (keys[keyIndex].binding && *keys[keyIndex].binding || keys[keyIndex].binding2 && *keys[keyIndex].binding2)
         {
-            if ( keys[keyIndex].binding && *keys[keyIndex].binding )
+            if (keys[keyIndex].binding && *keys[keyIndex].binding)
             {
                 v1 = Key_KeynumToString(keyIndex, 0);
                 len = Com_sprintf(&myTempBuff[bytesUsed], 4092 - bytesUsed, "bind %s \"", v1);
-                if ( len < 0 )
+                if (len < 0)
                     break;
                 bytesUseda = len + bytesUsed;
-                for ( bind = keys[keyIndex].binding; *bind && bytesUseda < 4092; ++bind )
+                for (bind = keys[keyIndex].binding; *bind && bytesUseda < 4092; ++bind)
                 {
-                    if ( *bind == 34 )
+                    if (*bind == 34)
                         myTempBuff[bytesUseda++] = 92;
                     myTempBuff[bytesUseda++] = *bind;
                 }
                 myTempBuff[bytesUseda] = 34;
-                *(_BYTE *)(bytesUseda + 16427841) = 10;
+                myTempBuff[bytesUseda + 1] = 10;
                 bytesUsed = bytesUseda + 2;
             }
-            if ( keys[keyIndex].binding2 && *keys[keyIndex].binding2 )
+            if (keys[keyIndex].binding2 && *keys[keyIndex].binding2)
             {
                 v2 = Key_KeynumToString(keyIndex, 0);
                 lena = Com_sprintf(&myTempBuff[bytesUsed], 4092 - bytesUsed, "bind2 %s \"", v2);
-                if ( lena < 0 )
+                if (lena < 0)
                     break;
                 bytesUsedb = lena + bytesUsed;
-                for ( binda = keys[keyIndex].binding2; *binda && bytesUsedb < 4092; ++binda )
+                for (binda = keys[keyIndex].binding2; *binda && bytesUsedb < 4092; ++binda)
                 {
-                    if ( *binda == 34 )
+                    if (*binda == 34)
                         myTempBuff[bytesUsedb++] = 92;
                     myTempBuff[bytesUsedb++] = *binda;
                 }
                 myTempBuff[bytesUsedb] = 34;
-                *(_BYTE *)(bytesUsedb + 16427841) = 10;
+                myTempBuff[bytesUsedb + 1] = 10;
                 bytesUsed = bytesUsedb + 2;
             }
         }
@@ -1706,14 +1710,14 @@ void __cdecl Key_WriteBindingsToTempBuf(int localClientNum)
     dvars[3] = "m_pitch";
     dvars[4] = "m_filter";
     dvars[5] = "cl_mouseAccel";
-    for ( i = 0; (unsigned int)i < 6; ++i )
+    for (i = 0; (unsigned int)i < 6; ++i)
     {
         dvar = Dvar_FindVar(dvars[i]);
-        if ( dvar )
+        if (dvar)
         {
             v3 = Dvar_DisplayableValue(dvar);
             lenb = Com_sprintf(&myTempBuff[bytesUsed], 4092 - bytesUsed, "set %s \"%s\"\n", dvar->name, v3);
-            if ( lenb < 0 )
+            if (lenb < 0)
                 break;
             bytesUsed += lenb;
         }

@@ -10981,9 +10981,9 @@ void GScr_ClientPrint()
 
 void GScr_OpenFile()
 {
-    char *v0; // eax
     char *v1; // eax
     char *v2; // eax
+    char *v3; // eax
     char *fullpathname; // [esp+3Ch] [ebp-20h]
     int filesize; // [esp+40h] [ebp-1Ch]
     char *filename; // [esp+44h] [ebp-18h]
@@ -10993,32 +10993,32 @@ void GScr_OpenFile()
     int filenum; // [esp+58h] [ebp-4h]
 
     f = 0;
-    if ( (unsigned int)Scr_GetNumParam(SCRIPTINSTANCE_SERVER) > 1 )
+    if ((unsigned int)Scr_GetNumParam(SCRIPTINSTANCE_SERVER) > 1)
     {
         filename = Scr_GetString(0, SCRIPTINSTANCE_SERVER);
         mode = Scr_GetString(1u, SCRIPTINSTANCE_SERVER);
-        for ( filenum = 0; filenum < 1; ++filenum )
+        for (filenum = 0; filenum < 1; ++filenum)
         {
-            if ( !level.openScriptIOFileHandles[filenum] )
+            if (!level.openScriptIOFileHandles[filenum])
             {
-                f = (int *)(4 * filenum + 65355016);
+                f = &level.openScriptIOFileHandles[filenum];
                 break;
             }
         }
-        if ( !f )
+        if (!f)
         {
-            Com_Printf(24, "OpenFile failed.    %i files already open\n", 1);
+            Com_Printf(24, "OpenFile failed.  %i files already open\n", 1);
             Scr_AddInt(-1, SCRIPTINSTANCE_SERVER);
             return;
         }
-        if ( !strcmp(mode, "read") )
+        if (!strcmp(mode, "read"))
         {
             fullpathname = va("%s/%s", "scriptdata", filename);
             filesize = FS_FOpenFileByMode(fullpathname, &tempFile, FS_READ);
-            if ( filesize >= 0 )
+            if (filesize >= 0)
             {
-                v0 = Z_VirtualAlloc(filesize + 1, "GScr_OpenFile", 11);
-                level.openScriptIOFileBuffers[filenum] = v0;
+                v1 = Z_VirtualAlloc(filesize + 1, "GScr_OpenFile", 11);
+                level.openScriptIOFileBuffers[filenum] = v1;
                 FS_Read((unsigned __int8 *)level.openScriptIOFileBuffers[filenum], filesize, tempFile);
                 FS_FCloseFile(tempFile);
                 level.openScriptIOFileBuffers[filenum][filesize] = 0;
@@ -11033,25 +11033,25 @@ void GScr_OpenFile()
             }
             return;
         }
-        if ( !strcmp(mode, "write") )
+        if (!strcmp(mode, "write"))
         {
-            v1 = va("%s/%s", "scriptdata", filename);
-            *f = FS_FOpenTextFileWrite(v1);
-            if ( !*f )
+            v2 = va("%s/%s", "scriptdata", filename);
+            *f = FS_FOpenTextFileWrite(v2);
+            if (!*f)
                 goto LABEL_15;
         }
         else
         {
-            if ( strcmp(mode, "append") )
+            if (strcmp(mode, "append"))
             {
                 Com_Printf(24, "Valid openfile modes are 'write', 'read', and 'append'\n");
                 Scr_AddInt(-1, SCRIPTINSTANCE_SERVER);
                 return;
             }
-            v2 = va("%s/%s", "scriptdata", filename);
-            if ( (FS_FOpenFileByMode(v2, f, FS_APPEND) & 0x80000000) != 0 )
+            v3 = va("%s/%s", "scriptdata", filename);
+            if ((FS_FOpenFileByMode(v3, f, FS_APPEND) & 0x80000000) != 0)
             {
-LABEL_15:
+            LABEL_15:
                 Scr_AddInt(-1, SCRIPTINSTANCE_SERVER);
                 return;
             }

@@ -119,7 +119,8 @@ static_model_leaf_t *__cdecl SMC_GetLeaf(unsigned int cacheIndex)
     {
         __debugbreak();
     }
-    return (static_model_leaf_t *)(8 * cacheIndex + 189362744);
+    // cacheIndex is 1-based; map flat into the 2D leafs array.
+    return &s_cache.leafs[(cacheIndex - 1) >> 5][(cacheIndex - 1) & 0x1F];
 }
 
 void __cdecl SetupTransformUnitVec(const float4 *mtx, int (*fixedMtx)[3])
@@ -272,13 +273,13 @@ unsigned __int16 __cdecl R_CacheStaticModelSurface(
     if ( cacheIndex )
     {
         cachedSurf = SMC_GetLeaf(cacheIndex);
-        tree = &s_cache.trees[((char *)cachedSurf - (char *)s_cache.leafs) / 256];
+        tree = &s_cache.trees[(cachedSurf - &s_cache.leafs[0][0]) / 32];
         if ( tree->frameCount != rg.frontEndFrameCount )
         {
             tree->frameCount = rg.frontEndFrameCount;
             tree->usedlist.next->prev = tree->usedlist.prev;
             tree->usedlist.prev->next = tree->usedlist.next;
-            tree->usedlist.prev = (static_model_tree_list_t *)(8 * smcIndex + 189494016);
+            tree->usedlist.prev = &s_cache.usedlist[smcIndex];
             tree->usedlist.next = s_cache.usedlist[smcIndex].next;
             tree->usedlist.prev->next = &tree->usedlist;
             tree->usedlist.next->prev = &tree->usedlist;
@@ -320,11 +321,11 @@ unsigned __int16 __cdecl R_CacheStaticModelSurface(
                     cachedSurfa->cachedSurf.smodelIndex,
                     cachedSurfa->cachedSurf.lodIndex,
                     cachedSurfa->cachedSurf.baseVertIndex);
-                treea = &s_cache.trees[((char *)cachedSurfa - (char *)s_cache.leafs) / 256];
+                treea = &s_cache.trees[(cachedSurfa - &s_cache.leafs[0][0]) / 32];
                 treea->frameCount = rg.frontEndFrameCount;
                 treea->usedlist.next->prev = treea->usedlist.prev;
                 treea->usedlist.prev->next = treea->usedlist.next;
-                treea->usedlist.prev = (static_model_tree_list_t *)(8 * smcIndex + 189494016);
+                treea->usedlist.prev = &s_cache.usedlist[smcIndex];
                 treea->usedlist.next = s_cache.usedlist[smcIndex].next;
                 treea->usedlist.prev->next = &treea->usedlist;
                 treea->usedlist.next->prev = &treea->usedlist;
@@ -368,7 +369,7 @@ unsigned __int16 __cdecl SMC_Allocate(unsigned int smcIndex, unsigned int bitCou
     block = freelist->next;
     block->next->prev = block->prev;
     block->prev->next = block->next;
-    treeIndex = ((char *)block - (char *)s_cache.leafs) / 256;
+    treeIndex = ((static_model_leaf_t *)block - &s_cache.leafs[0][0]) / 32;
     if ( treeIndex >= 0x200
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_staticmodelcache.cpp",
@@ -383,7 +384,7 @@ unsigned __int16 __cdecl SMC_Allocate(unsigned int smcIndex, unsigned int bitCou
     tree = &s_cache.trees[treeIndex];
     if ( !listIndex )
     {
-        tree->usedlist.prev = (static_model_tree_list_t *)(8 * smcIndex + 189494016);
+        tree->usedlist.prev = &s_cache.usedlist[smcIndex];
         tree->usedlist.next = s_cache.usedlist[smcIndex].next;
         tree->usedlist.prev->next = &tree->usedlist;
         tree->usedlist.next->prev = &tree->usedlist;
@@ -489,13 +490,16 @@ char __cdecl SMC_GetFreeBlockOfSize(unsigned int smcIndex, unsigned int listInde
     }
     if ( !listIndex )
         return SMC_ForceFreeBlock(smcIndex);
-    freelist = (static_model_node_list_t *)(48 * smcIndex + 8 * listIndex + 189493816);
-    if ( s_cache.leafs[511][6 * smcIndex + 31 + listIndex].freenode.next == freelist
+    // Hex-Rays addressed s_cache.freelist[smcIndex][listIndex - 1] as
+    // s_cache.leafs[511][31 + 6*smcIndex + listIndex] (one slot past leafs);
+    // simplified to the freelist sentinel head for size-class (listIndex - 1).
+    freelist = &s_cache.freelist[smcIndex][listIndex - 1];
+    if ( freelist->next == freelist
         && !SMC_GetFreeBlockOfSize(smcIndex, listIndex - 1) )
     {
         return 0;
     }
-    block = s_cache.leafs[511][6 * smcIndex + 31 + listIndex].freenode.next;
+    block = freelist->next;
     if ( block == freelist
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_staticmodelcache.cpp",
@@ -508,7 +512,7 @@ char __cdecl SMC_GetFreeBlockOfSize(unsigned int smcIndex, unsigned int listInde
     }
     block->next->prev = block->prev;
     block->prev->next = block->next;
-    treeIndex = ((char *)block - (char *)s_cache.leafs) / 256;
+    treeIndex = ((static_model_leaf_t *)block - &s_cache.leafs[0][0]) / 32;
     if ( treeIndex >= 0x200
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_staticmodelcache.cpp",
@@ -523,7 +527,7 @@ char __cdecl SMC_GetFreeBlockOfSize(unsigned int smcIndex, unsigned int listInde
     tree = &s_cache.trees[treeIndex];
     if ( listIndex == 1 )
     {
-        tree->usedlist.prev = (static_model_tree_list_t *)(8 * smcIndex + 189494016);
+        tree->usedlist.prev = &s_cache.usedlist[smcIndex];
         tree->usedlist.next = s_cache.usedlist[smcIndex].next;
         tree->usedlist.prev->next = &tree->usedlist;
         tree->usedlist.next->prev = &tree->usedlist;
@@ -569,8 +573,10 @@ char __cdecl SMC_ForceFreeBlock(unsigned int smcIndex)
     static_model_leaf_t *leafs; // [esp+8h] [ebp-8h]
     static_model_tree_t *treenode; // [esp+Ch] [ebp-4h]
 
+    // s_cache.usedlist[smcIndex].prev is a tree_list_t* that lives at offset 0
+    // of a static_model_tree_t (or is the sentinel itself); upcast to tree_t*.
     treenode = (static_model_tree_t *)s_cache.usedlist[smcIndex].prev;
-    if ( treenode == (static_model_tree_t *)(8 * smcIndex + 189494016)
+    if ( treenode == (static_model_tree_t *)&s_cache.usedlist[smcIndex]
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_staticmodelcache.cpp",
                     421,
@@ -593,14 +599,15 @@ char __cdecl SMC_ForceFreeBlock(unsigned int smcIndex)
     {
         __debugbreak();
     }
-    leafs = s_cache.leafs[((char *)treenode - (char *)&s_cache) / 264];
+    leafs = s_cache.leafs[treenode - s_cache.trees];
     SMC_FreeCachedSurface_r(treenode, leafs, 0, 5);
     treenode->usedlist.next->prev = treenode->usedlist.prev;
     treenode->usedlist.prev->next = treenode->usedlist.next;
-    leafs->cachedSurf.baseVertIndex = (unsigned int)s_cache.freelist[smcIndex];
+    // Insert leafs at the head of freelist[smcIndex][0] (the largest size class).
+    leafs->freenode.prev = &s_cache.freelist[smcIndex][0];
     leafs->freenode.next = s_cache.freelist[smcIndex][0].next;
-    *(unsigned int *)(leafs->cachedSurf.baseVertIndex + 4) = (unsigned int)leafs;
-    leafs->freenode.next->prev = (static_model_node_list_t *)leafs;
+    s_cache.freelist[smcIndex][0].next = &leafs->freenode;
+    leafs->freenode.next->prev = &leafs->freenode;
     return 1;
 }
 
@@ -634,9 +641,10 @@ void __cdecl SMC_FreeCachedSurface_r(
     }
     else
     {
+        // Unlink freenode from its freelist (the leaf's union doubles as a list node).
         freenode = &leafs[((nodeIndex + 1) << levelsToLeaf) - 32];
-        freenode->freenode.next->prev = (static_model_node_list_t *)freenode->cachedSurf.baseVertIndex;
-        *(unsigned int *)(freenode->cachedSurf.baseVertIndex + 4) = (unsigned int)freenode->freenode.next;
+        freenode->freenode.next->prev = freenode->freenode.prev;
+        freenode->freenode.prev->next = freenode->freenode.next;
     }
 }
 
@@ -758,23 +766,26 @@ unsigned int SMC_ClearCache()
     }
     for ( smcIter = 0; smcIter < 4; ++smcIter )
     {
-        s_cache.usedlist[smcIter].prev = (static_model_tree_list_t *)(8 * smcIter + 189494016);
+        // Empty usedlist: sentinel head points to itself.
+        s_cache.usedlist[smcIter].prev = &s_cache.usedlist[smcIter];
         result = smcIter;
-        s_cache.usedlist[smcIter].next = (static_model_tree_list_t *)(8 * smcIter + 189494016);
+        s_cache.usedlist[smcIter].next = &s_cache.usedlist[smcIter];
+        // Empty per-size-class freelists: each sentinel points to itself.
         for ( listIter = 0; listIter < 6; ++listIter )
         {
             s_cache.freelist[smcIter][listIter].prev = &s_cache.freelist[smcIter][listIter];
             s_cache.freelist[smcIter][listIter].next = &s_cache.freelist[smcIter][listIter];
             result = listIter + 1;
         }
+        // Insert each owned tree's first leaf into freelist[smcIter][0].
         for ( treeItera = 0; treeItera < 0x80; ++treeItera )
         {
             v1 = s_cache.leafs[treeItera + (smcIter << 7)];
-            v1->cachedSurf.baseVertIndex = (unsigned int)s_cache.freelist[smcIter];
+            v1->freenode.prev = &s_cache.freelist[smcIter][0];
             v1->freenode.next = s_cache.freelist[smcIter][0].next;
-            *(unsigned int *)(v1->cachedSurf.baseVertIndex + 4) = (unsigned int)v1;
+            s_cache.freelist[smcIter][0].next = &v1->freenode;
             result = (unsigned int)v1;
-            v1->freenode.next->prev = (static_model_node_list_t *)v1;
+            v1->freenode.next->prev = &v1->freenode;
         }
     }
     return result;
@@ -790,7 +801,7 @@ void __cdecl R_FlushStaticModelCache()
     {
         for ( smcIter = 0; smcIter < 4; ++smcIter )
         {
-            while ( s_cache.usedlist[smcIter].next != (static_model_tree_list_t *)(8 * smcIter + 189494016) )
+            while ( s_cache.usedlist[smcIter].next != &s_cache.usedlist[smcIter] )
             {
                 if ( !s_cache.usedlist[smcIter].next
                     && !Assert_MyHandler(
@@ -802,15 +813,18 @@ void __cdecl R_FlushStaticModelCache()
                 {
                     __debugbreak();
                 }
-                leafs = s_cache.leafs[((char *)s_cache.usedlist[smcIter].next - (char *)&s_cache) / 264];
-                SMC_FreeCachedSurface_r((static_model_tree_t *)s_cache.usedlist[smcIter].next, leafs, 0, 5);
+                // usedlist link lives at offset 0 of static_model_tree_t — upcast.
+                static_model_tree_t *tree = (static_model_tree_t *)s_cache.usedlist[smcIter].next;
+                leafs = s_cache.leafs[tree - s_cache.trees];
+                SMC_FreeCachedSurface_r(tree, leafs, 0, 5);
                 next = s_cache.usedlist[smcIter].next;
                 next->next->prev = next->prev;
                 next->prev->next = next->next;
-                leafs->cachedSurf.baseVertIndex = (unsigned int)s_cache.freelist[smcIter];
+                // Insert leafs at head of freelist[smcIter][0].
+                leafs->freenode.prev = &s_cache.freelist[smcIter][0];
                 leafs->freenode.next = s_cache.freelist[smcIter][0].next;
-                *(unsigned int *)(leafs->cachedSurf.baseVertIndex + 4) = (unsigned int)leafs;
-                leafs->freenode.next->prev = (static_model_node_list_t *)leafs;
+                s_cache.freelist[smcIter][0].next = &leafs->freenode;
+                leafs->freenode.next->prev = &leafs->freenode;
             }
         }
         SMC_ClearCache();

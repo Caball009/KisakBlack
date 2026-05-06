@@ -632,31 +632,15 @@ void __cdecl UI_EmblemDuplicate_f()
     {
         for ( hole = 0; hole < purchasedCount && s_emblem[hole].icon != -1; ++hole )
             ;
-        if ( hole == purchasedCount
-            && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\ui\\ui_emblem.cpp",
-                        719,
-                        0,
-                        "%s",
-                        "hole != purchasedCount") )
-        {
-            __debugbreak();
-        }
-        if ( hole == s_selectedLayer
-            && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\ui\\ui_emblem.cpp",
-                        720,
-                        0,
-                        "%s",
-                        "hole != s_selectedLayer") )
-        {
-            __debugbreak();
-        }
+
+        iassert(hole != purchasedCount);
+        iassert(hole != s_selectedLayer);
+
         if ( hole >= s_selectedLayer )
         {
             while ( hole != s_selectedLayer )
             {
-                memcpy(&s_emblem[hole], &sTemp[32 * hole + 48], sizeof(CompositeEmblemLayer));
+                s_emblem[hole] = s_emblem[hole + 1];
                 --hole;
             }
         }
@@ -664,7 +648,7 @@ void __cdecl UI_EmblemDuplicate_f()
         {
             while ( hole != s_selectedLayer )
             {
-                memcpy(&s_emblem[hole], (const void *)(32 * hole + 160053504), sizeof(CompositeEmblemLayer));
+                s_emblem[hole] = s_emblem[hole - 1];
                 ++hole;
             }
             s_selected = &s_emblem[--s_selectedLayer];

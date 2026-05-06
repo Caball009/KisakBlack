@@ -985,7 +985,7 @@ void __cdecl Scr_MissileCreateAttractorOrigin()
     attractorIndex = Missile_GetFreeAttractor();
     attrGlob.attractors[attractorIndex].isAttractor = 1;
     attrGlob.attractors[attractorIndex].entnum = 1023;
-    Scr_GetVector(0, (float *)(28 * attractorIndex + 65863520), SCRIPTINSTANCE_SERVER);
+    Scr_GetVector(0, attrGlob.attractors[attractorIndex].origin, SCRIPTINSTANCE_SERVER);
     attrGlob.attractors[attractorIndex].strength = Scr_GetFloat(1u, SCRIPTINSTANCE_SERVER);
     attrGlob.attractors[attractorIndex].maxDist = Scr_GetFloat(2u, SCRIPTINSTANCE_SERVER);
     if ( attrGlob.attractors[attractorIndex].maxDist <= 0.0 )
@@ -1016,7 +1016,7 @@ void __cdecl Scr_MissileCreateRepulsorOrigin()
     attractorIndex = Missile_GetFreeAttractor();
     attrGlob.attractors[attractorIndex].isAttractor = 0;
     attrGlob.attractors[attractorIndex].entnum = 1023;
-    Scr_GetVector(0, (float *)(28 * attractorIndex + 65863520), SCRIPTINSTANCE_SERVER);
+    Scr_GetVector(0, attrGlob.attractors[attractorIndex].origin, SCRIPTINSTANCE_SERVER);
     attrGlob.attractors[attractorIndex].strength = Scr_GetFloat(1u, SCRIPTINSTANCE_SERVER);
     attrGlob.attractors[attractorIndex].maxDist = Scr_GetFloat(2u, SCRIPTINSTANCE_SERVER);
     if ( attrGlob.attractors[attractorIndex].maxDist <= 0.0 )

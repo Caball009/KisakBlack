@@ -2151,8 +2151,8 @@ void __cdecl DynEntCl_SetBurning(unsigned __int16 dynEntId, DynEntityDrawType dr
                 }
                 else
                 {
-                    burnData = (DynEnt_BurnData *)(8 * gNumBurningDynEnts + 53997848);
-                    hEffect[2 * gNumBurningDynEnts] = fx;
+                    burnData = &gDynEntBurnData[gNumBurningDynEnts];
+                    burnData->fx = fx;
                     burnData->id = absDynEntId;
                     ++gNumBurningDynEnts;
                 }
