@@ -8037,6 +8037,7 @@ void __cdecl GetClanTagAndName(int localClientNum, itemDef_s *item, OperandStack
 
 void __cdecl GetXUID(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
+#ifdef KISAK_LIVE
     __int64 v3; // rax
     const char *v4; // eax
     Operand result; // [esp+Ch] [ebp-Ch] BYREF
@@ -8056,6 +8057,27 @@ void __cdecl GetXUID(int localClientNum, itemDef_s *item, OperandStack *dataStac
         result.internals.intVal = (int)CopyTempString("0");
     }
     AddOperandToStack(dataStack, &result);
+#else
+    __int64 v3; // rax
+    const char *v4; // eax
+    Operand result; // [esp+Ch] [ebp-Ch] BYREF
+    int controllerIndex; // [esp+14h] [ebp-4h]
+
+    controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
+    result.dataType = VAL_STRING;
+    result.internals.intVal = (int)"";
+    //if (Live_IsSignedIn(controllerIndex))
+    //{
+    //    LODWORD(v3) = Live_GetXuid(controllerIndex);
+    //    v4 = va("%lld", v3);
+    //    result.internals.intVal = (int)CopyTempString(v4);
+    //}
+    //else
+    {
+        result.internals.intVal = (int)CopyTempString("0");
+    }
+    AddOperandToStack(dataStack, &result);
+#endif
 }
 
 void __cdecl GetSellText(int localClientNum, itemDef_s *item, OperandStack *dataStack)
@@ -8086,6 +8108,7 @@ void __cdecl GetItemPrice(int localClientNum, itemDef_s *item, OperandStack *dat
 
 void __cdecl GetSelfGamertag(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
+#ifdef KISAK_LIVE
     Operand result; // [esp+0h] [ebp-Ch] BYREF
     int controllerIndex; // [esp+8h] [ebp-4h]
 
@@ -8097,6 +8120,19 @@ void __cdecl GetSelfGamertag(int localClientNum, itemDef_s *item, OperandStack *
     else
         result.internals.intVal = (int)"";
     AddOperandToStack(dataStack, &result);
+#else
+    Operand result; // [esp+0h] [ebp-Ch] BYREF
+    int controllerIndex; // [esp+8h] [ebp-4h]
+
+    result.dataType = VAL_STRING;
+    result.internals.intVal = (int)"";
+    controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
+    //if (Live_IsSignedIn(controllerIndex))
+    //    result.internals.intVal = (int)Live_ControllerIndex_GetClientName(controllerIndex);
+    //else
+        result.internals.intVal = (int)"";
+    AddOperandToStack(dataStack, &result);
+#endif
 }
 
 void __cdecl GetRankByXUID(int localClientNum, itemDef_s *item, OperandStack *dataStack)
@@ -8521,6 +8557,7 @@ void __cdecl GetDStat(int localClientNum, itemDef_s *item, OperandStack *dataSta
 
     result.dataType = VAL_INT;
     result.internals.intVal = 0;
+#ifdef KISAK_LIVE
     searchState = *LiveStats_GetRootDDLState();
     GetOperandList(dataStack, &list);
     if ( GetSearchState(&searchState, &list, 0) )
@@ -8553,6 +8590,7 @@ void __cdecl GetDStat(int localClientNum, itemDef_s *item, OperandStack *dataSta
             result.internals.intVal = LiveStats_GetDIntStat(controllerIndex, &searchState);
         }
     }
+#endif
     AddOperandToStack(dataStack, &result);
 }
 

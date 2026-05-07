@@ -39,7 +39,8 @@ struct DObjAnimMat // sizeof=0x20
         float transWeight;                                    // XREF: CG_DoBaseOriginController+23B/w
 };
 
-struct DObjSkelMat // sizeof=0x40
+// R_SkinXSurfaceRigid() checks if alignment = 16
+struct alignas(16) DObjSkelMat // sizeof=0x40
 {                                       // XREF: FX_GenerateMarkVertsForMark_MatrixFromPlacement/r
                                         // FX_GenerateMarkVertsForMark_MatrixFromAnim/r ...
     float axis[3][4];

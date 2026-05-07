@@ -1702,12 +1702,9 @@ bool __cdecl CG_SightTracePointInternal(int *hitNum, const float *start, const f
     tw.halfDelta.vec.v[1] = 0.5 * (float)(tw.extents.end.vec.v[1] - tw.extents.start.vec.v[1]);
     tw.halfDelta.vec.v[2] = 0.5 * (float)(tw.extents.end.vec.v[2] - tw.extents.start.vec.v[2]);
     memset(&tw.radiusOffset, 0, 12);
-    //tw.halfDeltaAbs.vec.u[0] = tw.halfDelta.vec.u[0] & _mask__AbsFloat_;
-    //tw.halfDeltaAbs.vec.u[1] = tw.halfDelta.vec.u[1] & _mask__AbsFloat_;
-    //tw.halfDeltaAbs.vec.u[2] = tw.halfDelta.vec.u[2] & _mask__AbsFloat_;
-    tw.halfDeltaAbs.vec.u[0] = fabs(tw.halfDelta.vec.u[0]);
-    tw.halfDeltaAbs.vec.u[1] = fabs(tw.halfDelta.vec.u[1]);
-    tw.halfDeltaAbs.vec.u[2] = fabs(tw.halfDelta.vec.u[2]);
+    tw.halfDeltaAbs.vec.v[0] = I_fabs(tw.halfDelta.vec.v[0]);
+    tw.halfDeltaAbs.vec.v[1] = I_fabs(tw.halfDelta.vec.v[1]);
+    tw.halfDeltaAbs.vec.v[2] = I_fabs(tw.halfDelta.vec.v[2]);
     CM_CalcTraceExtents(&tw.extents);
     tw.deltaLenSq = (float)((float)(tw.delta.vec.v[0] * tw.delta.vec.v[0]) + (float)(tw.delta.vec.v[1] * tw.delta.vec.v[1]))
                                 + (float)(tw.delta.vec.v[2] * tw.delta.vec.v[2]);

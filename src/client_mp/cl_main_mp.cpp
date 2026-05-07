@@ -1293,6 +1293,7 @@ void __cdecl CL_ClearState(int localClientNum)
 
 void __cdecl CL_UploadStatsForController(int localControllerIndex)
 {
+#ifdef KISAK_LIVE
     if ( !Demo_IsPlaying() && !Demo_IsShutdownInProgress() )
     {
         if ( Com_GameMode_IsPublicOnlineGame() )
@@ -1305,6 +1306,7 @@ void __cdecl CL_UploadStatsForController(int localControllerIndex)
         }
         Session_CleanUpStatsWrites();
     }
+#endif
 }
 
 void __cdecl CL_Disconnect(unsigned int localClientNum, bool deactivateClient)

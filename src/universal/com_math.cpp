@@ -3385,6 +3385,11 @@ float __cdecl Vec2Length(const float *v)
         return sqrtf(v[1] * v[1] + v[0] * v[0]);
 }
 
+float Vec2LengthSq(const float *v)
+{
+    return (v[0] * v[0]) + (v[1] * v[1]);
+}
+
 float AngleNormalize180(float angle)
 {
         angle = fmodf(angle + 180.0f, 360.0f);

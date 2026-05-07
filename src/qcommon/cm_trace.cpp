@@ -3130,8 +3130,7 @@ int __cdecl CM_BoxSightTrace(
         tw.midpoint.vec.v[i] = (float)(tw.extents.start.vec.v[i] + tw.extents.end.vec.v[i]) * 0.5;
         tw.delta.vec.v[i] = tw.extents.end.vec.v[i] - tw.extents.start.vec.v[i];
         tw.halfDelta.vec.v[i] = 0.5 * tw.delta.vec.v[i];
-        //tw.halfDeltaAbs.vec.u[i] = tw.halfDelta.vec.u[i] & _mask__AbsFloat_;
-        tw.halfDeltaAbs.vec.u[i] = fabs(tw.halfDelta.vec.u[i]);
+        tw.halfDeltaAbs.vec.v[i] = I_fabs(tw.halfDelta.vec.v[i]);
     }
     CM_CalcTraceExtents(&tw.extents);
     tw.deltaLenSq = (float)((float)(tw.delta.vec.v[0] * tw.delta.vec.v[0]) + (float)(tw.delta.vec.v[1] * tw.delta.vec.v[1]))
@@ -3504,8 +3503,7 @@ int __cdecl CM_SightTracePoint(int oldHitNum, const float *start, const float *e
         tw.midpoint.vec.v[i] = (float)(tw.extents.start.vec.v[i] + tw.extents.end.vec.v[i]) * 0.5;
         tw.delta.vec.v[i] = tw.extents.end.vec.v[i] - tw.extents.start.vec.v[i];
         tw.halfDelta.vec.v[i] = 0.5 * tw.delta.vec.v[i];
-        //tw.halfDeltaAbs.vec.u[i] = tw.halfDelta.vec.u[i] & _mask__AbsFloat_;
-        tw.halfDeltaAbs.vec.u[i] = fabs(tw.halfDelta.vec.u[i]);
+        tw.halfDeltaAbs.vec.v[i] = I_fabs(tw.halfDelta.vec.v[i]);
     }
     tw.contents = brushmask;
     tw.deltaLenSq = (float)((float)(tw.delta.vec.v[0] * tw.delta.vec.v[0]) + (float)(tw.delta.vec.v[1] * tw.delta.vec.v[1]))
@@ -3665,8 +3663,14 @@ int __cdecl CM_TracePointDown(
         tw.midpoint.vec.v[i] = (float)(tw.extents.start.vec.v[i] + tw.extents.end.vec.v[i]) * 0.5;
         tw.delta.vec.v[i] = tw.extents.end.vec.v[i] - tw.extents.start.vec.v[i];
         tw.halfDelta.vec.v[i] = 0.5 * tw.delta.vec.v[i];
-        //tw.halfDeltaAbs.vec.u[i] = tw.halfDelta.vec.u[i] & _mask__AbsFloat_;
-        tw.halfDeltaAbs.vec.u[i] = fabs(tw.halfDelta.vec.u[i]);
+        // Original was a bitwise sign-strip on the float bits (== fabsf). Earlier
+        // port wrote `fabs(<.u view>)`, which takes fabs of the unsigned int —
+        // a no-op for the bit pattern, so a negative halfDelta stays negative
+        // in halfDeltaAbs. Downstream SAT culling at line ~2018 then *shrinks*
+        // the swept AABB instead of expanding it for downward traces, leaving
+        // gravity-pulled traces missing some triangles on entity meshes (e.g.
+        // standing on a static-model car → vertical wiggle).
+        tw.halfDeltaAbs.vec.v[i] = I_fabs(tw.halfDelta.vec.v[i]);
     }
     CM_CalcTraceExtents(&tw.extents);
     tw.deltaLenSq = (float)((float)(tw.delta.vec.v[0] * tw.delta.vec.v[0]) + (float)(tw.delta.vec.v[1] * tw.delta.vec.v[1]))

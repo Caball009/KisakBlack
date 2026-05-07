@@ -681,123 +681,18 @@ DObj *__cdecl CG_ScriptMover_GetDObj(int localClientNum, centity_s *cent)
     return CG_PreProcess_GetDObj(localClientNum, cent->nextState.number, cent->nextState.eType, model, 0);
 }
 
-#if 0
-// local variable allocation has failed, the output may be wrong!
-void    CG_AdjustPositionForMover(
-                int localClientNum,
-                float *in,
-                int moverNum,
-                int fromTime,
-                int toTime,
-                float *out,
-                float *outDeltaAngles)
+static void __cdecl Phys_AnglesToMat44(const float *angles, const float *origin, phys_mat44 *outMat)
 {
-    const phys_vec3 *v8; // eax
-    const phys_vec3 *v9; // eax
-    phys_vec3 v10; // [esp+8h] [ebp-1ACh] BYREF
-    phys_vec3 v11; // [esp+18h] [ebp-19Ch] BYREF
-    phys_vec3 v12; // [esp+28h] [ebp-18Ch] BYREF
-    phys_vec3 v13; // [esp+38h] [ebp-17Ch] BYREF
-    unsigned int v14[3]; // [esp+48h] [ebp-16Ch] BYREF
-    phys_vec3 phys_vec3_in; // [esp+54h] [ebp-160h] BYREF
-    phys_mat44 mover_mat; // [esp+64h] [ebp-150h] BYREF
-    float v17[9]; // [esp+A4h] [ebp-110h] BYREF
-    _BYTE v18[12]; // [esp+C8h] [ebp-ECh] BYREF
-    _BYTE prev_mover_mat_36[36]; // [esp+F8h] [ebp-BCh] OVERLAPPED BYREF
-    float v20[3]; // [esp+134h] [ebp-80h] BYREF
-    float oldAngles[3]; // [esp+140h] [ebp-74h] BYREF
-    float angles[3]; // [esp+14Ch] [ebp-68h] BYREF
-    float v23[3]; // [esp+158h] [ebp-5Ch] BYREF
-    float v24[3]; // [esp+164h] [ebp-50h] BYREF
-    float oldOrigin[3]; // [esp+170h] [ebp-44h] BYREF
-    float origin[3]; // [esp+17Ch] [ebp-38h] BYREF
-    float next[3]; // [esp+188h] [ebp-2Ch] BYREF
-    float current[3]; // [esp+194h] [ebp-20h]
-    cg_s *frame_interp_from; // [esp+1A0h] [ebp-14h]
-    const centity_s *frame_interp_to; // [esp+1A4h] [ebp-10h]
-    //int snap_time; // [esp+1A8h] [ebp-Ch]
-    //cg_s *cgameGlob; // [esp+1ACh] [ebp-8h]
-    //cg_s *retaddr; // [esp+1B4h] [ebp+0h]
+    float axis[3][3];
 
-    //snap_time = a1;
-    //cgameGlob = retaddr;
-    if ( outDeltaAngles )
-    {
-        *outDeltaAngles = 0.0f;
-        outDeltaAngles[1] = 0.0f;
-        outDeltaAngles[2] = 0.0f;
-    }
-    if ( moverNum > 0
-        && moverNum < 1022
-        && ((frame_interp_to = CG_GetEntity(localClientNum, moverNum), ShouldAdjustPositionForMover(frame_interp_to))
-         || vehicle_riding->current.enabled) )
-    {
-        frame_interp_from = CG_GetLocalClientGlobals(localClientNum);
-        LODWORD(current[2]) = frame_interp_from->nextSnap->serverTime - frame_interp_from->snap->serverTime;
-        if ( SLODWORD(current[2]) <= 0 )
-        {
-            current[1] = 0.0f;
-            current[0] = 0.0f;
-        }
-        else
-        {
-            current[1] = (float)(toTime - frame_interp_from->snap->serverTime) / (float)SLODWORD(current[2]);
-            current[0] = (float)(fromTime - frame_interp_from->snap->serverTime) / (float)SLODWORD(current[2]);
-        }
-        if ( frame_interp_to->currentState.pos.trType == 1 )
-        {
-            BG_EvaluateTrajectory(&frame_interp_to->currentState.pos, fromTime, next);
-            BG_EvaluateTrajectory(&frame_interp_to->nextState.lerp.pos, toTime, origin);
-            Vec3Lerp(next, origin, current[1], oldOrigin);
-            Vec3Lerp(next, origin, current[0], v24);
-        }
-        else
-        {
-            BG_EvaluateTrajectory(&frame_interp_to->currentState.pos, fromTime, v24);
-            BG_EvaluateTrajectory(&frame_interp_to->currentState.pos, toTime, oldOrigin);
-        }
-        if ( frame_interp_to->currentState.apos.trType == 1 )
-        {
-            BG_EvaluateTrajectory(&frame_interp_to->currentState.apos, fromTime, v23);
-            BG_EvaluateTrajectory(&frame_interp_to->nextState.lerp.apos, toTime, angles);
-            LerpAngleVector(v23, angles, current[1], oldAngles);
-            LerpAngleVector(v23, angles, current[0], v20);
-        }
-        else
-        {
-            BG_EvaluateTrajectory(&frame_interp_to->currentState.apos, fromTime, v20);
-            BG_EvaluateTrajectory(&frame_interp_to->currentState.apos, toTime, oldAngles);
-        }
-        AnglesToAxis(v20, (float (*)[3])&prev_mover_mat_36[24]);
-        Phys_AxisToNitrousMat((float (*)[3])&prev_mover_mat_36[24], (phys_mat44 *)v18);
-        Phys_Vec3ToNitrousVec(v24, (phys_vec3 *)prev_mover_mat_36);
-        AnglesToAxis(oldAngles, (float (*)[3])v17);
-        Phys_AxisToNitrousMat((float (*)[3])v17, (phys_mat44 *)&phys_vec3_in.y);
-        Phys_Vec3ToNitrousVec(oldOrigin, (phys_vec3 *)&mover_mat.z.y);
-        Phys_Vec3ToNitrousVec(in, (phys_vec3 *)v14);
-        v8 = operator-(&v13, (const phys_vec3 *)v14, (const phys_vec3 *)prev_mover_mat_36);
-        phys_inv_multiply(&v12, (const phys_mat44 *)v18, v8);
-        v9 = phys_multiply(&v11, (const phys_mat44 *)&phys_vec3_in.y, &v12);
-        operator+(&v10, v9, (const phys_vec3 *)&mover_mat.z.y);
-        v14[0] = LODWORD(v10.x);
-        v14[1] = LODWORD(v10.y);
-        v14[2] = LODWORD(v10.z);
-        Phys_NitrousVecToVec3((const phys_vec3 *)v14, out);
-        if ( outDeltaAngles )
-        {
-            *outDeltaAngles = oldAngles[0] - v20[0];
-            outDeltaAngles[1] = oldAngles[1] - v20[1];
-            outDeltaAngles[2] = oldAngles[2] - v20[2];
-        }
-    }
-    else
-    {
-        *out = *in;
-        out[1] = in[1];
-        out[2] = in[2];
-    }
+    AnglesToAxis(angles, axis);
+    Phys_Vec3ToNitrousVec(axis[0], &outMat->x);
+    Phys_Vec3ToNitrousVec(axis[1], &outMat->y);
+    Phys_Vec3ToNitrousVec(axis[2], &outMat->z);
+    outMat->w.x = origin[0];
+    outMat->w.y = origin[1];
+    outMat->w.z = origin[2];
 }
-#endif
 
 // aislop
 void CG_AdjustPositionForMover(
@@ -809,47 +704,67 @@ void CG_AdjustPositionForMover(
     float *out,
     float *outDeltaAngles)
 {
-    if (outDeltaAngles)
-        Vec3Clear(outDeltaAngles);
+    const centity_s *cent;
+    cg_s *cg;
+    int snapDelta;
+    float fracFrom;
+    float fracTo;
+    float moverPosFrom[3];
+    float moverPosTo[3];
+    float moverAngFrom[3];
+    float moverAngTo[3];
+    phys_mat44 matFrom;
+    phys_mat44 matTo;
+    phys_vec3 input;
+    phys_vec3 local;
+    phys_vec3 world;
 
-    if (moverNum <= 0 || moverNum >= 1022)
+    if ( outDeltaAngles )
     {
-        Vec3Copy(in, out);
+        outDeltaAngles[0] = 0.0f;
+        outDeltaAngles[1] = 0.0f;
+        outDeltaAngles[2] = 0.0f;
+    }
+
+    if ( (unsigned int)(moverNum - 1) > 0x3FCu
+        || (cent = CG_GetEntity(localClientNum, moverNum),
+            !ShouldAdjustPositionForMover(cent) && !vehicle_riding->current.enabled) )
+    {
+        out[0] = in[0];
+        out[1] = in[1];
+        out[2] = in[2];
         return;
     }
 
-    const centity_s *cent = CG_GetEntity(localClientNum, moverNum);
-    if (!cent || (!ShouldAdjustPositionForMover(cent) && !vehicle_riding->current.enabled))
+    cg = CG_GetLocalClientGlobals(localClientNum);
+    snapDelta = cg->nextSnap->serverTime - cg->snap->serverTime;
+
+    if ( snapDelta <= 0 )
     {
-        Vec3Copy(in, out);
-        return;
+        fracFrom = 0.0f;
+        fracTo = 0.0f;
+    }
+    else
+    {
+        fracFrom = (float)(fromTime - cg->snap->serverTime) / (float)snapDelta;
+        fracTo = (float)(toTime - cg->snap->serverTime) / (float)snapDelta;
     }
 
-    cg_s *cg = CG_GetLocalClientGlobals(localClientNum);
-
-    int snapDelta = cg->nextSnap->serverTime - cg->snap->serverTime;
-
-    float fracFrom = 0.0f;
-    float fracTo = 0.0f;
-
-    if (snapDelta > 0)
+    if ( cent->currentState.pos.trType == TR_INTERPOLATE )
     {
-        fracFrom = (float)(fromTime - cg->snap->serverTime) / snapDelta;
-        fracTo = (float)(toTime - cg->snap->serverTime) / snapDelta;
-    }
+        float p0[3];
+        float p1[3];
 
-    float moverPosFrom[3], moverPosTo[3];
-    float moverAngFrom[3], moverAngTo[3];
-
-    /* --- POSITION --- */
-    if (cent->currentState.pos.trType == TR_INTERPOLATE)
-    {
-        float p0[3], p1[3];
         BG_EvaluateTrajectory(&cent->currentState.pos, fromTime, p0);
         BG_EvaluateTrajectory(&cent->nextState.lerp.pos, toTime, p1);
 
-        Vec3Lerp(p0, p1, fracFrom, moverPosFrom);
-        Vec3Lerp(p0, p1, fracTo, moverPosTo);
+        moverPosFrom[0] = (p1[0] - p0[0]) * fracFrom + p0[0];
+        moverPosFrom[1] = (p1[1] - p0[1]) * fracFrom + p0[1];
+        moverPosFrom[2] = (p1[2] - p0[2]) * fracFrom + p0[2];
+
+        moverPosTo[0] = (p1[0] - p0[0]) * fracTo + p0[0];
+        moverPosTo[1] = (p1[1] - p0[1]) * fracTo + p0[1];
+        moverPosTo[2] = (p1[2] - p0[2]) * fracTo + p0[2];
     }
     else
     {
@@ -857,10 +772,11 @@ void CG_AdjustPositionForMover(
         BG_EvaluateTrajectory(&cent->currentState.pos, toTime, moverPosTo);
     }
 
-    /* --- ANGLES --- */
-    if (cent->currentState.apos.trType == TR_INTERPOLATE)
+    if ( cent->currentState.apos.trType == TR_INTERPOLATE )
     {
-        float a0[3], a1[3];
+        float a0[3];
+        float a1[3];
+
         BG_EvaluateTrajectory(&cent->currentState.apos, fromTime, a0);
         BG_EvaluateTrajectory(&cent->nextState.lerp.apos, toTime, a1);
 
@@ -873,35 +789,15 @@ void CG_AdjustPositionForMover(
         BG_EvaluateTrajectory(&cent->currentState.apos, toTime, moverAngTo);
     }
 
-    /* --- Build physics transforms --- */
-    phys_mat44 matFrom, matTo;
-    phys_vec3 originFrom, originTo, input;
-
-    float axis[3][3];
-
-    AnglesToAxis(moverAngFrom, axis);
-    Phys_AxisToNitrousMat(axis, &matFrom);
-    Phys_Vec3ToNitrousVec(moverPosFrom, &originFrom);
-
-    AnglesToAxis(moverAngTo, axis);
-    Phys_AxisToNitrousMat(axis, &matTo);
-    Phys_Vec3ToNitrousVec(moverPosTo, &originTo);
+    Phys_AnglesToMat44(moverAngFrom, moverPosFrom, &matFrom);
+    Phys_AnglesToMat44(moverAngTo, moverPosTo, &matTo);
 
     Phys_Vec3ToNitrousVec(in, &input);
-
-    /* --- Transform point from old mover space to new --- */
-    phys_vec3 local = input - originFrom;
-    phys_vec3 localInv;
-    phys_inv_multiply(&localInv, &matFrom, &local);
-
-    phys_vec3 world;
-    phys_multiply(&world, &matTo, &localInv);
-    world += originTo;
-
+    phys_full_inv_multiply(&local, &matFrom, &input);
+    phys_full_multiply(&world, &matTo, &local);
     Phys_NitrousVecToVec3(&world, out);
 
-    /* --- Delta angles --- */
-    if (outDeltaAngles)
+    if ( outDeltaAngles )
     {
         outDeltaAngles[0] = moverAngTo[0] - moverAngFrom[0];
         outDeltaAngles[1] = moverAngTo[1] - moverAngFrom[1];

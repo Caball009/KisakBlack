@@ -4,6 +4,19 @@
 #include <tl/tl_system.h>
 #include "phys_gjk_sep_dir.h"
 
+// LWSS: For this file, x87 should be turned on. 
+// Why? Well it has more bits of precision in the floats
+// (Honestly it should probably be turned on for the entire project)
+// `mp_array`, I was having endless (endless, and not sometimes!) gjk warnings about max iterations. This seems to have fixed it.
+// Could also be fixed with more iterations, but that's a hack.
+#if !defined(_M_IX86_FP) || _M_IX86_FP != 0
+// to turn on x87: Edit the vcxproj 
+// <ClCompile Include="src\physics\phys_gjk.cpp">
+// <EnableEnhancedInstructionSet Condition = "'$(Platform)'=='Win32'" > NoExtensions< / EnableEnhancedInstructionSet>
+// < / ClCompile>
+#error "phys_gjk.cpp expects x87 floats"
+#endif
+
 const float SEP_CONV_THRESH = 0.001f;
 const float CONV_THRESH = 0.001f;
 int MAX_CC_RESET_ITERS = 5;

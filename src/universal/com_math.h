@@ -251,6 +251,7 @@ void __cdecl colorSaturationMatrix(float (*finalMatrix)[4], float saturation);
 void __cdecl AxisCopy(const float (*in)[3], float (*out)[3]);
 
 float __cdecl Vec2Length(const float *v);
+float Vec2LengthSq(const float *v);
 void __cdecl Vec2NormalizeFast(float *v);
 
 float __cdecl Vec3Length(const vec3r v);

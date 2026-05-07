@@ -235,8 +235,6 @@ void __cdecl PM_playerTrace(
                 int contentMask)
 {
     unsigned __int16 EntityHitId; // ax
-    moveclip_t clip; // [esp+78h] [ebp-90h] BYREF
-    col_context_t context; // [esp+DCh] [ebp-2Ch] BYREF
     const gjkcc_input_t *gjkcc_in; // [esp+104h] [ebp-4h]
     int savedregs; // [esp+108h] [ebp+0h] BYREF
 
@@ -244,16 +242,35 @@ void __cdecl PM_playerTrace(
     {
         gjkcc_in = pm->m_gjkcc_input;
         gjk_player_trace(gjkcc_in, results, start, mins, maxs, end, passEntityNum, contentMask);
-        goto LABEL_9;
+
+        if (results->fraction > 0.0)
+        {
+            moveclip_t clip; // [esp+78h] [ebp-90h] BYREF
+
+            //TraceExtents::TraceExtents(&clip.extents);
+            clip.extents.start.vec.v[0] = start[0];
+            clip.extents.start.vec.v[1] = start[1];
+            clip.extents.start.vec.v[2] = start[2];
+            clip.extents.end.vec.v[0] = end[0];
+            clip.extents.end.vec.v[1] = end[1];
+            clip.extents.end.vec.v[2] = end[2];
+            clip.mins[0] = mins[0];
+            clip.mins[1] = mins[1];
+            clip.mins[2] = mins[2];
+            clip.maxs[0] = maxs[0];
+            clip.maxs[1] = maxs[1];
+            clip.maxs[2] = maxs[2];
+            clip.contentmask = contentMask;
+            GlassSv_ClipMoveTrace(&clip, results);
+        }
+
+        return;
     }
+
+    col_context_t context; // [esp+DCh] [ebp-2Ch] BYREF
+
     //col_context_t::col_context_t(&context);
-    //colgeom_visitor_inlined_t<200>::update(
-    pm->proximity_data.update(
-    start,
-    end,
-    mins,
-    maxs,
-    MASK_PLAYER_FULL);
+    pm->proximity_data.update(start, end, mins, maxs, MASK_PLAYER_FULL);
 
     iassert((MASK_PLAYER_FULL & contentMask) == contentMask);
 
@@ -266,18 +283,22 @@ void __cdecl PM_playerTrace(
         PM_AddTouchEnt(pm, EntityHitId);
         pm->tracemask &= 0xFDFF7FFF;
         pmoveHandlers[pm->handler].trace(results, start, mins, maxs, end, passEntityNum, contentMask & 0xFDFF7FFF, &context);
-LABEL_9:
+
         if ( results->fraction > 0.0 )
         {
+            moveclip_t clip; // [esp+78h] [ebp-90h] BYREF
+
             //TraceExtents::TraceExtents(&clip.extents);
-            *(_QWORD *)clip.extents.start.vec.v = *(_QWORD *)start;
+            clip.extents.start.vec.v[0] = start[0];
+            clip.extents.start.vec.v[1] = start[1];
             clip.extents.start.vec.v[2] = start[2];
-            *(_QWORD *)clip.extents.end.vec.v = *(_QWORD *)end;
+            clip.extents.end.vec.v[0] = end[0];
+            clip.extents.end.vec.v[1] = end[1];
             clip.extents.end.vec.v[2] = end[2];
-            clip.mins[0] = *mins;
+            clip.mins[0] = mins[0];
             clip.mins[1] = mins[1];
             clip.mins[2] = mins[2];
-            clip.maxs[0] = *maxs;
+            clip.maxs[0] = maxs[0];
             clip.maxs[1] = maxs[1];
             clip.maxs[2] = maxs[2];
             clip.contentmask = contentMask;
@@ -343,40 +364,46 @@ void __cdecl PM_AddTouchGlass(pmove_t *pm, unsigned int glassId)
 
 void __cdecl PM_ClipVelocity(const float *in, const float *normal, float *out)
 {
-    float v3; // xmm2_4
-    float v4; // [esp+0h] [ebp-8h]
+    float scale; // [esp+0h] [ebp-14h]
+    float parallel; // [esp+10h] [ebp-4h]
 
-    v3 = (float)((float)(*in * *normal) + (float)(in[1] * normal[1])) + (float)(in[2] * normal[2]);
-    v4 = -(v3 - (float)(fabs(v3) * 0.001));
-    *out = (float)(v4 * *normal) + *in;
-    out[1] = (float)(v4 * normal[1]) + in[1];
-    out[2] = (float)(v4 * normal[2]) + in[2];
+    parallel = Vec3Dot(in, normal);
+    parallel = parallel - I_fabs(parallel) * EQUAL_EPSILON;
+    scale = -parallel;
+    Vec3Mad(in, scale, normal, out);
 }
 
 void __cdecl PM_ProjectVelocity(const float *velIn, const float *normal, float *velOut)
 {
-    float lengthSq2D; // [esp+Ch] [ebp-20h]
-    float adjusted_4; // [esp+14h] [ebp-18h]
-    float newZ; // [esp+20h] [ebp-Ch]
-    float lengthScale; // [esp+24h] [ebp-8h]
+    float lengthSq2D; // [esp+24h] [ebp-20h]
+    float adjusted[3]; // [esp+28h] [ebp-1Ch] BYREF
+    float adjustedLengthSq; // [esp+34h] [ebp-10h]
+    float newZ; // [esp+38h] [ebp-Ch]
+    float lengthScale; // [esp+3Ch] [ebp-8h]
+    float originalLengthSq; // [esp+40h] [ebp-4h]
 
-    lengthSq2D = (float)(*velIn * *velIn) + (float)(velIn[1] * velIn[1]);
-    if ( fabs((unsigned int)normal[2]) < 0.001 || lengthSq2D == 0.0 )
+    lengthSq2D = Vec2LengthSq(velIn);
+
+    if (I_fabs(normal[2]) < EQUAL_EPSILON || lengthSq2D == 0.0)
     {
-        *velOut = *velIn;
+        velOut[0] = velIn[0];
         velOut[1] = velIn[1];
         velOut[2] = velIn[2];
     }
     else
     {
-        newZ = (-((float)(*velIn * *normal) + (float)(velIn[1] * normal[1]))) / normal[2];
-        adjusted_4 = velIn[1];
-        lengthScale = sqrtf((float)((float)(velIn[2] * velIn[2]) + lengthSq2D) / (float)((float)(newZ * newZ) + lengthSq2D));
-        if ( lengthScale < 1.0 || newZ < 0.0 || velIn[2] > 0.0 )
+        newZ = -(normal[1] * velIn[1] + normal[0] * velIn[0]) / normal[2];
+
+        adjusted[0] = velIn[0];
+        adjusted[1] = velIn[1];
+        adjusted[2] = newZ;
+
+        originalLengthSq = velIn[2] * velIn[2] + lengthSq2D;
+        adjustedLengthSq = newZ * newZ + lengthSq2D;
+        lengthScale = sqrt(originalLengthSq / adjustedLengthSq);
+        if (lengthScale < 1.0 || newZ < 0.0 || velIn[2] > 0.0)
         {
-            *velOut = lengthScale * *velIn;
-            velOut[1] = lengthScale * adjusted_4;
-            velOut[2] = lengthScale * newZ;
+            Vec3Scale(adjusted, lengthScale, velOut);
         }
     }
 }
