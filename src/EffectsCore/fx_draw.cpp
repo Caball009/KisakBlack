@@ -1325,7 +1325,7 @@ void __cdecl FX_BeginIteratingOverEffects_Cooperative(FxSystem *system)
     }
     do
     {
-        if ( system->shared->iteratorCount < 0 )
+        if ( (volatile int)system->shared->iteratorCount < 0 )
             iteratorCount = 0;
         else
             iteratorCount = system->shared->iteratorCount;
