@@ -1877,7 +1877,7 @@ void __cdecl jqFlush(jqBatchGroup *GroupID, unsigned __int64 batchCount)
         p_group = &jqPool.group;
     }
 
-    if (((unsigned __int8)p_group & 7) != 0
+    if (((uintptr_t)p_group & 7) != 0
         && _tlAssert(
             "c:\\projects_pc\\cod\\codsrc\\tl\\jobqueue\\xenon/jobqueue_xenon.cpp",
             140,

@@ -671,7 +671,7 @@ void __cdecl SV_SetConfigDvar(const dvar_s *dvar, int *userData)
     }
 }
 
-char *__cdecl Dvar_InfoString(int localClientNum, char bit)
+char *__cdecl Dvar_InfoString(int localClientNum, int bit)
 {
     const char *Username; // eax
     unsigned __int64 v3; // rax

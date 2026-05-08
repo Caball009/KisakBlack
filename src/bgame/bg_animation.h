@@ -386,7 +386,7 @@ void __cdecl BG_SwingAngles(
                 float speed,
                 float *angle,
                 int *swinging);
-void __cdecl BG_AnimPlayerConditions(const entityState_s *es);
+void __cdecl BG_AnimPlayerConditions(const entityState_s *es, const clientInfo_t *ci);
 void __cdecl BG_UpdatePlayerDObj(
                 int localClientNum,
                 DObj *pDObj,

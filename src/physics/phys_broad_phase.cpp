@@ -999,7 +999,7 @@ void broad_phase_process_object_environment_collision(bpi_environment_collision_
 
     phys_transient_allocator transient_buffer;
     m_bpb_i_start = eci->m_bpb_i_start;
-    bpb_ptr_list = (broad_phase_base **)transient_buffer.allocate(4 * eci->m_bpb_count, 4, 0, "phys_transient_allocator out of memory.");
+    bpb_ptr_list = (broad_phase_base **)transient_buffer.allocate(sizeof(broad_phase_base *) * eci->m_bpb_count, 4, 0, "phys_transient_allocator out of memory.");
     bpb_ptr_cur = bpb_ptr_list;
 
     for (broad_phase_base *bpb = eci->m_bpb_i_start; bpb != eci->m_bpb_i_end; bpb = bpb->m_list_bpb_next)
@@ -1453,7 +1453,7 @@ LABEL_75:
         // Allocate a cluster entry from the transient buffer (80 bytes, 16-byte aligned)
         transient_allocator_update_largest_size();
 
-        broad_phase_base *entry = (broad_phase_base *)transient_buffer.allocate(80, 16, 0, "phys_transient_allocator out of memory.");
+        broad_phase_base *entry = (broad_phase_base *)transient_buffer.allocate(sizeof(broad_phase_base), 16, 0, "phys_transient_allocator out of memory.");
 
         // Link into cluster list
         entry->m_list_bpb_next = bpb_cluster_list;

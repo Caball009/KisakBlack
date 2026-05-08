@@ -213,6 +213,7 @@ struct __declspec(align(4)) GfxDrawSurfListInfo // sizeof=0x50
     // padding byte
     // padding byte
 };
+static_assert(alignof(GfxDrawSurfListInfo) >= 8);
 
 struct PointLightPartition // sizeof=0x1C0
 {                                       // XREF: GfxViewInfo/r

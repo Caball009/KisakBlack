@@ -40,7 +40,7 @@ void __cdecl Com_DvarDumpSingle(const dvar_s *dvar, void *userData);
 void __cdecl Dvar_Dump_f();
 void __cdecl SV_SetConfig(int start, int max, int bit);
 void __cdecl SV_SetConfigDvar(const dvar_s *dvar, int *userData);
-char *__cdecl Dvar_InfoString(int localClientNum, char bit);
+char *__cdecl Dvar_InfoString(int localClientNum, int bit);
 void __cdecl Dvar_InfoStringSingle(const dvar_s *dvar, unsigned int *userData);
 char *__cdecl Dvar_InfoString_Big(int bit);
 void __cdecl Dvar_InfoStringSingle_Big(const dvar_s *dvar, unsigned int *userData);

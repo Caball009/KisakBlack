@@ -73,7 +73,7 @@ void __cdecl jpegDest(jpeg_common_struct *cinfo, unsigned __int8 *outfile, int s
         cinfo[1].err = (jpeg_error_mgr *)cinfo->mem->alloc_small(cinfo, 0, 28);
     dest = (my_destination_mgr *)cinfo[1].err;
     dest->pub.init_destination = init_destination;
-    dest->pub.empty_output_buffer = (unsigned __int8 (__cdecl *)(jpeg_compress_struct *))Flame_GetLocalClientSourceRange;
+    dest->pub.empty_output_buffer = (jpeg_boolean (__cdecl *)(jpeg_compress_struct *))Flame_GetLocalClientSourceRange;
     dest->pub.term_destination = term_destination;
     dest->outfile = (FILE*)outfile;
     dest->size = size;

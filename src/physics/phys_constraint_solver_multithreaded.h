@@ -6,6 +6,19 @@
 
 class contact_point_info;
 
+struct constraint_solver_task_input // sizeof=0x20
+{
+    rigid_body **m_list_island;
+    int m_list_island_count;
+    int *m_list_island_cur;
+    // LWSS: These two fields are un-used and probably leftover from a previous version. Can save some bytes in the transient allocator by removing them (alignment=4)
+    //int m_psys_psc_visit_counter;
+    //int m_psys_next_psc_visit_counter;
+    int m_psys_max_vel_iters;
+    int m_psys_max_vel_pos_iters;
+    float m_outside_delta_t;
+};
+
 struct pulse_sum_node : phys_link_list_base<pulse_sum_node> // sizeof=0x80
 {
     // padding byte

@@ -131,7 +131,7 @@ enum jqWorkerType : __int32
     JQ_WORKER_DEFAULT = 0x0,
 };
 
-struct jqBatchGroup // sizeof=0x8
+struct alignas(8) jqBatchGroup // sizeof=0x8
 {                                       // XREF: jqModule/r
                                         // GfxDrawSurfListInfo/r
     //$F761E618955D9ED935731AE37AFEF266 ___u0;
@@ -149,6 +149,7 @@ struct jqBatchGroup // sizeof=0x8
 
     jqBatchGroup();
 };
+static_assert(alignof(jqBatchGroup) == 8, "jqBatchGroup must be 8-byte aligned for atomic 64-bit reads");
 
 struct jqModule // sizeof=0x18
 {                                       // XREF: .data:jqModule bp_env_jq_module1Module/r
@@ -409,6 +410,7 @@ struct jqBatchPool // sizeof=0x180
 
     ~jqBatchPool();
 };
+static_assert(offsetof(jqBatchPool, group) % 8 == 0, "jqPool.group must be 8-byte aligned");
 
 
 unsigned int __cdecl tlAtomicAdd(volatile unsigned __int32 *var, unsigned int value);

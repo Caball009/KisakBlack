@@ -1,19 +1,21 @@
 #pragma once
 
 #define XMD_H 1
+
+// Include hell!
+#include <Windows.h>
+#define boolean jpeg_boolean
 #define HAVE_BOOLEAN 1
+typedef int jpeg_boolean;
 
 #define EXTERN(type) extern type
 #define JPP(arglist) arglist
 
-#include <Windows.h>
 #include <cstdio>
 #include <cstdint>
-extern "C"
-{
+extern "C" {
 #include <mjpeg/mjpeg.h>
 #include <jpeg/jpeglib.h>
-
 }
 
 #include <d3d9.h>

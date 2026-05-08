@@ -17,6 +17,7 @@
 #else
 
 #define PROF_SCOPED(name) // Disable Profiling without Tracy
+#define PROF_SCOPED_RUNTIME_NAME(name)
 #define PROFLOAD_SCOPED(name) PROF_SCOPED(name)
 #define ZoneText(str, len)
 #define ZoneTextF(fmt, ...)

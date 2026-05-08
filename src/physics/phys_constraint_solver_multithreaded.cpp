@@ -1768,30 +1768,26 @@ void __cdecl constraint_solver_process(
 {
     rigid_body **m_list_island; // ebx
     int m_list_island_count; // edi
-    float *v5; // eax
+    constraint_solver_task_input *input; // eax
     int m_max_vel_pos_iters; // edx
 
     m_list_island = psys->m_list_island;
     m_list_island_count = psys->m_list_island_count;
-    if ( m_list_island_count > 0 )
+    if (m_list_island_count > 0)
     {
         g_list_island_cur = 0;
-        //v5 = (float *)phys_transient_allocator::allocate(
-        v5 = (float *)transient_buffer->allocate(
-                                        32,
-                                        4,
-                                        0,
-                                        "phys_transient_allocator out of memory.");
-        *(unsigned int *)v5 = (unsigned int)m_list_island;
-        *((unsigned int *)v5 + 1) = m_list_island_count;
-        *((unsigned int *)v5 + 2) = (unsigned int)&g_list_island_cur;
-        v5[5] = *(float *)&psys->m_max_vel_iters;
+        input = (constraint_solver_task_input *)transient_buffer->allocate(sizeof(constraint_solver_task_input), 4, 0, "phys_transient_allocator out of memory.");
+        input->m_list_island = m_list_island;
+        input->m_list_island_count = m_list_island_count;
+        input->m_list_island_cur = &g_list_island_cur;
+        input->m_psys_max_vel_iters = psys->m_max_vel_iters;
         m_max_vel_pos_iters = psys->m_max_vel_pos_iters;
-        v5[7] = outside_delta_t;
-        *((unsigned int *)v5 + 6) = m_max_vel_pos_iters;
-        phys_task_manager_process(&phys_jq_constraint_solverModule, v5, m_list_island_count);
+        input->m_outside_delta_t = outside_delta_t;
+        input->m_psys_max_vel_pos_iters = m_max_vel_pos_iters;
+        phys_task_manager_process(&phys_jq_constraint_solverModule, input, m_list_island_count);
     }
-    if ( phys_task_manager_needs_flush() )
+
+    if (phys_task_manager_needs_flush())
         phys_task_manager_flush();
 }
 
@@ -1901,42 +1897,21 @@ void __thiscall pulse_sum_constraint_solver::add_urb(
 
 int __cdecl phys_jq_constraint_solver_batch_function(jqBatch *pBatch)
 {
-    void *Input; // esi
-    int v2; // eax
-    int v3; // ecx
-    volatile unsigned __int32 *v4; // ecx
-    signed __int32 i; // eax
-    int v8; // [esp+94h] [ebp-4h]
+    constraint_solver_task_input *Input = (constraint_solver_task_input *)pBatch->Input;
 
-    Input = pBatch->Input;
+    pulse_sum_constraint_solver solver;
+    solver.m_outside_delta_t = Input->m_outside_delta_t;
+    solver.m_psys_max_vel_pos_iters = Input->m_psys_max_vel_pos_iters;
+    solver.m_psys_max_vel_iters = Input->m_psys_max_vel_iters;
+    solver.m_memory_high_water = 0;
 
-    pulse_sum_constraint_solver v7; // [esp+8h] [ebp-90h] BYREF
-    //pulse_sum_constraint_solver::pulse_sum_constraint_solver(&v7);
-    v2 = *((unsigned int *)Input + 6);
-    v3 = *((unsigned int *)Input + 5);
-    v7.m_outside_delta_t = *((float *)Input + 7);
-    v7.m_psys_max_vel_pos_iters = v2;
-    v7.m_psys_max_vel_iters = v3;
-    v7.m_memory_high_water = 0;
-    v4 = (volatile unsigned __int32 *)*((unsigned int *)Input + 2);
-    v8 = 0;
-    for ( i = _InterlockedExchangeAdd(v4, 1u);
-                i < *((unsigned int *)Input + 1);
-                i = _InterlockedExchangeAdd(*((volatile unsigned __int32 **)Input + 2), 1u) )
+    for (int i = _InterlockedExchangeAdd((volatile unsigned __int32 *)Input->m_list_island_cur, 1u);
+        i < Input->m_list_island_count;
+        i = _InterlockedExchangeAdd((volatile unsigned __int32 *)Input->m_list_island_cur, 1u))
     {
-        //pulse_sum_constraint_solver::execute_constraint_solver(&v7, *(rigid_body *const *)(*(unsigned int *)Input + 4 * i));
-        v7.execute_constraint_solver(*(rigid_body *const *)(*(unsigned int *)Input + 4 * i));
+        solver.execute_constraint_solver(Input->m_list_island[i]);
     }
-    v8 = -1;
-    if ( v7.m_solver_memory_allocator.m_first_block
-        && _tlAssert(
-                 "C:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_transient_allocator.h",
-                 69,
-                 "m_first_block == NULL",
-                 "") )
-    {
-        __debugbreak();
-    }
+
     return 0;
 }
 

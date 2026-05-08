@@ -876,16 +876,16 @@ bool __cdecl Live_IsSignedInToLive()
 
 unsigned long long __cdecl Live_GetXuid(int controllerIndex)
 {
-    if ( !Live_IsSignedIn(controllerIndex)
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_win.cpp",
-                    2972,
-                    0,
-                    "%s",
-                    "Live_IsSignedIn( controllerIndex )") )
-    {
-        __debugbreak();
-    }
+    //if ( !Live_IsSignedIn(controllerIndex)
+    //    && !Assert_MyHandler(
+    //                "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_win.cpp",
+    //                2972,
+    //                0,
+    //                "%s",
+    //                "Live_IsSignedIn( controllerIndex )") )
+    //{
+    //    __debugbreak();
+    //}
     return xenonUserData[controllerIndex].xuid;
 }
 

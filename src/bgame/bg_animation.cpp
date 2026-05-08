@@ -2418,13 +2418,10 @@ void __cdecl BG_LerpAngles(float *angles_goal, float maxAngleChange, float *angl
 
 void __cdecl BG_PlayerAnimation(int localClientNum, const entityState_s *es, clientInfo_t *ci)
 {
-    XAnimTree_s *pAnimTree; // [esp+0h] [ebp-4h]
-
     BG_PlayerAngles(es, ci);
-    BG_AnimPlayerConditions(es);
-    pAnimTree = ci->pXAnimTree;
-    BG_PlayerAnimation_VerifyAnim(pAnimTree, &ci->legs);
-    BG_PlayerAnimation_VerifyAnim(pAnimTree, &ci->torso);
+    BG_AnimPlayerConditions(es, ci);
+    BG_PlayerAnimation_VerifyAnim(ci->pXAnimTree, &ci->legs);
+    BG_PlayerAnimation_VerifyAnim(ci->pXAnimTree, &ci->torso);
     if ( ci->leftHandGun && (ci->torso.animationNumber & 0xFFFFFBFF) == 0 )
     {
         ci->leftHandGun = 0;
@@ -3140,12 +3137,10 @@ void __cdecl BG_SwingAngles(
     }
 }
 
-void __cdecl BG_AnimPlayerConditions(const entityState_s *es)
+void __cdecl BG_AnimPlayerConditions(const entityState_s *es, const clientInfo_t *ci)
 {
-    int i; // [esp+0h] [ebp-4h]
-
-    for ( i = 0; i < 23; ++i )
-        ((void (__cdecl *)(const entityState_s *))clientConditionUpdateFunc[i])(es);
+    for ( int i = 0; i < ARRAY_COUNT(clientConditionUpdateFunc); ++i )
+        clientConditionUpdateFunc[i](es, ci);
 }
 
 void __cdecl BG_UpdatePlayerDObj(
