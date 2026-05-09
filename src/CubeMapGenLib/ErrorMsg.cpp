@@ -22,7 +22,7 @@ void (*sg_MessageOutputCallback)(WCHAR *, WCHAR *) = DefaultErrorMessageCallback
 //--------------------------------------------------------------------------------------
 void DefaultErrorMessageCallback(WCHAR *a_Title, WCHAR *a_Message )
 {
-   MessageBox(NULL, a_Message, a_Title, MB_OK);
+   MessageBoxW(NULL, a_Message, a_Title, MB_OK);
 }
 
 
@@ -49,7 +49,7 @@ void OutputMessageString(WCHAR *a_Title, WCHAR *a_Message )
    switch(sg_MessageType)
    {
       case EM_MESSAGE_MEDIUM_MESSAGEBOX:
-         MessageBox(NULL, a_Message, a_Title, MB_OK);
+         MessageBoxW(NULL, a_Message, a_Title, MB_OK);
       break;
       case EM_MESSAGE_MEDIUM_CALLBACK_FUNCTION:
          sg_MessageOutputCallback(a_Title, a_Message);
@@ -90,7 +90,7 @@ bool OutputQuestion( WCHAR *a_Message, ... )
    switch( sg_MessageType )
    {
       case EM_MESSAGE_MEDIUM_MESSAGEBOX:
-         return MessageBox( NULL, msgBuffer, L"Question:", MB_YESNO ) == IDYES;
+         return MessageBoxW( NULL, msgBuffer, L"Question:", MB_YESNO ) == IDYES;
       break;
       case EM_MESSAGE_MEDIUM_CALLBACK_FUNCTION:
          sg_MessageOutputCallback( (wchar_t*)L"Question:", msgBuffer );

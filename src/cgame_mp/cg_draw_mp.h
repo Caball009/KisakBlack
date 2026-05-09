@@ -1,5 +1,6 @@
 #pragma once
 #include <qcommon/msg_mp.h>
+#include <cgame/cg_local.h>
 
 struct CenterPrint // sizeof=0x408
 {                                       // XREF: .data:s_centerPrint/r
@@ -15,6 +16,7 @@ struct ScreenBurn // sizeof=0xC
     int endTime;
     int localClientNum;
 };
+
 
 struct clientInfo_t;
 struct rectDef_s;
